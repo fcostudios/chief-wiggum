@@ -37,20 +37,18 @@
 | CHI-18: Conversation View | **Done** | Markdown/code rendering (marked + highlight.js), message bubbles, auto-scroll |
 | CHI-21: Terminal Mode | **Done** | xterm.js v5 + WebGL addon, SPEC-002 themed, Cmd+` toggle |
 | CHI-26: YOLO Mode | **Done** | Auto-approve permissions, warning dialog, TitleBar/StatusBar indicators, Cmd+Shift+Y |
+| CHI-22: Session Persistence | **Done** | IPC commands module, session CRUD, sidebar navigation, conversationStore rewrite |
+| CHI-20: Model Selector | **Done** | ModelSelector dropdown, Cmd+M cycling, TitleBar integration |
+| CHI-24: Cross-Platform Packaging | **Done** | Bundle metadata, release workflow (.dmg, .msi, .AppImage) |
 
-## What's Next (Pick from here)
+## Phase 1 Status
 
-**Epic CHI-5: Core Scaffolding** — **Complete.** All tasks done.
+**Phase 1: Foundation is COMPLETE.** All 3 epics done:
+- **CHI-5: Core Scaffolding** — 5/5 tasks
+- **CHI-6: CLI Bridge** — 4/4 tasks
+- **CHI-7: Basic UI** — 9/9 tasks
 
-**Epic CHI-7: Basic UI** — In progress. 6 of 9 tasks done.
-
-| Task | Priority | Dependencies | What to build |
-|------|----------|--------------|---------------|
-| CHI-20 | P1 | ~~CHI-17~~, ~~CHI-13~~ | Model selector (Opus/Sonnet/Haiku) |
-| CHI-22 | P0 | ~~CHI-11~~, ~~CHI-17~~, ~~CHI-18~~ | Session persistence and sidebar navigation |
-| CHI-24 | P1 | ~~CHI-10~~ | Cross-platform packaging (.dmg, .msi, .AppImage) |
-
-See `docs/tasks/TASKS-001-phase1-foundation.md` for full dependency graph and execution order.
+See `docs/tasks/TASKS-001-phase1-foundation.md` for full task list.
 
 ---
 
@@ -114,7 +112,9 @@ src-tauri/
     ├── capabilities/
     │   └── default.json        # Tauri v2 permissions (core, shell)
     ├── icons/                  # App icons (.icns, .ico, .png)
-    ├── commands/               # Tauri IPC command handlers (TODO)
+    ├── commands/               # Tauri IPC command handlers (DONE — CHI-22)
+    │   ├── mod.rs              # Module root
+    │   └── session.rs          # 8 session/message IPC commands
     ├── db/                     # SQLite database layer (DONE)
     │   ├── mod.rs              # Module root, re-exports Database
     │   ├── connection.rs       # Database struct, Mutex<Connection>, WAL mode
@@ -130,6 +130,7 @@ tsconfig.json                   # TypeScript strict, JSX preserve, @/ path alias
 eslint.config.js                # ESLint flat config with solid + typescript plugins
 .gitignore                      # Rust + Node + Tauri patterns
 .github/workflows/ci.yml       # CI/CD pipeline (DONE — CHI-10)
+.github/workflows/release.yml  # Release workflow (DONE — CHI-24)
 
 src/                            # SolidJS frontend
 ├── index.tsx                   # SolidJS render entry point
@@ -138,9 +139,11 @@ src/                            # SolidJS frontend
 │   ├── layout/                 # 5-zone layout (DONE — CHI-17)
 │   │   ├── MainLayout.tsx      # Layout orchestrator, view tabs, panel transitions
 │   │   ├── TitleBar.tsx        # Custom title bar with window controls
-│   │   ├── Sidebar.tsx         # Left panel (sessions list)
+│   │   ├── Sidebar.tsx         # Left panel (real session list, CRUD)
 │   │   ├── StatusBar.tsx       # Bottom bar (status, tokens, cost)
 │   │   └── DetailsPanel.tsx    # Right panel (context, cost sections)
+│   ├── common/                 # Shared UI components (DONE — CHI-20)
+│   │   └── ModelSelector.tsx   # Model dropdown (Sonnet/Opus/Haiku)
 │   ├── conversation/           # Conversation UI (DONE — CHI-18, CHI-19)
 │   │   ├── ConversationView.tsx # Message list, auto-scroll, empty state
 │   │   ├── MessageBubble.tsx   # Role labels, model badges, markdown content
@@ -153,7 +156,8 @@ src/                            # SolidJS frontend
 │       └── YoloWarningDialog.tsx # YOLO mode confirmation warning
 ├── stores/
 │   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo)
-│   └── conversationStore.ts    # Conversation state (messages, loading, send)
+│   ├── sessionStore.ts         # Session state (CRUD, model cycling, active session)
+│   └── conversationStore.ts    # Conversation state (messages, loading, send, persistence)
 ├── lib/
 │   ├── types.ts                # TypeScript IPC types (Message, PermissionRequest, etc.)
 │   └── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+`, Cmd+Shift+Y)

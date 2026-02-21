@@ -319,10 +319,37 @@ Chief Wiggum inherits Claude Code's permission system and adds a visual layer.
 **Permission modes:**
 - **Strict**: Approve every file write and bash command (default for new users)
 - **Standard**: Approve bash commands, auto-allow file writes in project directory
-- **Autonomous**: Auto-approve everything (equivalent to Codex "never"/yolo)
+- **YOLO Mode** ⚡: Auto-approve ALL permission requests instantly (see below)
 - **Custom**: Granular rules with wildcard patterns (e.g., `Bash(*test*)` auto-allowed)
 
-**Visual permission dialogs**: Rich dialog showing exact command/operation, file path with syntax-highlighted preview, estimated risk level (safe/caution/dangerous), "always allow this pattern" option.
+### 7.1 YOLO Mode
+
+YOLO Mode is the "Autonomous" permission mode — auto-approves every CLI permission request without showing dialogs. Named after the Claude Code community's colloquial term for `--dangerously-skip-permissions`. The deliberately irreverent name serves as a built-in warning: you're choosing speed over safety.
+
+**Activation:** Toolbar toggle (⚡ icon) or keyboard shortcut (`Ctrl+Shift+Y` / `Cmd+Shift+Y`).
+
+**Warning dialog (mandatory before activation):**
+A prominent confirmation dialog must appear explaining the risks:
+- "YOLO Mode auto-approves ALL permission requests — including file writes, deletions, and bash commands."
+- "The agent can modify and delete files, execute arbitrary commands, and make network requests without asking."
+- "Recommended only for: throwaway branches, sandboxed environments, or tasks you fully trust."
+- "You can exit YOLO Mode at any time with the same toggle, Escape, or Emergency Stop."
+
+User must click "Enable YOLO Mode" to confirm — not just a checkbox.
+
+**When active:**
+- All `permission:request` events auto-approved immediately (no dialog, no delay)
+- Toolbar shows pulsing ⚡ indicator with "YOLO" badge
+- Status bar shows "YOLO MODE" in `--color-warning-500`
+- Non-blocking toast for each auto-approved action: "✓ Auto-approved: `<command>`"
+
+**Safety rails:**
+- **Session-scoped**: Resets on new session or app restart. Never persists across sessions.
+- **Audit log**: Every auto-approved action logged to session history + SQLite with `[YOLO]` prefix.
+- **Emergency Stop**: Mouse movement or Escape immediately exits YOLO Mode.
+- **Visual prominence**: Impossible to forget it's on — pulsing indicator, status bar, toast stream.
+
+**Visual permission dialogs** (Standard/Strict modes): Rich dialog showing exact command/operation, file path with syntax-highlighted preview, estimated risk level (safe/caution/dangerous), "always allow this pattern" option.
 
 **Sandbox configuration**: GUI for directory access boundaries, network access controls, environment variable management.
 

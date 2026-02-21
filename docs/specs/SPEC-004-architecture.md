@@ -361,6 +361,11 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
      │ requests permission     │                           │
      │ (detected in output)    │                           │
      ├───────────────────────→ │                           │
+     │                         │ check YOLO mode           │
+     │                         │ [if YOLO: auto-approve,   │
+     │                         │  log with [YOLO] prefix,  │
+     │                         │  emit toast, skip dialog] │
+     │                         │                           │
      │                         │ check auto-allow rules    │
      │                         │                           │
      │                         │ [if not auto-allowed]     │
@@ -374,6 +379,13 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
      │                         │ [if always: save pattern] │
      │                         │                           │
 ```
+
+**YOLO Mode IPC:**
+
+| Event | Payload | Direction |
+|-------|---------|-----------|
+| `yolo_mode:changed` | `{ enabled: bool }` | Backend → Frontend |
+| `toggle_yolo_mode` | `{ enable: bool }` | Frontend → Backend (IPC command) |
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-21T16:10:00Z",
+  "last_updated": "2026-02-21T17:30:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 1: Foundation",
@@ -22,9 +22,10 @@
     },
     "CHI-7": {
       "title": "Basic UI",
-      "status": "in_progress",
+      "status": "done",
       "linear_id": "96c7647e-3ec3-4553-818e-d5358b8bc99d",
-      "notes": "CHI-17, CHI-18, CHI-19, CHI-21, CHI-23, CHI-26 done. Remaining: CHI-20, CHI-22, CHI-24."
+      "completed_at": "2026-02-21T17:30:00Z",
+      "notes": "All 9 tasks complete (CHI-17,18,19,20,21,22,23,24,26). Epic complete. Phase 1 Foundation done."
     }
   },
   "tasks": {
@@ -227,9 +228,20 @@
     "CHI-20": {
       "title": "Implement model selector (Opus/Sonnet/Haiku)",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P1",
-      "dependencies": ["CHI-17", "CHI-13"]
+      "dependencies": ["CHI-17", "CHI-13"],
+      "completed_at": "2026-02-21T17:15:00Z",
+      "files": [
+        "src-tauri/src/commands/session.rs",
+        "src-tauri/src/db/queries.rs",
+        "src/components/common/ModelSelector.tsx",
+        "src/components/layout/TitleBar.tsx",
+        "src/stores/sessionStore.ts",
+        "src/lib/keybindings.ts",
+        "src/lib/types.ts"
+      ],
+      "notes": "ModelSelector dropdown in TitleBar center. 3 models (Sonnet, Opus, Haiku) with colored dot badges. Cmd+M cycles models. update_session_model IPC command + DB query. Click-outside close. ARIA attributes. 64 Rust tests pass."
     },
     "CHI-21": {
       "title": "Integrate Terminal Mode with xterm.js + WebGL",
@@ -249,9 +261,24 @@
     "CHI-22": {
       "title": "Implement session persistence and sidebar navigation",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-11", "CHI-17", "CHI-18"]
+      "dependencies": ["CHI-11", "CHI-17", "CHI-18"],
+      "completed_at": "2026-02-21T17:00:00Z",
+      "files": [
+        "src-tauri/src/commands/mod.rs",
+        "src-tauri/src/commands/session.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/sessionStore.ts",
+        "src/stores/conversationStore.ts",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/lib/types.ts",
+        "tsconfig.json"
+      ],
+      "notes": "IPC commands module (8 commands via Tauri managed state). Session CRUD with DB persistence. Sidebar rewritten with real session list, model badges, relative time, delete. ConversationStore rewritten for session support. Auto-title from first message. 64 Rust tests pass."
     },
     "CHI-23": {
       "title": "Build permission dialog UI component",
@@ -270,9 +297,15 @@
     "CHI-24": {
       "title": "Configure cross-platform packaging (.dmg, .msi, .AppImage)",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P1",
-      "dependencies": ["CHI-10"]
+      "dependencies": ["CHI-10"],
+      "completed_at": "2026-02-21T17:20:00Z",
+      "files": [
+        "src-tauri/tauri.conf.json",
+        ".github/workflows/release.yml"
+      ],
+      "notes": "Bundle metadata in tauri.conf.json (category, descriptions, copyright, platform configs). Release workflow: tag-triggered, 3-platform matrix (macOS universal, Ubuntu, Windows), tauri-action@v0, draft releases with install instructions."
     },
     "CHI-25": {
       "title": "Initialize Git repository and push to GitHub",
@@ -304,8 +337,9 @@
       "notes": "YOLO Mode: PermissionManager yolo_mode with auto-approve path + 4 tests (59 total). YoloWarningDialog with mandatory confirmation. TitleBar Zap toggle + pulsing badge. StatusBar 'YOLO MODE' indicator. Cmd+Shift+Y shortcut. Session-scoped, resets on restart."
     }
   },
-  "recommended_next": ["CHI-22", "CHI-20", "CHI-24"],
+  "recommended_next": [],
   "warnings": [],
+  "notes": "Phase 1: Foundation is COMPLETE. All 3 epics done (CHI-5, CHI-6, CHI-7). 20 tasks total. Ready for Phase 2 planning.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -313,6 +347,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. SolidJS + TailwindCSS v4 frontend configured. SQLite database layer operational. 55 Rust tests pass. Frontend checks (typecheck, lint, format) all pass. CI/CD pipeline active on GitHub Actions. Codebase pushed to github.com/fcostudios/chief-wiggum."
+    "notes": "Full toolchain ready. 64 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. Codebase at github.com/fcostudios/chief-wiggum."
   }
 }
