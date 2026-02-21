@@ -11,10 +11,9 @@ use std::sync::Arc;
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use tokio::sync::{mpsc, watch, Mutex, RwLock};
 
-use crate::{AppError, AppResult};
+use super::parser::StreamParser;
 use super::BridgeOutput;
-use super::parser::{MessageChunk, StreamParser, BridgeEvent};
-use super::permission::PermissionRequest;
+use crate::{AppError, AppResult};
 
 /// PTY read buffer size per SPEC-004 §9.2: "reads PTY output in 4KB chunks"
 const PTY_BUFFER_SIZE: usize = 4096;
@@ -108,6 +107,7 @@ pub struct CliBridge {
     /// Watch channel to signal shutdown to background threads.
     shutdown_tx: watch::Sender<bool>,
     /// Configuration used to spawn this process.
+    #[allow(dead_code)]
     config: BridgeConfig,
 }
 
@@ -242,7 +242,7 @@ impl CliBridge {
         mut reader: Box<dyn Read + Send>,
         output_tx: mpsc::Sender<BridgeOutput>,
         status: Arc<RwLock<ProcessStatus>>,
-        mut shutdown_rx: watch::Receiver<bool>,
+        shutdown_rx: watch::Receiver<bool>,
     ) {
         let mut buffer = vec![0u8; PTY_BUFFER_SIZE];
         let mut parser = StreamParser::new();
@@ -283,12 +283,8 @@ impl CliBridge {
 
                     for event in events {
                         let output = match event {
-                            super::parser::ParsedOutput::Chunk(chunk) => {
-                                BridgeOutput::Chunk(chunk)
-                            }
-                            super::parser::ParsedOutput::Event(event) => {
-                                BridgeOutput::Event(event)
-                            }
+                            super::parser::ParsedOutput::Chunk(chunk) => BridgeOutput::Chunk(chunk),
+                            super::parser::ParsedOutput::Event(event) => BridgeOutput::Event(event),
                             super::parser::ParsedOutput::PermissionRequest(req) => {
                                 BridgeOutput::PermissionRequired(req)
                             }
@@ -325,14 +321,17 @@ impl CliBridge {
             }
         }
 
-        tracing::debug!("PTY reader thread exiting (total bytes read: {})", total_bytes);
+        tracing::debug!(
+            "PTY reader thread exiting (total bytes read: {})",
+            total_bytes
+        );
     }
 
     /// Background thread: writes user input to PTY stdin.
     fn pty_writer_loop(
         mut writer: Box<dyn Write + Send>,
         mut input_rx: mpsc::Receiver<String>,
-        mut shutdown_rx: watch::Receiver<bool>,
+        shutdown_rx: watch::Receiver<bool>,
     ) {
         loop {
             // Use blocking recv since we're on a dedicated OS thread
@@ -517,6 +516,7 @@ impl BridgeInterface for MockBridge {
 
 #[cfg(test)]
 mod tests {
+    use super::super::parser::MessageChunk;
     use super::*;
 
     #[tokio::test]

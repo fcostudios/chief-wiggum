@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ── Frontend checks ──────────────────────────────────────────
+  frontend:
+    name: Frontend (${{ matrix.check }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        check: [typecheck, lint, format]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: TypeScript type-check
+        if: matrix.check == 'typecheck'
+        run: npm run typecheck
+
+      - name: ESLint
+        if: matrix.check == 'lint'
+        run: npm run lint
+
+      - name: Prettier check
+        if: matrix.check == 'format'
+        run: npm run format:check
+
+  # ── Rust checks ──────────────────────────────────────────────
+  rust:
+    name: Rust (${{ matrix.check }}) / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        check: [test]
+        include:
+          - os: ubuntu-latest
+            check: fmt
+          - os: ubuntu-latest
+            check: clippy
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo fmt
+        if: matrix.check == 'fmt'
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy
+        if: matrix.check == 'clippy'
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: cargo test
+        if: matrix.check == 'test'
+        working-directory: src-tauri
+        run: cargo test
+
+  # ── Build verification ───────────────────────────────────────
+  build:
+    name: Build / ${{ matrix.os }}
+    needs: [frontend, rust]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --ci

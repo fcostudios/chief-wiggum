@@ -17,11 +17,10 @@ struct Migration {
 }
 
 /// All migrations in order. Forward-only — never remove entries.
-const MIGRATIONS: &[Migration] = &[
-    Migration {
-        version: 1,
-        description: "Initial schema — projects, sessions, messages, agents, cost_events, budgets",
-        sql: r#"
+const MIGRATIONS: &[Migration] = &[Migration {
+    version: 1,
+    description: "Initial schema — projects, sessions, messages, agents, cost_events, budgets",
+    sql: r#"
             CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -105,16 +104,13 @@ const MIGRATIONS: &[Migration] = &[
             CREATE INDEX IF NOT EXISTS idx_cost_events_session ON cost_events(session_id);
             CREATE INDEX IF NOT EXISTS idx_budgets_project ON budgets(project_id);
         "#,
-    },
-];
+}];
 
 impl super::Database {
     /// Run all pending migrations.
     /// Called automatically on Database::open().
     pub(crate) fn run_migrations(&self) -> Result<(), AppError> {
-        self.with_conn(|conn| {
-            run_migrations_on_conn(conn)
-        })
+        self.with_conn(run_migrations_on_conn)
     }
 }
 
@@ -126,15 +122,14 @@ fn run_migrations_on_conn(conn: &Connection) -> Result<(), rusqlite::Error> {
             version INTEGER PRIMARY KEY,
             description TEXT NOT NULL,
             applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );"
+        );",
     )?;
 
-    let current_version: i32 = conn
-        .query_row(
-            "SELECT COALESCE(MAX(version), 0) FROM schema_version",
-            [],
-            |row| row.get(0),
-        )?;
+    let current_version: i32 = conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_version",
+        [],
+        |row| row.get(0),
+    )?;
 
     let pending: Vec<&Migration> = MIGRATIONS
         .iter()
@@ -142,7 +137,10 @@ fn run_migrations_on_conn(conn: &Connection) -> Result<(), rusqlite::Error> {
         .collect();
 
     if pending.is_empty() {
-        tracing::debug!("Database schema is up to date (version {})", current_version);
+        tracing::debug!(
+            "Database schema is up to date (version {})",
+            current_version
+        );
         return Ok(());
     }
 
@@ -169,7 +167,11 @@ fn run_migrations_on_conn(conn: &Connection) -> Result<(), rusqlite::Error> {
     // Apply in a transaction
     let tx = conn.unchecked_transaction()?;
     for migration in &pending {
-        tracing::info!("  Applying migration v{}: {}", migration.version, migration.description);
+        tracing::info!(
+            "  Applying migration v{}: {}",
+            migration.version,
+            migration.description
+        );
         tx.execute_batch(migration.sql)?;
         tx.execute(
             "INSERT INTO schema_version (version, description) VALUES (?1, ?2)",
@@ -220,7 +222,14 @@ mod tests {
         let conn = fresh_conn();
         run_migrations_on_conn(&conn).unwrap();
 
-        let tables = ["projects", "sessions", "messages", "agents", "cost_events", "budgets"];
+        let tables = [
+            "projects",
+            "sessions",
+            "messages",
+            "agents",
+            "cost_events",
+            "budgets",
+        ];
         for table in &tables {
             let exists: bool = conn
                 .query_row(

@@ -3,8 +3,8 @@
 //! All SQL lives here — no raw queries in command handlers (GUIDE-001 §2.6).
 //! Every function takes &Database and uses parameterized queries.
 
-use crate::AppError;
 use super::Database;
+use crate::AppError;
 
 // ── Projects ───────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ pub fn get_project(db: &Database, id: &str) -> Result<Option<ProjectRow>, AppErr
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
             "SELECT id, name, path, default_model, default_effort, created_at, last_opened_at
-             FROM projects WHERE id = ?1"
+             FROM projects WHERE id = ?1",
         )?;
         let row = stmt.query_row(rusqlite::params![id], |row| {
             Ok(ProjectRow {
@@ -47,19 +47,21 @@ pub fn list_projects(db: &Database) -> Result<Vec<ProjectRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
             "SELECT id, name, path, default_model, default_effort, created_at, last_opened_at
-             FROM projects ORDER BY last_opened_at DESC NULLS LAST"
+             FROM projects ORDER BY last_opened_at DESC NULLS LAST",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok(ProjectRow {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                path: row.get(2)?,
-                default_model: row.get(3)?,
-                default_effort: row.get(4)?,
-                created_at: row.get(5)?,
-                last_opened_at: row.get(6)?,
-            })
-        })?.collect::<Result<Vec<_>, _>>()?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(ProjectRow {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    path: row.get(2)?,
+                    default_model: row.get(3)?,
+                    default_effort: row.get(4)?,
+                    created_at: row.get(5)?,
+                    last_opened_at: row.get(6)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     })
 }
@@ -87,7 +89,7 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
                     created_at, updated_at
-             FROM sessions WHERE id = ?1"
+             FROM sessions WHERE id = ?1",
         )?;
         let row = stmt.query_row(rusqlite::params![id], |row| {
             Ok(SessionRow {
@@ -136,6 +138,7 @@ pub fn update_session_cost(
 
 // ── Messages ───────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn insert_message(
     db: &Database,
     id: &str,
@@ -162,29 +165,32 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
         let mut stmt = conn.prepare(
             "SELECT id, session_id, role, content, model, input_tokens, output_tokens,
                     thinking_tokens, cost_cents, is_compacted, created_at
-             FROM messages WHERE session_id = ?1 ORDER BY created_at ASC"
+             FROM messages WHERE session_id = ?1 ORDER BY created_at ASC",
         )?;
-        let rows = stmt.query_map(rusqlite::params![session_id], |row| {
-            Ok(MessageRow {
-                id: row.get(0)?,
-                session_id: row.get(1)?,
-                role: row.get(2)?,
-                content: row.get(3)?,
-                model: row.get(4)?,
-                input_tokens: row.get(5)?,
-                output_tokens: row.get(6)?,
-                thinking_tokens: row.get(7)?,
-                cost_cents: row.get(8)?,
-                is_compacted: row.get(9)?,
-                created_at: row.get(10)?,
-            })
-        })?.collect::<Result<Vec<_>, _>>()?;
+        let rows = stmt
+            .query_map(rusqlite::params![session_id], |row| {
+                Ok(MessageRow {
+                    id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    role: row.get(2)?,
+                    content: row.get(3)?,
+                    model: row.get(4)?,
+                    input_tokens: row.get(5)?,
+                    output_tokens: row.get(6)?,
+                    thinking_tokens: row.get(7)?,
+                    cost_cents: row.get(8)?,
+                    is_compacted: row.get(9)?,
+                    created_at: row.get(10)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     })
 }
 
 // ── Cost Events ────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 pub fn insert_cost_event(
     db: &Database,
     session_id: &str,
@@ -310,7 +316,18 @@ mod tests {
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
 
         insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
-        insert_message(&db, "m2", "s1", "assistant", "Hi there!", Some("claude-sonnet-4-6"), Some(10), Some(20), Some(1)).unwrap();
+        insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "Hi there!",
+            Some("claude-sonnet-4-6"),
+            Some(10),
+            Some(20),
+            Some(1),
+        )
+        .unwrap();
 
         let messages = list_messages(&db, "s1").unwrap();
         assert_eq!(messages.len(), 2);
@@ -324,7 +341,17 @@ mod tests {
         insert_project(&db, "p1", "Proj", "/proj").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
 
-        insert_cost_event(&db, "s1", None, "claude-sonnet-4-6", 100, 200, 5, Some("message")).unwrap();
+        insert_cost_event(
+            &db,
+            "s1",
+            None,
+            "claude-sonnet-4-6",
+            100,
+            200,
+            5,
+            Some("message"),
+        )
+        .unwrap();
     }
 
     #[test]
@@ -332,6 +359,9 @@ mod tests {
         let db = test_db();
         insert_project(&db, "p1", "Proj A", "/same/path").unwrap();
         let result = insert_project(&db, "p2", "Proj B", "/same/path");
-        assert!(result.is_err(), "Duplicate path should fail UNIQUE constraint");
+        assert!(
+            result.is_err(),
+            "Duplicate path should fail UNIQUE constraint"
+        );
     }
 }

@@ -14,12 +14,8 @@ pub mod process;
 
 // Re-export primary public types
 pub use adapter::{AdapterRegistry, OutputAdapter};
-pub use parser::{
-    BridgeEvent, MessageChunk, ParsedOutput, StreamParser,
-};
-pub use permission::{
-    PermissionAction, PermissionManager, PermissionRequest, PermissionResponse,
-};
+pub use parser::{BridgeEvent, MessageChunk, ParsedOutput, StreamParser};
+pub use permission::{PermissionAction, PermissionManager, PermissionRequest, PermissionResponse};
 pub use process::{BridgeConfig, BridgeInterface, CliBridge, ProcessStatus};
 
 use crate::AppError;

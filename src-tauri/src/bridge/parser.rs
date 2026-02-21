@@ -55,10 +55,7 @@ pub enum BridgeEvent {
     },
 
     /// System message (info, warning, etc.).
-    SystemMessage {
-        level: String,
-        message: String,
-    },
+    SystemMessage { level: String, message: String },
 
     /// Thinking/reasoning content (maps to `message:thinking`).
     Thinking {
@@ -184,8 +181,8 @@ impl StreamParser {
 
     /// Parse a single complete line of stream-json output.
     fn parse_line(&mut self, line: &str) -> Result<Option<ParsedOutput>, String> {
-        let event: RawStreamEvent = serde_json::from_str(line)
-            .map_err(|e| format!("JSON parse error: {}", e))?;
+        let event: RawStreamEvent =
+            serde_json::from_str(line).map_err(|e| format!("JSON parse error: {}", e))?;
 
         match event.event_type.as_str() {
             // Streaming content delta
@@ -234,7 +231,9 @@ impl StreamParser {
                     .or_else(|| extract_string(&event.data, "tool_name"))
                     .unwrap_or_else(|| "unknown".to_string());
 
-                let tool_input = event.data.get("input")
+                let tool_input = event
+                    .data
+                    .get("input")
                     .or_else(|| event.data.get("parameters"))
                     .cloned()
                     .unwrap_or(serde_json::Value::Null);
@@ -247,18 +246,16 @@ impl StreamParser {
             }
 
             // Tool result
-            "tool_result" => {
-                Ok(Some(ParsedOutput::Event(BridgeEvent::ToolResult {
-                    session_id: self.session_id.clone(),
-                    tool_use_id: extract_string(&event.data, "tool_use_id")
-                        .unwrap_or_default(),
-                    content: extract_string(&event.data, "content")
-                        .unwrap_or_default(),
-                    is_error: event.data.get("is_error")
-                        .and_then(|v| v.as_bool())
-                        .unwrap_or(false),
-                })))
-            }
+            "tool_result" => Ok(Some(ParsedOutput::Event(BridgeEvent::ToolResult {
+                session_id: self.session_id.clone(),
+                tool_use_id: extract_string(&event.data, "tool_use_id").unwrap_or_default(),
+                content: extract_string(&event.data, "content").unwrap_or_default(),
+                is_error: event
+                    .data
+                    .get("is_error")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false),
+            }))),
 
             // Thinking/reasoning
             "thinking" | "thinking_delta" => {
@@ -276,8 +273,8 @@ impl StreamParser {
 
             // Permission request
             "permission_request" | "permission" => {
-                let tool = extract_string(&event.data, "tool")
-                    .unwrap_or_else(|| "unknown".to_string());
+                let tool =
+                    extract_string(&event.data, "tool").unwrap_or_else(|| "unknown".to_string());
                 let command = extract_string(&event.data, "command")
                     .or_else(|| extract_string(&event.data, "description"))
                     .unwrap_or_default();
@@ -296,17 +293,15 @@ impl StreamParser {
             }
 
             // Usage/cost update
-            "usage" | "usage_update" => {
-                Ok(Some(ParsedOutput::Event(BridgeEvent::UsageUpdate {
-                    session_id: self.session_id.clone(),
-                    model: extract_string(&event.data, "model")
-                        .unwrap_or_else(|| "unknown".to_string()),
-                    input_tokens: extract_u64(&event.data, "input_tokens").unwrap_or(0),
-                    output_tokens: extract_u64(&event.data, "output_tokens").unwrap_or(0),
-                    cache_read_tokens: extract_u64(&event.data, "cache_read_tokens").unwrap_or(0),
-                    cache_write_tokens: extract_u64(&event.data, "cache_write_tokens").unwrap_or(0),
-                })))
-            }
+            "usage" | "usage_update" => Ok(Some(ParsedOutput::Event(BridgeEvent::UsageUpdate {
+                session_id: self.session_id.clone(),
+                model: extract_string(&event.data, "model")
+                    .unwrap_or_else(|| "unknown".to_string()),
+                input_tokens: extract_u64(&event.data, "input_tokens").unwrap_or(0),
+                output_tokens: extract_u64(&event.data, "output_tokens").unwrap_or(0),
+                cache_read_tokens: extract_u64(&event.data, "cache_read_tokens").unwrap_or(0),
+                cache_write_tokens: extract_u64(&event.data, "cache_write_tokens").unwrap_or(0),
+            }))),
 
             // System info/warning
             "system" | "info" | "warning" | "error" => {
@@ -321,19 +316,19 @@ impl StreamParser {
             // Agent state changes
             "agent_state" | "agent_state_change" => {
                 Ok(Some(ParsedOutput::Event(BridgeEvent::AgentStateChange {
-                    agent_id: extract_string(&event.data, "agent_id")
-                        .unwrap_or_default(),
-                    old_state: extract_string(&event.data, "old_state")
-                        .unwrap_or_default(),
-                    new_state: extract_string(&event.data, "new_state")
-                        .unwrap_or_default(),
+                    agent_id: extract_string(&event.data, "agent_id").unwrap_or_default(),
+                    old_state: extract_string(&event.data, "old_state").unwrap_or_default(),
+                    new_state: extract_string(&event.data, "new_state").unwrap_or_default(),
                     details: extract_string(&event.data, "details"),
                 })))
             }
 
             // Forward compatibility: log unknown types but don't error
             _ => {
-                tracing::debug!("Parser: unknown event type '{}', forwarding as Unknown", event.event_type);
+                tracing::debug!(
+                    "Parser: unknown event type '{}', forwarding as Unknown",
+                    event.event_type
+                );
                 Ok(Some(ParsedOutput::Event(BridgeEvent::Unknown {
                     raw_type: event.event_type,
                     data: event.data,
@@ -352,7 +347,10 @@ impl Default for StreamParser {
 // --- Helper functions for safe JSON field extraction ---
 
 fn extract_string(value: &serde_json::Value, key: &str) -> Option<String> {
-    value.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+    value
+        .get(key)
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 fn extract_nested_string(value: &serde_json::Value, keys: &[&str]) -> Option<String> {
@@ -435,7 +433,11 @@ mod tests {
 
         assert_eq!(outputs.len(), 1);
         match &outputs[0] {
-            ParsedOutput::Event(BridgeEvent::ToolUse { tool_name, tool_input, .. }) => {
+            ParsedOutput::Event(BridgeEvent::ToolUse {
+                tool_name,
+                tool_input,
+                ..
+            }) => {
                 assert_eq!(tool_name, "Bash");
                 assert_eq!(tool_input["command"], "ls -la");
             }
@@ -468,7 +470,11 @@ mod tests {
 
         assert_eq!(outputs.len(), 1);
         match &outputs[0] {
-            ParsedOutput::Event(BridgeEvent::Thinking { content, is_streaming, .. }) => {
+            ParsedOutput::Event(BridgeEvent::Thinking {
+                content,
+                is_streaming,
+                ..
+            }) => {
                 assert_eq!(content, "Let me analyze...");
                 assert!(*is_streaming);
             }

@@ -69,9 +69,10 @@ impl Database {
     where
         F: FnOnce(&Connection) -> Result<T, rusqlite::Error>,
     {
-        let conn = self.conn.lock().map_err(|e| {
-            AppError::Other(format!("Database mutex poisoned: {}", e))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| AppError::Other(format!("Database mutex poisoned: {}", e)))?;
         Ok(f(&conn)?)
     }
 
@@ -82,9 +83,11 @@ impl Database {
 
     /// Default database path: ~/.chiefwiggum/db/chiefwiggum.sqlite
     fn default_path() -> Result<PathBuf, AppError> {
-        let home = dirs::home_dir().ok_or_else(|| {
-            AppError::Other("Could not determine home directory".to_string())
-        })?;
-        Ok(home.join(".chiefwiggum").join("db").join("chiefwiggum.sqlite"))
+        let home = dirs::home_dir()
+            .ok_or_else(|| AppError::Other("Could not determine home directory".to_string()))?;
+        Ok(home
+            .join(".chiefwiggum")
+            .join("db")
+            .join("chiefwiggum.sqlite"))
     }
 }

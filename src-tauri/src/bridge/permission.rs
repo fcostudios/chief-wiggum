@@ -12,7 +12,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::sync::{oneshot, RwLock};
 
 use crate::{AppError, AppResult};
 
@@ -61,6 +61,7 @@ pub enum PermissionAction {
 
 /// An "always allow" rule, persisted per session.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct AllowRule {
     /// The tool this rule applies to.
     tool: String,
@@ -92,6 +93,7 @@ pub struct PermissionManager {
 }
 
 /// A pending permission request with its resolution channel.
+#[allow(dead_code)]
 struct PendingPermission {
     request: PermissionRequest,
     resolver: oneshot::Sender<PermissionAction>,
@@ -124,8 +126,7 @@ impl PermissionManager {
         let rules = self.allow_rules.read().await;
 
         for rule in rules.iter() {
-            if rule.tool == request.tool && Self::matches_pattern(&rule.pattern, &request.command)
-            {
+            if rule.tool == request.tool && Self::matches_pattern(&rule.pattern, &request.command) {
                 tracing::info!(
                     "Permission auto-allowed: tool={}, command={}, pattern={}",
                     request.tool,
@@ -250,10 +251,7 @@ impl PermissionManager {
     /// Get all currently pending permission requests.
     pub async fn pending_requests(&self) -> Vec<PermissionRequest> {
         let pending = self.pending.read().await;
-        pending
-            .values()
-            .map(|p| p.request.clone())
-            .collect()
+        pending.values().map(|p| p.request.clone()).collect()
     }
 
     /// Get the count of pending permission requests.
@@ -374,9 +372,7 @@ mod tests {
         let manager_clone = Arc::clone(&manager);
 
         // Spawn the request (will block until resolved)
-        let handle = tokio::spawn(async move {
-            manager_clone.request_permission(req).await
-        });
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
 
         // Give it a moment to register
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -407,9 +403,7 @@ mod tests {
         let request_id = req.request_id.clone();
 
         let manager_clone = Arc::clone(&manager);
-        let handle = tokio::spawn(async move {
-            manager_clone.request_permission(req).await
-        });
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
 
         tokio::time::sleep(Duration::from_millis(50)).await;
 
@@ -433,9 +427,7 @@ mod tests {
         let request_id = req.request_id.clone();
 
         let manager_clone = Arc::clone(&manager);
-        let handle = tokio::spawn(async move {
-            manager_clone.request_permission(req).await
-        });
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
 
         tokio::time::sleep(Duration::from_millis(50)).await;
 
@@ -486,9 +478,7 @@ mod tests {
         let request_id = req.request_id.clone();
 
         let manager_clone = Arc::clone(&manager);
-        let handle = tokio::spawn(async move {
-            manager_clone.request_permission(req).await
-        });
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
 
         tokio::time::sleep(Duration::from_millis(50)).await;
 
@@ -547,14 +537,26 @@ mod tests {
     #[test]
     fn pattern_suffix_wildcard() {
         assert!(PermissionManager::matches_pattern("/src/*", "/src/main.rs"));
-        assert!(PermissionManager::matches_pattern("/src/*", "/src/deep/file.rs"));
-        assert!(!PermissionManager::matches_pattern("/src/*", "/docs/readme.md"));
+        assert!(PermissionManager::matches_pattern(
+            "/src/*",
+            "/src/deep/file.rs"
+        ));
+        assert!(!PermissionManager::matches_pattern(
+            "/src/*",
+            "/docs/readme.md"
+        ));
     }
 
     #[test]
     fn pattern_middle_wildcard() {
-        assert!(PermissionManager::matches_pattern("/src/*.rs", "/src/main.rs"));
-        assert!(PermissionManager::matches_pattern("/src/*.rs", "/src/bridge/mod.rs"));
+        assert!(PermissionManager::matches_pattern(
+            "/src/*.rs",
+            "/src/main.rs"
+        ));
+        assert!(PermissionManager::matches_pattern(
+            "/src/*.rs",
+            "/src/bridge/mod.rs"
+        ));
     }
 
     #[test]

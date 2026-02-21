@@ -9,8 +9,8 @@
 
 use std::process::Command;
 
-use crate::{AppError, AppResult};
 use super::parser::StreamParser;
+use crate::{AppError, AppResult};
 
 /// Semantic version of a Claude Code CLI release.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -227,12 +227,7 @@ pub fn detect_cli_version(cli_path: &str) -> AppResult<CliVersion> {
     let output = Command::new(cli_path)
         .arg("--version")
         .output()
-        .map_err(|e| {
-            AppError::Bridge(format!(
-                "Failed to run '{} --version': {}",
-                cli_path, e
-            ))
-        })?;
+        .map_err(|e| AppError::Bridge(format!("Failed to run '{} --version': {}", cli_path, e)))?;
 
     let version_str = String::from_utf8_lossy(&output.stdout);
     let version_str = version_str.trim();
@@ -243,8 +238,7 @@ pub fn detect_cli_version(cli_path: &str) -> AppResult<CliVersion> {
         .split_whitespace()
         .find(|part| {
             let cleaned = part.trim_start_matches('v');
-            cleaned.split('.').count() >= 3
-                && cleaned.split('.').all(|p| p.parse::<u32>().is_ok())
+            cleaned.split('.').count() >= 3 && cleaned.split('.').all(|p| p.parse::<u32>().is_ok())
         })
         .unwrap_or(version_str);
 
@@ -324,12 +318,18 @@ mod tests {
         }
 
         impl OutputAdapter for SpecificAdapter {
-            fn min_version(&self) -> &CliVersion { &self.min_ver }
-            fn max_version(&self) -> &CliVersion { &self.max_ver }
+            fn min_version(&self) -> &CliVersion {
+                &self.min_ver
+            }
+            fn max_version(&self) -> &CliVersion {
+                &self.max_ver
+            }
             fn create_parser(&self, session_id: String) -> StreamParser {
                 StreamParser::with_session_id(session_id)
             }
-            fn name(&self) -> &str { "specific-v1.1" }
+            fn name(&self) -> &str {
+                "specific-v1.1"
+            }
         }
 
         registry.register(Box::new(SpecificAdapter {
