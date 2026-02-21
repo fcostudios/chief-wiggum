@@ -68,38 +68,52 @@ const Sidebar: Component = () => {
   return (
     <nav class="flex flex-col h-full" aria-label="Sidebar">
       {/* Project selector */}
-      <div class="px-3 py-2 border-b border-border-secondary">
+      <div
+        class="px-3 py-2.5"
+        style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+      >
         <Show
           when={projectState.activeProjectId}
           fallback={
             <button
-              class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
               style={{ 'transition-duration': 'var(--duration-fast)' }}
               onClick={() => pickAndCreateProject()}
             >
-              <FolderOpen size={14} />
-              <span>Open Project Folder</span>
+              <FolderOpen size={13} />
+              <span class="tracking-wide">Open Project Folder</span>
             </button>
           }
         >
           <button
-            class="flex items-center gap-2 w-full py-1 px-2 rounded-md text-xs text-text-primary hover:bg-bg-elevated transition-colors truncate"
+            class="flex items-center gap-2 w-full py-1 px-2 rounded-md text-xs text-text-primary hover:bg-bg-elevated/50 transition-colors truncate"
             style={{ 'transition-duration': 'var(--duration-fast)' }}
             onClick={() => pickAndCreateProject()}
             title={activeProject()?.path ?? ''}
           >
-            <FolderOpen size={14} class="shrink-0 text-accent" />
-            <span class="truncate">{activeProject()?.name ?? 'Unknown'}</span>
+            <FolderOpen size={13} class="shrink-0 text-accent" />
+            <span class="truncate font-medium">{activeProject()?.name ?? 'Unknown'}</span>
           </button>
         </Show>
       </div>
 
       {/* Sessions header */}
-      <div class="flex items-center justify-between px-3 py-2 border-b border-border-secondary">
-        <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+      <div
+        class="flex items-center justify-between px-3 py-2"
+        style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+      >
+        <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
           Sessions
         </span>
-        <span class="text-xs text-text-tertiary">{sessionState.sessions.length}</span>
+        <span
+          class="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+          style={{
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text-tertiary)',
+          }}
+        >
+          {sessionState.sessions.length}
+        </span>
       </div>
 
       {/* Session list */}
@@ -107,12 +121,13 @@ const Sidebar: Component = () => {
         <Show
           when={sessionState.sessions.length > 0}
           fallback={
-            <p class="text-xs text-text-tertiary px-2 py-4 text-center">
-              No sessions yet. Click below to start one.
-            </p>
+            <div class="px-2 py-6 text-center animate-fade-in">
+              <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
+              <p class="text-[10px] text-text-tertiary/40 mt-1">Create one to get started</p>
+            </div>
           }
         >
-          <div class="space-y-1">
+          <div class="space-y-0.5">
             <For each={sessionState.sessions}>
               {(session) => (
                 <SessionItem
@@ -128,15 +143,30 @@ const Sidebar: Component = () => {
       </div>
 
       {/* New session button */}
-      <div class="p-2 border-t border-border-secondary">
+      <div class="p-2" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
         <button
-          class="flex items-center justify-center gap-2 w-full py-1.5 rounded-md text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
+          style={{
+            'transition-duration': 'var(--duration-normal)',
+            color: 'var(--color-text-secondary)',
+            background: 'transparent',
+            border: '1px solid var(--color-border-secondary)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--color-accent)';
+            e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+            e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--color-text-secondary)';
+            e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+            e.currentTarget.style.background = 'transparent';
+          }}
           onClick={handleNewSession}
           aria-label="New session"
         >
-          <Plus size={14} />
-          <span>New Session</span>
+          <Plus size={13} />
+          <span class="tracking-wide">New Session</span>
         </button>
       </div>
     </nav>
@@ -152,12 +182,24 @@ const SessionItem: Component<{
 }> = (props) => {
   return (
     <div
-      class={`group flex items-start gap-2 px-2 py-2 rounded-md cursor-pointer transition-colors ${
-        props.isActive
-          ? 'bg-bg-elevated text-text-primary'
-          : 'text-text-secondary hover:bg-bg-elevated hover:text-text-primary'
-      }`}
-      style={{ 'transition-duration': 'var(--duration-fast)' }}
+      class="group flex items-start gap-2 px-2 py-2 rounded-md cursor-pointer transition-all relative"
+      style={{
+        'transition-duration': 'var(--duration-fast)',
+        background: props.isActive ? 'var(--color-bg-elevated)' : 'transparent',
+        color: props.isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+      }}
+      onMouseEnter={(e) => {
+        if (!props.isActive) {
+          e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+          e.currentTarget.style.color = 'var(--color-text-primary)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!props.isActive) {
+          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.color = 'var(--color-text-secondary)';
+        }
+      }}
       onClick={() => props.onSelect()}
       role="button"
       tabindex="0"
@@ -168,15 +210,29 @@ const SessionItem: Component<{
         }
       }}
     >
-      <MessageSquare size={14} class="mt-0.5 shrink-0 text-text-tertiary" />
+      {/* Active indicator — warm accent stripe */}
+      <Show when={props.isActive}>
+        <div
+          class="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full"
+          style={{
+            background: 'var(--color-accent)',
+            'box-shadow': '0 0 6px rgba(232, 130, 90, 0.3)',
+          }}
+        />
+      </Show>
+
+      <MessageSquare size={13} class="mt-0.5 shrink-0 text-text-tertiary" />
       <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1.5">
           <span class="text-xs font-medium truncate">{props.session.title || 'New Session'}</span>
-          <span class={`text-[10px] shrink-0 ${modelColorClass(props.session.model)}`}>
+          <span
+            class={`text-[9px] font-medium shrink-0 px-1 py-0.5 rounded ${modelColorClass(props.session.model)}`}
+            style={{ background: 'currentColor', color: 'var(--color-bg-primary)' }}
+          >
             {modelLabel(props.session.model)}
           </span>
         </div>
-        <span class="text-[10px] text-text-tertiary">
+        <span class="text-[10px] text-text-tertiary/60">
           {formatRelativeTime(props.session.updated_at)}
         </span>
       </div>
@@ -189,7 +245,7 @@ const SessionItem: Component<{
         }}
         aria-label="Delete session"
       >
-        <Trash2 size={12} />
+        <Trash2 size={11} />
       </button>
     </div>
   );

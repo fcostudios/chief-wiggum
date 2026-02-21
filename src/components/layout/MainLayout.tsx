@@ -35,18 +35,20 @@ const MainLayout: Component = () => {
   });
 
   return (
-    <div class="h-screen flex flex-col bg-bg-primary text-text-primary font-ui overflow-hidden">
+    <div class="grain-overlay h-screen flex flex-col bg-bg-primary text-text-primary font-ui overflow-hidden">
       <TitleBar />
 
       <div class="flex-1 flex overflow-hidden">
         {/* Z2: Sidebar — transitions width for smooth show/hide */}
         <div
-          class="bg-bg-secondary border-r border-border-primary overflow-hidden shrink-0 transition-[width]"
+          class="bg-bg-secondary overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
             width: uiState.sidebarVisible ? 'var(--sidebar-width)' : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
-            'border-right-width': uiState.sidebarVisible ? '1px' : '0px',
+            'border-right': uiState.sidebarVisible
+              ? '1px solid var(--color-border-secondary)'
+              : 'none',
           }}
         >
           {/* Inner wrapper maintains full width during transition */}
@@ -57,8 +59,11 @@ const MainLayout: Component = () => {
 
         {/* Z3: Main Content */}
         <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
-          {/* View tabs */}
-          <div class="flex items-center gap-1 px-3 border-b border-border-secondary bg-bg-primary">
+          {/* View tabs — refined with subtle bottom border */}
+          <div
+            class="flex items-center gap-0.5 px-3 bg-bg-primary"
+            style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+          >
             <ViewTab label="Conversation" view="conversation" />
             <ViewTab label="Agents" view="agents" />
             <ViewTab label="Diff" view="diff" />
@@ -72,12 +77,18 @@ const MainLayout: Component = () => {
             </Show>
             <Show when={uiState.activeView === 'agents'}>
               <div class="flex items-center justify-center h-full">
-                <p class="text-text-tertiary text-sm">Agent dashboard (future)</p>
+                <div class="text-center animate-fade-in">
+                  <p class="text-text-tertiary text-sm tracking-wide">Agent dashboard</p>
+                  <p class="text-text-tertiary/50 text-xs mt-1">Coming soon</p>
+                </div>
               </div>
             </Show>
             <Show when={uiState.activeView === 'diff'}>
               <div class="flex items-center justify-center h-full">
-                <p class="text-text-tertiary text-sm">Diff review (future)</p>
+                <div class="text-center animate-fade-in">
+                  <p class="text-text-tertiary text-sm tracking-wide">Diff review</p>
+                  <p class="text-text-tertiary/50 text-xs mt-1">Coming soon</p>
+                </div>
               </div>
             </Show>
             <Show when={uiState.activeView === 'terminal'}>
@@ -106,12 +117,14 @@ const MainLayout: Component = () => {
 
         {/* Z4: Details Panel — transitions width for smooth show/hide */}
         <div
-          class="bg-bg-secondary border-l border-border-primary overflow-hidden shrink-0 transition-[width]"
+          class="bg-bg-secondary overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
             width: uiState.detailsPanelVisible ? 'var(--details-panel-width)' : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
-            'border-left-width': uiState.detailsPanelVisible ? '1px' : '0px',
+            'border-left': uiState.detailsPanelVisible
+              ? '1px solid var(--color-border-secondary)'
+              : 'none',
           }}
         >
           <div style={{ width: 'var(--details-panel-width)' }}>
@@ -155,21 +168,30 @@ const MainLayout: Component = () => {
   );
 };
 
-/** View tab button — highlights active view with accent border */
+/** View tab button — refined underline indicator with accent glow */
 const ViewTab: Component<{ label: string; view: string }> = (props) => {
   const isActive = () => uiState.activeView === props.view;
 
   return (
     <button
-      class={`px-3 py-2 text-xs transition-colors ${
-        isActive()
-          ? 'text-text-primary border-b-2 border-accent'
-          : 'text-text-secondary hover:text-text-primary border-b-2 border-transparent'
+      class={`relative px-3 py-2 text-xs font-medium tracking-wide transition-colors ${
+        isActive() ? 'text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
       }`}
-      style={{ 'transition-duration': 'var(--duration-fast)' }}
+      style={{ 'transition-duration': 'var(--duration-normal)' }}
       onClick={() => setActiveView(props.view as ActiveView)}
     >
       {props.label}
+      {/* Active indicator — warm accent line with subtle glow */}
+      <div
+        class="absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all"
+        style={{
+          'transition-duration': 'var(--duration-normal)',
+          'transition-timing-function': 'var(--ease-default)',
+          background: isActive() ? 'var(--color-accent)' : 'transparent',
+          'box-shadow': isActive() ? '0 0 8px rgba(232, 130, 90, 0.4)' : 'none',
+          opacity: isActive() ? '1' : '0',
+        }}
+      />
     </button>
   );
 };

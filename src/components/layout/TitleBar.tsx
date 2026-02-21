@@ -21,27 +21,54 @@ const TitleBar: Component = () => {
 
   return (
     <header
-      class="flex items-center bg-bg-secondary border-b border-border-primary select-none"
-      style={{ height: 'var(--title-bar-height)' }}
+      class="flex items-center select-none relative"
+      style={{
+        height: 'var(--title-bar-height)',
+        background:
+          'linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-secondary) 100%)',
+        'border-bottom': '1px solid var(--color-border-secondary)',
+      }}
     >
-      {/* macOS: spacer for native traffic lights (rendered by OS via titleBarStyle overlay) */}
+      {/* Subtle warm glow on bottom edge */}
+      <div
+        class="absolute bottom-0 left-0 right-0 h-px"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, rgba(232, 130, 90, 0.15) 50%, transparent 100%)',
+        }}
+      />
+
+      {/* macOS: spacer for native traffic lights */}
       <Show when={isMac()}>
         <div class="w-[70px] shrink-0" />
       </Show>
 
       {/* Left: sidebar toggle + app name */}
-      <div class="flex items-center gap-2 px-3">
+      <div class="flex items-center gap-2.5 px-3">
         <button
-          class="p-1 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+          class="p-1 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
           style={{ 'transition-duration': 'var(--duration-fast)' }}
           onClick={toggleSidebar}
           aria-label="Toggle sidebar"
         >
-          <Menu size={16} />
+          <Menu size={15} />
         </button>
-        <span class="text-md font-semibold text-text-primary">Chief Wiggum</span>
+        <span
+          class="text-sm font-semibold tracking-tight text-text-primary"
+          style={{ 'letter-spacing': '-0.02em' }}
+        >
+          Chief Wiggum
+        </span>
         <Show when={uiState.yoloMode}>
-          <span class="px-2 py-0.5 rounded text-xs font-medium bg-warning-muted text-warning animate-pulse">
+          <span
+            class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
+            style={{
+              background: 'rgba(210, 153, 34, 0.15)',
+              color: 'var(--color-warning)',
+              border: '1px solid rgba(210, 153, 34, 0.3)',
+              animation: 'glow-pulse 2s ease-in-out infinite',
+            }}
+          >
             YOLO
           </span>
         </Show>
@@ -55,47 +82,66 @@ const TitleBar: Component = () => {
       {/* Right: YOLO toggle + window controls */}
       <div class="flex items-center">
         <button
-          class={`flex items-center justify-center w-12 h-full transition-colors ${
-            uiState.yoloMode
-              ? 'text-warning bg-warning-muted'
-              : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
-          }`}
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          class="flex items-center justify-center w-10 h-full transition-colors"
+          style={{
+            'transition-duration': 'var(--duration-fast)',
+            color: uiState.yoloMode ? 'var(--color-warning)' : 'var(--color-text-tertiary)',
+            background: uiState.yoloMode ? 'rgba(210, 153, 34, 0.1)' : 'transparent',
+          }}
           onClick={toggleYoloMode}
           aria-label={uiState.yoloMode ? 'Disable YOLO Mode' : 'Enable YOLO Mode'}
           title={
             uiState.yoloMode ? 'YOLO Mode active (Cmd+Shift+Y)' : 'Enable YOLO Mode (Cmd+Shift+Y)'
           }
         >
-          <Zap size={14} />
+          <Zap size={13} />
         </button>
 
-        {/* Windows/Linux: right-side window controls (macOS uses native traffic lights) */}
+        {/* Windows/Linux: right-side window controls */}
         <Show when={!isMac()}>
-          <button
-            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => appWindow.minimize()}
-            aria-label="Minimize"
-          >
-            <Minus size={14} />
-          </button>
-          <button
-            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => appWindow.toggleMaximize()}
-            aria-label="Maximize"
-          >
-            <Maximize2 size={14} />
-          </button>
-          <button
-            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-error-muted transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => appWindow.close()}
-            aria-label="Close"
-          >
-            <X size={14} />
-          </button>
+          <div class="flex items-center" style={{ 'margin-left': '4px' }}>
+            <button
+              class="flex items-center justify-center w-11 text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
+              style={{
+                height: 'var(--title-bar-height)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+              onClick={() => appWindow.minimize()}
+              aria-label="Minimize"
+            >
+              <Minus size={13} />
+            </button>
+            <button
+              class="flex items-center justify-center w-11 text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
+              style={{
+                height: 'var(--title-bar-height)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+              onClick={() => appWindow.toggleMaximize()}
+              aria-label="Maximize"
+            >
+              <Maximize2 size={13} />
+            </button>
+            <button
+              class="flex items-center justify-center w-11 text-text-tertiary hover:text-text-primary transition-colors"
+              style={{
+                height: 'var(--title-bar-height)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+              onClick={() => appWindow.close()}
+              aria-label="Close"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(248, 81, 73, 0.2)';
+                e.currentTarget.style.color = 'var(--color-error)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--color-text-tertiary)';
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
         </Show>
       </div>
     </header>

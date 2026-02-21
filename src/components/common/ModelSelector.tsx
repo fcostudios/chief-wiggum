@@ -10,13 +10,13 @@ import { sessionState, changeSessionModel, getActiveSession } from '@/stores/ses
 interface ModelOption {
   id: string;
   label: string;
-  colorClass: string;
+  color: string;
 }
 
 const MODELS: ModelOption[] = [
-  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', colorClass: 'text-model-sonnet' },
-  { id: 'claude-opus-4-6', label: 'Opus 4.6', colorClass: 'text-model-opus' },
-  { id: 'claude-haiku-4-5', label: 'Haiku 4.5', colorClass: 'text-model-haiku' },
+  { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', color: 'var(--color-model-sonnet)' },
+  { id: 'claude-opus-4-6', label: 'Opus 4.6', color: 'var(--color-model-opus)' },
+  { id: 'claude-haiku-4-5', label: 'Haiku 4.5', color: 'var(--color-model-haiku)' },
 ];
 
 const ModelSelector: Component = () => {
@@ -49,7 +49,7 @@ const ModelSelector: Component = () => {
   return (
     <div ref={dropdownRef} class="relative">
       <button
-        class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors hover:bg-bg-elevated"
+        class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors hover:bg-bg-elevated/50"
         style={{ 'transition-duration': 'var(--duration-fast)' }}
         onClick={(e) => {
           e.stopPropagation();
@@ -60,33 +60,66 @@ const ModelSelector: Component = () => {
         aria-expanded={isOpen()}
       >
         <span
-          class={`inline-block w-2 h-2 rounded-full ${currentModel().colorClass}`}
-          style={{ 'background-color': 'currentColor' }}
+          class="inline-block w-2 h-2 rounded-full"
+          style={{
+            'background-color': currentModel().color,
+            'box-shadow': `0 0 4px ${currentModel().color}40`,
+          }}
         />
-        <span class="text-text-primary font-medium">{currentModel().label}</span>
-        <ChevronDown size={12} class="text-text-tertiary" />
+        <span class="text-text-primary font-medium tracking-tight">{currentModel().label}</span>
+        <ChevronDown size={11} class="text-text-tertiary" />
       </button>
 
       <Show when={isOpen()}>
-        <div class="absolute top-full left-0 mt-1 w-44 bg-bg-elevated border border-border-primary rounded-lg shadow-lg overflow-hidden z-50">
+        <div
+          class="absolute top-full left-1/2 mt-1.5 w-44 rounded-lg overflow-hidden z-50 animate-fade-in"
+          style={{
+            transform: 'translateX(-50%)',
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-primary)',
+            'box-shadow': 'var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.1)',
+            'backdrop-filter': 'blur(var(--glass-blur))',
+            'animation-duration': '100ms',
+          }}
+        >
           <For each={MODELS}>
-            {(model) => (
-              <button
-                class={`flex items-center gap-2 w-full px-3 py-2 text-xs transition-colors ${
-                  model.id === currentModel().id
-                    ? 'bg-accent-muted text-text-primary'
-                    : 'text-text-secondary hover:bg-bg-secondary hover:text-text-primary'
-                }`}
-                style={{ 'transition-duration': 'var(--duration-fast)' }}
-                onClick={() => handleSelect(model.id)}
-              >
-                <span
-                  class={`inline-block w-2 h-2 rounded-full ${model.colorClass}`}
-                  style={{ 'background-color': 'currentColor' }}
-                />
-                <span>{model.label}</span>
-              </button>
-            )}
+            {(model) => {
+              const isSelected = () => model.id === currentModel().id;
+              return (
+                <button
+                  class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs transition-colors"
+                  style={{
+                    'transition-duration': 'var(--duration-fast)',
+                    background: isSelected() ? 'rgba(232, 130, 90, 0.08)' : 'transparent',
+                    color: isSelected()
+                      ? 'var(--color-text-primary)'
+                      : 'var(--color-text-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected()) {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                      e.currentTarget.style.color = 'var(--color-text-primary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected()) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--color-text-secondary)';
+                    }
+                  }}
+                  onClick={() => handleSelect(model.id)}
+                >
+                  <span
+                    class="inline-block w-2 h-2 rounded-full"
+                    style={{
+                      'background-color': model.color,
+                      'box-shadow': isSelected() ? `0 0 6px ${model.color}60` : 'none',
+                    }}
+                  />
+                  <span class="font-medium tracking-tight">{model.label}</span>
+                </button>
+              );
+            }}
           </For>
         </div>
       </Show>

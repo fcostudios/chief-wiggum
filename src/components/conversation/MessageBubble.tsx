@@ -29,15 +29,35 @@ function roleLabel(role: string): string {
   }
 }
 
-/** Map model ID to badge label + color class */
-function modelBadgeInfo(model: string): { label: string; colorClass: string } {
+/** Map model ID to badge label + styles */
+function modelBadgeInfo(model: string): {
+  label: string;
+  bg: string;
+  color: string;
+} {
   if (model.includes('opus'))
-    return { label: 'Opus', colorClass: 'bg-model-opus/20 text-model-opus' };
+    return {
+      label: 'Opus',
+      bg: 'rgba(163, 113, 247, 0.15)',
+      color: 'var(--color-model-opus)',
+    };
   if (model.includes('sonnet'))
-    return { label: 'Sonnet', colorClass: 'bg-model-sonnet/20 text-model-sonnet' };
+    return {
+      label: 'Sonnet',
+      bg: 'rgba(88, 166, 255, 0.15)',
+      color: 'var(--color-model-sonnet)',
+    };
   if (model.includes('haiku'))
-    return { label: 'Haiku', colorClass: 'bg-model-haiku/20 text-model-haiku' };
-  return { label: model, colorClass: 'bg-bg-elevated text-text-secondary' };
+    return {
+      label: 'Haiku',
+      bg: 'rgba(63, 185, 80, 0.15)',
+      color: 'var(--color-model-haiku)',
+    };
+  return {
+    label: model,
+    bg: 'var(--color-bg-elevated)',
+    color: 'var(--color-text-secondary)',
+  };
 }
 
 /** Format ISO timestamp to HH:MM */
@@ -59,25 +79,57 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
     props.message.role === 'tool_use' ||
     props.message.role === 'tool_result';
 
-  const bgClass = () => {
-    if (isUser()) return 'bg-accent-muted border border-accent/20';
-    if (isSystem()) return 'bg-bg-inset border border-border-secondary';
-    return 'bg-bg-secondary border border-border-primary';
-  };
-
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>
-      <div class={`max-w-[85%] rounded-lg px-4 py-3 ${bgClass()}`}>
+      <div
+        class="max-w-[85%] rounded-lg px-4 py-3 relative"
+        style={{
+          background: isUser()
+            ? 'rgba(232, 130, 90, 0.08)'
+            : isSystem()
+              ? 'var(--color-bg-inset)'
+              : 'var(--color-bg-secondary)',
+          border: isUser()
+            ? '1px solid rgba(232, 130, 90, 0.15)'
+            : isSystem()
+              ? '1px solid var(--color-border-secondary)'
+              : '1px solid var(--color-border-secondary)',
+        }}
+      >
+        {/* Left accent stripe for assistant messages */}
+        <Show when={!isUser() && !isSystem()}>
+          <div
+            class="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
+            style={{
+              background:
+                'linear-gradient(180deg, var(--color-accent) 0%, rgba(232, 130, 90, 0.2) 100%)',
+            }}
+          />
+        </Show>
+
         {/* Role label + model badge */}
-        <div class="flex items-center gap-2 mb-1">
-          <span class="text-sm text-text-secondary font-medium">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span
+            class="font-medium"
+            style={{
+              'font-size': '11px',
+              color: isUser() ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
+              'letter-spacing': '0.02em',
+            }}
+          >
             {roleLabel(props.message.role)}
           </span>
           <Show when={props.message.model}>
             {(model) => {
               const info = modelBadgeInfo(model());
               return (
-                <span class={`px-1.5 py-0.5 rounded text-xs font-mono ${info.colorClass}`}>
+                <span
+                  class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium"
+                  style={{
+                    background: info.bg,
+                    color: info.color,
+                  }}
+                >
                   {info.label}
                 </span>
               );
@@ -95,14 +147,17 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
           <MarkdownContent content={props.message.content} />
         </Show>
 
-        {/* Footer: timestamp + cost */}
-        <div class="flex items-center gap-3 mt-2 text-xs text-text-tertiary">
+        {/* Footer: timestamp + cost — refined typography */}
+        <div
+          class="flex items-center gap-3 mt-2 font-mono"
+          style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)', opacity: '0.6' }}
+        >
           <span>{formatTime(props.message.created_at)}</span>
           <Show when={props.message.cost_cents != null && props.message.cost_cents! > 0}>
-            <span class="font-mono">${((props.message.cost_cents ?? 0) / 100).toFixed(4)}</span>
+            <span>${((props.message.cost_cents ?? 0) / 100).toFixed(4)}</span>
           </Show>
           <Show when={props.message.input_tokens != null}>
-            <span class="font-mono">
+            <span>
               {props.message.input_tokens}+{props.message.output_tokens} tok
             </span>
           </Show>
