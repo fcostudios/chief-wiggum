@@ -1,0 +1,18 @@
+// src/lib/types.ts
+// TypeScript IPC types mirroring Rust types (SPEC-004 §6).
+// Populated as Tauri commands are added.
+
+/** Session status per SPEC-001 §9 */
+export type SessionStatus = 'active' | 'paused' | 'completed' | 'archived';
+
+/** Agent status per SPEC-001 §9 */
+export type AgentStatus = 'idle' | 'thinking' | 'executing' | 'waiting' | 'complete' | 'error';
+
+/** Agent role per SPEC-001 §9 */
+export type AgentRole = 'lead' | 'teammate' | 'background';
+
+/** Model identifiers per SPEC-001 §3 */
+export type ModelId = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
+
+/** Message role per SPEC-001 §9 */
+export type MessageRole = 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result';

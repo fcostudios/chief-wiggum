@@ -1,0 +1,61 @@
+[package]
+name = "chief-wiggum"
+version = "0.1.0"
+edition = "2021"
+description = "Cross-platform desktop GUI for Claude Code"
+license = "MIT"
+
+[dependencies]
+# Tauri v2 framework
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-shell = "2"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# PTY management (cross-platform)
+portable-pty = "0.8"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Database (Phase 1)
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Unique identifiers
+uuid = { version = "1", features = ["v4"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Regex for parser
+regex = "1"
+
+# CLI binary detection
+which = "7"
+
+# Async trait support
+async-trait = "0.1"
+
+# Home directory detection
+dirs = "6"
+
+[dev-dependencies]
+tempfile = "3"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[lib]
+name = "chief_wiggum_lib"
+path = "src/lib.rs"
+crate-type = ["staticlib", "cdylib", "rlib"]

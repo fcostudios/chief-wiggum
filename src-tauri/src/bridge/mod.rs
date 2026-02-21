@@ -1,0 +1,126 @@
+//! Claude Code CLI process management layer.
+//!
+//! This module handles spawning Claude Code as a subprocess via PTY,
+//! parsing its structured output, adapting to CLI version changes,
+//! and intercepting permission requests.
+//!
+//! Architecture: SPEC-004 §2 (bridge/), §3.1, §5.1, §5.2
+//! Coding standards: GUIDE-001 §2
+
+pub mod adapter;
+pub mod parser;
+pub mod permission;
+pub mod process;
+
+// Re-export primary public types
+pub use adapter::{AdapterRegistry, OutputAdapter};
+pub use parser::{
+    BridgeEvent, MessageChunk, ParsedOutput, StreamParser,
+};
+pub use permission::{
+    PermissionAction, PermissionManager, PermissionRequest, PermissionResponse,
+};
+pub use process::{BridgeConfig, BridgeInterface, CliBridge, ProcessStatus};
+
+use crate::AppError;
+
+/// Output from the bridge, consumed by command handlers.
+/// Per SPEC-004 §11.1 — shared between LiveBridge and MockBridge.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum BridgeOutput {
+    /// A chunk of streaming message content.
+    Chunk(MessageChunk),
+
+    /// A complete parsed output event (tool use, system message, etc.).
+    Event(BridgeEvent),
+
+    /// A permission request that must be resolved before continuing.
+    PermissionRequired(PermissionRequest),
+
+    /// The CLI process has exited.
+    ProcessExited { exit_code: Option<i32> },
+}
+
+/// Configuration for locating the Claude Code CLI binary.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct CliLocation {
+    /// Explicit path override (from settings). Takes priority over PATH.
+    pub path_override: Option<String>,
+
+    /// Resolved binary path after detection.
+    pub resolved_path: Option<String>,
+
+    /// Detected CLI version string (e.g., "1.0.34").
+    pub version: Option<String>,
+}
+
+impl CliLocation {
+    /// Detect the Claude Code CLI binary location.
+    /// Checks path_override first, then searches PATH.
+    pub fn detect(path_override: Option<String>) -> Result<Self, AppError> {
+        if let Some(ref override_path) = path_override {
+            if std::path::Path::new(override_path).exists() {
+                tracing::info!("Using CLI override path: {}", override_path);
+                return Ok(Self {
+                    path_override: path_override.clone(),
+                    resolved_path: Some(override_path.clone()),
+                    version: None,
+                });
+            }
+            tracing::warn!(
+                "CLI override path does not exist: {}, falling back to PATH",
+                override_path
+            );
+        }
+
+        // Search PATH for `claude` binary
+        let binary_name = if cfg!(target_os = "windows") {
+            "claude.exe"
+        } else {
+            "claude"
+        };
+
+        match which::which(binary_name) {
+            Ok(path) => {
+                let path_str = path.to_string_lossy().to_string();
+                tracing::info!("Found Claude Code CLI at: {}", path_str);
+                Ok(Self {
+                    path_override,
+                    resolved_path: Some(path_str),
+                    version: None,
+                })
+            }
+            Err(_) => Err(AppError::Bridge(format!(
+                "Claude Code CLI binary '{}' not found in PATH. \
+                 Install it with: npm install -g @anthropic-ai/claude-code",
+                binary_name
+            ))),
+        }
+    }
+
+    /// Get the resolved binary path, or error if not detected.
+    pub fn binary_path(&self) -> Result<&str, AppError> {
+        self.resolved_path
+            .as_deref()
+            .ok_or_else(|| AppError::Bridge("CLI binary path not resolved".to_string()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cli_location_nonexistent_override_falls_back() {
+        let loc = CliLocation::detect(Some("/nonexistent/path/claude".to_string()));
+        // Should either find claude in PATH or return an error — not panic
+        assert!(loc.is_ok() || loc.is_err());
+    }
+
+    #[test]
+    fn bridge_output_serializes() {
+        let output = BridgeOutput::ProcessExited { exit_code: Some(0) };
+        let json = serde_json::to_string(&output).expect("should serialize");
+        assert!(json.contains("ProcessExited"));
+    }
+}

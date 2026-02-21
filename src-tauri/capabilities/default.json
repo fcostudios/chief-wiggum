@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Default capability set for Chief Wiggum",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-open",
+    "shell:allow-execute",
+    "shell:default"
+  ]
+}

@@ -1,0 +1,140 @@
+/* src/styles/tokens.css
+ * Design tokens per SPEC-002. All UI must reference these — no hardcoded values.
+ * TailwindCSS v4 CSS-first config via @theme directive.
+ */
+
+@import 'tailwindcss';
+
+/* ============================================================
+ * SPEC-002 §3: Color System (Dark Theme — Default)
+ * ============================================================ */
+
+@theme {
+  /* --- Core palette --- */
+  --color-bg-primary: #0d1117;
+  --color-bg-secondary: #161b22;
+  --color-bg-elevated: #1c2128;
+  --color-bg-inset: #010409;
+
+  --color-border-primary: #30363d;
+  --color-border-secondary: #21262d;
+  --color-border-focus: #e8825a;
+
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b949e;
+  --color-text-tertiary: #6e7681;
+  --color-text-link: #58a6ff;
+
+  --color-accent: #e8825a;
+  --color-accent-hover: #f09070;
+  --color-accent-muted: #e8825a33;
+
+  --color-success: #3fb950;
+  --color-success-muted: #3fb95033;
+  --color-warning: #d29922;
+  --color-warning-muted: #d2992233;
+  --color-error: #f85149;
+  --color-error-muted: #f8514933;
+  --color-info: #58a6ff;
+
+  /* --- Model badge colors (§3.2) --- */
+  --color-model-opus: #a371f7;
+  --color-model-sonnet: #58a6ff;
+  --color-model-haiku: #3fb950;
+
+  /* --- Context meter zones (§3.3) --- */
+  --color-context-green: #3fb950;
+  --color-context-yellow: #d29922;
+  --color-context-red: #f85149;
+  --color-context-critical: #ff4040;
+
+  /* --- Diff colors (§3.4) --- */
+  --color-diff-add-bg: #1b3a28;
+  --color-diff-add-text: #3fb950;
+  --color-diff-remove-bg: #3d1a1e;
+  --color-diff-remove-text: #f85149;
+  --color-diff-modify-bg: #2a2112;
+
+  /* ============================================================
+   * SPEC-002 §4: Typography
+   * ============================================================ */
+
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  --font-mono:
+    'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
+
+  --text-xs: 11px;
+  --text-xs--line-height: 16px;
+  --text-sm: 12px;
+  --text-sm--line-height: 16px;
+  --text-base: 13px;
+  --text-base--line-height: 20px;
+  --text-md: 14px;
+  --text-md--line-height: 20px;
+  --text-lg: 15px;
+  --text-lg--line-height: 24px;
+  --text-xl: 16px;
+  --text-xl--line-height: 24px;
+  --text-2xl: 20px;
+  --text-2xl--line-height: 28px;
+
+  /* ============================================================
+   * SPEC-002 §5: Spacing (4px grid)
+   * ============================================================ */
+
+  --spacing: 0.25rem; /* 4px base — p-1=4px, p-2=8px, p-3=12px, etc. */
+
+  /* ============================================================
+   * SPEC-002 §6: Borders and Radius
+   * ============================================================ */
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* ============================================================
+   * SPEC-002 §7: Shadows
+   * ============================================================ */
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+  /* ============================================================
+   * SPEC-002 §8: Animation
+   * ============================================================ */
+
+  --duration-fast: 100ms;
+  --duration-normal: 150ms;
+  --duration-slow: 200ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+ * SPEC-002 §5.1: Layout Constants (not TW utilities — plain vars)
+ * ============================================================ */
+
+:root {
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 48px;
+  --details-panel-width: 280px;
+  --status-bar-height: 32px;
+  --title-bar-height: 40px;
+  --input-area-min-height: 80px;
+  --agent-card-min-height: 120px;
+}
+
+/* ============================================================
+ * SPEC-002 §12: Accessibility — reduced motion
+ * ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}

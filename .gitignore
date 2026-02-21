@@ -1,0 +1,44 @@
+# Rust
+/src-tauri/target/
+**/*.rs.bk
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tauri
+/src-tauri/gen/
+
+# Build artifacts
+*.dmg
+*.msi
+*.AppImage
+*.deb
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Screenshots (Playwright MCP)
+*.playwright-mcp/
+chief-wiggum-*.png

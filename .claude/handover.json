@@ -1,0 +1,224 @@
+{
+  "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
+  "last_updated": "2026-02-21T14:30:00Z",
+  "last_updated_by": "claude-code",
+  "phase": {
+    "name": "Phase 1: Foundation",
+    "linear_project_id": "5b16e8ca-4509-4116-b3ef-d46069f0ee02",
+    "linear_project_url": "https://linear.app/chief-wiggum/project/phase-1-foundation-ba6f471a516b"
+  },
+  "epics": {
+    "CHI-5": {
+      "title": "Core Scaffolding",
+      "status": "in_progress",
+      "linear_id": "f770dffa-774f-40f0-88ac-a2a83e472d1a",
+      "notes": "CHI-8, CHI-9, CHI-11, CHI-12 done. Only CHI-10 (CI/CD) remains."
+    },
+    "CHI-6": {
+      "title": "CLI Bridge",
+      "status": "done",
+      "linear_id": "0a41cb6d-7cea-44ea-9d4e-cfbbf13864c7",
+      "completed_at": "2026-02-20T23:17:52Z"
+    },
+    "CHI-7": {
+      "title": "Basic UI",
+      "status": "todo",
+      "linear_id": "96c7647e-3ec3-4553-818e-d5358b8bc99d"
+    }
+  },
+  "tasks": {
+    "CHI-8": {
+      "title": "Scaffold Tauri v2 project with Rust backend",
+      "epic": "CHI-5",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "linear_id": "45d147b7-b4ec-44e0-b8c9-d490b77f8556",
+      "completed_at": "2026-02-21T13:25:00Z",
+      "files": [
+        "src-tauri/src/main.rs",
+        "src-tauri/tauri.conf.json",
+        "src-tauri/capabilities/default.json",
+        "src-tauri/icons/",
+        "package.json",
+        "index.html",
+        "vite.config.ts",
+        "tsconfig.json",
+        ".gitignore"
+      ],
+      "notes": "Tauri v2 scaffold complete. cargo tauri dev launches window. Min window 1024x640 set. Capabilities directory configured. Vite dev server on port 1420. Bridge code preserved. All 43 tests pass. Git repo initialized."
+    },
+    "CHI-9": {
+      "title": "Configure SolidJS 2.x + TailwindCSS v4 frontend",
+      "epic": "CHI-5",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": ["CHI-8"],
+      "linear_id": "bcd35744-e415-4d35-a0c1-6a7b661c3622",
+      "completed_at": "2026-02-21T14:30:00Z",
+      "files": [
+        "src/index.tsx",
+        "src/App.tsx",
+        "src/lib/types.ts",
+        "src/styles/tokens.css",
+        "src/components/",
+        "src/stores/",
+        "vite.config.ts",
+        "tsconfig.json",
+        "index.html",
+        "package.json",
+        ".prettierrc",
+        "eslint.config.js"
+      ],
+      "notes": "SolidJS 1.9.11 + TailwindCSS 4.2.0 configured. All SPEC-002 tokens in src/styles/tokens.css via @theme. Prettier + ESLint per GUIDE-001. TypeScript strict with @/ path aliases. IPC type stubs in src/lib/types.ts. vite build produces 10.56 KB CSS + 6.99 KB JS. All checks pass (typecheck, lint, format)."
+    },
+    "CHI-10": {
+      "title": "Set up CI/CD pipeline",
+      "epic": "CHI-5",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-8", "CHI-9"],
+      "linear_id": "8771f923-b7ad-4f44-9d64-656135c285fc"
+    },
+    "CHI-11": {
+      "title": "Implement SQLite database layer with migration system",
+      "epic": "CHI-5",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": ["CHI-8"],
+      "linear_id": "67cfe4ca-135a-4010-b765-31888db84494",
+      "completed_at": "2026-02-21T14:30:00Z",
+      "files": [
+        "src-tauri/src/db/mod.rs",
+        "src-tauri/src/db/connection.rs",
+        "src-tauri/src/db/migrations.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/main.rs",
+        "src-tauri/Cargo.toml"
+      ],
+      "notes": "SQLite at ~/.chiefwiggum/db/chiefwiggum.sqlite. WAL mode + foreign keys. Forward-only migration system with schema_version table. 6 data tables (projects, sessions, messages, agents, cost_events, budgets) + indexes. Typed query functions in db/queries.rs. 12 unit tests (5 migration + 7 query). Database initializes on app startup. 55 total tests pass."
+    },
+    "CHI-12": {
+      "title": "Create CLAUDE.md agent auto-briefing file",
+      "epic": "CHI-5",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "linear_id": "66b52ef6-e739-4336-b954-4c5f0a490e3e",
+      "completed_at": "2026-02-20T23:20:00Z",
+      "notes": "CLAUDE.md created with full project context. Handover system established."
+    },
+    "CHI-13": {
+      "title": "Implement PTY process spawning for Claude Code CLI",
+      "epic": "CHI-6",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": ["CHI-8"],
+      "linear_id": "9cc08937-a4b2-4548-b8b7-69762f60a78e",
+      "completed_at": "2026-02-20T23:17:44Z",
+      "files": ["src-tauri/src/bridge/process.rs", "src-tauri/src/bridge/mod.rs", "src-tauri/src/lib.rs"],
+      "notes": "CliBridge with PTY via portable-pty. MockBridge for testing. 5 unit tests."
+    },
+    "CHI-14": {
+      "title": "Build structured output parser for CLI responses",
+      "epic": "CHI-6",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": ["CHI-13"],
+      "linear_id": "af94cf34-9108-426e-842d-880613006c98",
+      "completed_at": "2026-02-20T23:17:44Z",
+      "files": ["src-tauri/src/bridge/parser.rs"],
+      "notes": "StreamParser with chunk-aware JSON parsing. 9 event types. 11 unit tests."
+    },
+    "CHI-15": {
+      "title": "Create versioned adapter interface for CLI format changes",
+      "epic": "CHI-6",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": ["CHI-14"],
+      "linear_id": "ecbb0da1-d0f5-4018-83e7-e3a8175f61e8",
+      "completed_at": "2026-02-20T23:17:44Z",
+      "files": ["src-tauri/src/bridge/adapter.rs"],
+      "notes": "AdapterRegistry with version detection and fallback. 7 unit tests."
+    },
+    "CHI-16": {
+      "title": "Implement permission request interception from CLI",
+      "epic": "CHI-6",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": ["CHI-13", "CHI-14"],
+      "linear_id": "1444588c-3339-4dc2-9ab5-212bf0675011",
+      "completed_at": "2026-02-20T23:17:44Z",
+      "files": ["src-tauri/src/bridge/permission.rs"],
+      "notes": "PermissionManager with async request/resolve, auto-allow rules, timeout auto-deny. 10 unit tests."
+    },
+    "CHI-17": {
+      "title": "Build main layout shell (5-zone structure)",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-9"]
+    },
+    "CHI-18": {
+      "title": "Implement conversation view with markdown/code rendering",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-17", "CHI-14"]
+    },
+    "CHI-19": {
+      "title": "Build message input component with send controls",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-17"]
+    },
+    "CHI-20": {
+      "title": "Implement model selector (Opus/Sonnet/Haiku)",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P1",
+      "dependencies": ["CHI-17", "CHI-13"]
+    },
+    "CHI-21": {
+      "title": "Integrate Terminal Mode with xterm.js + WebGL",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-17", "CHI-13"]
+    },
+    "CHI-22": {
+      "title": "Implement session persistence and sidebar navigation",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-11", "CHI-17", "CHI-18"]
+    },
+    "CHI-23": {
+      "title": "Build permission dialog UI component",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P0",
+      "dependencies": ["CHI-16", "CHI-17"]
+    },
+    "CHI-24": {
+      "title": "Configure cross-platform packaging (.dmg, .msi, .AppImage)",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P1",
+      "dependencies": ["CHI-10"]
+    }
+  },
+  "recommended_next": ["CHI-10"],
+  "warnings": [],
+  "environment": {
+    "rust_installed": true,
+    "node_installed": true,
+    "node_version": "v22.19.0",
+    "npm_version": "11.6.2",
+    "tauri_cli_installed": true,
+    "tauri_cli_version": "2.10.0",
+    "notes": "Full toolchain ready. SolidJS + TailwindCSS v4 frontend configured. SQLite database layer operational. 55 Rust tests pass. Frontend checks (typecheck, lint, format) all pass."
+  }
+}
