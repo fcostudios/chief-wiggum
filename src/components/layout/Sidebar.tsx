@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, onMount } from 'solid-js';
-import { Plus, Trash2, MessageSquare } from 'lucide-solid';
+import { Plus, Trash2, MessageSquare, FolderOpen } from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
   sessionState,
@@ -14,6 +14,7 @@ import {
   deleteSession,
 } from '@/stores/sessionStore';
 import { loadMessages, clearMessages } from '@/stores/conversationStore';
+import { projectState, loadProjects, pickAndCreateProject } from '@/stores/projectStore';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -42,9 +43,15 @@ function modelColorClass(model: string): string {
   return 'text-model-sonnet';
 }
 
+/** Reactive accessor for the active project. */
+function activeProject() {
+  return projectState.projects.find((p) => p.id === projectState.activeProjectId);
+}
+
 const Sidebar: Component = () => {
   onMount(() => {
     loadSessions();
+    loadProjects();
   });
 
   async function handleNewSession() {
@@ -60,6 +67,33 @@ const Sidebar: Component = () => {
 
   return (
     <nav class="flex flex-col h-full" aria-label="Sidebar">
+      {/* Project selector */}
+      <div class="px-3 py-2 border-b border-border-secondary">
+        <Show
+          when={projectState.activeProjectId}
+          fallback={
+            <button
+              class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+              onClick={() => pickAndCreateProject()}
+            >
+              <FolderOpen size={14} />
+              <span>Open Project Folder</span>
+            </button>
+          }
+        >
+          <button
+            class="flex items-center gap-2 w-full py-1 px-2 rounded-md text-xs text-text-primary hover:bg-bg-elevated transition-colors truncate"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={() => pickAndCreateProject()}
+            title={activeProject()?.path ?? ''}
+          >
+            <FolderOpen size={14} class="shrink-0 text-accent" />
+            <span class="truncate">{activeProject()?.name ?? 'Unknown'}</span>
+          </button>
+        </Show>
+      </div>
+
       {/* Sessions header */}
       <div class="flex items-center justify-between px-3 py-2 border-b border-border-secondary">
         <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">

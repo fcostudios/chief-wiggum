@@ -73,3 +73,14 @@ export interface CliLocation {
   resolved_path: string | null;
   version: string | null;
 }
+
+/** Project row from backend (mirrors Rust ProjectRow) */
+export interface Project {
+  id: string;
+  name: string;
+  path: string;
+  default_model: string | null;
+  default_effort: string | null;
+  created_at: string | null;
+  last_opened_at: string | null;
+}
