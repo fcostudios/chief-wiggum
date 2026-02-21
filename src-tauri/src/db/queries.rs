@@ -5,7 +5,7 @@
 
 use super::Database;
 use crate::AppError;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 // ── Projects ───────────────────────────────────────────────────
 
@@ -170,9 +170,18 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
 pub fn delete_session(db: &Database, id: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
         // Delete child records first (no ON DELETE CASCADE in schema)
-        conn.execute("DELETE FROM cost_events WHERE session_id = ?1", rusqlite::params![id])?;
-        conn.execute("DELETE FROM agents WHERE session_id = ?1", rusqlite::params![id])?;
-        conn.execute("DELETE FROM messages WHERE session_id = ?1", rusqlite::params![id])?;
+        conn.execute(
+            "DELETE FROM cost_events WHERE session_id = ?1",
+            rusqlite::params![id],
+        )?;
+        conn.execute(
+            "DELETE FROM agents WHERE session_id = ?1",
+            rusqlite::params![id],
+        )?;
+        conn.execute(
+            "DELETE FROM messages WHERE session_id = ?1",
+            rusqlite::params![id],
+        )?;
         conn.execute("DELETE FROM sessions WHERE id = ?1", rusqlite::params![id])?;
         Ok(())
     })

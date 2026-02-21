@@ -7,10 +7,7 @@ use crate::AppError;
 use tauri::State;
 
 #[tauri::command]
-pub fn create_session(
-    db: State<'_, Database>,
-    model: String,
-) -> Result<SessionRow, AppError> {
+pub fn create_session(db: State<'_, Database>, model: String) -> Result<SessionRow, AppError> {
     let id = uuid::Uuid::new_v4().to_string();
     queries::insert_session(&db, &id, None, &model)?;
     queries::get_session(&db, &id)?
@@ -23,19 +20,13 @@ pub fn list_all_sessions(db: State<'_, Database>) -> Result<Vec<SessionRow>, App
 }
 
 #[tauri::command]
-pub fn get_session(
-    db: State<'_, Database>,
-    session_id: String,
-) -> Result<SessionRow, AppError> {
+pub fn get_session(db: State<'_, Database>, session_id: String) -> Result<SessionRow, AppError> {
     queries::get_session(&db, &session_id)?
         .ok_or_else(|| AppError::Other(format!("Session {} not found", session_id)))
 }
 
 #[tauri::command]
-pub fn delete_session(
-    db: State<'_, Database>,
-    session_id: String,
-) -> Result<(), AppError> {
+pub fn delete_session(db: State<'_, Database>, session_id: String) -> Result<(), AppError> {
     queries::delete_session(&db, &session_id)
 }
 

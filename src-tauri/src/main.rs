@@ -13,8 +13,7 @@ fn main() {
     tracing::info!("Starting Chief Wiggum v{}", env!("CARGO_PKG_VERSION"));
 
     // Initialize SQLite database — required for session persistence (CHI-22)
-    let db = chief_wiggum_lib::db::Database::open_default()
-        .expect("Failed to initialize database");
+    let db = chief_wiggum_lib::db::Database::open_default().expect("Failed to initialize database");
     tracing::info!("Database initialized at {:?}", db.path());
 
     tauri::Builder::default()
