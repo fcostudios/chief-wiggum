@@ -11,6 +11,7 @@ use crate::{AppError, AppResult};
 
 /// Maps session IDs to their active CLI bridge processes.
 /// Registered as Tauri managed state.
+#[derive(Clone)]
 pub struct SessionBridgeMap {
     bridges: Arc<RwLock<HashMap<String, Arc<dyn BridgeInterface>>>>,
 }
