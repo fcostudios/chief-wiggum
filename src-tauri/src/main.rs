@@ -32,11 +32,15 @@ fn main() {
         }
     };
 
+    // Create the session-to-bridge map for managing CLI processes
+    let bridge_map = chief_wiggum_lib::bridge::SessionBridgeMap::new();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(db)
         .manage(cli_location)
+        .manage(bridge_map)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -50,6 +54,10 @@ fn main() {
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
             chief_wiggum_lib::commands::project::list_projects,
+            chief_wiggum_lib::commands::bridge::start_session_cli,
+            chief_wiggum_lib::commands::bridge::send_to_cli,
+            chief_wiggum_lib::commands::bridge::stop_session_cli,
+            chief_wiggum_lib::commands::bridge::get_cli_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Chief Wiggum");

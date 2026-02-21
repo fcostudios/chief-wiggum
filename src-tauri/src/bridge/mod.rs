@@ -8,12 +8,14 @@
 //! Coding standards: GUIDE-001 §2
 
 pub mod adapter;
+pub mod manager;
 pub mod parser;
 pub mod permission;
 pub mod process;
 
 // Re-export primary public types
 pub use adapter::{AdapterRegistry, OutputAdapter};
+pub use manager::SessionBridgeMap;
 pub use parser::{BridgeEvent, MessageChunk, ParsedOutput, StreamParser};
 pub use permission::{PermissionAction, PermissionManager, PermissionRequest, PermissionResponse};
 pub use process::{BridgeConfig, BridgeInterface, CliBridge, ProcessStatus};
