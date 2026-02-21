@@ -18,7 +18,9 @@ import DetailsPanel from './DetailsPanel';
 import ConversationView from '@/components/conversation/ConversationView';
 import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
+import YoloWarningDialog from '@/components/permissions/YoloWarningDialog';
 import { sendMessage } from '@/stores/conversationStore';
+import TerminalPane from '@/components/terminal/TerminalPane';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -76,9 +78,7 @@ const MainLayout: Component = () => {
               </div>
             </Show>
             <Show when={uiState.activeView === 'terminal'}>
-              <div class="flex items-center justify-center h-full">
-                <p class="text-text-tertiary text-sm">Terminal (CHI-21)</p>
-              </div>
+              <TerminalPane />
             </Show>
           </div>
 
@@ -123,6 +123,11 @@ const MainLayout: Component = () => {
             }}
           />
         )}
+      </Show>
+
+      {/* YOLO warning dialog */}
+      <Show when={uiState.yoloDialogVisible}>
+        <YoloWarningDialog />
       </Show>
     </div>
   );

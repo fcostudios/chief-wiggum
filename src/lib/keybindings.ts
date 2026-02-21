@@ -7,6 +7,8 @@ import {
   toggleSidebar,
   toggleDetailsPanel,
   setActiveView,
+  uiState,
+  toggleYoloMode,
   type ActiveView,
 } from '@/stores/uiStore';
 
@@ -33,6 +35,20 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyB' && e.shiftKey) {
     e.preventDefault();
     toggleDetailsPanel();
+    return;
+  }
+
+  // Cmd+` — toggle terminal view
+  if (e.code === 'Backquote' && !e.shiftKey) {
+    e.preventDefault();
+    setActiveView(uiState.activeView === 'terminal' ? 'conversation' : 'terminal');
+    return;
+  }
+
+  // Cmd+Shift+Y — toggle YOLO mode
+  if (e.code === 'KeyY' && e.shiftKey) {
+    e.preventDefault();
+    toggleYoloMode();
     return;
   }
 
