@@ -36,6 +36,7 @@ pub async fn send_to_cli(
     let cli_path = cli.binary_path()?.to_string();
 
     let mut extra_args = vec![
+        "--verbose".to_string(),
         "-p".to_string(),
         message,
     ];

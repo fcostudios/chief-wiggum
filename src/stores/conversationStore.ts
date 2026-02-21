@@ -211,10 +211,8 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
   const isFollowUp = state.messages.some((m) => m.role === 'assistant');
 
   try {
-    // Set up event listeners before spawning CLI
-    await setupEventListeners(sessionId);
-
-    // Spawn CLI process with the message as -p argument
+    // Spawn CLI process first — this kills any old bridge (which emits cli:exited).
+    // We set up listeners AFTER to avoid catching the old bridge's exit event.
     await invoke('send_to_cli', {
       session_id: sessionId,
       project_path: projectPath,
@@ -222,6 +220,9 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
       message: content,
       is_follow_up: isFollowUp,
     });
+
+    // Now set up event listeners for the new bridge's output
+    await setupEventListeners(sessionId);
   } catch (err) {
     setState('isLoading', false);
     setState('error', `Failed to send message: ${err}`);

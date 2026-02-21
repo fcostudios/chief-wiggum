@@ -203,11 +203,95 @@ impl StreamParser {
                 })))
             }
 
-            // Message complete
+            // Streamed assistant message — contains content blocks (text, thinking, tool_use).
+            // Claude Code emits one `assistant` event per content block addition.
+            // Structure: { type: "assistant", message: { content: [{type, text/thinking}], ... } }
+            "assistant" => {
+                let mut outputs = Vec::new();
+
+                if let Some(content_arr) = event
+                    .data
+                    .get("message")
+                    .and_then(|m| m.get("content"))
+                    .and_then(|c| c.as_array())
+                {
+                    for block in content_arr {
+                        let block_type = block
+                            .get("type")
+                            .and_then(|t| t.as_str())
+                            .unwrap_or("");
+                        match block_type {
+                            "text" => {
+                                if let Some(text) = block.get("text").and_then(|t| t.as_str()) {
+                                    if !text.is_empty() {
+                                        outputs.push(ParsedOutput::Chunk(MessageChunk {
+                                            session_id: self.session_id.clone(),
+                                            content: text.to_string(),
+                                            token_count: None,
+                                        }));
+                                    }
+                                }
+                            }
+                            "thinking" => {
+                                if let Some(thinking) =
+                                    block.get("thinking").and_then(|t| t.as_str())
+                                {
+                                    outputs.push(ParsedOutput::Event(BridgeEvent::Thinking {
+                                        session_id: self.session_id.clone(),
+                                        content: thinking.to_string(),
+                                        is_streaming: false,
+                                    }));
+                                }
+                            }
+                            _ => {} // tool_use, etc. — handled elsewhere
+                        }
+                    }
+                }
+
+                // Return first output, queue the rest. For simplicity, if there are
+                // multiple blocks in one event, return them all via the vec path.
+                if outputs.is_empty() {
+                    Ok(None)
+                } else if outputs.len() == 1 {
+                    Ok(Some(outputs.remove(0)))
+                } else {
+                    // Multiple blocks — return first, push rest back.
+                    // Actually, our feed() collects into a Vec, so we'll handle
+                    // multi-block by returning just the first here and letting the
+                    // outer loop call again. But parse_line is called once per line.
+                    // So we need a different approach: store pending outputs.
+                    // For now, concatenate text chunks into one.
+                    let mut combined_text = String::new();
+                    for output in &outputs {
+                        if let ParsedOutput::Chunk(chunk) = output {
+                            combined_text.push_str(&chunk.content);
+                        }
+                    }
+                    if !combined_text.is_empty() {
+                        Ok(Some(ParsedOutput::Chunk(MessageChunk {
+                            session_id: self.session_id.clone(),
+                            content: combined_text,
+                            token_count: None,
+                        })))
+                    } else {
+                        Ok(outputs.into_iter().next())
+                    }
+                }
+            }
+
+            // Message complete / final result.
+            // `result` events have content in `result` field and cost in `total_cost_usd`.
+            // `message_complete` / `assistant_message` use `content` field.
             "message_complete" | "result" | "assistant_message" => {
-                let content = extract_string(&event.data, "content")
+                let content = extract_string(&event.data, "result")
+                    .or_else(|| extract_string(&event.data, "content"))
                     .or_else(|| extract_string(&event.data, "text"))
                     .unwrap_or_default();
+
+                // Cost: `result` events use `total_cost_usd` (dollars → cents)
+                let cost_cents = extract_f64(&event.data, "total_cost_usd")
+                    .map(|usd| usd * 100.0)
+                    .or_else(|| extract_f64(&event.data, "cost_cents"));
 
                 Ok(Some(ParsedOutput::Event(BridgeEvent::MessageComplete {
                     session_id: self.session_id.clone(),
@@ -221,7 +305,7 @@ impl StreamParser {
                         .or_else(|| extract_nested_u64(&event.data, &["usage", "output_tokens"])),
                     thinking_tokens: extract_u64(&event.data, "usage.thinking_tokens")
                         .or_else(|| extract_nested_u64(&event.data, &["usage", "thinking_tokens"])),
-                    cost_cents: extract_f64(&event.data, "cost_cents"),
+                    cost_cents,
                 })))
             }
 
