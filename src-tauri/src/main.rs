@@ -16,9 +16,26 @@ fn main() {
     let db = chief_wiggum_lib::db::Database::open_default().expect("Failed to initialize database");
     tracing::info!("Database initialized at {:?}", db.path());
 
+    // Detect Claude Code CLI — non-fatal if missing
+    let cli_location = match chief_wiggum_lib::bridge::CliLocation::detect(None) {
+        Ok(loc) => {
+            tracing::info!("Claude Code CLI found at: {:?}", loc.resolved_path);
+            loc
+        }
+        Err(e) => {
+            tracing::warn!("Claude Code CLI not found: {}", e);
+            chief_wiggum_lib::bridge::CliLocation {
+                path_override: None,
+                resolved_path: None,
+                version: None,
+            }
+        }
+    };
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .manage(db)
+        .manage(cli_location)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -28,6 +45,7 @@ fn main() {
             chief_wiggum_lib::commands::session::save_message,
             chief_wiggum_lib::commands::session::list_messages,
             chief_wiggum_lib::commands::session::update_session_model,
+            chief_wiggum_lib::commands::cli::get_cli_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Chief Wiggum");
