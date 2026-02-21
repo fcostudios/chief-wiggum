@@ -8,6 +8,7 @@
 
 import type { Component } from 'solid-js';
 import { onMount, onCleanup, Show } from 'solid-js';
+import { invoke } from '@tauri-apps/api/core';
 import { uiState, setActiveView, dismissPermissionDialog, type ActiveView } from '@/stores/uiStore';
 import type { PermissionAction } from '@/lib/types';
 import { handleGlobalKeyDown } from '@/lib/keybindings';
@@ -126,9 +127,21 @@ const MainLayout: Component = () => {
         {(request) => (
           <PermissionDialog
             request={request()}
-            onRespond={(_action: PermissionAction) => {
-              // TODO: wire to IPC respond_permission command
+            // eslint-disable-next-line solid/reactivity -- event handler callback, not a tracking scope
+            onRespond={async (action: PermissionAction) => {
+              const req = request();
               dismissPermissionDialog();
+              try {
+                await invoke('respond_permission', {
+                  request_id: req.request_id,
+                  action,
+                  pattern: null,
+                });
+              } catch (err) {
+                if (import.meta.env.DEV) {
+                  console.warn('[MainLayout] Failed to resolve permission:', err);
+                }
+              }
             }}
           />
         )}

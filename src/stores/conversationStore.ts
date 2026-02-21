@@ -5,9 +5,10 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { Message } from '@/lib/types';
+import type { Message, PermissionRequest } from '@/lib/types';
 import { updateSessionTitle, getActiveSession } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
+import { showPermissionDialog } from '@/stores/uiStore';
 
 interface ConversationState {
   messages: Message[];
@@ -29,6 +30,7 @@ const [state, setState] = createStore<ConversationState>({
 let unlistenChunk: UnlistenFn | null = null;
 let unlistenComplete: UnlistenFn | null = null;
 let unlistenExited: UnlistenFn | null = null;
+let unlistenPermission: UnlistenFn | null = null;
 
 /** Load messages for a session from the database. */
 export async function loadMessages(sessionId: string): Promise<void> {
@@ -67,7 +69,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     output_tokens: number | null;
     thinking_tokens: number | null;
     cost_cents: number | null;
-  // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
+    // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
   }>('message:complete', (event) => {
     if (event.payload.session_id !== sessionId) return;
 
@@ -115,6 +117,25 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       setState('error', `CLI exited with code ${event.payload.exit_code}`);
     }
   });
+
+  unlistenPermission = await listen<{
+    session_id: string;
+    request_id: string;
+    tool: string;
+    command: string;
+    file_path: string | null;
+    risk_level: string;
+  }>('permission:request', (event) => {
+    if (event.payload.session_id !== sessionId) return;
+    const req: PermissionRequest = {
+      request_id: event.payload.request_id,
+      tool: event.payload.tool,
+      command: event.payload.command,
+      file_path: event.payload.file_path,
+      risk_level: event.payload.risk_level as PermissionRequest['risk_level'],
+    };
+    showPermissionDialog(req);
+  });
 }
 
 /** Clean up event listeners. */
@@ -130,6 +151,10 @@ export async function cleanupEventListeners(): Promise<void> {
   if (unlistenExited) {
     unlistenExited();
     unlistenExited = null;
+  }
+  if (unlistenPermission) {
+    unlistenPermission();
+    unlistenPermission = null;
   }
 }
 
