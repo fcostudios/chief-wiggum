@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-21T15:30:00Z",
+  "last_updated": "2026-02-21T16:10:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 1: Foundation",
@@ -24,7 +24,7 @@
       "title": "Basic UI",
       "status": "in_progress",
       "linear_id": "96c7647e-3ec3-4553-818e-d5358b8bc99d",
-      "notes": "CHI-17, CHI-19, CHI-23 done. Remaining: CHI-18, CHI-20, CHI-21, CHI-22, CHI-24, CHI-26."
+      "notes": "CHI-17, CHI-18, CHI-19, CHI-21, CHI-23, CHI-26 done. Remaining: CHI-20, CHI-22, CHI-24."
     }
   },
   "tasks": {
@@ -194,9 +194,21 @@
     "CHI-18": {
       "title": "Implement conversation view with markdown/code rendering",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-17", "CHI-14"]
+      "dependencies": ["CHI-17", "CHI-14"],
+      "completed_at": "2026-02-21T16:00:00Z",
+      "files": [
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/components/conversation/MessageBubble.tsx",
+        "src/stores/conversationStore.ts",
+        "src/lib/types.ts",
+        "src/styles/tokens.css",
+        "src/components/layout/MainLayout.tsx",
+        "package.json"
+      ],
+      "notes": "Conversation view with marked + highlight.js for markdown/code rendering. MessageBubble with role labels, model badges, timestamp/cost footer. Auto-scroll with scroll-lock. Empty state + loading indicator. Mock responses for testing. Code blocks with copy buttons."
     },
     "CHI-19": {
       "title": "Build message input component with send controls",
@@ -222,9 +234,17 @@
     "CHI-21": {
       "title": "Integrate Terminal Mode with xterm.js + WebGL",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-17", "CHI-13"]
+      "dependencies": ["CHI-17", "CHI-13"],
+      "completed_at": "2026-02-21T16:05:00Z",
+      "files": [
+        "src/components/terminal/TerminalPane.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/lib/keybindings.ts",
+        "package.json"
+      ],
+      "notes": "xterm.js v5 with WebGL addon for GPU rendering, FitAddon for auto-resize, SPEC-002 themed (16 ANSI colors). Cmd+backtick toggles terminal/conversation. Welcome message displayed. PTY connection deferred to IPC commands module."
     },
     "CHI-22": {
       "title": "Implement session persistence and sidebar navigation",
@@ -267,14 +287,24 @@
     "CHI-26": {
       "title": "Implement YOLO Mode (auto-approve all permission requests)",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P1",
       "dependencies": ["CHI-16", "CHI-17", "CHI-23"],
       "linear_id": "9ebdd2d4-246d-4ae3-a211-0e4fc55c0cb0",
-      "notes": "YOLO Mode: opt-in auto-approve for all permission requests. Toolbar toggle, warning dialog, session-scoped, audit-logged. See SPEC-001 §7.1."
+      "completed_at": "2026-02-21T16:08:00Z",
+      "files": [
+        "src-tauri/src/bridge/permission.rs",
+        "src/stores/uiStore.ts",
+        "src/lib/keybindings.ts",
+        "src/components/permissions/YoloWarningDialog.tsx",
+        "src/components/layout/TitleBar.tsx",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/MainLayout.tsx"
+      ],
+      "notes": "YOLO Mode: PermissionManager yolo_mode with auto-approve path + 4 tests (59 total). YoloWarningDialog with mandatory confirmation. TitleBar Zap toggle + pulsing badge. StatusBar 'YOLO MODE' indicator. Cmd+Shift+Y shortcut. Session-scoped, resets on restart."
     }
   },
-  "recommended_next": ["CHI-18", "CHI-21", "CHI-26"],
+  "recommended_next": ["CHI-22", "CHI-20", "CHI-24"],
   "warnings": [],
   "environment": {
     "rust_installed": true,

@@ -34,21 +34,21 @@
 | CHI-17: Layout Shell | **Done** | 5-zone layout, TitleBar, Sidebar, StatusBar, DetailsPanel, MainLayout |
 | CHI-19: Message Input | **Done** | Auto-expanding textarea, send/stop controls, keyboard shortcuts |
 | CHI-23: Permission Dialog | **Done** | Modal dialog, risk coloring, timeout, focus trap, keyboard shortcuts |
+| CHI-18: Conversation View | **Done** | Markdown/code rendering (marked + highlight.js), message bubbles, auto-scroll |
+| CHI-21: Terminal Mode | **Done** | xterm.js v5 + WebGL addon, SPEC-002 themed, Cmd+` toggle |
+| CHI-26: YOLO Mode | **Done** | Auto-approve permissions, warning dialog, TitleBar/StatusBar indicators, Cmd+Shift+Y |
 
 ## What's Next (Pick from here)
 
 **Epic CHI-5: Core Scaffolding** — **Complete.** All tasks done.
 
-**Epic CHI-7: Basic UI** — In progress. CHI-17, CHI-19, CHI-23 done.
+**Epic CHI-7: Basic UI** — In progress. 6 of 9 tasks done.
 
 | Task | Priority | Dependencies | What to build |
 |------|----------|--------------|---------------|
-| CHI-18 | P0 | ~~CHI-17~~, CHI-14 | Conversation view with markdown/code rendering |
-| CHI-20 | P1 | ~~CHI-17~~, CHI-13 | Model selector (Opus/Sonnet/Haiku) |
-| CHI-21 | P0 | ~~CHI-17~~, CHI-13 | Terminal Mode with xterm.js + WebGL |
-| CHI-22 | P0 | CHI-11, ~~CHI-17~~, CHI-18 | Session persistence and sidebar navigation |
-| CHI-24 | P1 | CHI-10 | Cross-platform packaging (.dmg, .msi, .AppImage) |
-| CHI-26 | P1 | ~~CHI-16~~, ~~CHI-17~~, ~~CHI-23~~ | **YOLO Mode** — auto-approve all permission requests (see SPEC-001 §7.1) |
+| CHI-20 | P1 | ~~CHI-17~~, ~~CHI-13~~ | Model selector (Opus/Sonnet/Haiku) |
+| CHI-22 | P0 | ~~CHI-11~~, ~~CHI-17~~, ~~CHI-18~~ | Session persistence and sidebar navigation |
+| CHI-24 | P1 | ~~CHI-10~~ | Cross-platform packaging (.dmg, .msi, .AppImage) |
 
 See `docs/tasks/TASKS-001-phase1-foundation.md` for full dependency graph and execution order.
 
@@ -141,15 +141,22 @@ src/                            # SolidJS frontend
 │   │   ├── Sidebar.tsx         # Left panel (sessions list)
 │   │   ├── StatusBar.tsx       # Bottom bar (status, tokens, cost)
 │   │   └── DetailsPanel.tsx    # Right panel (context, cost sections)
-│   ├── conversation/           # Conversation UI (CHI-18, CHI-19)
-│   │   └── MessageInput.tsx    # Auto-expanding textarea + send controls (DONE)
-│   └── permissions/            # Permission system UI (CHI-23)
-│       └── PermissionDialog.tsx # Modal permission dialog (DONE)
+│   ├── conversation/           # Conversation UI (DONE — CHI-18, CHI-19)
+│   │   ├── ConversationView.tsx # Message list, auto-scroll, empty state
+│   │   ├── MessageBubble.tsx   # Role labels, model badges, markdown content
+│   │   ├── MarkdownContent.tsx # marked + highlight.js rendering, copy buttons
+│   │   └── MessageInput.tsx    # Auto-expanding textarea + send controls
+│   ├── terminal/               # Terminal Mode (DONE — CHI-21)
+│   │   └── TerminalPane.tsx    # xterm.js v5 + WebGL + FitAddon
+│   └── permissions/            # Permission system UI (DONE — CHI-23, CHI-26)
+│       ├── PermissionDialog.tsx # Modal permission dialog
+│       └── YoloWarningDialog.tsx # YOLO mode confirmation warning
 ├── stores/
-│   └── uiStore.ts              # UI state (sidebar, panels, views, permissions)
+│   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo)
+│   └── conversationStore.ts    # Conversation state (messages, loading, send)
 ├── lib/
-│   ├── types.ts                # TypeScript IPC types (mirror Rust types)
-│   └── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+1-4)
+│   ├── types.ts                # TypeScript IPC types (Message, PermissionRequest, etc.)
+│   └── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+`, Cmd+Shift+Y)
 └── styles/
     └── tokens.css              # SPEC-002 design tokens + TailwindCSS v4 @theme
 ```
