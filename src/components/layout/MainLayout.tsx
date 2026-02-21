@@ -8,13 +8,15 @@
 
 import type { Component } from 'solid-js';
 import { onMount, onCleanup, Show } from 'solid-js';
-import { uiState, setActiveView, type ActiveView } from '@/stores/uiStore';
+import { uiState, setActiveView, dismissPermissionDialog, type ActiveView } from '@/stores/uiStore';
+import type { PermissionAction } from '@/lib/types';
 import { handleGlobalKeyDown } from '@/lib/keybindings';
 import TitleBar from './TitleBar';
 import Sidebar from './Sidebar';
 import StatusBar from './StatusBar';
 import DetailsPanel from './DetailsPanel';
 import MessageInput from '@/components/conversation/MessageInput';
+import PermissionDialog from '@/components/permissions/PermissionDialog';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -100,6 +102,19 @@ const MainLayout: Component = () => {
       </div>
 
       <StatusBar />
+
+      {/* Permission dialog — rendered above everything when a request is pending */}
+      <Show when={uiState.permissionRequest}>
+        {(request) => (
+          <PermissionDialog
+            request={request()}
+            onRespond={(_action: PermissionAction) => {
+              // TODO: wire to IPC respond_permission command
+              dismissPermissionDialog();
+            }}
+          />
+        )}
+      </Show>
     </div>
   );
 };
