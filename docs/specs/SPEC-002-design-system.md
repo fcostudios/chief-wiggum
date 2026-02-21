@@ -1,8 +1,8 @@
 # SPEC-002: Design System Specification
 
-**Version:** 1.0
-**Date:** 2026-02-20
-**Status:** Draft
+**Version:** 2.0
+**Date:** 2026-02-21
+**Status:** Draft — Updated for Phase 2 + UX Polish
 **Parent:** SPEC-001 (Section 10.3)
 **Audience:** Frontend developers, coding agents, UI reviewers
 
@@ -87,7 +87,29 @@ All colors are defined as CSS custom properties on `:root`. The theme file sets 
 | `--color-diff-remove-text` | `#F85149` | Removed line text highlight |
 | `--color-diff-modify-bg` | `#2A2112` | Modified line background |
 
-### 3.5 Light Theme (Future)
+### 3.5 Tool Use Colors (Phase 2 — CHI-66)
+
+| Token | Hex | Usage |
+|---|---|---|
+| `--color-tool-file` | `#58A6FF` | File operations (Edit, Write, Read) — blue |
+| `--color-tool-bash` | `#3FB950` | Bash/shell commands — green |
+| `--color-tool-neutral` | `#6E7681` | Read-only operations — gray |
+| `--color-tool-permission-allow` | `#3FB950` | Permission allowed indicator |
+| `--color-tool-permission-deny` | `#F85149` | Permission denied indicator |
+| `--color-tool-permission-yolo` | `#D29922` | YOLO auto-approved indicator |
+
+### 3.6 Toast Colors (Phase 2 — CHI-74)
+
+Toast notifications use existing semantic colors with left stripe:
+
+| Variant | Left Stripe | Background | Text |
+|---|---|---|---|
+| `success` | `--color-success` | `--color-bg-elevated` | `--color-text-primary` |
+| `warning` | `--color-warning` | `--color-bg-elevated` | `--color-text-primary` |
+| `error` | `--color-error` | `--color-bg-elevated` | `--color-text-primary` |
+| `info` | `--color-info` | `--color-bg-elevated` | `--color-text-primary` |
+
+### 3.7 Light Theme (Future)
 
 Light theme will invert the palette. Not in scope for Phase 1–2 but token names are theme-agnostic to support it. When implemented, toggle via `[data-theme="light"]` on `<html>`.
 
@@ -378,6 +400,139 @@ Used for model indicators, status labels, priority markers.
 - `--radius-md` corners
 - `--space-2` padding
 - Always on top within the terminal pane
+
+### 10.11 ToolUseBlock (Phase 2 — CHI-89)
+
+Inline collapsible block within assistant messages showing tool execution.
+
+**Structure:**
+- Background: `--color-bg-secondary`
+- Border: `--color-border-primary`
+- Left stripe: 3px, color based on tool type (see Section 3.5)
+- Radius: `--radius-md`
+- Padding: `--space-2` horizontal, `--space-1` vertical
+
+**Layout:**
+1. Header row: Tool icon (14px) + Tool name (`--text-sm`, `--font-mono`, bold) + summary + collapse chevron
+2. Content (expanded): Diff preview or command output in `--font-mono`, `--text-code`, `--color-bg-inset` background
+
+**States:**
+- Collapsed (default after response completes): shows header only
+- Expanded: shows full content with syntax highlighting
+- Streaming: expanded, content arriving incrementally
+
+### 10.12 ThinkingBlock (Phase 2 — CHI-90)
+
+Collapsible block showing Claude's reasoning within assistant messages.
+
+**Structure:**
+- Background: `--color-bg-secondary` at 50% opacity
+- Border: `--color-border-secondary`
+- Radius: `--radius-md`
+- Padding: `--space-2`
+
+**Layout:**
+1. Header: "💭 Thinking" label (`--text-sm`, `--color-text-tertiary`) + chevron
+2. Content: Italic text, `--color-text-secondary`, `--text-sm`
+3. Preview (collapsed): first ~80 characters shown, truncated with ellipsis
+
+**States:**
+- Streaming: expanded, content arriving
+- Complete: collapsed by default, first 2 lines as preview
+- Expanded: full reasoning visible
+
+### 10.13 Toast (Phase 2 — CHI-74)
+
+Notification toast for non-blocking feedback.
+
+**Structure:**
+- Background: `--color-bg-elevated`
+- Border: `--color-border-primary`
+- Left stripe: 3px in variant color
+- Radius: `--radius-md`
+- Shadow: `--shadow-sm`
+- Width: 320px max
+- Padding: `--space-3`
+
+**Layout:**
+1. Icon (variant-specific, 16px) + message text (`--text-sm`)
+2. Optional: action button (ghost variant) + dismiss button (X icon)
+
+**Animation:**
+- Enter: slide in from right (200ms) + fade in
+- Exit: slide out left (150ms) + fade out
+- Respects `prefers-reduced-motion`
+
+**Container:** Fixed position, bottom-right, 16px from viewport edges. Max 3 toasts stacked with `--space-2` gap.
+
+### 10.14 CommandPalette (Phase 2 — CHI-76)
+
+Global command search overlay.
+
+**Structure:**
+- Overlay: `rgba(0, 0, 0, 0.6)`
+- Container: `--color-bg-elevated`, `--radius-lg`, `--shadow-md`
+- Width: 560px, max height: 400px
+- Padding: `--space-4`
+
+**Layout:**
+1. Search input: full width, `--text-md`, magnifying glass icon, autofocused
+2. Separator: `--color-border-secondary`
+3. Results list: scrollable, max 10 visible items
+4. Result item: icon (16px) + label (`--text-sm`) + shortcut badge (right-aligned, `--text-xs`, `--color-text-tertiary`)
+
+**States:**
+- Default: shows popular/recent commands
+- Searching: results filtered by fuzzy match, matching chars highlighted in `--color-accent`
+- Active item: `--color-bg-elevated` background, `--color-text-primary` text
+- Empty: "No results found" centered text
+
+### 10.15 ProjectSelector (Phase 2 — CHI-40)
+
+Sidebar project selector button.
+
+**Structure (no project):**
+- `ghost` button variant, full width
+- FolderOpen icon (14px) + "Open Project Folder" text
+- `--text-xs`, `--color-text-secondary`
+
+**Structure (project selected):**
+- `ghost` button variant, full width
+- FolderOpen icon (14px, `--color-accent`) + project name (truncated)
+- `--text-xs`, `--color-text-primary`
+- Tooltip on hover: full project path
+
+### 10.16 StreamingBubble (Phase 2 — CHI-49)
+
+Live streaming content display within ConversationView.
+
+**Structure:**
+- Same as assistant MessageBubble
+- Background: `--color-bg-secondary`
+- Border: `--color-border-primary`
+- Radius: `--radius-lg`
+- Max width: 85%
+
+**Layout:**
+1. "Assistant" label (`--text-sm`, `--color-text-secondary`, `font-medium`)
+2. MarkdownContent rendering (streaming)
+3. Blinking cursor: `w-2 h-4 bg-accent animate-pulse ml-0.5` — positioned inline at end of text
+
+**States:**
+- Streaming: content growing, cursor visible, auto-scroll active
+- Complete: cursor removed, transitions to regular MessageBubble
+
+### 10.17 Scrollbar (Phase 2 — CHI-70)
+
+Custom scrollbar styling for dark theme consistency.
+
+**Structure:**
+- Width: 8px
+- Track: `--color-bg-primary` (transparent on main content areas)
+- Thumb: `--color-border-primary`, `--radius-full`
+- Thumb hover: `--color-text-tertiary`
+
+Applied to: ConversationView, Sidebar session list, DetailsPanel sections, Diff viewer.
 
 ---
 
