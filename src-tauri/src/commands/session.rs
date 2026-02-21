@@ -81,3 +81,12 @@ pub fn list_messages(
 ) -> Result<Vec<MessageRow>, AppError> {
     queries::list_messages(&db, &session_id)
 }
+
+#[tauri::command]
+pub fn update_session_model(
+    db: State<'_, Database>,
+    session_id: String,
+    model: String,
+) -> Result<(), AppError> {
+    queries::update_session_model(&db, &session_id, &model)
+}

@@ -11,6 +11,7 @@ import {
   toggleYoloMode,
   type ActiveView,
 } from '@/stores/uiStore';
+import { cycleModel } from '@/stores/sessionStore';
 
 const viewMap: Record<string, ActiveView> = {
   Digit1: 'conversation',
@@ -49,6 +50,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyY' && e.shiftKey) {
     e.preventDefault();
     toggleYoloMode();
+    return;
+  }
+
+  // Cmd+M — cycle model (Sonnet → Opus → Haiku → Sonnet)
+  if (e.code === 'KeyM' && !e.shiftKey) {
+    e.preventDefault();
+    cycleModel();
     return;
   }
 

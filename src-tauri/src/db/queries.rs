@@ -188,6 +188,16 @@ pub fn update_session_title(db: &Database, id: &str, title: &str) -> Result<(), 
     })
 }
 
+pub fn update_session_model(db: &Database, id: &str, model: &str) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET model = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, model],
+        )?;
+        Ok(())
+    })
+}
+
 // ── Messages ───────────────────────────────────────────────────
 
 #[allow(clippy::too_many_arguments)]
@@ -453,6 +463,18 @@ mod tests {
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert_eq!(session.title.as_deref(), Some("My Chat"));
+    }
+
+    #[test]
+    fn update_session_model_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        update_session_model(&db, "s1", "claude-opus-4-6").unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert_eq!(session.model, "claude-opus-4-6");
     }
 
     #[test]

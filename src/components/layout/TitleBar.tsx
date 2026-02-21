@@ -9,6 +9,7 @@ import { Show } from 'solid-js';
 import { Menu, Minus, Maximize2, X, Zap } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { toggleSidebar, uiState, toggleYoloMode } from '@/stores/uiStore';
+import ModelSelector from '@/components/common/ModelSelector';
 
 const TitleBar: Component = () => {
   const appWindow = getCurrentWindow();
@@ -36,8 +37,10 @@ const TitleBar: Component = () => {
         </Show>
       </div>
 
-      {/* Center: drag region */}
-      <div class="flex-1 h-full" data-tauri-drag-region />
+      {/* Center: model selector + drag region */}
+      <div class="flex-1 h-full flex items-center justify-center" data-tauri-drag-region>
+        <ModelSelector />
+      </div>
 
       {/* Right: window controls */}
       <div class="flex items-center">

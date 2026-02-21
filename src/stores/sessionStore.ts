@@ -62,4 +62,25 @@ export function getActiveSession(): Session | undefined {
   return state.sessions.find((s) => s.id === state.activeSessionId);
 }
 
+/** Change the model for the active session. */
+export async function changeSessionModel(model: string): Promise<void> {
+  const sessionId = state.activeSessionId;
+  if (!sessionId) return;
+  await invoke('update_session_model', { session_id: sessionId, model });
+  setState('sessions', (s) => s.id === sessionId, 'model', model);
+}
+
+/** Cycle through models: Sonnet → Opus → Haiku → Sonnet. */
+export function cycleModel(): void {
+  const session = getActiveSession();
+  if (!session) return;
+  const cycle: Record<string, string> = {
+    'claude-sonnet-4-6': 'claude-opus-4-6',
+    'claude-opus-4-6': 'claude-haiku-4-5',
+    'claude-haiku-4-5': 'claude-sonnet-4-6',
+  };
+  const next = cycle[session.model] ?? 'claude-sonnet-4-6';
+  changeSessionModel(next);
+}
+
 export { state as sessionState };

@@ -28,6 +28,7 @@ fn main() {
             chief_wiggum_lib::commands::session::update_session_title,
             chief_wiggum_lib::commands::session::save_message,
             chief_wiggum_lib::commands::session::list_messages,
+            chief_wiggum_lib::commands::session::update_session_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Chief Wiggum");
