@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-21T22:30:00Z",
+  "last_updated": "2026-02-22T05:30:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -138,7 +138,11 @@
       "dependencies": ["CHI-8"],
       "linear_id": "9cc08937-a4b2-4548-b8b7-69762f60a78e",
       "completed_at": "2026-02-20T23:17:44Z",
-      "files": ["src-tauri/src/bridge/process.rs", "src-tauri/src/bridge/mod.rs", "src-tauri/src/lib.rs"],
+      "files": [
+        "src-tauri/src/bridge/process.rs",
+        "src-tauri/src/bridge/mod.rs",
+        "src-tauri/src/lib.rs"
+      ],
       "notes": "CliBridge with PTY via portable-pty. MockBridge for testing. 5 unit tests."
     },
     "CHI-14": {
@@ -307,10 +311,7 @@
       "priority": "P1",
       "dependencies": ["CHI-10"],
       "completed_at": "2026-02-21T17:20:00Z",
-      "files": [
-        "src-tauri/tauri.conf.json",
-        ".github/workflows/release.yml"
-      ],
+      "files": ["src-tauri/tauri.conf.json", ".github/workflows/release.yml"],
       "notes": "Bundle metadata in tauri.conf.json (category, descriptions, copyright, platform configs). Release workflow: tag-triggered, 3-platform matrix (macOS universal, Ubuntu, Windows), tauri-action@v0, draft releases with install instructions."
     },
     "CHI-25": {
@@ -349,13 +350,54 @@
       "status": "todo",
       "linear_id": "f28a0534-1cc0-41ee-8371-5fa8b7f22d3c",
       "tasks": {
-        "CHI-28": { "title": "Set up Playwright + Tauri WebDriver infrastructure", "status": "todo", "priority": "P0", "linear_id": "9916bad9-c808-4631-ae7a-a93249a73d0e" },
-        "CHI-29": { "title": "Layout shell e2e tests (5 components, ~25 cases)", "status": "todo", "priority": "P0", "dependencies": ["CHI-28"], "linear_id": "ad099df4-9c75-4107-92bc-8d9eb7df58dd" },
-        "CHI-30": { "title": "Conversation view e2e tests (4 components, ~25 cases)", "status": "todo", "priority": "P0", "dependencies": ["CHI-28"], "linear_id": "69de131c-599e-4db0-8598-db98da0236dd" },
-        "CHI-31": { "title": "Permission system e2e tests (2 components, ~17 cases)", "status": "todo", "priority": "P1", "dependencies": ["CHI-28"], "linear_id": "4641bd36-a0d0-4695-be00-80fb17313984" },
-        "CHI-32": { "title": "Terminal & model selector e2e tests (2 components, ~14 cases)", "status": "todo", "priority": "P1", "dependencies": ["CHI-28"], "linear_id": "a89c89c1-4dcf-4596-b146-2764b2c54cd8" },
-        "CHI-33": { "title": "Integration & keyboard shortcut e2e tests (~17 cases)", "status": "todo", "priority": "P1", "dependencies": ["CHI-28"], "linear_id": "aa61cabb-9ee3-41b6-a417-20a6a9c6f265" },
-        "CHI-34": { "title": "CI integration + failure-to-issue pipeline", "status": "todo", "priority": "P0", "dependencies": ["CHI-28", "CHI-29", "CHI-30", "CHI-31", "CHI-32", "CHI-33"], "linear_id": "9b8e3f11-b8f7-4c45-bfbf-19fc185d0bfe" }
+        "CHI-28": {
+          "title": "Set up Playwright + Tauri WebDriver infrastructure",
+          "status": "todo",
+          "priority": "P0",
+          "linear_id": "9916bad9-c808-4631-ae7a-a93249a73d0e"
+        },
+        "CHI-29": {
+          "title": "Layout shell e2e tests (5 components, ~25 cases)",
+          "status": "todo",
+          "priority": "P0",
+          "dependencies": ["CHI-28"],
+          "linear_id": "ad099df4-9c75-4107-92bc-8d9eb7df58dd"
+        },
+        "CHI-30": {
+          "title": "Conversation view e2e tests (4 components, ~25 cases)",
+          "status": "todo",
+          "priority": "P0",
+          "dependencies": ["CHI-28"],
+          "linear_id": "69de131c-599e-4db0-8598-db98da0236dd"
+        },
+        "CHI-31": {
+          "title": "Permission system e2e tests (2 components, ~17 cases)",
+          "status": "todo",
+          "priority": "P1",
+          "dependencies": ["CHI-28"],
+          "linear_id": "4641bd36-a0d0-4695-be00-80fb17313984"
+        },
+        "CHI-32": {
+          "title": "Terminal & model selector e2e tests (2 components, ~14 cases)",
+          "status": "todo",
+          "priority": "P1",
+          "dependencies": ["CHI-28"],
+          "linear_id": "a89c89c1-4dcf-4596-b146-2764b2c54cd8"
+        },
+        "CHI-33": {
+          "title": "Integration & keyboard shortcut e2e tests (~17 cases)",
+          "status": "todo",
+          "priority": "P1",
+          "dependencies": ["CHI-28"],
+          "linear_id": "aa61cabb-9ee3-41b6-a417-20a6a9c6f265"
+        },
+        "CHI-34": {
+          "title": "CI integration + failure-to-issue pipeline",
+          "status": "todo",
+          "priority": "P0",
+          "dependencies": ["CHI-28", "CHI-29", "CHI-30", "CHI-31", "CHI-32", "CHI-33"],
+          "linear_id": "9b8e3f11-b8f7-4c45-bfbf-19fc185d0bfe"
+        }
       }
     }
   },
@@ -366,10 +408,44 @@
       "priority": "P0",
       "linear_id": "1a4b0dd6-1d2c-4e27-b207-718af48ab67b",
       "tasks": {
-        "CHI-40": { "title": "Folder picker + project creation via native dialog", "status": "done", "priority": "P0", "linear_id": "3e9cb076", "completed_at": "2026-02-21T22:00:00Z", "files": ["src-tauri/Cargo.toml", "src-tauri/capabilities/default.json", "src-tauri/src/commands/project.rs", "src-tauri/src/main.rs", "src/stores/projectStore.ts", "src/lib/types.ts", "src/components/layout/Sidebar.tsx", "src/App.tsx"] },
-        "CHI-41": { "title": "Project sidebar section with recent projects", "status": "todo", "priority": "P1", "linear_id": "66caee3e", "dependencies": ["CHI-40"] },
-        "CHI-42": { "title": "Detect and display CLAUDE.md from project folder", "status": "todo", "priority": "P2", "linear_id": "1ba33ad3", "dependencies": ["CHI-40"] },
-        "CHI-43": { "title": "Bind sessions to projects with inherited settings", "status": "todo", "priority": "P1", "linear_id": "517d4eaa", "dependencies": ["CHI-40"] }
+        "CHI-40": {
+          "title": "Folder picker + project creation via native dialog",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "3e9cb076",
+          "completed_at": "2026-02-21T22:00:00Z",
+          "files": [
+            "src-tauri/Cargo.toml",
+            "src-tauri/capabilities/default.json",
+            "src-tauri/src/commands/project.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/projectStore.ts",
+            "src/lib/types.ts",
+            "src/components/layout/Sidebar.tsx",
+            "src/App.tsx"
+          ]
+        },
+        "CHI-41": {
+          "title": "Project sidebar section with recent projects",
+          "status": "todo",
+          "priority": "P1",
+          "linear_id": "66caee3e",
+          "dependencies": ["CHI-40"]
+        },
+        "CHI-42": {
+          "title": "Detect and display CLAUDE.md from project folder",
+          "status": "todo",
+          "priority": "P2",
+          "linear_id": "1ba33ad3",
+          "dependencies": ["CHI-40"]
+        },
+        "CHI-43": {
+          "title": "Bind sessions to projects with inherited settings",
+          "status": "todo",
+          "priority": "P1",
+          "linear_id": "517d4eaa",
+          "dependencies": ["CHI-40"]
+        }
       }
     },
     "CHI-36": {
@@ -380,23 +456,118 @@
       "completed_at": "2026-02-21T22:30:00Z",
       "notes": "ALL 6 tasks complete. App now talks to real Claude Code CLI via PTY.",
       "tasks": {
-        "CHI-44": { "title": "SessionBridgeMap — session→process manager", "status": "done", "priority": "P0", "linear_id": "b315f4c2", "completed_at": "2026-02-21T21:30:00Z", "files": ["src-tauri/src/bridge/manager.rs", "src-tauri/src/bridge/mod.rs", "src-tauri/src/main.rs"] },
-        "CHI-45": { "title": "IPC commands for CLI (start, send, stop, status)", "status": "done", "priority": "P0", "linear_id": "186a8be5", "completed_at": "2026-02-21T21:45:00Z", "files": ["src-tauri/src/commands/bridge.rs", "src-tauri/src/commands/mod.rs", "src-tauri/src/main.rs"] },
-        "CHI-46": { "title": "Streaming event loop (bridge output → Tauri events)", "status": "done", "priority": "P0", "linear_id": "202107e7", "completed_at": "2026-02-21T22:00:00Z", "files": ["src-tauri/src/bridge/event_loop.rs", "src-tauri/src/bridge/mod.rs", "src-tauri/src/commands/bridge.rs"] },
-        "CHI-47": { "title": "Replace mock sendMessage with real CLI streaming", "status": "done", "priority": "P0", "linear_id": "95e95468", "completed_at": "2026-02-21T22:10:00Z", "files": ["src/stores/conversationStore.ts", "src/components/layout/MainLayout.tsx"] },
-        "CHI-48": { "title": "Detect Claude Code CLI on startup with error UI", "status": "done", "priority": "P1", "linear_id": "d0724560", "completed_at": "2026-02-21T20:30:00Z", "files": ["src-tauri/src/commands/cli.rs", "src-tauri/src/commands/mod.rs", "src-tauri/src/main.rs", "src/stores/cliStore.ts", "src/lib/types.ts", "src/components/layout/StatusBar.tsx", "src/components/conversation/ConversationView.tsx", "src/App.tsx"] },
-        "CHI-49": { "title": "Streaming message rendering (incremental chunks)", "status": "done", "priority": "P1", "linear_id": "78544f61", "completed_at": "2026-02-21T22:20:00Z", "files": ["src/components/conversation/ConversationView.tsx"] }
+        "CHI-44": {
+          "title": "SessionBridgeMap — session→process manager",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "b315f4c2",
+          "completed_at": "2026-02-21T21:30:00Z",
+          "files": [
+            "src-tauri/src/bridge/manager.rs",
+            "src-tauri/src/bridge/mod.rs",
+            "src-tauri/src/main.rs"
+          ]
+        },
+        "CHI-45": {
+          "title": "IPC commands for CLI (start, send, stop, status)",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "186a8be5",
+          "completed_at": "2026-02-21T21:45:00Z",
+          "files": [
+            "src-tauri/src/commands/bridge.rs",
+            "src-tauri/src/commands/mod.rs",
+            "src-tauri/src/main.rs"
+          ]
+        },
+        "CHI-46": {
+          "title": "Streaming event loop (bridge output → Tauri events)",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "202107e7",
+          "completed_at": "2026-02-21T22:00:00Z",
+          "files": [
+            "src-tauri/src/bridge/event_loop.rs",
+            "src-tauri/src/bridge/mod.rs",
+            "src-tauri/src/commands/bridge.rs"
+          ]
+        },
+        "CHI-47": {
+          "title": "Replace mock sendMessage with real CLI streaming",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "95e95468",
+          "completed_at": "2026-02-21T22:10:00Z",
+          "files": ["src/stores/conversationStore.ts", "src/components/layout/MainLayout.tsx"]
+        },
+        "CHI-48": {
+          "title": "Detect Claude Code CLI on startup with error UI",
+          "status": "done",
+          "priority": "P1",
+          "linear_id": "d0724560",
+          "completed_at": "2026-02-21T20:30:00Z",
+          "files": [
+            "src-tauri/src/commands/cli.rs",
+            "src-tauri/src/commands/mod.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/cliStore.ts",
+            "src/lib/types.ts",
+            "src/components/layout/StatusBar.tsx",
+            "src/components/conversation/ConversationView.tsx",
+            "src/App.tsx"
+          ]
+        },
+        "CHI-49": {
+          "title": "Streaming message rendering (incremental chunks)",
+          "status": "done",
+          "priority": "P1",
+          "linear_id": "78544f61",
+          "completed_at": "2026-02-21T22:20:00Z",
+          "files": ["src/components/conversation/ConversationView.tsx"]
+        }
       }
     },
     "CHI-37": {
       "title": "Permission Flow Live",
-      "status": "todo",
+      "status": "done",
       "priority": "P1",
       "linear_id": "783d859d-a725-4d47-8304-88a5b18e1b4b",
+      "completed_at": "2026-02-22T05:30:00Z",
+      "notes": "All 3 tasks complete. Permission IPC, event pipeline, and YOLO mode wired end-to-end.",
       "tasks": {
-        "CHI-50": { "title": "Wire permission IPC commands", "status": "todo", "priority": "P0", "linear_id": "b5cceeb0" },
-        "CHI-51": { "title": "Build full permission event pipeline", "status": "todo", "priority": "P0", "linear_id": "56998407", "dependencies": ["CHI-50"] },
-        "CHI-52": { "title": "Wire YOLO mode frontend toggle to backend IPC", "status": "todo", "priority": "P1", "linear_id": "e8f2a5e1", "dependencies": ["CHI-50"] }
+        "CHI-50": {
+          "title": "Wire permission IPC commands",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "b5cceeb0",
+          "completed_at": "2026-02-22T04:30:00Z",
+          "files": [
+            "src-tauri/src/lib.rs",
+            "src-tauri/src/commands/bridge.rs",
+            "src-tauri/src/main.rs"
+          ],
+          "notes": "Added Validation error variant, respond_permission and toggle_yolo_mode IPC commands, registered PermissionManager as managed state."
+        },
+        "CHI-51": {
+          "title": "Build full permission event pipeline",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "56998407",
+          "dependencies": ["CHI-50"],
+          "completed_at": "2026-02-22T05:15:00Z",
+          "files": ["src/stores/conversationStore.ts", "src/components/layout/MainLayout.tsx"],
+          "notes": "Added permission:request listener in conversationStore, wired PermissionDialog onRespond to invoke('respond_permission') IPC."
+        },
+        "CHI-52": {
+          "title": "Wire YOLO mode frontend toggle to backend IPC",
+          "status": "done",
+          "priority": "P1",
+          "linear_id": "e8f2a5e1",
+          "dependencies": ["CHI-50"],
+          "completed_at": "2026-02-22T05:15:00Z",
+          "files": ["src/stores/uiStore.ts"],
+          "notes": "Replaced TODO placeholders with invoke('toggle_yolo_mode') calls in enableYoloMode/disableYoloMode."
+        }
       }
     },
     "CHI-38": {
@@ -405,9 +576,26 @@
       "priority": "P2",
       "linear_id": "b3a3c832-c7ca-412b-8e56-6f264ae94dfd",
       "tasks": {
-        "CHI-53": { "title": "Cost accumulator service with SQLite persistence", "status": "todo", "priority": "P1", "linear_id": "a9466960" },
-        "CHI-54": { "title": "Bind StatusBar + DetailsPanel to live cost events", "status": "todo", "priority": "P1", "linear_id": "da59f1dd", "dependencies": ["CHI-53"] },
-        "CHI-55": { "title": "Per-message token/cost display in MessageBubble", "status": "todo", "priority": "P2", "linear_id": "11756220", "dependencies": ["CHI-53"] }
+        "CHI-53": {
+          "title": "Cost accumulator service with SQLite persistence",
+          "status": "todo",
+          "priority": "P1",
+          "linear_id": "a9466960"
+        },
+        "CHI-54": {
+          "title": "Bind StatusBar + DetailsPanel to live cost events",
+          "status": "todo",
+          "priority": "P1",
+          "linear_id": "da59f1dd",
+          "dependencies": ["CHI-53"]
+        },
+        "CHI-55": {
+          "title": "Per-message token/cost display in MessageBubble",
+          "status": "todo",
+          "priority": "P2",
+          "linear_id": "11756220",
+          "dependencies": ["CHI-53"]
+        }
       }
     },
     "CHI-39": {
@@ -416,11 +604,43 @@
       "priority": "P1",
       "linear_id": "0983de2f-d0b3-461b-be96-5c7a6855dd84",
       "tasks": {
-        "CHI-56": { "title": "Process lifecycle state machine", "status": "todo", "priority": "P0", "linear_id": "6d119d13" },
-        "CHI-57": { "title": "Handle session switching (suspend/resume)", "status": "todo", "priority": "P0", "linear_id": "71096869", "dependencies": ["CHI-56"] },
-        "CHI-58": { "title": "Graceful shutdown on session delete/close", "status": "todo", "priority": "P1", "linear_id": "5f28585c", "dependencies": ["CHI-56"] },
-        "CHI-59": { "title": "Crash recovery with error UI", "status": "todo", "priority": "P1", "linear_id": "13f8b4c5", "dependencies": ["CHI-56"] },
-        "CHI-60": { "title": "Shutdown all CLI processes on app quit", "status": "todo", "priority": "P0", "linear_id": "8ba67256", "dependencies": ["CHI-56"] }
+        "CHI-56": {
+          "title": "Process lifecycle state machine",
+          "status": "todo",
+          "priority": "P0",
+          "linear_id": "6d119d13"
+        },
+        "CHI-57": {
+          "title": "Handle session switching (suspend/resume)",
+          "status": "todo",
+          "priority": "P0",
+          "linear_id": "71096869",
+          "dependencies": ["CHI-56"]
+        },
+        "CHI-58": {
+          "title": "Graceful shutdown on session delete/close",
+          "status": "todo",
+          "priority": "P1",
+          "linear_id": "5f28585c",
+          "dependencies": ["CHI-56"]
+        },
+        "CHI-59": {
+          "title": "Crash recovery with error UI",
+          "status": "todo",
+          "priority": "P1",
+          "linear_id": "13f8b4c5",
+          "dependencies": ["CHI-56"]
+        },
+        "CHI-60": {
+          "title": "Shutdown all CLI processes on app quit",
+          "status": "done",
+          "priority": "P0",
+          "linear_id": "8ba67256",
+          "dependencies": ["CHI-56"],
+          "completed_at": "2026-02-22T04:30:00Z",
+          "files": ["src-tauri/src/main.rs", "src-tauri/src/bridge/manager.rs"],
+          "notes": "Added Clone derive to SessionBridgeMap, registered window close event handler that calls shutdown_all() via block_on."
+        }
       }
     }
   },
@@ -431,10 +651,35 @@
       "priority": "High",
       "linear_id": "29bca201-a71c-4a95-bba0-cb6377cdf733",
       "tasks": {
-        "CHI-67": { "title": "Native window controls (macOS traffic lights + Windows buttons)", "status": "todo", "priority": "Urgent" },
-        "CHI-68": { "title": "Titlebar redesign with platform-aware layout", "status": "todo", "priority": "High" },
-        "CHI-69": { "title": "macOS vibrancy effects on sidebar and titlebar", "status": "todo", "priority": "Low" },
-        "CHI-70": { "title": "Custom scrollbar styling for dark theme", "status": "todo", "priority": "Medium" }
+        "CHI-67": {
+          "title": "Native window controls (macOS traffic lights + Windows buttons)",
+          "status": "done",
+          "priority": "Urgent",
+          "completed_at": "2026-02-22T05:15:00Z",
+          "files": [
+            "src-tauri/tauri.conf.json",
+            "src/components/layout/TitleBar.tsx",
+            "src-tauri/Cargo.toml",
+            "src-tauri/capabilities/default.json",
+            "package.json"
+          ],
+          "notes": "titleBarStyle overlay + hiddenTitle for native macOS traffic lights. Platform detection via @tauri-apps/plugin-os. macOS: 70px spacer, no custom buttons. Windows/Linux: custom minimize/maximize/close buttons."
+        },
+        "CHI-68": {
+          "title": "Titlebar redesign with platform-aware layout",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-69": {
+          "title": "macOS vibrancy effects on sidebar and titlebar",
+          "status": "todo",
+          "priority": "Low"
+        },
+        "CHI-70": {
+          "title": "Custom scrollbar styling for dark theme",
+          "status": "todo",
+          "priority": "Medium"
+        }
       }
     },
     "CHI-62": {
@@ -443,11 +688,27 @@
       "priority": "High",
       "linear_id": "b0ae5926-7076-4b55-be1d-181b6cd36e78",
       "tasks": {
-        "CHI-71": { "title": "Message enter/exit animations (slide + fade)", "status": "todo", "priority": "Medium" },
-        "CHI-72": { "title": "Premium typing indicator (animated dots, shimmer)", "status": "todo", "priority": "High" },
-        "CHI-73": { "title": "Smooth streaming text rendering (typewriter buffer)", "status": "todo", "priority": "High" },
+        "CHI-71": {
+          "title": "Message enter/exit animations (slide + fade)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-72": {
+          "title": "Premium typing indicator (animated dots, shimmer)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-73": {
+          "title": "Smooth streaming text rendering (typewriter buffer)",
+          "status": "todo",
+          "priority": "High"
+        },
         "CHI-74": { "title": "Toast notification system", "status": "todo", "priority": "Medium" },
-        "CHI-75": { "title": "Copy feedback animations + hover micro-interactions", "status": "todo", "priority": "Medium" }
+        "CHI-75": {
+          "title": "Copy feedback animations + hover micro-interactions",
+          "status": "todo",
+          "priority": "Medium"
+        }
       }
     },
     "CHI-63": {
@@ -456,10 +717,26 @@
       "priority": "Medium",
       "linear_id": "9d14f3a5-7f44-46a0-b468-05585446f09b",
       "tasks": {
-        "CHI-76": { "title": "Command palette UI (Cmd+K, fuzzy search, categorized actions)", "status": "todo", "priority": "High" },
-        "CHI-77": { "title": "Session quick-switcher (Cmd+Shift+P)", "status": "todo", "priority": "Medium" },
-        "CHI-78": { "title": "Custom context menus (messages, sessions, code blocks)", "status": "todo", "priority": "Medium" },
-        "CHI-79": { "title": "Keyboard navigation audit + focus management", "status": "todo", "priority": "Medium" }
+        "CHI-76": {
+          "title": "Command palette UI (Cmd+K, fuzzy search, categorized actions)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-77": {
+          "title": "Session quick-switcher (Cmd+Shift+P)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-78": {
+          "title": "Custom context menus (messages, sessions, code blocks)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-79": {
+          "title": "Keyboard navigation audit + focus management",
+          "status": "todo",
+          "priority": "Medium"
+        }
       }
     },
     "CHI-64": {
@@ -468,10 +745,26 @@
       "priority": "Medium",
       "linear_id": "b70fed16-4b3f-4870-8fbb-60ea9851571b",
       "tasks": {
-        "CHI-80": { "title": "Conversation empty state redesign (sample prompts, personality)", "status": "todo", "priority": "High" },
-        "CHI-81": { "title": "First-launch onboarding flow (3-5 step walkthrough)", "status": "todo", "priority": "Low" },
-        "CHI-82": { "title": "Placeholder views for Agents/Diff (informative, not broken)", "status": "todo", "priority": "Medium" },
-        "CHI-83": { "title": "No project selected guidance state", "status": "todo", "priority": "Medium" }
+        "CHI-80": {
+          "title": "Conversation empty state redesign (sample prompts, personality)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-81": {
+          "title": "First-launch onboarding flow (3-5 step walkthrough)",
+          "status": "todo",
+          "priority": "Low"
+        },
+        "CHI-82": {
+          "title": "Placeholder views for Agents/Diff (informative, not broken)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-83": {
+          "title": "No project selected guidance state",
+          "status": "todo",
+          "priority": "Medium"
+        }
       }
     },
     "CHI-65": {
@@ -480,10 +773,26 @@
       "priority": "Medium",
       "linear_id": "a4a12e72-eb1f-44c1-ad84-4bba17e5a83a",
       "tasks": {
-        "CHI-84": { "title": "Sidebar collapsed icon-rail mode (48px with tooltips)", "status": "todo", "priority": "High" },
-        "CHI-85": { "title": "Session sections (Pinned, Recent, Older)", "status": "todo", "priority": "Medium" },
-        "CHI-86": { "title": "Session rename inline + session actions menu", "status": "todo", "priority": "Medium" },
-        "CHI-87": { "title": "View tabs with icons + count badges", "status": "todo", "priority": "Medium" },
+        "CHI-84": {
+          "title": "Sidebar collapsed icon-rail mode (48px with tooltips)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-85": {
+          "title": "Session sections (Pinned, Recent, Older)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-86": {
+          "title": "Session rename inline + session actions menu",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-87": {
+          "title": "View tabs with icons + count badges",
+          "status": "todo",
+          "priority": "Medium"
+        },
         "CHI-88": { "title": "Sidebar search/filter", "status": "todo", "priority": "Low" }
       }
     },
@@ -493,18 +802,69 @@
       "priority": "High",
       "linear_id": "2431d2f6-3d5a-4dcb-bc00-1b1adb57693e",
       "tasks": {
-        "CHI-89": { "title": "ToolUseBlock component (collapsible, color-coded)", "status": "todo", "priority": "High" },
-        "CHI-90": { "title": "ThinkingBlock component (muted reasoning display)", "status": "todo", "priority": "Medium" },
-        "CHI-91": { "title": "Permission inline record (approved/denied after dialog)", "status": "todo", "priority": "Medium" },
-        "CHI-92": { "title": "File diff preview within conversation", "status": "todo", "priority": "Low" }
+        "CHI-89": {
+          "title": "ToolUseBlock component (collapsible, color-coded)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-90": {
+          "title": "ThinkingBlock component (muted reasoning display)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-91": {
+          "title": "Permission inline record (approved/denied after dialog)",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-92": {
+          "title": "File diff preview within conversation",
+          "status": "todo",
+          "priority": "Low"
+        }
       }
     }
   },
-  "recommended_next": ["CHI-50", "CHI-56", "CHI-60", "CHI-67", "CHI-70", "CHI-80", "CHI-41"],
-  "critical_path": "CRITICAL PATH COMPLETE. CHI-36 done — app talks to real CLI. Next priorities: CHI-37 (permission flow), CHI-39 (session lifecycle), UX polish.",
-  "ux_quick_wins": ["CHI-67 (native window controls — urgent)", "CHI-70 (dark scrollbars — pure CSS)", "CHI-80 (empty state redesign — high personality impact)"],
+  "recommended_next": [
+    "CHI-56",
+    "CHI-57",
+    "CHI-58",
+    "CHI-59",
+    "CHI-68",
+    "CHI-70",
+    "CHI-80",
+    "CHI-41"
+  ],
+  "critical_path": "CHI-37 (permission flow) DONE. CHI-60 (shutdown) DONE. CHI-67 (native controls) DONE. Next: CHI-39 (session lifecycle — CHI-56/57/58/59), CHI-61 remaining (CHI-68/69/70), UX polish.",
+  "ux_quick_wins": [
+    "CHI-67 (native window controls — urgent)",
+    "CHI-70 (dark scrollbars — pure CSS)",
+    "CHI-80 (empty state redesign — high personality impact)"
+  ],
+  "spec_updates": {
+    "completed_at": "2026-02-21T23:45:00Z",
+    "SPEC-002": {
+      "version": "2.0",
+      "changes": "Added tool use colors (§3.5), toast colors (§3.6), 7 new component specs (§10.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
+    },
+    "SPEC-003": {
+      "version": "2.0",
+      "changes": "Added 6 Phase 2 interaction flows (§4.7-4.12: CLI detection, project selection, real streaming, YOLO toggle, session lifecycle, cost tracking), keyboard shortcut updates, UX Polish specifications (§10.1-10.6) for all 6 UX epics"
+    },
+    "SPEC-004": {
+      "version": "2.0",
+      "changes": "Added Phase 2 files to monorepo structure, expanded module/store tables with Phase column, Phase 2 IPC contracts (§4.4), 3 data flow diagrams (§5.3-5.5: CLI detection, session bridge lifecycle, cost tracking), Phase 2 types"
+    },
+    "TASKS-002": {
+      "version": "1.0",
+      "created": true,
+      "changes": "Full Phase 2 task breakdown: 5 core epics (21 tasks) + 6 UX polish epics (26 tasks), spec references on every task, dependency graph, gate criteria"
+    },
+    "linear_issues_updated": 21,
+    "notes": "All 21 remaining Phase 2 Linear issues updated with spec references and detailed acceptance criteria"
+  },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection & Streaming) DONE — all 6 tasks. CHI-40 (folder picker) DONE. The app now detects Claude Code CLI on startup, opens a folder picker for project selection, spawns a PTY process, sends messages to the real CLI, receives streaming responses, and renders them incrementally. 71 Rust tests pass. Next: CHI-37 (permission flow), CHI-39 (session lifecycle), UX polish.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67 DONE. 71 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62).",
   "environment": {
     "rust_installed": true,
     "node_installed": true,

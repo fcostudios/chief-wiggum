@@ -48,6 +48,11 @@
 | CHI-46: Streaming Event Loop | **Done** | `bridge/event_loop.rs` — BridgeOutput → Tauri events (chunk, complete, exited, permission) |
 | CHI-47: Replace Mock with Real CLI | **Done** | `conversationStore.ts` rewrite — real IPC + event listeners, mock removed |
 | CHI-49: Streaming Message Rendering | **Done** | ConversationView streaming bubble, blinking cursor, error display, auto-scroll |
+| CHI-50: Permission IPC | **Done** | `respond_permission`, `toggle_yolo_mode` commands, PermissionManager state |
+| CHI-51: Permission Event Pipeline | **Done** | `permission:request` listener → PermissionDialog → IPC response flow |
+| CHI-52: YOLO Mode IPC | **Done** | Frontend toggle wired to `invoke('toggle_yolo_mode')` |
+| CHI-60: App Shutdown Cleanup | **Done** | Window close handler calls `shutdown_all()` on SessionBridgeMap |
+| CHI-67: Native Window Controls | **Done** | `titleBarStyle: overlay`, platform detection, macOS traffic lights |
 
 ## Phase 1 Status
 
@@ -86,13 +91,13 @@
 | CHI-48 | P1 | **Done** | Detect Claude Code CLI on startup with error UI |
 | CHI-49 | P1 | **Done** | Streaming message rendering (incremental chunks) |
 
-### Epic CHI-37: Permission Flow Live (P1)
+### Epic CHI-37: Permission Flow Live (P1) — DONE
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-50 | P0 | Wire permission IPC commands |
-| CHI-51 | P0 | Build full permission event pipeline |
-| CHI-52 | P1 | Wire YOLO mode frontend toggle to backend IPC |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-50 | P0 | **Done** | Wire permission IPC commands (respond_permission, toggle_yolo_mode) |
+| CHI-51 | P0 | **Done** | Build full permission event pipeline (frontend→backend) |
+| CHI-52 | P1 | **Done** | Wire YOLO mode frontend toggle to backend IPC |
 
 ### Epic CHI-38: Live Cost Tracking (P2)
 
@@ -104,15 +109,13 @@
 
 ### Epic CHI-39: Session Lifecycle Management (P1)
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-56 | P0 | Process lifecycle state machine |
-| CHI-57 | P0 | Handle session switching (suspend/resume) |
-| CHI-58 | P1 | Graceful shutdown on session delete/close |
-| CHI-59 | P1 | Crash recovery with error UI |
-| CHI-60 | P0 | Shutdown all CLI processes on app quit |
-
-**Start with CHI-40 + CHI-44 in parallel** — folder picker and session-process mapping are independent foundations.
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-56 | P0 | Todo | Process lifecycle state machine |
+| CHI-57 | P0 | Todo | Handle session switching (suspend/resume) |
+| CHI-58 | P1 | Todo | Graceful shutdown on session delete/close |
+| CHI-59 | P1 | Todo | Crash recovery with error UI |
+| CHI-60 | P0 | **Done** | Shutdown all CLI processes on app quit |
 
 ### Parallel: E2E Testing (Epic CHI-27)
 
@@ -134,12 +137,12 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 #### Epic CHI-61: Native Window Chrome & Platform Feel (High)
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-67 | Urgent | Native window controls (macOS traffic lights + Windows buttons) |
-| CHI-68 | High | Titlebar redesign with platform-aware layout |
-| CHI-69 | Low | macOS vibrancy effects on sidebar and titlebar |
-| CHI-70 | Medium | Custom scrollbar styling for dark theme |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-67 | Urgent | **Done** | Native window controls (macOS traffic lights + Windows buttons) |
+| CHI-68 | High | Todo | Titlebar redesign with platform-aware layout |
+| CHI-69 | Low | Todo | macOS vibrancy effects on sidebar and titlebar |
+| CHI-70 | Medium | Todo | Custom scrollbar styling for dark theme |
 
 #### Epic CHI-62: Delightful Interactions & Micro-animations (High)
 

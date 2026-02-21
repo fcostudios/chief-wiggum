@@ -1,9 +1,7 @@
 {
   "identifier": "default",
   "description": "Default capability set for Chief Wiggum",
-  "windows": [
-    "main"
-  ],
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "core:window:allow-close",
