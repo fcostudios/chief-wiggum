@@ -8,6 +8,7 @@
 //! Coding standards: GUIDE-001 §2
 
 pub mod adapter;
+pub mod event_loop;
 pub mod manager;
 pub mod parser;
 pub mod permission;

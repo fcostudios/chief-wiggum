@@ -3,6 +3,7 @@
 //! Each command is thin: validate input -> call SessionBridgeMap -> return result.
 //! Per GUIDE-001 §2.3 and SPEC-004 §4.1.
 
+use crate::bridge::event_loop;
 use crate::bridge::manager::SessionBridgeMap;
 use crate::bridge::process::{BridgeConfig, ProcessStatus};
 use crate::bridge::CliLocation;
@@ -12,6 +13,7 @@ use tauri::State;
 /// Start a CLI process for a session. Idempotent — if already running, returns Ok.
 #[tauri::command]
 pub async fn start_session_cli(
+    app: tauri::AppHandle,
     bridge_map: State<'_, SessionBridgeMap>,
     cli: State<'_, CliLocation>,
     session_id: String,
@@ -34,7 +36,14 @@ pub async fn start_session_cli(
         ..BridgeConfig::default()
     };
 
-    bridge_map.spawn_for_session(&session_id, config).await
+    bridge_map.spawn_for_session(&session_id, config).await?;
+
+    // Start the event loop for this session
+    if let Some(bridge) = bridge_map.get(&session_id).await {
+        event_loop::spawn_event_loop(app.clone(), session_id, bridge);
+    }
+
+    Ok(())
 }
 
 /// Send a message to the CLI process for a session.
