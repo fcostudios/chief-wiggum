@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-21T14:40:00Z",
-  "last_updated_by": "cowork",
+  "last_updated": "2026-02-21T15:30:00Z",
+  "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 1: Foundation",
     "linear_project_id": "5b16e8ca-4509-4116-b3ef-d46069f0ee02",
@@ -22,8 +22,9 @@
     },
     "CHI-7": {
       "title": "Basic UI",
-      "status": "todo",
-      "linear_id": "96c7647e-3ec3-4553-818e-d5358b8bc99d"
+      "status": "in_progress",
+      "linear_id": "96c7647e-3ec3-4553-818e-d5358b8bc99d",
+      "notes": "CHI-17, CHI-19, CHI-23 done. Remaining: CHI-18, CHI-20, CHI-21, CHI-22, CHI-24, CHI-26."
     }
   },
   "tasks": {
@@ -169,9 +170,26 @@
     "CHI-17": {
       "title": "Build main layout shell (5-zone structure)",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-9"]
+      "dependencies": ["CHI-9"],
+      "linear_id": "CHI-17",
+      "completed_at": "2026-02-21T15:15:00Z",
+      "files": [
+        "src/stores/uiStore.ts",
+        "src/lib/types.ts",
+        "src/lib/keybindings.ts",
+        "src/components/layout/TitleBar.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/DetailsPanel.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/App.tsx",
+        "src-tauri/tauri.conf.json",
+        "src-tauri/capabilities/default.json",
+        "package.json"
+      ],
+      "notes": "5-zone layout: TitleBar (custom, decorations:false), Sidebar (togglable, width transition), MainContent (view tabs + content), DetailsPanel (togglable, collapsible sections), StatusBar. Keyboard shortcuts: Cmd+B sidebar, Cmd+Shift+B details, Cmd+1-4 views. lucide-solid + @tauri-apps/api added."
     },
     "CHI-18": {
       "title": "Implement conversation view with markdown/code rendering",
@@ -183,9 +201,16 @@
     "CHI-19": {
       "title": "Build message input component with send controls",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-17"]
+      "dependencies": ["CHI-17"],
+      "linear_id": "CHI-19",
+      "completed_at": "2026-02-21T15:20:00Z",
+      "files": [
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/layout/MainLayout.tsx"
+      ],
+      "notes": "Auto-expanding textarea (80-300px), Enter to send, Shift+Enter newline, Cmd+Enter force send. Send/Stop buttons with accent/error colors. Character count. Auto-focus on mount. Wired into MainLayout conversation view."
     },
     "CHI-20": {
       "title": "Implement model selector (Opus/Sonnet/Haiku)",
@@ -211,9 +236,16 @@
     "CHI-23": {
       "title": "Build permission dialog UI component",
       "epic": "CHI-7",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-16", "CHI-17"]
+      "dependencies": ["CHI-16", "CHI-17"],
+      "linear_id": "CHI-23",
+      "completed_at": "2026-02-21T15:25:00Z",
+      "files": [
+        "src/components/permissions/PermissionDialog.tsx",
+        "src/components/layout/MainLayout.tsx"
+      ],
+      "notes": "Modal permission dialog with risk-level border (green/amber/red), tool-type badges (blue/amber/purple), 60s timeout auto-deny with countdown bar, keyboard shortcuts (Y/N/A/Escape), focus trap. Wired into MainLayout overlay."
     },
     "CHI-24": {
       "title": "Configure cross-platform packaging (.dmg, .msi, .AppImage)",
@@ -242,7 +274,7 @@
       "notes": "YOLO Mode: opt-in auto-approve for all permission requests. Toolbar toggle, warning dialog, session-scoped, audit-logged. See SPEC-001 §7.1."
     }
   },
-  "recommended_next": ["CHI-17", "CHI-19", "CHI-23"],
+  "recommended_next": ["CHI-18", "CHI-21", "CHI-26"],
   "warnings": [],
   "environment": {
     "rust_installed": true,

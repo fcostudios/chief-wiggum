@@ -31,19 +31,24 @@
 | CHI-10: CI/CD Pipeline | **Done** | `.github/workflows/ci.yml` — matrix builds, clippy, fmt, tests |
 | CHI-12: CLAUDE.md | **Done** | Agent auto-briefing file |
 | CHI-25: Push to GitHub | **Done** | `github.com/fcostudios/chief-wiggum` |
+| CHI-17: Layout Shell | **Done** | 5-zone layout, TitleBar, Sidebar, StatusBar, DetailsPanel, MainLayout |
+| CHI-19: Message Input | **Done** | Auto-expanding textarea, send/stop controls, keyboard shortcuts |
+| CHI-23: Permission Dialog | **Done** | Modal dialog, risk coloring, timeout, focus trap, keyboard shortcuts |
 
 ## What's Next (Pick from here)
 
 **Epic CHI-5: Core Scaffolding** — **Complete.** All tasks done.
 
-**Epic CHI-7: Basic UI** — Unblocked. Ready to start.
+**Epic CHI-7: Basic UI** — In progress. CHI-17, CHI-19, CHI-23 done.
 
 | Task | Priority | Dependencies | What to build |
 |------|----------|--------------|---------------|
-| CHI-17 | P0 | ~~CHI-9~~ | Main layout shell (5-zone structure) |
-| CHI-19 | P0 | CHI-17 | Message input component with send controls |
-| CHI-23 | P0 | CHI-16, CHI-17 | Permission dialog UI component |
-| CHI-26 | P1 | CHI-16, CHI-17, CHI-23 | **YOLO Mode** — auto-approve all permission requests (see SPEC-001 §7.1) |
+| CHI-18 | P0 | ~~CHI-17~~, CHI-14 | Conversation view with markdown/code rendering |
+| CHI-20 | P1 | ~~CHI-17~~, CHI-13 | Model selector (Opus/Sonnet/Haiku) |
+| CHI-21 | P0 | ~~CHI-17~~, CHI-13 | Terminal Mode with xterm.js + WebGL |
+| CHI-22 | P0 | CHI-11, ~~CHI-17~~, CHI-18 | Session persistence and sidebar navigation |
+| CHI-24 | P1 | CHI-10 | Cross-platform packaging (.dmg, .msi, .AppImage) |
+| CHI-26 | P1 | ~~CHI-16~~, ~~CHI-17~~, ~~CHI-23~~ | **YOLO Mode** — auto-approve all permission requests (see SPEC-001 §7.1) |
 
 See `docs/tasks/TASKS-001-phase1-foundation.md` for full dependency graph and execution order.
 
@@ -126,13 +131,25 @@ eslint.config.js                # ESLint flat config with solid + typescript plu
 .gitignore                      # Rust + Node + Tauri patterns
 .github/workflows/ci.yml       # CI/CD pipeline (DONE — CHI-10)
 
-src/                            # SolidJS frontend (DONE — CHI-9)
+src/                            # SolidJS frontend
 ├── index.tsx                   # SolidJS render entry point
-├── App.tsx                     # Root component
-├── components/                 # UI components (common/, layout/)
-├── stores/                     # SolidJS stores (state management)
-├── lib/                        # Shared types, utilities
-│   └── types.ts                # TypeScript IPC types (mirror Rust types)
+├── App.tsx                     # Root component → renders MainLayout
+├── components/
+│   ├── layout/                 # 5-zone layout (DONE — CHI-17)
+│   │   ├── MainLayout.tsx      # Layout orchestrator, view tabs, panel transitions
+│   │   ├── TitleBar.tsx        # Custom title bar with window controls
+│   │   ├── Sidebar.tsx         # Left panel (sessions list)
+│   │   ├── StatusBar.tsx       # Bottom bar (status, tokens, cost)
+│   │   └── DetailsPanel.tsx    # Right panel (context, cost sections)
+│   ├── conversation/           # Conversation UI (CHI-18, CHI-19)
+│   │   └── MessageInput.tsx    # Auto-expanding textarea + send controls (DONE)
+│   └── permissions/            # Permission system UI (CHI-23)
+│       └── PermissionDialog.tsx # Modal permission dialog (DONE)
+├── stores/
+│   └── uiStore.ts              # UI state (sidebar, panels, views, permissions)
+├── lib/
+│   ├── types.ts                # TypeScript IPC types (mirror Rust types)
+│   └── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+1-4)
 └── styles/
     └── tokens.css              # SPEC-002 design tokens + TailwindCSS v4 @theme
 ```
