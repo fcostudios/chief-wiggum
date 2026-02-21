@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::sync::Arc;
 
-use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use tokio::sync::{mpsc, watch, Mutex, RwLock};
 
 use super::parser::StreamParser;
@@ -112,42 +111,28 @@ pub struct CliBridge {
 }
 
 impl CliBridge {
-    /// Spawn a new Claude Code CLI process via PTY.
+    /// Spawn a new Claude Code CLI process with piped stdin/stdout.
     ///
-    /// This allocates a PTY, starts the CLI binary, and launches background
-    /// threads for reading stdout and writing stdin.
+    /// Uses pipes (not PTY) so the CLI outputs structured JSON via
+    /// `--output-format stream-json` instead of rendering the interactive TUI.
     ///
     /// # Errors
     ///
     /// Returns `AppError::Bridge` if:
-    /// - PTY allocation fails
     /// - CLI binary cannot be found or executed
     /// - Thread spawning fails
     pub async fn spawn(config: BridgeConfig) -> AppResult<Self> {
         let status = Arc::new(RwLock::new(ProcessStatus::Starting));
 
-        // Allocate PTY
-        let pty_system = native_pty_system();
-        let pty_pair = pty_system
-            .openpty(PtySize {
-                rows: config.pty_rows,
-                cols: config.pty_cols,
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .map_err(|e| AppError::Bridge(format!("Failed to allocate PTY: {}", e)))?;
-
-        // Build the CLI command
-        let mut cmd = CommandBuilder::new(&config.cli_path);
+        // Build CLI command with piped I/O (not PTY — avoids interactive TUI)
+        let mut cmd = std::process::Command::new(&config.cli_path);
 
         // Add output format flag for structured parsing
-        cmd.arg("--output-format");
-        cmd.arg(&config.output_format);
+        cmd.arg("--output-format").arg(&config.output_format);
 
         // Add model flag if specified
         if let Some(ref model) = config.model {
-            cmd.arg("--model");
-            cmd.arg(model);
+            cmd.arg("--model").arg(model);
         }
 
         // Add extra arguments
@@ -157,7 +142,7 @@ impl CliBridge {
 
         // Set working directory
         if let Some(ref dir) = config.working_dir {
-            cmd.cwd(dir);
+            cmd.current_dir(dir);
         }
 
         // Set environment variables
@@ -165,55 +150,63 @@ impl CliBridge {
             cmd.env(key, value);
         }
 
-        // Spawn the child process in the PTY
-        let child = pty_pair
-            .slave
-            .spawn_command(cmd)
+        // Pipe stdin, stdout, stderr
+        cmd.stdin(std::process::Stdio::piped());
+        cmd.stdout(std::process::Stdio::piped());
+        cmd.stderr(std::process::Stdio::piped());
+
+        // Spawn the child process
+        let mut child = cmd
+            .spawn()
             .map_err(|e| AppError::Bridge(format!("Failed to spawn CLI process: {}", e)))?;
 
+        let pid = child.id();
         tracing::info!(
-            "Spawned Claude Code CLI (pid: {:?}) with model: {:?}",
-            child.process_id(),
+            "Spawned Claude Code CLI (pid: {}) with model: {:?}",
+            pid,
             config.model
         );
 
         // Set up channels
-        // Per GUIDE-001 §2.5: PTY reads use a dedicated thread with mpsc to async runtime
         let (output_tx, output_rx) = mpsc::channel::<BridgeOutput>(256);
         let (input_tx, input_rx) = mpsc::channel::<String>(64);
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
-        // Spawn PTY reader thread (dedicated OS thread, not tokio task)
-        let reader = pty_pair
-            .master
-            .try_clone_reader()
-            .map_err(|e| AppError::Bridge(format!("Failed to clone PTY reader: {}", e)))?;
+        // Take stdout as reader (blocking Read trait — runs on dedicated OS thread)
+        let reader: Box<dyn Read + Send> = Box::new(
+            child
+                .stdout
+                .take()
+                .ok_or_else(|| AppError::Bridge("Failed to capture stdout".to_string()))?,
+        );
 
         let reader_status = Arc::clone(&status);
         let reader_shutdown = shutdown_rx.clone();
         let reader_output_tx = output_tx.clone();
 
         std::thread::Builder::new()
-            .name("pty-reader".to_string())
+            .name("cli-reader".to_string())
             .spawn(move || {
                 Self::pty_reader_loop(reader, reader_output_tx, reader_status, reader_shutdown);
             })
-            .map_err(|e| AppError::Bridge(format!("Failed to spawn PTY reader thread: {}", e)))?;
+            .map_err(|e| AppError::Bridge(format!("Failed to spawn reader thread: {}", e)))?;
 
-        // Spawn PTY writer thread
-        let writer = pty_pair
-            .master
-            .take_writer()
-            .map_err(|e| AppError::Bridge(format!("Failed to take PTY writer: {}", e)))?;
+        // Take stdin as writer (blocking Write trait — runs on dedicated OS thread)
+        let writer: Box<dyn Write + Send> = Box::new(
+            child
+                .stdin
+                .take()
+                .ok_or_else(|| AppError::Bridge("Failed to capture stdin".to_string()))?,
+        );
 
         let writer_shutdown = shutdown_rx.clone();
 
         std::thread::Builder::new()
-            .name("pty-writer".to_string())
+            .name("cli-writer".to_string())
             .spawn(move || {
                 Self::pty_writer_loop(writer, input_rx, writer_shutdown);
             })
-            .map_err(|e| AppError::Bridge(format!("Failed to spawn PTY writer thread: {}", e)))?;
+            .map_err(|e| AppError::Bridge(format!("Failed to spawn writer thread: {}", e)))?;
 
         // Spawn process monitor task
         let monitor_status = Arc::clone(&status);
@@ -221,7 +214,13 @@ impl CliBridge {
         let monitor_shutdown = shutdown_rx;
 
         tokio::spawn(async move {
-            Self::process_monitor(child, monitor_status, monitor_output_tx, monitor_shutdown).await;
+            Self::pipe_process_monitor(
+                child,
+                monitor_status,
+                monitor_output_tx,
+                monitor_shutdown,
+            )
+            .await;
         });
 
         // Mark as running
@@ -362,8 +361,8 @@ impl CliBridge {
     }
 
     /// Async task: monitors process health and detects exit.
-    async fn process_monitor(
-        mut child: Box<dyn portable_pty::Child + Send + Sync>,
+    async fn pipe_process_monitor(
+        mut child: std::process::Child,
         status: Arc<RwLock<ProcessStatus>>,
         output_tx: mpsc::Sender<BridgeOutput>,
         mut shutdown_rx: watch::Receiver<bool>,
@@ -371,12 +370,10 @@ impl CliBridge {
         loop {
             tokio::select! {
                 _ = tokio::time::sleep(tokio::time::Duration::from_millis(HEALTH_CHECK_INTERVAL_MS)) => {
-                    // Check if process is still running
                     match child.try_wait() {
                         Ok(Some(exit_status)) => {
-                            let code = exit_status.exit_code() as i32;
-                            let exit_code = Some(code);
-                            tracing::info!("Claude Code CLI exited with code: {}", code);
+                            let exit_code = exit_status.code();
+                            tracing::info!("Claude Code CLI exited with code: {:?}", exit_code);
 
                             *status.write().await = ProcessStatus::Exited(exit_code);
                             let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code }).await;
