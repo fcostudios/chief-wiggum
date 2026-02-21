@@ -21,6 +21,7 @@ import PermissionDialog from '@/components/permissions/PermissionDialog';
 import YoloWarningDialog from '@/components/permissions/YoloWarningDialog';
 import { sessionState, createNewSession } from '@/stores/sessionStore';
 import { sendMessage, conversationState } from '@/stores/conversationStore';
+import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 
 const MainLayout: Component = () => {
@@ -97,7 +98,7 @@ const MainLayout: Component = () => {
                 }
               }}
               isLoading={conversationState.isLoading}
-              isDisabled={false}
+              isDisabled={!cliState.isDetected}
             />
           </Show>
         </main>
