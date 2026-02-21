@@ -59,7 +59,7 @@ The application has five persistent zones:
 - Section 4: Cost breakdown (current session)
 - Each section is a collapsible accordion
 
-**Z5 — Status Bar (32px height):**
+**Z5 — Status Bar (28px height):**
 - Left: agent status ("Agent Team active (3/3)") or model name
 - Center: token usage ("47.2K / 200K")
 - Right: cost pill ("$2.47"), connection status dot
@@ -831,44 +831,50 @@ Windows:
 **CHI-70: Custom Scrollbar Styling (Medium)**
 
 ```css
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--color-bg-primary); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-primary);
-  border-radius: var(--radius-full);
+  background: rgba(139, 148, 158, 0.2);
+  border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--color-text-tertiary); }
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 148, 158, 0.35); }
+::-webkit-scrollbar-corner { background: transparent; }
 ```
 
-Apply to all scrollable containers: conversation view, sidebar, details panel.
+**Status: DONE** — Applied globally in `tokens.css`. Thin 6px scrollbars with transparent track, rgba thumbs matching the dark theme. Applied to all scrollable containers: conversation view, sidebar, details panel.
 
 ### 10.2 Delightful Interactions & Micro-animations (CHI-62)
 
-**CHI-71: Message Enter/Exit Animations (Medium)**
+**CHI-71: Message Enter/Exit Animations (Medium) — DONE**
 
-New messages slide in from bottom + fade:
+New messages slide in from bottom + fade with staggered delays:
 ```css
-@keyframes message-enter {
+@keyframes fade-in-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.message-bubble { animation: message-enter 150ms var(--ease-default); }
+.animate-fade-in-up {
+  animation: fade-in-up var(--duration-entrance) var(--ease-out) both;
+}
 ```
-Respects `prefers-reduced-motion`.
+- Staggered `animation-delay: Math.min(index * 30, 200)ms` per message for cascade effect
+- Uses `--duration-entrance: 300ms` and `--ease-out` timing
+- Respects `prefers-reduced-motion` (all animations disabled via global rule)
 
-**CHI-72: Premium Typing Indicator (High)**
+**CHI-72: Premium Typing Indicator (High) — PARTIALLY DONE**
 
-Replace static "Thinking..." text with animated dots:
+Animated thinking dots with accent color and staggered animation:
 ```
 ┌────────────────────────────┐
 │  Assistant                 │
-│  ● ● ●                    │  ← 3 dots with staggered bounce
-│                            │     + subtle shimmer gradient
+│  ● ● ●                    │  ← 3 dots with staggered glow-pulse
+│                            │     + accent color (#E8825A)
 └────────────────────────────┘
 ```
-- 3 dots, 6px each, 400ms stagger between bounces
-- Optional shimmer gradient across the bubble surface
-- Transitions smoothly to streaming content when first chunk arrives
+- 3 dots, `w-1.5 h-1.5` (6px), accent-colored with `glow-pulse` animation
+- Staggered `animation-delay`: 0ms, 150ms, 300ms between dots
+- Transitions to streaming cursor (`w-[3px] h-4 rounded-[1px] animate-cursor-blink`) when first chunk arrives
+- **Remaining:** Optional shimmer gradient across bubble surface (not yet implemented)
 
 **CHI-73: Smooth Streaming Text Rendering (High)**
 

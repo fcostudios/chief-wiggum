@@ -24,7 +24,7 @@ This document defines the complete visual language for Chief Wiggum. Every compo
 
 3. **Information hierarchy through typography, not decoration.** Use font weight, size, and color to establish hierarchy — not borders, shadows, or background colors (except where semantically necessary like status badges).
 
-4. **State changes, not animations.** Transitions exist only to communicate state changes (expanding a panel, switching tabs). Maximum 200ms. No entrance animations, no parallax, no decorative motion.
+4. **Purposeful motion.** Transitions communicate state changes (expanding a panel, switching tabs). Entrance animations (fade-in, slide-up) provide spatial context for new content like messages. Animations use easing curves for natural feel. All motion respects `prefers-reduced-motion`. No parallax, no decorative loops.
 
 5. **Accessible by default.** WCAG 2.1 AA minimum. All text meets 4.5:1 contrast ratio against its background. Interactive elements meet 3:1. Focus indicators are always visible.
 
@@ -121,10 +121,10 @@ Light theme will invert the palette. Not in scope for Phase 1–2 but token name
 
 | Token | Stack | Usage |
 |---|---|---|
-| `--font-ui` | `-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif` | All UI text |
+| `--font-ui` | `"Sora", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | All UI text (Sora loaded via Google Fonts) |
 | `--font-mono` | `"JetBrains Mono", "Fira Code", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace` | Code, terminal, diffs, token counts |
 
-**Bundled font:** JetBrains Mono (Regular, Medium, Bold) — included in the app binary for consistent cross-platform rendering.
+**Loaded fonts:** Sora (300–700 weights) for UI text and JetBrains Mono (400, 500, 600) for code — both loaded via Google Fonts in `index.html`. System font fallbacks ensure rendering before web fonts load.
 
 ### 4.2 Type Scale
 
@@ -175,7 +175,7 @@ Based on a 4px grid. All spacing uses these tokens.
 | `--sidebar-width` | 240px | Left sidebar (project nav) |
 | `--sidebar-collapsed` | 48px | Collapsed sidebar (icons only) |
 | `--details-panel-width` | 280px | Right details panel (context, MCP, cost) |
-| `--status-bar-height` | 32px | Bottom status bar |
+| `--status-bar-height` | 28px | Bottom status bar |
 | `--title-bar-height` | 40px | Top title bar |
 | `--input-area-min-height` | 80px | Message input area minimum |
 | `--agent-card-min-height` | 120px | Agent card in dashboard |
@@ -189,6 +189,7 @@ Based on a 4px grid. All spacing uses these tokens.
 | `--radius-sm` | 4px | Badges, small buttons, tags |
 | `--radius-md` | 6px | Cards, input fields, buttons |
 | `--radius-lg` | 8px | Modals, panels, dropdowns |
+| `--radius-xl` | 12px | Large containers, empty state icons |
 | `--radius-full` | 9999px | Pills, avatars, circular indicators |
 | `--border-width` | 1px | Standard borders |
 
@@ -204,6 +205,24 @@ Minimal shadows — rely on background color differences for elevation.
 | `--shadow-md` | `0 4px 12px rgba(0,0,0,0.4)` | Modals, command palette |
 | `--shadow-lg` | `0 8px 24px rgba(0,0,0,0.5)` | HUD overlay |
 
+### 7.1 Ambient Glow Tokens
+
+Warm accent-derived glows for depth and premium feel. Defined in `:root`, not `@theme`.
+
+| Token | Value | Usage |
+|---|---|---|
+| `--glow-accent` | `0 0 20px rgba(232, 130, 90, 0.15)` | Active elements, focused inputs |
+| `--glow-accent-strong` | `0 0 30px rgba(232, 130, 90, 0.25)` | Primary action buttons |
+| `--glow-accent-subtle` | `0 0 12px rgba(232, 130, 90, 0.08)` | Hover states, active indicators |
+
+### 7.2 Glass Morphism Tokens
+
+| Token | Value | Usage |
+|---|---|---|
+| `--glass-bg` | `rgba(22, 27, 34, 0.7)` | Semi-transparent panel backgrounds |
+| `--glass-border` | `rgba(48, 54, 61, 0.6)` | Glass panel borders |
+| `--glass-blur` | `12px` | Backdrop blur radius |
+
 ---
 
 ## 8. Animation
@@ -213,13 +232,18 @@ Minimal shadows — rely on background color differences for elevation.
 | `--duration-fast` | 100ms | Hover states, color transitions |
 | `--duration-normal` | 150ms | Panel expand/collapse, tab switch |
 | `--duration-slow` | 200ms | Modal open/close, sidebar toggle |
-| `--easing-default` | `cubic-bezier(0.4, 0, 0.2, 1)` | All transitions |
+| `--duration-entrance` | 300ms | Message entry, content appear |
+| `--ease-default` | `cubic-bezier(0.4, 0, 0.2, 1)` | Standard transitions |
+| `--ease-out` | `cubic-bezier(0, 0, 0.2, 1)` | Entrance animations (decelerate) |
+| `--ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Bouncy interactions |
 
 **Rules:**
-- `prefers-reduced-motion: reduce` must disable all transitions.
-- No entrance animations. Elements appear instantly.
+- `prefers-reduced-motion: reduce` must disable all transitions and animations.
+- Entrance animations use `--duration-entrance` with `--ease-out` for deceleration.
+- State transitions use `--duration-fast` to `--duration-slow` with `--ease-default`.
+- Available keyframe animations: `fade-in-up`, `fade-in`, `slide-in-left`, `cursor-blink`, `glow-pulse`, `thinking-shimmer`. Defined in `tokens.css`.
 - No loading spinners longer than 200ms — use skeleton placeholders instead.
-- The only animation that may exceed 200ms is the context meter's "critical" zone pulse (1s period).
+- The context meter critical zone pulse (1s period) is an exception to standard durations.
 
 ---
 
@@ -516,7 +540,7 @@ Live streaming content display within ConversationView.
 **Layout:**
 1. "Assistant" label (`--text-sm`, `--color-text-secondary`, `font-medium`)
 2. MarkdownContent rendering (streaming)
-3. Blinking cursor: `w-2 h-4 bg-accent animate-pulse ml-0.5` — positioned inline at end of text
+3. Blinking cursor: `w-[3px] h-4 rounded-[1px] animate-cursor-blink ml-0.5` with accent color — custom blink keyframe (1s step-end)
 
 **States:**
 - Streaming: content growing, cursor visible, auto-scroll active
@@ -527,10 +551,11 @@ Live streaming content display within ConversationView.
 Custom scrollbar styling for dark theme consistency.
 
 **Structure:**
-- Width: 8px
-- Track: `--color-bg-primary` (transparent on main content areas)
-- Thumb: `--color-border-primary`, `--radius-full`
-- Thumb hover: `--color-text-tertiary`
+- Width: 6px
+- Track: transparent
+- Thumb: `rgba(139, 148, 158, 0.2)`, 3px border-radius
+- Thumb hover: `rgba(139, 148, 158, 0.35)`
+- Corner: transparent
 
 Applied to: ConversationView, Sidebar session list, DetailsPanel sections, Diff viewer.
 

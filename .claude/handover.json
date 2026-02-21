@@ -677,8 +677,11 @@
         },
         "CHI-70": {
           "title": "Custom scrollbar styling for dark theme",
-          "status": "todo",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "completed_at": "2026-02-22T06:00:00Z",
+          "files": ["src/styles/tokens.css"],
+          "notes": "6px scrollbars, transparent track, rgba thumbs. Applied globally via tokens.css."
         }
       }
     },
@@ -690,8 +693,11 @@
       "tasks": {
         "CHI-71": {
           "title": "Message enter/exit animations (slide + fade)",
-          "status": "todo",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "completed_at": "2026-02-22T06:00:00Z",
+          "files": ["src/styles/tokens.css", "src/components/conversation/ConversationView.tsx"],
+          "notes": "fade-in-up keyframe with staggered animation-delay per message. 300ms entrance with ease-out. prefers-reduced-motion compliant."
         },
         "CHI-72": {
           "title": "Premium typing indicator (animated dots, shimmer)",
@@ -831,14 +837,14 @@
     "CHI-58",
     "CHI-59",
     "CHI-68",
-    "CHI-70",
     "CHI-80",
     "CHI-41"
   ],
-  "critical_path": "CHI-37 (permission flow) DONE. CHI-60 (shutdown) DONE. CHI-67 (native controls) DONE. Next: CHI-39 (session lifecycle — CHI-56/57/58/59), CHI-61 remaining (CHI-68/69/70), UX polish.",
+  "critical_path": "CHI-37 (permission flow) DONE. CHI-60 (shutdown) DONE. CHI-67 (native controls) DONE. CHI-70 (scrollbars) DONE. CHI-71 (message animations) DONE. Next: CHI-39 (session lifecycle — CHI-56/57/58/59), CHI-61 remaining (CHI-68/69), UX polish.",
   "ux_quick_wins": [
-    "CHI-67 (native window controls — urgent)",
-    "CHI-70 (dark scrollbars — pure CSS)",
+    "CHI-67 (native window controls — DONE)",
+    "CHI-70 (dark scrollbars — DONE)",
+    "CHI-71 (message animations — DONE)",
     "CHI-80 (empty state redesign — high personality impact)"
   ],
   "spec_updates": {
@@ -864,7 +870,7 @@
     "notes": "All 21 remaining Phase 2 Linear issues updated with spec references and detailed acceptance criteria"
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67 DONE. 71 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62).",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67, CHI-70, CHI-71 DONE. Frontend design overhaul applied (Noir Command Center aesthetic, Sora font, ambient glows, entrance animations). 71 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62).",
   "environment": {
     "rust_installed": true,
     "node_installed": true,

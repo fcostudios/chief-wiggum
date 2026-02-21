@@ -142,14 +142,14 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | CHI-67 | Urgent | **Done** | Native window controls (macOS traffic lights + Windows buttons) |
 | CHI-68 | High | Todo | Titlebar redesign with platform-aware layout |
 | CHI-69 | Low | Todo | macOS vibrancy effects on sidebar and titlebar |
-| CHI-70 | Medium | Todo | Custom scrollbar styling for dark theme |
+| CHI-70 | Medium | **Done** | Custom scrollbar styling for dark theme |
 
 #### Epic CHI-62: Delightful Interactions & Micro-animations (High)
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-71 | Medium | Message enter/exit animations (slide + fade) |
-| CHI-72 | High | Premium typing indicator (animated dots, shimmer) |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-71 | Medium | **Done** | Message enter/exit animations (slide + fade) |
+| CHI-72 | High | Todo | Premium typing indicator (animated dots, shimmer) |
 | CHI-73 | High | Smooth streaming text rendering (typewriter buffer) |
 | CHI-74 | Medium | Toast notification system |
 | CHI-75 | Medium | Copy feedback animations + hover micro-interactions |
