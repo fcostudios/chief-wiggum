@@ -6,7 +6,7 @@ use crate::db::Database;
 use crate::AppError;
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn create_session(db: State<'_, Database>, model: String) -> Result<SessionRow, AppError> {
     let id = uuid::Uuid::new_v4().to_string();
     queries::insert_session(&db, &id, None, &model)?;
@@ -14,23 +14,23 @@ pub fn create_session(db: State<'_, Database>, model: String) -> Result<SessionR
         .ok_or_else(|| AppError::Other("Session not found after creation".to_string()))
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_all_sessions(db: State<'_, Database>) -> Result<Vec<SessionRow>, AppError> {
     queries::list_sessions(&db)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_session(db: State<'_, Database>, session_id: String) -> Result<SessionRow, AppError> {
     queries::get_session(&db, &session_id)?
         .ok_or_else(|| AppError::Other(format!("Session {} not found", session_id)))
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn delete_session(db: State<'_, Database>, session_id: String) -> Result<(), AppError> {
     queries::delete_session(&db, &session_id)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn update_session_title(
     db: State<'_, Database>,
     session_id: String,
@@ -40,7 +40,7 @@ pub fn update_session_title(
 }
 
 #[allow(clippy::too_many_arguments)]
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn save_message(
     db: State<'_, Database>,
     session_id: String,
@@ -65,7 +65,7 @@ pub fn save_message(
     )
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_messages(
     db: State<'_, Database>,
     session_id: String,
@@ -73,7 +73,7 @@ pub fn list_messages(
     queries::list_messages(&db, &session_id)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn update_session_model(
     db: State<'_, Database>,
     session_id: String,

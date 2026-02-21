@@ -5,7 +5,7 @@ use crate::AppError;
 use tauri::State;
 
 /// Open native folder picker and return the selected path.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn pick_project_folder(app: tauri::AppHandle) -> Result<Option<String>, AppError> {
     use tauri_plugin_dialog::DialogExt;
     let folder = app.dialog().file().blocking_pick_folder();
@@ -13,7 +13,7 @@ pub async fn pick_project_folder(app: tauri::AppHandle) -> Result<Option<String>
 }
 
 /// Create a project from a folder path. Returns the project row.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn create_project(
     db: State<'_, Database>,
     folder_path: String,
@@ -33,7 +33,7 @@ pub fn create_project(
 }
 
 /// List all projects.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub fn list_projects(db: State<'_, Database>) -> Result<Vec<queries::ProjectRow>, AppError> {
     queries::list_projects(&db)
 }

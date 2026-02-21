@@ -12,7 +12,7 @@ use crate::AppError;
 use tauri::State;
 
 /// Start a CLI process for a session. Idempotent — if already running, returns Ok.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn start_session_cli(
     app: tauri::AppHandle,
     bridge_map: State<'_, SessionBridgeMap>,
@@ -48,7 +48,7 @@ pub async fn start_session_cli(
 }
 
 /// Send a message to the CLI process for a session.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn send_to_cli(
     bridge_map: State<'_, SessionBridgeMap>,
     session_id: String,
@@ -63,7 +63,7 @@ pub async fn send_to_cli(
 }
 
 /// Stop the CLI process for a session.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn stop_session_cli(
     bridge_map: State<'_, SessionBridgeMap>,
     session_id: String,
@@ -72,7 +72,7 @@ pub async fn stop_session_cli(
 }
 
 /// Get the CLI process status for a session.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_cli_status(
     bridge_map: State<'_, SessionBridgeMap>,
     session_id: String,
@@ -87,7 +87,7 @@ pub async fn get_cli_status(
 ///
 /// Called by the frontend when the user clicks Approve/Deny/Always Allow
 /// in the PermissionDialog (SPEC-004 §5.2).
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn respond_permission(
     permission_manager: State<'_, PermissionManager>,
     request_id: String,
@@ -119,7 +119,7 @@ pub async fn respond_permission(
 ///
 /// When enabled, all permission requests are auto-approved without user interaction.
 /// See SPEC-001 §7.1 for YOLO mode safety rails.
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn toggle_yolo_mode(
     permission_manager: State<'_, PermissionManager>,
     enable: bool,
