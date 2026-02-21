@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-21T14:30:00Z",
-  "last_updated_by": "claude-code",
+  "last_updated": "2026-02-21T14:40:00Z",
+  "last_updated_by": "cowork",
   "phase": {
     "name": "Phase 1: Foundation",
     "linear_project_id": "5b16e8ca-4509-4116-b3ef-d46069f0ee02",
@@ -12,7 +12,7 @@
       "title": "Core Scaffolding",
       "status": "in_progress",
       "linear_id": "f770dffa-774f-40f0-88ac-a2a83e472d1a",
-      "notes": "CHI-8, CHI-9, CHI-11, CHI-12 done. Only CHI-10 (CI/CD) remains."
+      "notes": "All 5 tasks complete (CHI-8, CHI-9, CHI-10, CHI-11, CHI-12). Epic ready to close."
     },
     "CHI-6": {
       "title": "CLI Bridge",
@@ -75,10 +75,23 @@
     "CHI-10": {
       "title": "Set up CI/CD pipeline",
       "epic": "CHI-5",
-      "status": "todo",
+      "status": "done",
       "priority": "P0",
       "dependencies": ["CHI-8", "CHI-9"],
-      "linear_id": "8771f923-b7ad-4f44-9d64-656135c285fc"
+      "linear_id": "8771f923-b7ad-4f44-9d64-656135c285fc",
+      "completed_at": "2026-02-21T14:37:00Z",
+      "files": [
+        ".github/workflows/ci.yml",
+        "src-tauri/src/bridge/permission.rs",
+        "src-tauri/src/bridge/process.rs",
+        "src-tauri/src/bridge/mod.rs",
+        "src-tauri/src/bridge/adapter.rs",
+        "src-tauri/src/bridge/parser.rs",
+        "src-tauri/src/db/migrations.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/db/connection.rs"
+      ],
+      "notes": "GitHub Actions CI with matrix builds: frontend (typecheck, lint, format) on ubuntu, Rust (test on 3 OSes, fmt + clippy on ubuntu), Tauri build on all 3 platforms. All clippy warnings fixed across bridge and db modules. All checks pass locally."
     },
     "CHI-11": {
       "title": "Implement SQLite database layer with migration system",
@@ -208,9 +221,28 @@
       "status": "todo",
       "priority": "P1",
       "dependencies": ["CHI-10"]
+    },
+    "CHI-25": {
+      "title": "Initialize Git repository and push to GitHub",
+      "epic": "CHI-5",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "linear_id": "511f92b9-b002-4272-a8d0-b8707b28aed9",
+      "completed_at": "2026-02-21T14:35:00Z",
+      "notes": "Repo at github.com/fcostudios/chief-wiggum. Initial commit with 96 files pushed to main."
+    },
+    "CHI-26": {
+      "title": "Implement YOLO Mode (auto-approve all permission requests)",
+      "epic": "CHI-7",
+      "status": "todo",
+      "priority": "P1",
+      "dependencies": ["CHI-16", "CHI-17", "CHI-23"],
+      "linear_id": "9ebdd2d4-246d-4ae3-a211-0e4fc55c0cb0",
+      "notes": "YOLO Mode: opt-in auto-approve for all permission requests. Toolbar toggle, warning dialog, session-scoped, audit-logged. See SPEC-001 §7.1."
     }
   },
-  "recommended_next": ["CHI-10"],
+  "recommended_next": ["CHI-17", "CHI-19", "CHI-23"],
   "warnings": [],
   "environment": {
     "rust_installed": true,
@@ -219,6 +251,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. SolidJS + TailwindCSS v4 frontend configured. SQLite database layer operational. 55 Rust tests pass. Frontend checks (typecheck, lint, format) all pass."
+    "notes": "Full toolchain ready. SolidJS + TailwindCSS v4 frontend configured. SQLite database layer operational. 55 Rust tests pass. Frontend checks (typecheck, lint, format) all pass. CI/CD pipeline active on GitHub Actions. Codebase pushed to github.com/fcostudios/chief-wiggum."
   }
 }

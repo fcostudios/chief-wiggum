@@ -28,17 +28,22 @@
 | CHI-8: Scaffold Tauri v2 | **Done** | `main.rs`, `tauri.conf.json`, `capabilities/`, icons, Vite, `package.json` |
 | CHI-9: SolidJS + TailwindCSS | **Done** | `src/` frontend with SPEC-002 tokens, Prettier, ESLint, 55 tests pass |
 | CHI-11: SQLite Database | **Done** | `src-tauri/src/db/` — migrations, queries, WAL mode, 12 db tests |
+| CHI-10: CI/CD Pipeline | **Done** | `.github/workflows/ci.yml` — matrix builds, clippy, fmt, tests |
 | CHI-12: CLAUDE.md | **Done** | Agent auto-briefing file |
+| CHI-25: Push to GitHub | **Done** | `github.com/fcostudios/chief-wiggum` |
 
 ## What's Next (Pick from here)
 
-**Epic CHI-5: Core Scaffolding** — Nearly complete. Only CHI-10 remains.
+**Epic CHI-5: Core Scaffolding** — **Complete.** All tasks done.
+
+**Epic CHI-7: Basic UI** — Unblocked. Ready to start.
 
 | Task | Priority | Dependencies | What to build |
 |------|----------|--------------|---------------|
-| CHI-10 | P0 | ~~CHI-8~~, ~~CHI-9~~ | CI/CD pipeline (lint, type-check, test, build) |
-
-**Epic CHI-7: Basic UI** — Unblocked. CHI-9 complete.
+| CHI-17 | P0 | ~~CHI-9~~ | Main layout shell (5-zone structure) |
+| CHI-19 | P0 | CHI-17 | Message input component with send controls |
+| CHI-23 | P0 | CHI-16, CHI-17 | Permission dialog UI component |
+| CHI-26 | P1 | CHI-16, CHI-17, CHI-23 | **YOLO Mode** — auto-approve all permission requests (see SPEC-001 §7.1) |
 
 See `docs/tasks/TASKS-001-phase1-foundation.md` for full dependency graph and execution order.
 
@@ -119,6 +124,7 @@ tsconfig.json                   # TypeScript strict, JSX preserve, @/ path alias
 .prettierrc                     # Prettier config per GUIDE-001 §3.1
 eslint.config.js                # ESLint flat config with solid + typescript plugins
 .gitignore                      # Rust + Node + Tauri patterns
+.github/workflows/ci.yml       # CI/CD pipeline (DONE — CHI-10)
 
 src/                            # SolidJS frontend (DONE — CHI-9)
 ├── index.tsx                   # SolidJS render entry point
