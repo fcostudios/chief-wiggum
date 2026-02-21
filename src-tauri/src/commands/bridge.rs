@@ -5,6 +5,7 @@
 
 use crate::bridge::event_loop;
 use crate::bridge::manager::SessionBridgeMap;
+use crate::bridge::permission::{PermissionAction, PermissionManager, PermissionResponse};
 use crate::bridge::process::{BridgeConfig, ProcessStatus};
 use crate::bridge::CliLocation;
 use crate::AppError;
@@ -80,4 +81,53 @@ pub async fn get_cli_status(
         Some(bridge) => Ok(bridge.status().await),
         None => Ok(ProcessStatus::NotStarted),
     }
+}
+
+/// Resolve a pending permission request with the user's action.
+///
+/// Called by the frontend when the user clicks Approve/Deny/Always Allow
+/// in the PermissionDialog (SPEC-004 §5.2).
+#[tauri::command]
+pub async fn respond_permission(
+    permission_manager: State<'_, PermissionManager>,
+    request_id: String,
+    action: String,
+    pattern: Option<String>,
+) -> Result<(), AppError> {
+    let action = match action.as_str() {
+        "Approve" => PermissionAction::Approve,
+        "Deny" => PermissionAction::Deny,
+        "AlwaysAllow" => PermissionAction::AlwaysAllow,
+        other => {
+            return Err(AppError::Validation(format!(
+                "Invalid permission action: {}",
+                other
+            )))
+        }
+    };
+
+    let response = PermissionResponse {
+        request_id,
+        action,
+        pattern,
+    };
+
+    permission_manager.resolve_permission(response).await
+}
+
+/// Toggle YOLO mode for the permission system.
+///
+/// When enabled, all permission requests are auto-approved without user interaction.
+/// See SPEC-001 §7.1 for YOLO mode safety rails.
+#[tauri::command]
+pub async fn toggle_yolo_mode(
+    permission_manager: State<'_, PermissionManager>,
+    enable: bool,
+) -> Result<(), AppError> {
+    if enable {
+        permission_manager.enable_yolo_mode().await;
+    } else {
+        permission_manager.disable_yolo_mode().await;
+    }
+    Ok(())
 }

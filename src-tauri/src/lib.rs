@@ -28,6 +28,9 @@ pub enum AppError {
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
+    #[error("Validation error: {0}")]
+    Validation(String),
+
     #[error("Budget exceeded: {scope} limit of {limit_cents} cents reached")]
     BudgetExceeded { scope: String, limit_cents: i64 },
 

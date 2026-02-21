@@ -35,12 +35,17 @@ fn main() {
     // Create the session-to-bridge map for managing CLI processes
     let bridge_map = chief_wiggum_lib::bridge::SessionBridgeMap::new();
 
+    // Create the permission manager for handling CLI permission requests (CHI-50)
+    let permission_manager = chief_wiggum_lib::bridge::PermissionManager::new();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_os::init())
         .manage(db)
         .manage(cli_location)
         .manage(bridge_map)
+        .manage(permission_manager)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -58,7 +63,36 @@ fn main() {
             chief_wiggum_lib::commands::bridge::send_to_cli,
             chief_wiggum_lib::commands::bridge::stop_session_cli,
             chief_wiggum_lib::commands::bridge::get_cli_status,
+            chief_wiggum_lib::commands::bridge::respond_permission,
+            chief_wiggum_lib::commands::bridge::toggle_yolo_mode,
         ])
+        .setup(|app| {
+            use tauri::Manager;
+
+            let bridge_map = app
+                .state::<chief_wiggum_lib::bridge::SessionBridgeMap>()
+                .inner()
+                .clone();
+
+            if let Some(main_window) = app.get_webview_window("main") {
+                main_window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                        let bridge_map = bridge_map.clone();
+                        tauri::async_runtime::block_on(async move {
+                            tracing::info!("App closing — shutting down all CLI processes");
+                            if let Err(e) = bridge_map.shutdown_all().await {
+                                tracing::warn!("Error during CLI shutdown: {}", e);
+                            }
+                            tracing::info!("All CLI processes shut down");
+                        });
+                    }
+                });
+            } else {
+                tracing::warn!("Main window not found during setup — CLI shutdown on close will not be registered");
+            }
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running Chief Wiggum");
 }
