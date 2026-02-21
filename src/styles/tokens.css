@@ -55,6 +55,14 @@
   --color-diff-remove-text: #f85149;
   --color-diff-modify-bg: #2a2112;
 
+  /* --- Tool use colors (§3.5) --- */
+  --color-tool-file: #58a6ff;
+  --color-tool-bash: #3fb950;
+  --color-tool-neutral: #6e7681;
+  --color-tool-permission-allow: #3fb950;
+  --color-tool-permission-deny: #f85149;
+  --color-tool-permission-yolo: #d29922;
+
   /* ============================================================
    * SPEC-002 §4: Typography
    * ============================================================ */
