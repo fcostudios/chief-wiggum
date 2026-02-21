@@ -16,3 +16,22 @@ export type ModelId = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-
 
 /** Message role per SPEC-001 §9 */
 export type MessageRole = 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result';
+
+/** Permission request from CLI bridge (mirrors Rust PermissionRequest) */
+export interface PermissionRequest {
+  request_id: string;
+  tool: string;
+  command: string;
+  file_path: string | null;
+  risk_level: 'low' | 'medium' | 'high';
+}
+
+/** Permission response action (mirrors Rust PermissionAction) */
+export type PermissionAction = 'Approve' | 'Deny' | 'AlwaysAllow';
+
+/** Permission response sent back to backend */
+export interface PermissionResponse {
+  request_id: string;
+  action: PermissionAction;
+  pattern: string | null;
+}
