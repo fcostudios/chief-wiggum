@@ -19,7 +19,8 @@ import ConversationView from '@/components/conversation/ConversationView';
 import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
 import YoloWarningDialog from '@/components/permissions/YoloWarningDialog';
-import { sendMessage } from '@/stores/conversationStore';
+import { sessionState, createNewSession } from '@/stores/sessionStore';
+import { sendMessage, conversationState } from '@/stores/conversationStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 
 const MainLayout: Component = () => {
@@ -86,9 +87,16 @@ const MainLayout: Component = () => {
           <Show when={uiState.activeView === 'conversation'}>
             <MessageInput
               onSend={(text) => {
-                sendMessage(text);
+                const sessionId = sessionState.activeSessionId;
+                if (sessionId) {
+                  sendMessage(text, sessionId);
+                } else {
+                  createNewSession('claude-sonnet-4-6').then((session) => {
+                    sendMessage(text, session.id);
+                  });
+                }
               }}
-              isLoading={false}
+              isLoading={conversationState.isLoading}
               isDisabled={false}
             />
           </Show>

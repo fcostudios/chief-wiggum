@@ -50,3 +50,19 @@ export interface Message {
   is_compacted: boolean;
   created_at: string;
 }
+
+/** Session per SPEC-004 §6 — matches Rust SessionRow */
+export interface Session {
+  id: string;
+  project_id: string | null;
+  title: string | null;
+  model: string;
+  status: string | null;
+  parent_session_id: string | null;
+  context_tokens: number | null;
+  total_input_tokens: number | null;
+  total_output_tokens: number | null;
+  total_cost_cents: number | null;
+  created_at: string | null;
+  updated_at: string | null;
+}

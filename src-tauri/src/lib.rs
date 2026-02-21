@@ -4,6 +4,7 @@
 //! Module layout follows SPEC-004 §2.
 
 pub mod bridge;
+pub mod commands;
 pub mod db;
 
 /// Unified application error type per GUIDE-001 §2.4 and SPEC-004 §7.

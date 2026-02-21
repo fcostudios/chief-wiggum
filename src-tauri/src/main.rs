@@ -12,20 +12,23 @@ fn main() {
 
     tracing::info!("Starting Chief Wiggum v{}", env!("CARGO_PKG_VERSION"));
 
-    // Initialize SQLite database (CHI-11)
-    match chief_wiggum_lib::db::Database::open_default() {
-        Ok(db) => {
-            tracing::info!("Database initialized at {:?}", db.path());
-        }
-        Err(e) => {
-            tracing::error!("Failed to initialize database: {}", e);
-            // Continue without database — degraded mode
-            // TODO(CHI-22): proper error dialog on db init failure
-        }
-    }
+    // Initialize SQLite database — required for session persistence (CHI-22)
+    let db = chief_wiggum_lib::db::Database::open_default()
+        .expect("Failed to initialize database");
+    tracing::info!("Database initialized at {:?}", db.path());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .manage(db)
+        .invoke_handler(tauri::generate_handler![
+            chief_wiggum_lib::commands::session::create_session,
+            chief_wiggum_lib::commands::session::list_all_sessions,
+            chief_wiggum_lib::commands::session::get_session,
+            chief_wiggum_lib::commands::session::delete_session,
+            chief_wiggum_lib::commands::session::update_session_title,
+            chief_wiggum_lib::commands::session::save_message,
+            chief_wiggum_lib::commands::session::list_messages,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Chief Wiggum");
 }

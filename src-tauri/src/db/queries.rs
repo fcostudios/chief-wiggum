@@ -5,6 +5,7 @@
 
 use super::Database;
 use crate::AppError;
+use serde::{Serialize, Deserialize};
 
 // ── Projects ───────────────────────────────────────────────────
 
@@ -136,6 +137,57 @@ pub fn update_session_cost(
     })
 }
 
+pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, project_id, title, model, status, parent_session_id,
+                    context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
+                    created_at, updated_at
+             FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(SessionRow {
+                    id: row.get(0)?,
+                    project_id: row.get(1)?,
+                    title: row.get(2)?,
+                    model: row.get(3)?,
+                    status: row.get(4)?,
+                    parent_session_id: row.get(5)?,
+                    context_tokens: row.get(6)?,
+                    total_input_tokens: row.get(7)?,
+                    total_output_tokens: row.get(8)?,
+                    total_cost_cents: row.get(9)?,
+                    created_at: row.get(10)?,
+                    updated_at: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })
+}
+
+pub fn delete_session(db: &Database, id: &str) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        // Delete child records first (no ON DELETE CASCADE in schema)
+        conn.execute("DELETE FROM cost_events WHERE session_id = ?1", rusqlite::params![id])?;
+        conn.execute("DELETE FROM agents WHERE session_id = ?1", rusqlite::params![id])?;
+        conn.execute("DELETE FROM messages WHERE session_id = ?1", rusqlite::params![id])?;
+        conn.execute("DELETE FROM sessions WHERE id = ?1", rusqlite::params![id])?;
+        Ok(())
+    })
+}
+
+pub fn update_session_title(db: &Database, id: &str, title: &str) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET title = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, title],
+        )?;
+        Ok(())
+    })
+}
+
 // ── Messages ───────────────────────────────────────────────────
 
 #[allow(clippy::too_many_arguments)]
@@ -213,7 +265,7 @@ pub fn insert_cost_event(
 
 // ── Row types ──────────────────────────────────────────────────
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectRow {
     pub id: String,
     pub name: String,
@@ -224,7 +276,7 @@ pub struct ProjectRow {
     pub last_opened_at: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionRow {
     pub id: String,
     pub project_id: Option<String>,
@@ -240,7 +292,7 @@ pub struct SessionRow {
     pub updated_at: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageRow {
     pub id: String,
     pub session_id: String,
@@ -363,5 +415,50 @@ mod tests {
             result.is_err(),
             "Duplicate path should fail UNIQUE constraint"
         );
+    }
+
+    #[test]
+    fn list_sessions_ordered_by_updated() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+        insert_session(&db, "s2", Some("p1"), "claude-opus-4-6").unwrap();
+
+        let sessions = list_sessions(&db).unwrap();
+        assert_eq!(sessions.len(), 2);
+        // s2 was inserted last, so it should be first (most recently updated)
+        assert_eq!(sessions[0].id, "s2");
+    }
+
+    #[test]
+    fn delete_session_cascades() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+
+        delete_session(&db, "s1").unwrap();
+
+        assert!(get_session(&db, "s1").unwrap().is_none());
+        assert!(list_messages(&db, "s1").unwrap().is_empty());
+    }
+
+    #[test]
+    fn update_session_title_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        update_session_title(&db, "s1", "My Chat").unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert_eq!(session.title.as_deref(), Some("My Chat"));
+    }
+
+    #[test]
+    fn list_sessions_empty_when_none() {
+        let db = test_db();
+        let sessions = list_sessions(&db).unwrap();
+        assert!(sessions.is_empty());
     }
 }
