@@ -66,3 +66,10 @@ export interface Session {
   created_at: string | null;
   updated_at: string | null;
 }
+
+/** CLI location info from backend (mirrors Rust CliLocation) */
+export interface CliLocation {
+  path_override: string | null;
+  resolved_path: string | null;
+  version: string | null;
+}

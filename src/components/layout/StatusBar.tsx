@@ -5,6 +5,7 @@
 import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
 import { uiState } from '@/stores/uiStore';
+import { cliState } from '@/stores/cliStore';
 
 const StatusBar: Component = () => {
   return (
@@ -14,7 +15,14 @@ const StatusBar: Component = () => {
       role="status"
     >
       {/* Left: status */}
-      <Show when={uiState.yoloMode} fallback={<span>Ready</span>}>
+      <Show
+        when={uiState.yoloMode}
+        fallback={
+          <Show when={cliState.isDetected} fallback={<span class="text-error">CLI not found</span>}>
+            <span>Ready</span>
+          </Show>
+        }
+      >
         <span class="text-warning font-semibold">YOLO MODE</span>
       </Show>
 

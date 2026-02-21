@@ -5,6 +5,7 @@
 import type { Component } from 'solid-js';
 import { createEffect, createSignal, Show, For } from 'solid-js';
 import { conversationState } from '@/stores/conversationStore';
+import { cliState } from '@/stores/cliStore';
 import MessageBubble from './MessageBubble';
 
 const ConversationView: Component = () => {
@@ -36,8 +37,21 @@ const ConversationView: Component = () => {
         when={conversationState.messages.length > 0}
         fallback={
           <div class="flex flex-col items-center justify-center h-full text-text-tertiary">
-            <p class="text-lg mb-2">No messages yet</p>
-            <p class="text-sm">Type a message below to start a conversation</p>
+            <Show
+              when={cliState.isDetected}
+              fallback={
+                <div class="text-center">
+                  <p class="text-lg mb-2 text-error">Claude Code CLI Not Found</p>
+                  <p class="text-sm mb-4">Install it to start chatting:</p>
+                  <code class="bg-bg-elevated px-3 py-1.5 rounded text-xs text-text-primary">
+                    npm install -g @anthropic-ai/claude-code
+                  </code>
+                </div>
+              }
+            >
+              <p class="text-lg mb-2">No messages yet</p>
+              <p class="text-sm">Type a message below to start a conversation</p>
+            </Show>
           </div>
         }
       >
