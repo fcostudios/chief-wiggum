@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 1.0
-**Date:** 2026-02-20
-**Status:** Draft
+**Version:** 2.0
+**Date:** 2026-02-21
+**Status:** Draft — Updated for Phase 2
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -29,22 +29,26 @@ chief-wiggum/
 │   │   ├── lib.rs                  # Module declarations
 │   │   ├── commands/               # IPC command handlers (one file per domain)
 │   │   │   ├── mod.rs
-│   │   │   ├── session.rs          # Session CRUD commands
-│   │   │   ├── message.rs          # Message send/receive commands
-│   │   │   ├── agent.rs            # Agent lifecycle commands
-│   │   │   ├── cost.rs             # Cost tracking commands
-│   │   │   ├── context.rs          # Context management commands
-│   │   │   ├── mcp.rs              # MCP server management commands
-│   │   │   ├── settings.rs         # Settings CRUD commands
-│   │   │   ├── git.rs              # Git operations commands
-│   │   │   └── automation.rs       # Automation CRUD commands
+│   │   │   ├── session.rs          # Session CRUD commands (Phase 1 — CHI-22)
+│   │   │   ├── bridge.rs           # CLI lifecycle: start/send/stop/status (Phase 2 — CHI-45)
+│   │   │   ├── cli.rs              # CLI detection: get_cli_info (Phase 2 — CHI-48)
+│   │   │   ├── project.rs          # Folder picker, project CRUD (Phase 2 — CHI-40)
+│   │   │   ├── cost.rs             # Cost tracking commands (Phase 2 — CHI-53)
+│   │   │   ├── agent.rs            # Agent lifecycle commands (future)
+│   │   │   ├── context.rs          # Context management commands (future)
+│   │   │   ├── mcp.rs              # MCP server management commands (future)
+│   │   │   ├── settings.rs         # Settings CRUD commands (future)
+│   │   │   ├── git.rs              # Git operations commands (future)
+│   │   │   └── automation.rs       # Automation CRUD commands (future)
 │   │   ├── bridge/                 # Claude Code CLI process management
-│   │   │   ├── mod.rs
-│   │   │   ├── process.rs          # PTY spawn, lifecycle, I/O
-│   │   │   ├── parser.rs           # Structured output parser
-│   │   │   ├── adapter.rs          # Versioned parser adapter interface
-│   │   │   └── permission.rs       # Permission request interception
-│   │   ├── cost/                   # Cost calculation engine
+│   │   │   ├── mod.rs              # BridgeOutput, CliLocation types
+│   │   │   ├── process.rs          # CliBridge, MockBridge, BridgeInterface trait
+│   │   │   ├── parser.rs           # StreamParser, BridgeEvent, MessageChunk
+│   │   │   ├── adapter.rs          # AdapterRegistry, CliVersion
+│   │   │   ├── permission.rs       # PermissionManager, PermissionRequest
+│   │   │   ├── manager.rs          # SessionBridgeMap — session→process lifecycle (Phase 2 — CHI-44)
+│   │   │   └── event_loop.rs       # Streaming event loop — bridge→Tauri events (Phase 2 — CHI-46)
+│   │   ├── cost/                   # Cost calculation engine (Phase 2 — CHI-38)
 │   │   │   ├── mod.rs
 │   │   │   ├── calculator.rs       # Token → cost conversion
 │   │   │   ├── budget.rs           # Budget enforcement logic
@@ -121,14 +125,20 @@ chief-wiggum/
 │   │   │   └── AddServerWizard.tsx
 │   │   └── permissions/            # Permission dialogs
 │   │       └── PermissionDialog.tsx
+│   │   └── permissions/            # Permission dialogs
+│   │       ├── PermissionDialog.tsx # Modal permission dialog (Phase 1 — CHI-23)
+│   │       └── YoloWarningDialog.tsx # YOLO mode confirmation (Phase 1 — CHI-26)
 │   ├── stores/                     # SolidJS reactive stores
-│   │   ├── sessionStore.ts         # Active session state
-│   │   ├── agentStore.ts           # Agent states
-│   │   ├── costStore.ts            # Cost tracking state
-│   │   ├── contextStore.ts         # Context utilization state
-│   │   ├── settingsStore.ts        # App settings
-│   │   ├── mcpStore.ts             # MCP server states
-│   │   └── uiStore.ts              # UI state (active view, panel visibility)
+│   │   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo)
+│   │   ├── sessionStore.ts         # Session state (CRUD, model cycling, active session)
+│   │   ├── conversationStore.ts    # Conversation state (real CLI streaming, events) (Phase 2 — CHI-47)
+│   │   ├── cliStore.ts             # CLI detection state (isDetected, location) (Phase 2 — CHI-48)
+│   │   ├── projectStore.ts         # Project state (folder picker, active project) (Phase 2 — CHI-40)
+│   │   ├── costStore.ts            # Cost tracking state (Phase 2 — CHI-53)
+│   │   ├── agentStore.ts           # Agent states (future)
+│   │   ├── contextStore.ts         # Context utilization state (future)
+│   │   ├── settingsStore.ts        # App settings (future)
+│   │   └── mcpStore.ts             # MCP server states (future)
 │   ├── lib/                        # Shared utilities
 │   │   ├── ipc.ts                  # Typed Tauri IPC wrappers
 │   │   ├── events.ts               # Tauri event listeners
@@ -154,26 +164,38 @@ chief-wiggum/
 
 ### 3.1 Rust Backend Modules
 
-| Module | Responsibility | Key Dependencies |
-|---|---|---|
-| `commands/` | IPC command handlers. Thin layer: validate input, call business logic, return result. | All other modules |
-| `bridge/` | Spawn and manage Claude Code CLI subprocesses via PTY. Parse structured output. Intercept permission requests. | `portable-pty`, `tokio` |
-| `cost/` | Calculate token costs, enforce budgets, emit cost events. | `db/` for persistence |
-| `db/` | SQLite CRUD operations, schema migrations, data export/import. | `rusqlite` |
-| `git/` | Git operations: status, worktree management, commit, branch. | `git2-rs` |
-| `mcp/` | MCP server registration, connection lifecycle, OAuth flows. | `reqwest`, `tokio` |
+| Module | Responsibility | Key Dependencies | Phase |
+|---|---|---|---|
+| `commands/session.rs` | Session/message CRUD IPC handlers. | `db/` | Phase 1 |
+| `commands/bridge.rs` | CLI lifecycle IPC: start_session_cli, send_to_cli, stop_session_cli, get_cli_status. | `bridge/` | Phase 2 |
+| `commands/cli.rs` | CLI detection: get_cli_info (checks PATH for `claude` binary). | — | Phase 2 |
+| `commands/project.rs` | Folder picker + project CRUD: pick_project_folder, create_project, list_projects. | `db/`, `tauri-plugin-dialog` | Phase 2 |
+| `commands/cost.rs` | Cost tracking IPC: get_session_cost, set_budget. | `cost/`, `db/` | Phase 2 |
+| `bridge/process.rs` | Spawn Claude Code CLI via PTY. Implements `BridgeInterface` trait. | `portable-pty`, `tokio` | Phase 1 |
+| `bridge/parser.rs` | Parse structured CLI output into `BridgeEvent` variants. | — | Phase 1 |
+| `bridge/adapter.rs` | Versioned parser selection via `AdapterRegistry`. | — | Phase 1 |
+| `bridge/permission.rs` | Intercept permission requests from CLI output. | — | Phase 1 |
+| `bridge/manager.rs` | `SessionBridgeMap` — maps session IDs to bridge processes. Manages process lifecycle. | `bridge/process.rs` | Phase 2 |
+| `bridge/event_loop.rs` | Streaming event loop: reads bridge output, emits Tauri events (chunk, complete, exited, permission). | `bridge/`, `tauri` | Phase 2 |
+| `cost/` | Calculate token costs, enforce budgets, emit cost events. | `db/` | Phase 2 |
+| `db/` | SQLite CRUD operations, schema migrations, data export/import. | `rusqlite` | Phase 1 |
+| `git/` | Git operations: status, worktree management, commit, branch. | `git2-rs` | Future |
+| `mcp/` | MCP server registration, connection lifecycle, OAuth flows. | `reqwest`, `tokio` | Future |
 
 ### 3.2 Frontend Stores
 
-| Store | Owns | Updated By |
-|---|---|---|
-| `sessionStore` | Active session, messages, session list | IPC commands + Tauri events |
-| `agentStore` | Agent list, states, task assignments | Tauri events from bridge |
-| `costStore` | Running cost totals, budget status | Tauri events from cost engine |
-| `contextStore` | Token utilization, zone, compaction state | Tauri events from bridge parser |
-| `settingsStore` | User preferences, model defaults | IPC commands (read/write) |
-| `mcpStore` | Server list, connection status, tools | IPC commands + events |
-| `uiStore` | Active view, panel states, modal stack | Direct user interaction |
+| Store | Owns | Updated By | Phase |
+|---|---|---|---|
+| `uiStore` | Active view, sidebar/panel visibility, permission dialog, yolo mode | Direct user interaction | Phase 1 |
+| `sessionStore` | Active session, session list, model cycling | IPC commands (session CRUD) | Phase 1 |
+| `conversationStore` | Messages, streaming content, loading/error state | IPC commands + Tauri event listeners (message:chunk, message:complete, cli:exited, permission:request) | Phase 2 |
+| `cliStore` | CLI detection (isDetected, location, version) | IPC command (get_cli_info) on startup | Phase 2 |
+| `projectStore` | Project list, active project | IPC commands (pick/create/list projects) | Phase 2 |
+| `costStore` | Running cost totals, budget status | Tauri events from cost engine | Phase 2 |
+| `agentStore` | Agent list, states, task assignments | Tauri events from bridge | Future |
+| `contextStore` | Token utilization, zone, compaction state | Tauri events from bridge parser | Future |
+| `settingsStore` | User preferences, model defaults | IPC commands (read/write) | Future |
+| `mcpStore` | Server list, connection status, tools | IPC commands + events | Future |
 
 ---
 
@@ -190,36 +212,36 @@ Frontend calls backend, waits for result. Used for user-initiated actions.
 import { invoke } from '@tauri-apps/api/core';
 
 // Session commands
-export const createSession = (projectId: string, model: string) =>
-  invoke<Session>('create_session', { projectId, model });
+export const createSession = (project_id: string, model: string) =>
+  invoke<Session>('create_session', { project_id, model });
 
-export const listSessions = (projectId: string) =>
-  invoke<Session[]>('list_sessions', { projectId });
+export const listSessions = (project_id: string) =>
+  invoke<Session[]>('list_sessions', { project_id });
 
-export const forkSession = (sessionId: string, fromMessageId: string) =>
-  invoke<Session>('fork_session', { sessionId, fromMessageId });
+export const forkSession = (session_id: string, from_message_id: string) =>
+  invoke<Session>('fork_session', { session_id, from_message_id });
 
 // Message commands
-export const sendMessage = (sessionId: string, content: string, effort: string) =>
-  invoke<void>('send_message', { sessionId, content, effort });
+export const sendMessage = (session_id: string, content: string, effort: string) =>
+  invoke<void>('send_message', { session_id, content, effort });
 
 // Agent commands
-export const spawnAgent = (sessionId: string, model: string, task: string, budgetCents?: number) =>
-  invoke<Agent>('spawn_agent', { sessionId, model, task, budgetCents });
+export const spawnAgent = (session_id: string, model: string, task: string, budget_cents?: number) =>
+  invoke<Agent>('spawn_agent', { session_id, model, task, budget_cents });
 
-export const killAgent = (agentId: string) =>
-  invoke<void>('kill_agent', { agentId });
+export const killAgent = (agent_id: string) =>
+  invoke<void>('kill_agent', { agent_id });
 
 // Cost commands
-export const getSessionCost = (sessionId: string) =>
-  invoke<CostSummary>('get_session_cost', { sessionId });
+export const getSessionCost = (session_id: string) =>
+  invoke<CostSummary>('get_session_cost', { session_id });
 
-export const setBudget = (scope: string, limitCents: number) =>
-  invoke<void>('set_budget', { scope, limitCents });
+export const setBudget = (scope: string, limit_cents: number) =>
+  invoke<void>('set_budget', { scope, limit_cents });
 
 // Context commands
-export const compactContext = (sessionId: string, strategy: string) =>
-  invoke<void>('compact_context', { sessionId, strategy });
+export const compactContext = (session_id: string, strategy: string) =>
+  invoke<void>('compact_context', { session_id, strategy });
 
 // Settings commands
 export const getSettings = () => invoke<Settings>('get_settings');
@@ -230,15 +252,15 @@ export const updateSettings = (settings: Partial<Settings>) =>
 export const addMcpServer = (config: McpServerConfig) =>
   invoke<McpServer>('add_mcp_server', { config });
 
-export const removeMcpServer = (serverId: string) =>
-  invoke<void>('remove_mcp_server', { serverId });
+export const removeMcpServer = (server_id: string) =>
+  invoke<void>('remove_mcp_server', { server_id });
 
 // Git commands
-export const getGitStatus = (projectPath: string) =>
-  invoke<GitStatus>('get_git_status', { projectPath });
+export const getGitStatus = (project_path: string) =>
+  invoke<GitStatus>('get_git_status', { project_path });
 
-export const createWorktree = (projectPath: string, branchName: string) =>
-  invoke<string>('create_worktree', { projectPath, branchName });
+export const createWorktree = (project_path: string, branch_name: string) =>
+  invoke<string>('create_worktree', { project_path, branch_name });
 
 // Export commands
 export const exportData = (format: string, path: string) =>
@@ -326,6 +348,115 @@ Pattern: `{domain}:{action}` in lowercase snake_case.
 | `permission:response` | `{ request_id, action, pattern? }` | Frontend → Backend |
 | `mcp:status_change` | `{ server_id, old_status, new_status }` | Backend → Frontend |
 
+### 4.4 Phase 2 IPC Contracts (Implemented)
+
+These commands and events were added in Phase 2 to wire the CLI bridge to the frontend.
+
+#### 4.4.1 CLI Detection Command
+
+```typescript
+// Frontend: stores/cliStore.ts
+export const getCliInfo = () =>
+  invoke<CliLocation>('get_cli_info');
+
+// CliLocation: { path_override: string | null; resolved_path: string | null; version: string | null }
+```
+
+```rust
+// Backend: commands/cli.rs
+#[tauri::command]
+fn get_cli_info(cli: State<'_, CliLocation>) -> Result<CliLocation, String> {
+    // Returns the CliLocation detected at startup (path_override, resolved_path, version)
+}
+```
+
+#### 4.4.2 Project Management Commands
+
+```typescript
+// Frontend: stores/projectStore.ts
+export const pickProjectFolder = () => invoke<string | null>('pick_project_folder');
+export const createProject = (name: string, path: string) =>
+  invoke<Project>('create_project', { name, path });
+export const listProjects = () => invoke<Project[]>('list_projects');
+```
+
+#### 4.4.3 CLI Bridge Commands
+
+```typescript
+// Frontend: stores/conversationStore.ts
+export const startSessionCli = (session_id: string, project_path: string, model: string) =>
+  invoke<void>('start_session_cli', { session_id, project_path, model });
+
+export const sendToCli = (session_id: string, message: string) =>
+  invoke<void>('send_to_cli', { session_id, message });
+
+export const stopSessionCli = (session_id: string) =>
+  invoke<void>('stop_session_cli', { session_id });
+
+export const getCliStatus = (session_id: string) =>
+  invoke<string>('get_cli_status', { session_id });
+```
+
+#### 4.4.4 Phase 2 Event Contracts (Streaming)
+
+| Event | Payload | Source | Consumer |
+|---|---|---|---|
+| `message:chunk` | `{ session_id: string, content: string }` | `event_loop.rs` | `conversationStore.ts` |
+| `message:complete` | `{ session_id: string, content: string }` | `event_loop.rs` | `conversationStore.ts` |
+| `cli:exited` | `{ session_id: string, code: number \| null }` | `event_loop.rs` | `conversationStore.ts` |
+| `permission:request` | `{ session_id: string, tool: string, command: string, risk_level: string }` | `event_loop.rs` | `uiStore.ts` |
+
+```typescript
+// Frontend: stores/conversationStore.ts — event listeners
+listen<{ session_id: string; content: string }>('message:chunk', (event) => {
+  appendStreamingContent(event.payload.content);
+});
+
+listen<{ session_id: string; content: string }>('message:complete', (event) => {
+  finalizeMessage(event.payload.session_id, event.payload.content);
+});
+
+listen<{ session_id: string; code: number | null }>('cli:exited', (event) => {
+  handleCliExit(event.payload.session_id, event.payload.code);
+});
+```
+
+#### 4.4.5 Permission IPC (Phase 2 — CHI-50/CHI-51, In Progress)
+
+```typescript
+// Frontend → Backend: respond to a permission request
+export const respondPermission = (request_id: string, action: PermissionAction) =>
+  invoke<void>('respond_permission', { request_id, action });
+
+// PermissionAction: 'Approve' | 'Deny' | 'AlwaysAllow'
+```
+
+```rust
+// Backend: commands/bridge.rs
+#[tauri::command]
+async fn respond_permission(
+    state: State<'_, AppState>,
+    request_id: String,
+    action: String,
+) -> Result<(), String> {
+    // Routes response to the correct bridge process via SessionBridgeMap
+}
+```
+
+#### 4.4.6 Cost Tracking IPC (Phase 2 — CHI-53/CHI-54, Planned)
+
+```typescript
+// Commands
+export const getSessionCost = (session_id: string) =>
+  invoke<CostSummary>('get_session_cost', { session_id });
+export const setBudget = (scope: string, limit_cents: number) =>
+  invoke<void>('set_budget', { scope, limit_cents });
+
+// Events
+listen<CostEvent>('cost:update', (event) => { /* update costStore */ });
+listen<BudgetWarning>('cost:budget_warning', (event) => { /* show toast/modal */ });
+```
+
 ---
 
 ## 5. Data Flow Diagrams
@@ -386,6 +517,83 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
 |-------|---------|-----------|
 | `yolo_mode:changed` | `{ enabled: bool }` | Backend → Frontend |
 | `toggle_yolo_mode` | `{ enable: bool }` | Frontend → Backend (IPC command) |
+
+### 5.3 CLI Detection Flow (Phase 2 — CHI-48)
+
+```
+App Launch                     Rust Backend                    OS
+   │                              │                            │
+   │ onMount: invoke('get_cli_info')                           │
+   ├────────────────────────────→ │                            │
+   │                              │ which claude / where claude│
+   │                              ├──────────────────────────→ │
+   │                              │ ◄── path or not found ──── │
+   │                              │ claude --version (if found)│
+   │                              ├──────────────────────────→ │
+   │                              │ ◄── version string ─────── │
+   │                              │                            │
+   │ ◄── CliLocation { path_override, resolved_path, version }  │
+   │                              │                            │
+   │ cliStore updates             │                            │
+   │ [if !detected]:              │                            │
+   │   StatusBar → "CLI not found"│                            │
+   │   MessageInput → disabled    │                            │
+   │   ConversationView → install │                            │
+   │   guidance                   │                            │
+```
+
+### 5.4 Session Bridge Lifecycle (Phase 2 — CHI-44/CHI-46)
+
+```
+Frontend                    SessionBridgeMap              CliBridge Process
+   │                              │                            │
+   │ invoke('start_session_cli')  │                            │
+   ├────────────────────────────→ │                            │
+   │                              │ spawn CLI process          │
+   │                              ├──────────────────────────→ │
+   │                              │ store session→bridge map   │
+   │                              │ spawn event_loop task      │
+   │ ◄── Ok(())                   │                            │
+   │                              │                            │
+   │ invoke('send_to_cli')        │                            │
+   ├────────────────────────────→ │                            │
+   │                              │ lookup bridge by session   │
+   │                              │ write to PTY stdin         │
+   │                              ├──────────────────────────→ │
+   │                              │                            │
+   │                              │ ◄── event_loop reads ───── │
+   │ ◄── emit('message:chunk')    │                            │
+   │ ◄── emit('message:chunk')   │                            │
+   │ ◄── emit('message:complete')│                            │
+   │                              │                            │
+   │ invoke('stop_session_cli')   │                            │
+   ├────────────────────────────→ │                            │
+   │                              │ kill process               │
+   │                              ├──────────────────────────→ │
+   │                              │ remove from map            │
+   │ ◄── Ok(())                   │                            │
+```
+
+### 5.5 Cost Tracking Flow (Phase 2 — CHI-53, Planned)
+
+```
+event_loop.rs              cost/calculator.rs           db/queries.rs
+     │                           │                          │
+     │ BridgeEvent::MessageEnd   │                          │
+     │ { tokens, model }         │                          │
+     ├─────────────────────────→ │                          │
+     │                           │ calculate cost           │
+     │                           │ check budget             │
+     │                           │                          │
+     │                           │ persist cost event       │
+     │                           ├────────────────────────→ │
+     │                           │                          │
+     │ ◄── CostEvent             │                          │
+     │                           │                          │
+     │ emit('cost:update')       │                          │
+     │ [if budget > 80%]:        │                          │
+     │   emit('cost:budget_warning')                        │
+```
 
 ---
 
@@ -480,6 +688,25 @@ interface PermissionRequest {
   file_path: string | null;
   risk_level: 'low' | 'medium' | 'high';
 }
+
+// Phase 2: Project (CHI-40)
+interface Project {
+  id: string;
+  name: string;
+  path: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Phase 2: CLI Location (CHI-48)
+interface CliLocation {
+  path_override: string | null;
+  resolved_path: string | null;
+  version: string | null;
+}
+
+// Phase 2: Bridge Status (CHI-45)
+type BridgeStatus = 'running' | 'stopped' | 'error';
 
 interface McpServer {
   id: string;
