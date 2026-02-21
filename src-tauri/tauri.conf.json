@@ -35,6 +35,23 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "Desktop GUI for Claude Code CLI",
+    "longDescription": "Chief Wiggum wraps Claude Code CLI in a polished desktop GUI with multi-agent orchestration, real-time cost tracking, and intelligent context management.",
+    "copyright": "Copyright 2026 FcoStudios",
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    },
+    "linux": {
+      "deb": {
+        "section": "devel"
+      }
+    }
   }
 }
