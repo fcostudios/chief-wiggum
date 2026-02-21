@@ -150,6 +150,10 @@ impl CliBridge {
             cmd.env(key, value);
         }
 
+        // Remove CLAUDECODE env var to prevent "nested session" detection
+        // when Chief Wiggum is launched from within a Claude Code session
+        cmd.env_remove("CLAUDECODE");
+
         // Pipe stdin, stdout, stderr
         cmd.stdin(std::process::Stdio::piped());
         cmd.stdout(std::process::Stdio::piped());
@@ -162,9 +166,13 @@ impl CliBridge {
 
         let pid = child.id();
         tracing::info!(
-            "Spawned Claude Code CLI (pid: {}) with model: {:?}",
+            "Spawned Claude Code CLI (pid: {}) cmd: {} --output-format {} --model {:?} {:?} | cwd: {:?}",
             pid,
-            config.model
+            config.cli_path,
+            config.output_format,
+            config.model,
+            config.extra_args,
+            config.working_dir
         );
 
         // Set up channels
@@ -190,6 +198,24 @@ impl CliBridge {
                 Self::pty_reader_loop(reader, reader_output_tx, reader_status, reader_shutdown);
             })
             .map_err(|e| AppError::Bridge(format!("Failed to spawn reader thread: {}", e)))?;
+
+        // Take stderr reader — logs error output for diagnostics
+        if let Some(stderr) = child.stderr.take() {
+            std::thread::Builder::new()
+                .name("cli-stderr".to_string())
+                .spawn(move || {
+                    use std::io::BufRead;
+                    let reader = std::io::BufReader::new(stderr);
+                    for line in reader.lines() {
+                        match line {
+                            Ok(line) => tracing::warn!("CLI stderr: {}", line),
+                            Err(_) => break,
+                        }
+                    }
+                    tracing::debug!("CLI stderr reader thread exiting");
+                })
+                .ok(); // Non-fatal if stderr thread fails to spawn
+        }
 
         // Take stdin as writer (blocking Write trait — runs on dedicated OS thread)
         let writer: Box<dyn Write + Send> = Box::new(

@@ -11,29 +11,46 @@ use crate::bridge::CliLocation;
 use crate::AppError;
 use tauri::State;
 
-/// Start a CLI process for a session. Idempotent — if already running, returns Ok.
+/// Send a message by spawning a CLI process with `-p "prompt"`.
+///
+/// Each message spawns a new process. Follow-up messages use `--continue`
+/// to resume the conversation. The Claude Code CLI does not accept prompts
+/// via stdin in `--output-format stream-json` mode — it requires `-p`.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command(rename_all = "snake_case")]
-pub async fn start_session_cli(
+pub async fn send_to_cli(
     app: tauri::AppHandle,
     bridge_map: State<'_, SessionBridgeMap>,
     cli: State<'_, CliLocation>,
     session_id: String,
     project_path: String,
     model: String,
+    message: String,
+    is_follow_up: bool,
 ) -> Result<(), AppError> {
-    // If already has a bridge, skip
+    // Stop any existing bridge for this session (previous message's process)
     if bridge_map.has(&session_id).await {
-        return Ok(());
+        bridge_map.remove(&session_id).await?;
     }
 
     let cli_path = cli.binary_path()?.to_string();
+
+    let mut extra_args = vec![
+        "-p".to_string(),
+        message,
+    ];
+
+    // Continue the conversation for follow-up messages
+    if is_follow_up {
+        extra_args.push("--continue".to_string());
+    }
 
     let config = BridgeConfig {
         cli_path,
         model: Some(model),
         output_format: "stream-json".to_string(),
         working_dir: Some(project_path),
-        extra_args: vec!["--verbose".to_string()],
+        extra_args,
         ..BridgeConfig::default()
     };
 
@@ -45,21 +62,6 @@ pub async fn start_session_cli(
     }
 
     Ok(())
-}
-
-/// Send a message to the CLI process for a session.
-#[tauri::command(rename_all = "snake_case")]
-pub async fn send_to_cli(
-    bridge_map: State<'_, SessionBridgeMap>,
-    session_id: String,
-    message: String,
-) -> Result<(), AppError> {
-    let bridge = bridge_map
-        .get(&session_id)
-        .await
-        .ok_or_else(|| AppError::Bridge(format!("No CLI process for session {}", session_id)))?;
-
-    bridge.send(&format!("{}\n", message)).await
 }
 
 /// Stop the CLI process for a session.

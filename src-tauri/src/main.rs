@@ -59,7 +59,6 @@ fn main() {
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
             chief_wiggum_lib::commands::project::list_projects,
-            chief_wiggum_lib::commands::bridge::start_session_cli,
             chief_wiggum_lib::commands::bridge::send_to_cli,
             chief_wiggum_lib::commands::bridge::stop_session_cli,
             chief_wiggum_lib::commands::bridge::get_cli_status,

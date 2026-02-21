@@ -201,25 +201,26 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     );
   }
 
-  // Ensure CLI is started for this session
+  // Spawn CLI process with `-p "prompt"` for each message.
+  // Follow-up messages use `--continue` to resume the conversation.
   const project = getActiveProject();
   const projectPath = project?.path ?? '.';
   const model = session?.model ?? 'claude-sonnet-4-6';
+  // Only mark as follow-up if there are prior assistant messages (successful responses).
+  // Failed CLI attempts leave user-only messages which shouldn't trigger --continue.
+  const isFollowUp = state.messages.some((m) => m.role === 'assistant');
 
   try {
-    await invoke('start_session_cli', {
+    // Set up event listeners before spawning CLI
+    await setupEventListeners(sessionId);
+
+    // Spawn CLI process with the message as -p argument
+    await invoke('send_to_cli', {
       session_id: sessionId,
       project_path: projectPath,
       model,
-    });
-
-    // Set up event listeners if not already
-    await setupEventListeners(sessionId);
-
-    // Send the message to the CLI
-    await invoke('send_to_cli', {
-      session_id: sessionId,
       message: content,
+      is_follow_up: isFollowUp,
     });
   } catch (err) {
     setState('isLoading', false);
