@@ -1,24 +1,34 @@
 // src/components/layout/TitleBar.tsx
 // Custom title bar (40px) per SPEC-003 §2 Z1.
-// Left: hamburger (sidebar toggle) + app name.
-// Right: window controls (minimize, maximize, close).
-// Center spacer: data-tauri-drag-region for window dragging.
+// macOS: native traffic lights via titleBarStyle overlay (70px spacer).
+// Windows/Linux: minimize, maximize, close buttons on the right.
 
 import type { Component } from 'solid-js';
-import { Show } from 'solid-js';
+import { Show, createSignal, onMount } from 'solid-js';
 import { Menu, Minus, Maximize2, X, Zap } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { platform } from '@tauri-apps/plugin-os';
 import { toggleSidebar, uiState, toggleYoloMode } from '@/stores/uiStore';
 import ModelSelector from '@/components/common/ModelSelector';
 
 const TitleBar: Component = () => {
   const appWindow = getCurrentWindow();
+  const [isMac, setIsMac] = createSignal(false);
+
+  onMount(() => {
+    setIsMac(platform() === 'macos');
+  });
 
   return (
     <header
       class="flex items-center bg-bg-secondary border-b border-border-primary select-none"
       style={{ height: 'var(--title-bar-height)' }}
     >
+      {/* macOS: spacer for native traffic lights (rendered by OS via titleBarStyle overlay) */}
+      <Show when={isMac()}>
+        <div class="w-[70px] shrink-0" />
+      </Show>
+
       {/* Left: sidebar toggle + app name */}
       <div class="flex items-center gap-2 px-3">
         <button
@@ -42,7 +52,7 @@ const TitleBar: Component = () => {
         <ModelSelector />
       </div>
 
-      {/* Right: window controls */}
+      {/* Right: YOLO toggle + window controls */}
       <div class="flex items-center">
         <button
           class={`flex items-center justify-center w-12 h-full transition-colors ${
@@ -59,30 +69,34 @@ const TitleBar: Component = () => {
         >
           <Zap size={14} />
         </button>
-        <button
-          class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={() => appWindow.minimize()}
-          aria-label="Minimize"
-        >
-          <Minus size={14} />
-        </button>
-        <button
-          class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={() => appWindow.toggleMaximize()}
-          aria-label="Maximize"
-        >
-          <Maximize2 size={14} />
-        </button>
-        <button
-          class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-error-muted transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={() => appWindow.close()}
-          aria-label="Close"
-        >
-          <X size={14} />
-        </button>
+
+        {/* Windows/Linux: right-side window controls (macOS uses native traffic lights) */}
+        <Show when={!isMac()}>
+          <button
+            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={() => appWindow.minimize()}
+            aria-label="Minimize"
+          >
+            <Minus size={14} />
+          </button>
+          <button
+            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={() => appWindow.toggleMaximize()}
+            aria-label="Maximize"
+          >
+            <Maximize2 size={14} />
+          </button>
+          <button
+            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-error-muted transition-colors"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={() => appWindow.close()}
+            aria-label="Close"
+          >
+            <X size={14} />
+          </button>
+        </Show>
       </div>
     </header>
   );
