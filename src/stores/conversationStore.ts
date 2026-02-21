@@ -25,7 +25,6 @@ const [state, setState] = createStore<ConversationState>({
   error: null,
 });
 
-
 /** Active event listener cleanup functions. */
 let unlistenChunk: UnlistenFn | null = null;
 let unlistenComplete: UnlistenFn | null = null;
