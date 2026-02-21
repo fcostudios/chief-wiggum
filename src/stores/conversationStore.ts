@@ -67,6 +67,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     output_tokens: number | null;
     thinking_tokens: number | null;
     cost_cents: number | null;
+  // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
   }>('message:complete', (event) => {
     if (event.payload.session_id !== sessionId) return;
 
