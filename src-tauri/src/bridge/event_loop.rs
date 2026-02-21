@@ -83,6 +83,11 @@ pub fn spawn_event_loop(
 fn emit_bridge_output(app: &AppHandle, session_id: &str, output: BridgeOutput) {
     match output {
         BridgeOutput::Chunk(chunk) => {
+            tracing::info!(
+                "Event loop [{}]: emitting message:chunk ({} bytes)",
+                session_id,
+                chunk.content.len()
+            );
             let payload = ChunkPayload {
                 session_id: session_id.to_string(),
                 content: chunk.content,
@@ -103,6 +108,13 @@ fn emit_bridge_output(app: &AppHandle, session_id: &str, output: BridgeOutput) {
                 thinking_tokens,
                 cost_cents,
             } => {
+                tracing::info!(
+                    "Event loop [{}]: emitting message:complete (role: {}, content len: {}, model: {:?})",
+                    session_id,
+                    role,
+                    content.len(),
+                    model
+                );
                 let payload = MessageCompletePayload {
                     session_id: session_id.to_string(),
                     role,
@@ -122,6 +134,12 @@ fn emit_bridge_output(app: &AppHandle, session_id: &str, output: BridgeOutput) {
             }
         },
         BridgeOutput::PermissionRequired(req) => {
+            tracing::info!(
+                "Event loop [{}]: emitting permission:request (tool: {}, command: {})",
+                session_id,
+                req.tool,
+                req.command
+            );
             let payload = PermissionRequestPayload {
                 session_id: session_id.to_string(),
                 request_id: req.request_id,
@@ -135,6 +153,11 @@ fn emit_bridge_output(app: &AppHandle, session_id: &str, output: BridgeOutput) {
             }
         }
         BridgeOutput::ProcessExited { exit_code } => {
+            tracing::info!(
+                "Event loop [{}]: emitting cli:exited (exit_code: {:?})",
+                session_id,
+                exit_code
+            );
             let payload = CliExitedPayload {
                 session_id: session_id.to_string(),
                 exit_code,

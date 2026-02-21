@@ -266,31 +266,53 @@ impl CliBridge {
                     // Enforce memory limit per SPEC-004 §9.2
                     if total_bytes > MAX_OUTPUT_BUFFER_BYTES {
                         tracing::warn!(
-                            "PTY reader: output buffer exceeded {}MB limit, flushing older data",
+                            "CLI reader: output buffer exceeded {}MB limit, flushing older data",
                             MAX_OUTPUT_BUFFER_BYTES / (1024 * 1024)
                         );
-                        // In production, this would write to SQLite and evict.
-                        // For now, just reset the counter.
                         total_bytes = n;
                     }
 
                     let chunk = &buffer[..n];
                     let raw_text = String::from_utf8_lossy(chunk);
 
+                    // Log raw data for debugging
+                    tracing::debug!(
+                        "CLI reader: received {} bytes (total: {})",
+                        n,
+                        total_bytes
+                    );
+                    // Log first 500 chars of each chunk for visibility
+                    let preview: String = raw_text.chars().take(500).collect();
+                    tracing::info!("CLI stdout: {}", preview);
+
                     // Parse the chunk into events
                     let events = parser.feed(&raw_text);
 
+                    if events.is_empty() {
+                        tracing::debug!("CLI reader: no events parsed from chunk");
+                    }
+
                     for event in events {
                         let output = match event {
-                            super::parser::ParsedOutput::Chunk(chunk) => BridgeOutput::Chunk(chunk),
-                            super::parser::ParsedOutput::Event(event) => BridgeOutput::Event(event),
-                            super::parser::ParsedOutput::PermissionRequest(req) => {
-                                BridgeOutput::PermissionRequired(req)
+                            super::parser::ParsedOutput::Chunk(ref chunk) => {
+                                tracing::info!(
+                                    "CLI parsed: Chunk (content len: {})",
+                                    chunk.content.len()
+                                );
+                                BridgeOutput::Chunk(chunk.clone())
+                            }
+                            super::parser::ParsedOutput::Event(ref evt) => {
+                                tracing::info!("CLI parsed: Event {:?}", evt);
+                                BridgeOutput::Event(evt.clone())
+                            }
+                            super::parser::ParsedOutput::PermissionRequest(ref req) => {
+                                tracing::info!("CLI parsed: PermissionRequest {:?}", req);
+                                BridgeOutput::PermissionRequired(req.clone())
                             }
                         };
 
                         if output_tx.blocking_send(output).is_err() {
-                            tracing::debug!("PTY reader: output channel closed");
+                            tracing::debug!("CLI reader: output channel closed");
                             return;
                         }
                     }
@@ -337,18 +359,23 @@ impl CliBridge {
             match input_rx.blocking_recv() {
                 Some(input) => {
                     if *shutdown_rx.borrow() {
-                        tracing::debug!("PTY writer: shutdown signal received");
+                        tracing::debug!("CLI writer: shutdown signal received");
                         break;
                     }
 
+                    tracing::info!(
+                        "CLI writer: sending {} bytes to stdin",
+                        input.len()
+                    );
                     if let Err(e) = writer.write_all(input.as_bytes()) {
-                        tracing::error!("PTY writer error: {}", e);
+                        tracing::error!("CLI writer error: {}", e);
                         break;
                     }
                     if let Err(e) = writer.flush() {
-                        tracing::error!("PTY writer flush error: {}", e);
+                        tracing::error!("CLI writer flush error: {}", e);
                         break;
                     }
+                    tracing::info!("CLI writer: flushed successfully");
                 }
                 None => {
                     tracing::debug!("PTY writer: input channel closed");
