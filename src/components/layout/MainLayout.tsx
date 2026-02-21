@@ -15,8 +15,10 @@ import TitleBar from './TitleBar';
 import Sidebar from './Sidebar';
 import StatusBar from './StatusBar';
 import DetailsPanel from './DetailsPanel';
+import ConversationView from '@/components/conversation/ConversationView';
 import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
+import { sendMessage } from '@/stores/conversationStore';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -59,25 +61,32 @@ const MainLayout: Component = () => {
           </div>
 
           {/* View content area */}
-          <div class="flex-1 overflow-auto">
-            <div class="flex items-center justify-center h-full">
-              <p class="text-text-tertiary text-sm">
-                {uiState.activeView === 'conversation'
-                  ? 'Conversation view (CHI-18)'
-                  : uiState.activeView === 'agents'
-                    ? 'Agent dashboard (future)'
-                    : uiState.activeView === 'diff'
-                      ? 'Diff review (future)'
-                      : 'Terminal (CHI-21)'}
-              </p>
-            </div>
+          <div class="flex-1 flex flex-col overflow-hidden">
+            <Show when={uiState.activeView === 'conversation'}>
+              <ConversationView />
+            </Show>
+            <Show when={uiState.activeView === 'agents'}>
+              <div class="flex items-center justify-center h-full">
+                <p class="text-text-tertiary text-sm">Agent dashboard (future)</p>
+              </div>
+            </Show>
+            <Show when={uiState.activeView === 'diff'}>
+              <div class="flex items-center justify-center h-full">
+                <p class="text-text-tertiary text-sm">Diff review (future)</p>
+              </div>
+            </Show>
+            <Show when={uiState.activeView === 'terminal'}>
+              <div class="flex items-center justify-center h-full">
+                <p class="text-text-tertiary text-sm">Terminal (CHI-21)</p>
+              </div>
+            </Show>
           </div>
 
           {/* Message input — only visible in conversation view */}
           <Show when={uiState.activeView === 'conversation'}>
             <MessageInput
-              onSend={() => {
-                /* TODO: wire to IPC send_message command */
+              onSend={(text) => {
+                sendMessage(text);
               }}
               isLoading={false}
               isDisabled={false}

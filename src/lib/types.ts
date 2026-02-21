@@ -35,3 +35,18 @@ export interface PermissionResponse {
   action: PermissionAction;
   pattern: string | null;
 }
+
+/** Message per SPEC-004 §6 */
+export interface Message {
+  id: string;
+  session_id: string;
+  role: MessageRole;
+  content: string;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  thinking_tokens: number | null;
+  cost_cents: number | null;
+  is_compacted: boolean;
+  created_at: string;
+}

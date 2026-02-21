@@ -127,6 +127,140 @@
 }
 
 /* ============================================================
+ * Markdown content rendered via innerHTML (SPEC-002 §4)
+ * Cannot use Tailwind classes — content is HTML from marked.
+ * ============================================================ */
+
+.markdown-content {
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
+  color: var(--color-text-primary);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.markdown-content h1 {
+  font-size: var(--text-2xl);
+  line-height: var(--text-2xl--line-height);
+}
+
+.markdown-content h2 {
+  font-size: var(--text-xl);
+  line-height: var(--text-xl--line-height);
+}
+
+.markdown-content h3 {
+  font-size: var(--text-lg);
+  line-height: var(--text-lg--line-height);
+}
+
+.markdown-content p {
+  margin-bottom: 8px;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 8px;
+  padding-left: 20px;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-content li {
+  margin-bottom: 4px;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid var(--color-border-primary);
+  padding-left: 12px;
+  margin-bottom: 8px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.markdown-content a {
+  color: var(--color-text-link);
+  text-decoration: underline;
+}
+
+.markdown-content code {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background-color: var(--color-bg-inset);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.markdown-content pre {
+  position: relative;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-secondary);
+  overflow: hidden;
+}
+
+.markdown-content pre code {
+  display: block;
+  padding: 12px;
+  overflow-x: auto;
+  background-color: var(--color-bg-inset);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.markdown-content pre .copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  color: var(--color-text-tertiary);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+
+.markdown-content pre:hover .copy-btn {
+  opacity: 1;
+}
+
+.markdown-content pre .copy-btn:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+}
+
+.markdown-content strong {
+  font-weight: 600;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border-secondary);
+  margin: 12px 0;
+}
+
+/* ============================================================
  * SPEC-002 §12: Accessibility — reduced motion
  * ============================================================ */
 
