@@ -13,10 +13,11 @@
 
 ## Current Phase
 
-**Phase 1: Foundation** (Weeks 1–4)
-- Linear project: https://linear.app/chief-wiggum/project/phase-1-foundation-ba6f471a516b
+**Phase 2: Make It Real**
+- Linear project: https://linear.app/chief-wiggum/project/phase-2-make-it-real-951a81a3c66b
 - Team identifier: CHI
 - Workspace: https://linear.app/chief-wiggum
+- Previous: Phase 1 Foundation — COMPLETE (https://linear.app/chief-wiggum/project/phase-1-foundation-ba6f471a516b)
 
 ---
 
@@ -40,6 +41,13 @@
 | CHI-22: Session Persistence | **Done** | IPC commands module, session CRUD, sidebar navigation, conversationStore rewrite |
 | CHI-20: Model Selector | **Done** | ModelSelector dropdown, Cmd+M cycling, TitleBar integration |
 | CHI-24: Cross-Platform Packaging | **Done** | Bundle metadata, release workflow (.dmg, .msi, .AppImage) |
+| CHI-48: CLI Detection | **Done** | `commands/cli.rs`, `cliStore.ts`, StatusBar status, ConversationView guidance |
+| CHI-40: Project & Folder Management | **Done** | `tauri-plugin-dialog`, `commands/project.rs`, `projectStore.ts`, Sidebar folder picker |
+| CHI-44: SessionBridgeMap | **Done** | `bridge/manager.rs` — session→process manager, 7 unit tests (71 total) |
+| CHI-45: IPC Commands for CLI | **Done** | `commands/bridge.rs` — start_session_cli, send_to_cli, stop_session_cli, get_cli_status |
+| CHI-46: Streaming Event Loop | **Done** | `bridge/event_loop.rs` — BridgeOutput → Tauri events (chunk, complete, exited, permission) |
+| CHI-47: Replace Mock with Real CLI | **Done** | `conversationStore.ts` rewrite — real IPC + event listeners, mock removed |
+| CHI-49: Streaming Message Rendering | **Done** | ConversationView streaming bubble, blinking cursor, error display, auto-scroll |
 
 ## Phase 1 Status
 
@@ -48,7 +56,139 @@
 - **CHI-6: CLI Bridge** — 4/4 tasks
 - **CHI-7: Basic UI** — 9/9 tasks
 
-See `docs/tasks/TASKS-001-phase1-foundation.md` for full task list.
+---
+
+## Phase 2: Make It Real
+
+**Goal:** Wire the existing CliBridge, StreamParser, and PermissionManager to the frontend. Replace the mock conversation flow with real Claude Code CLI interaction. Add project/folder management.
+
+**The Gap:** `CliBridge`, `StreamParser`, `PermissionManager` exist as standalone Rust modules but nothing connects them to IPC commands or the frontend. `conversationStore.ts` lines 73-106 use `setTimeout` + a canned response. Phase 2 closes every gap.
+
+**Critical Path:** CHI-40 → CHI-44 → CHI-45 → CHI-46 → CHI-47 = minimum to "it actually works"
+
+### Epic CHI-35: Project & Folder Management (P0) — Partial
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-40 | P0 | **Done** | Folder picker + project creation via native dialog |
+| CHI-41 | P1 | Todo | Project sidebar section with recent projects |
+| CHI-42 | P2 | Todo | Detect and display CLAUDE.md from project folder |
+| CHI-43 | P1 | Todo | Bind sessions to projects with inherited settings |
+
+### Epic CHI-36: CLI Connection & Streaming (P0) — DONE
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-44 | P0 | **Done** | SessionBridgeMap — session→process manager |
+| CHI-45 | P0 | **Done** | IPC commands for CLI (start_cli, send_to_cli, stop_cli, cli_status) |
+| CHI-46 | P0 | **Done** | Streaming event loop (bridge output → Tauri events) |
+| CHI-47 | P0 | **Done** | Replace mock sendMessage with real CLI streaming |
+| CHI-48 | P1 | **Done** | Detect Claude Code CLI on startup with error UI |
+| CHI-49 | P1 | **Done** | Streaming message rendering (incremental chunks) |
+
+### Epic CHI-37: Permission Flow Live (P1)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-50 | P0 | Wire permission IPC commands |
+| CHI-51 | P0 | Build full permission event pipeline |
+| CHI-52 | P1 | Wire YOLO mode frontend toggle to backend IPC |
+
+### Epic CHI-38: Live Cost Tracking (P2)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-53 | P1 | Cost accumulator service with SQLite persistence |
+| CHI-54 | P1 | Bind StatusBar + DetailsPanel to live cost events |
+| CHI-55 | P2 | Per-message token/cost display in MessageBubble |
+
+### Epic CHI-39: Session Lifecycle Management (P1)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-56 | P0 | Process lifecycle state machine |
+| CHI-57 | P0 | Handle session switching (suspend/resume) |
+| CHI-58 | P1 | Graceful shutdown on session delete/close |
+| CHI-59 | P1 | Crash recovery with error UI |
+| CHI-60 | P0 | Shutdown all CLI processes on app quit |
+
+**Start with CHI-40 + CHI-44 in parallel** — folder picker and session-process mapping are independent foundations.
+
+### Parallel: E2E Testing (Epic CHI-27)
+
+Playwright e2e tests covering all 13 UI components (~98 test cases). Can run alongside Phase 2.
+
+| Task | Priority | What to test |
+|------|----------|-------------|
+| CHI-28 | P0 | Playwright + Tauri WebDriver setup, smoke test |
+| CHI-29 | P0 | Layout shell (MainLayout, Sidebar, TitleBar, StatusBar, DetailsPanel) |
+| CHI-30 | P0 | Conversation (ConversationView, MessageInput, MessageBubble, MarkdownContent) |
+| CHI-31 | P1 | Permissions (PermissionDialog, YoloWarningDialog) |
+| CHI-32 | P1 | Terminal (TerminalPane) + Model selector (ModelSelector) |
+| CHI-33 | P1 | Integration tests (keyboard shortcuts, session flow) |
+| CHI-34 | P0 | CI integration + failure→issue pipeline (JSON reporter, screenshots) |
+
+### UX Polish Epics (Parallel with Phase 2)
+
+CX/UX investigation identified 6 improvement areas. These can be worked on alongside the core Phase 2 tasks.
+
+#### Epic CHI-61: Native Window Chrome & Platform Feel (High)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-67 | Urgent | Native window controls (macOS traffic lights + Windows buttons) |
+| CHI-68 | High | Titlebar redesign with platform-aware layout |
+| CHI-69 | Low | macOS vibrancy effects on sidebar and titlebar |
+| CHI-70 | Medium | Custom scrollbar styling for dark theme |
+
+#### Epic CHI-62: Delightful Interactions & Micro-animations (High)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-71 | Medium | Message enter/exit animations (slide + fade) |
+| CHI-72 | High | Premium typing indicator (animated dots, shimmer) |
+| CHI-73 | High | Smooth streaming text rendering (typewriter buffer) |
+| CHI-74 | Medium | Toast notification system |
+| CHI-75 | Medium | Copy feedback animations + hover micro-interactions |
+
+#### Epic CHI-63: Command Palette & Power User UX (Medium)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-76 | High | Command palette UI (Cmd+K, fuzzy search, categorized actions) |
+| CHI-77 | Medium | Session quick-switcher (Cmd+Shift+P) |
+| CHI-78 | Medium | Custom context menus (messages, sessions, code blocks) |
+| CHI-79 | Medium | Keyboard navigation audit + focus management |
+
+#### Epic CHI-64: Onboarding & Empty States (Medium)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-80 | High | Conversation empty state redesign (sample prompts, personality) |
+| CHI-81 | Low | First-launch onboarding flow (3-5 step walkthrough) |
+| CHI-82 | Medium | Placeholder views for Agents/Diff (informative, not broken) |
+| CHI-83 | Medium | "No project selected" guidance state |
+
+#### Epic CHI-65: Sidebar & Navigation Polish (Medium)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-84 | High | Sidebar collapsed icon-rail mode (48px with tooltips) |
+| CHI-85 | Medium | Session sections (Pinned, Recent, Older) |
+| CHI-86 | Medium | Session rename inline + session actions menu |
+| CHI-87 | Medium | View tabs with icons + count badges |
+| CHI-88 | Low | Sidebar search/filter |
+
+#### Epic CHI-66: Tool Use Visualization & Inline Activity (High)
+
+| Task | Priority | Description |
+|------|----------|-------------|
+| CHI-89 | High | ToolUseBlock component (collapsible, color-coded) |
+| CHI-90 | Medium | ThinkingBlock component (muted reasoning display) |
+| CHI-91 | Medium | Permission inline record (approved/denied after dialog) |
+| CHI-92 | Low | File diff preview within conversation |
+
+**Quick wins to start immediately:** CHI-67 (native controls), CHI-70 (scrollbars), CHI-80 (empty state)
 
 ---
 
@@ -108,13 +248,18 @@ src-tauri/
     │   ├── process.rs          # CliBridge, MockBridge, BridgeInterface
     │   ├── parser.rs           # StreamParser, BridgeEvent, MessageChunk
     │   ├── adapter.rs          # AdapterRegistry, CliVersion
-    │   └── permission.rs       # PermissionManager, PermissionRequest
+    │   ├── permission.rs       # PermissionManager, PermissionRequest
+    │   ├── manager.rs          # SessionBridgeMap — session→process manager (CHI-44)
+    │   └── event_loop.rs       # Streaming event loop — bridge→Tauri events (CHI-46)
     ├── capabilities/
     │   └── default.json        # Tauri v2 permissions (core, shell)
     ├── icons/                  # App icons (.icns, .ico, .png)
-    ├── commands/               # Tauri IPC command handlers (DONE — CHI-22)
+    ├── commands/               # Tauri IPC command handlers
     │   ├── mod.rs              # Module root
-    │   └── session.rs          # 8 session/message IPC commands
+    │   ├── session.rs          # 8 session/message IPC commands (CHI-22)
+    │   ├── cli.rs              # get_cli_info IPC command (CHI-48)
+    │   ├── project.rs          # pick_project_folder, create_project, list_projects (CHI-40)
+    │   └── bridge.rs           # start_session_cli, send_to_cli, stop/status (CHI-45)
     ├── db/                     # SQLite database layer (DONE)
     │   ├── mod.rs              # Module root, re-exports Database
     │   ├── connection.rs       # Database struct, Mutex<Connection>, WAL mode
@@ -157,7 +302,9 @@ src/                            # SolidJS frontend
 ├── stores/
 │   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo)
 │   ├── sessionStore.ts         # Session state (CRUD, model cycling, active session)
-│   └── conversationStore.ts    # Conversation state (messages, loading, send, persistence)
+│   ├── conversationStore.ts    # Conversation state (real CLI streaming, event listeners)
+│   ├── cliStore.ts             # CLI detection state (isDetected, location) (CHI-48)
+│   └── projectStore.ts         # Project state (folder picker, active project) (CHI-40)
 ├── lib/
 │   ├── types.ts                # TypeScript IPC types (Message, PermissionRequest, etc.)
 │   └── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+`, Cmd+Shift+Y)
