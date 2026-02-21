@@ -5,9 +5,10 @@
 // Center spacer: data-tauri-drag-region for window dragging.
 
 import type { Component } from 'solid-js';
-import { Menu, Minus, Maximize2, X } from 'lucide-solid';
+import { Show } from 'solid-js';
+import { Menu, Minus, Maximize2, X, Zap } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { toggleSidebar } from '@/stores/uiStore';
+import { toggleSidebar, uiState, toggleYoloMode } from '@/stores/uiStore';
 
 const TitleBar: Component = () => {
   const appWindow = getCurrentWindow();
@@ -28,6 +29,11 @@ const TitleBar: Component = () => {
           <Menu size={16} />
         </button>
         <span class="text-md font-semibold text-text-primary">Chief Wiggum</span>
+        <Show when={uiState.yoloMode}>
+          <span class="px-2 py-0.5 rounded text-xs font-medium bg-warning-muted text-warning animate-pulse">
+            YOLO
+          </span>
+        </Show>
       </div>
 
       {/* Center: drag region */}
@@ -35,6 +41,21 @@ const TitleBar: Component = () => {
 
       {/* Right: window controls */}
       <div class="flex items-center">
+        <button
+          class={`flex items-center justify-center w-12 h-full transition-colors ${
+            uiState.yoloMode
+              ? 'text-warning bg-warning-muted'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
+          }`}
+          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          onClick={toggleYoloMode}
+          aria-label={uiState.yoloMode ? 'Disable YOLO Mode' : 'Enable YOLO Mode'}
+          title={
+            uiState.yoloMode ? 'YOLO Mode active (Cmd+Shift+Y)' : 'Enable YOLO Mode (Cmd+Shift+Y)'
+          }
+        >
+          <Zap size={14} />
+        </button>
         <button
           class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
           style={{ 'transition-duration': 'var(--duration-fast)' }}

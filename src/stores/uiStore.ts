@@ -12,6 +12,8 @@ interface UIState {
   detailsPanelVisible: boolean;
   activeView: ActiveView;
   permissionRequest: PermissionRequest | null;
+  yoloMode: boolean;
+  yoloDialogVisible: boolean;
 }
 
 const [state, setState] = createStore<UIState>({
@@ -19,6 +21,8 @@ const [state, setState] = createStore<UIState>({
   detailsPanelVisible: true,
   activeView: 'conversation',
   permissionRequest: null,
+  yoloMode: false,
+  yoloDialogVisible: false,
 });
 
 export function toggleSidebar() {
@@ -39,6 +43,38 @@ export function showPermissionDialog(request: PermissionRequest) {
 
 export function dismissPermissionDialog() {
   setState('permissionRequest', null);
+}
+
+/** Show the YOLO mode warning dialog. */
+export function showYoloDialog() {
+  setState('yoloDialogVisible', true);
+}
+
+/** Dismiss the YOLO warning dialog without enabling. */
+export function dismissYoloDialog() {
+  setState('yoloDialogVisible', false);
+}
+
+/** Enable YOLO mode (called after user confirms warning). */
+export function enableYoloMode() {
+  setState('yoloMode', true);
+  setState('yoloDialogVisible', false);
+  // TODO: invoke('toggle_yolo_mode', { enable: true }) when IPC is connected
+}
+
+/** Disable YOLO mode. */
+export function disableYoloMode() {
+  setState('yoloMode', false);
+  // TODO: invoke('toggle_yolo_mode', { enable: false }) when IPC is connected
+}
+
+/** Toggle YOLO mode — shows warning dialog if enabling, disables immediately if on. */
+export function toggleYoloMode() {
+  if (state.yoloMode) {
+    disableYoloMode();
+  } else {
+    showYoloDialog();
+  }
 }
 
 export { state as uiState };

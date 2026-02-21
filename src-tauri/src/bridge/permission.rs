@@ -1,7 +1,11 @@
 //! Permission request interception and management.
 //!
 //! Implements CHI-16: permission request interception from CLI.
-//! Security-critical: must NEVER auto-approve. Must block CLI until user responds.
+//! Also implements CHI-26: YOLO Mode (auto-approve all permissions).
+//!
+//! Security-critical: default mode must block CLI until user responds.
+//! YOLO Mode (opt-in): bypasses all dialogs, auto-approves everything.
+//! See SPEC-001 §7.1 for YOLO Mode design and safety rails.
 //!
 //! Architecture: SPEC-004 §2 (bridge/permission.rs), §5.2 (Permission Flow)
 //! Types: SPEC-004 §6 (PermissionRequest interface)
@@ -90,6 +94,9 @@ pub struct PermissionManager {
 
     /// Timeout for permission requests.
     timeout: Duration,
+
+    /// YOLO mode flag: when true, all requests are auto-approved (SPEC-001 §7.1).
+    yolo_mode: Arc<RwLock<bool>>,
 }
 
 /// A pending permission request with its resolution channel.
@@ -107,6 +114,7 @@ impl PermissionManager {
             pending: Arc::new(RwLock::new(HashMap::new())),
             allow_rules: Arc::new(RwLock::new(Vec::new())),
             timeout: Duration::from_secs(DEFAULT_PERMISSION_TIMEOUT_SECS),
+            yolo_mode: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -116,7 +124,26 @@ impl PermissionManager {
             pending: Arc::new(RwLock::new(HashMap::new())),
             allow_rules: Arc::new(RwLock::new(Vec::new())),
             timeout: Duration::from_secs(timeout_secs),
+            yolo_mode: Arc::new(RwLock::new(false)),
         }
+    }
+
+    /// Check if YOLO mode is active.
+    pub async fn is_yolo_mode(&self) -> bool {
+        *self.yolo_mode.read().await
+    }
+
+    /// Enable YOLO mode — auto-approve all permission requests.
+    /// WARNING: This bypasses all permission dialogs. See SPEC-001 §7.1.
+    pub async fn enable_yolo_mode(&self) {
+        *self.yolo_mode.write().await = true;
+        tracing::warn!("[YOLO] YOLO mode enabled — all permissions will be auto-approved");
+    }
+
+    /// Disable YOLO mode — return to normal permission flow.
+    pub async fn disable_yolo_mode(&self) {
+        *self.yolo_mode.write().await = false;
+        tracing::info!("[YOLO] YOLO mode disabled — returning to normal permission flow");
     }
 
     /// Check if a permission request is auto-allowed by existing rules.
@@ -150,6 +177,16 @@ impl PermissionManager {
         &self,
         request: PermissionRequest,
     ) -> AppResult<PermissionAction> {
+        // YOLO mode: auto-approve immediately without queuing
+        if self.is_yolo_mode().await {
+            tracing::info!(
+                "[YOLO] Auto-approved: tool={}, command={}",
+                request.tool,
+                request.command
+            );
+            return Ok(PermissionAction::Approve);
+        }
+
         // First check auto-allow rules
         if self.is_auto_allowed(&request).await {
             return Ok(PermissionAction::Approve);
@@ -581,5 +618,50 @@ mod tests {
     fn permission_action_serializes() {
         let json = serde_json::to_string(&PermissionAction::AlwaysAllow).unwrap();
         assert_eq!(json, "\"AlwaysAllow\"");
+    }
+
+    // --- YOLO mode tests ---
+
+    #[tokio::test]
+    async fn yolo_mode_default_off() {
+        let manager = PermissionManager::new();
+        assert!(!manager.is_yolo_mode().await);
+    }
+
+    #[tokio::test]
+    async fn yolo_mode_enable_disable() {
+        let manager = PermissionManager::new();
+        assert!(!manager.is_yolo_mode().await);
+
+        manager.enable_yolo_mode().await;
+        assert!(manager.is_yolo_mode().await);
+
+        manager.disable_yolo_mode().await;
+        assert!(!manager.is_yolo_mode().await);
+    }
+
+    #[tokio::test]
+    async fn yolo_mode_auto_approves_everything() {
+        let manager = PermissionManager::new();
+        manager.enable_yolo_mode().await;
+
+        // Even "dangerous" commands are auto-approved in YOLO mode
+        let req = make_request("Bash", "rm -rf /");
+        let result = manager.request_permission(req).await.unwrap();
+        assert_eq!(result, PermissionAction::Approve);
+
+        // Nothing is pending — request never queued
+        assert_eq!(manager.pending_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn yolo_mode_does_not_affect_rules() {
+        let manager = PermissionManager::new();
+        manager.enable_yolo_mode().await;
+
+        // YOLO auto-approves but does NOT create allow rules
+        let req = make_request("Bash", "ls");
+        let _ = manager.request_permission(req).await.unwrap();
+        assert!(manager.rules().await.is_empty());
     }
 }

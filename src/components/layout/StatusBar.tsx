@@ -3,6 +3,8 @@
 // Left: agent/model status. Center: token usage. Right: cost pill.
 
 import type { Component } from 'solid-js';
+import { Show } from 'solid-js';
+import { uiState } from '@/stores/uiStore';
 
 const StatusBar: Component = () => {
   return (
@@ -12,7 +14,9 @@ const StatusBar: Component = () => {
       role="status"
     >
       {/* Left: status */}
-      <span>Ready</span>
+      <Show when={uiState.yoloMode} fallback={<span>Ready</span>}>
+        <span class="text-warning font-semibold">YOLO MODE</span>
+      </Show>
 
       {/* Center: token usage */}
       <span class="text-text-tertiary">&ndash; / &ndash;</span>
