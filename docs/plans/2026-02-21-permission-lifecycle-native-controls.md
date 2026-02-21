@@ -55,7 +55,7 @@ Re-export PermissionManager from `bridge/mod.rs` if not already:
 pub use permission::PermissionManager;
 ```
 
-**Step 2: Add `resolve_permission` IPC command**
+**Step 2: Add `respond_permission` IPC command**
 
 In `src-tauri/src/commands/bridge.rs`, add:
 
@@ -64,7 +64,7 @@ use crate::bridge::permission::{PermissionManager, PermissionResponse, Permissio
 
 /// Resolve a pending permission request with the user's action.
 #[tauri::command]
-pub async fn resolve_permission(
+pub async fn respond_permission(
     permission_manager: State<'_, PermissionManager>,
     request_id: String,
     action: String,
@@ -83,7 +83,7 @@ pub async fn resolve_permission(
         pattern,
     };
 
-    permission_manager.resolve_permission(response).await
+    permission_manager.respond_permission(response).await
 }
 ```
 
@@ -121,7 +121,7 @@ Validation(String),
 In `src-tauri/src/main.rs`, add to the `invoke_handler`:
 
 ```rust
-chief_wiggum_lib::commands::bridge::resolve_permission,
+chief_wiggum_lib::commands::bridge::respond_permission,
 chief_wiggum_lib::commands::bridge::toggle_yolo_mode,
 ```
 
@@ -137,7 +137,7 @@ Expected: No warnings.
 
 ```bash
 git add src-tauri/src/commands/bridge.rs src-tauri/src/bridge/mod.rs src-tauri/src/main.rs src-tauri/src/lib.rs
-git commit -m "CHI-50: wire permission IPC commands (resolve_permission, toggle_yolo_mode)"
+git commit -m "CHI-50: wire permission IPC commands (respond_permission, toggle_yolo_mode)"
 ```
 
 ---
@@ -149,7 +149,7 @@ git commit -m "CHI-50: wire permission IPC commands (resolve_permission, toggle_
 - Modify: `src/components/layout/MainLayout.tsx`
 - Modify: `src/stores/uiStore.ts`
 
-**Depends on:** Task 1 (needs `resolve_permission` command to exist)
+**Depends on:** Task 1 (needs `respond_permission` command to exist)
 
 **Step 1: Add `permission:request` listener in conversationStore.ts**
 
@@ -211,7 +211,7 @@ import { invoke } from '@tauri-apps/api/core';
     const req = request();
     dismissPermissionDialog();
     try {
-      await invoke('resolve_permission', {
+      await invoke('respond_permission', {
         request_id: req.request_id,
         action,
         pattern: null,
@@ -338,8 +338,8 @@ Verify the data flow is complete:
 2. Frontend `conversationStore.ts` receives event, calls `showPermissionDialog(req)`
 3. `uiStore.ts` sets `permissionRequest` state
 4. `MainLayout.tsx` renders `<PermissionDialog>` via `<Show when={uiState.permissionRequest}>`
-5. User clicks Approve/Deny/AlwaysAllow → `onRespond` calls `invoke('resolve_permission', ...)`
-6. Backend `commands/bridge.rs` calls `PermissionManager::resolve_permission()`
+5. User clicks Approve/Deny/AlwaysAllow → `onRespond` calls `invoke('respond_permission', ...)`
+6. Backend `commands/bridge.rs` calls `PermissionManager::respond_permission()`
 7. `PermissionManager` resolves the waiting oneshot channel → CLI proceeds
 
 ---
@@ -506,124 +506,15 @@ git commit -m "CHI-67: add tauri-plugin-os dependency for platform detection"
 
 **Files:**
 - Modify: `src/components/layout/TitleBar.tsx`
-- Modify: `src-tauri/tauri.conf.json` (optional — for macOS traffic light positioning)
+- Modify: `src-tauri/tauri.conf.json`
 
 **Depends on:** Task 7 (needs `@tauri-apps/plugin-os` installed)
 
-**Step 1: Add platform detection to TitleBar**
+**Step 1: Enable native traffic lights via Tauri config**
 
-Rewrite `TitleBar.tsx` to detect platform and conditionally render:
+Per SPEC-003 §10.1, macOS should show real native traffic lights via `titleBarStyle: "overlay"`. This is a Tauri v2 feature that overlays native window controls on the webview while keeping `decorations: false` behavior on Windows/Linux.
 
-```tsx
-// src/components/layout/TitleBar.tsx
-import type { Component } from 'solid-js';
-import { Show, createSignal, onMount } from 'solid-js';
-import { Menu, Minus, Maximize2, X, Zap } from 'lucide-solid';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-import { platform } from '@tauri-apps/plugin-os';
-import { toggleSidebar, uiState, toggleYoloMode } from '@/stores/uiStore';
-import ModelSelector from '@/components/common/ModelSelector';
-
-const TitleBar: Component = () => {
-  const appWindow = getCurrentWindow();
-  const [isMac, setIsMac] = createSignal(false);
-
-  onMount(() => {
-    const p = platform();
-    setIsMac(p === 'macos');
-  });
-
-  return (
-    <header
-      class="flex items-center bg-bg-secondary border-b border-border-primary select-none"
-      style={{ height: 'var(--title-bar-height)' }}
-    >
-      {/* macOS: spacer for native traffic lights (left side) */}
-      <Show when={isMac()}>
-        <div class="w-[70px] shrink-0" />
-      </Show>
-
-      {/* Left: sidebar toggle + app name */}
-      <div class="flex items-center gap-2 px-3">
-        <button
-          class="p-1 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={toggleSidebar}
-          aria-label="Toggle sidebar"
-        >
-          <Menu size={16} />
-        </button>
-        <span class="text-md font-semibold text-text-primary">Chief Wiggum</span>
-        <Show when={uiState.yoloMode}>
-          <span class="px-2 py-0.5 rounded text-xs font-medium bg-warning-muted text-warning animate-pulse">
-            YOLO
-          </span>
-        </Show>
-      </div>
-
-      {/* Center: model selector + drag region */}
-      <div class="flex-1 h-full flex items-center justify-center" data-tauri-drag-region>
-        <ModelSelector />
-      </div>
-
-      {/* Right: YOLO toggle + window controls (non-macOS only) */}
-      <div class="flex items-center">
-        <button
-          class={`flex items-center justify-center w-12 h-full transition-colors ${
-            uiState.yoloMode
-              ? 'text-warning bg-warning-muted'
-              : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated'
-          }`}
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={toggleYoloMode}
-          aria-label={uiState.yoloMode ? 'Disable YOLO Mode' : 'Enable YOLO Mode'}
-          title={
-            uiState.yoloMode ? 'YOLO Mode active (Cmd+Shift+Y)' : 'Enable YOLO Mode (Cmd+Shift+Y)'
-          }
-        >
-          <Zap size={14} />
-        </button>
-
-        {/* Window controls — only render on Windows/Linux (macOS uses native traffic lights) */}
-        <Show when={!isMac()}>
-          <button
-            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => appWindow.minimize()}
-            aria-label="Minimize"
-          >
-            <Minus size={14} />
-          </button>
-          <button
-            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => appWindow.toggleMaximize()}
-            aria-label="Maximize"
-          >
-            <Maximize2 size={14} />
-          </button>
-          <button
-            class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-error-muted transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => appWindow.close()}
-            aria-label="Close"
-          >
-            <X size={14} />
-          </button>
-        </Show>
-      </div>
-    </header>
-  );
-};
-
-export default TitleBar;
-```
-
-**Step 2: Enable native decorations on macOS only**
-
-This is the key insight: on macOS, we want `decorations: true` so the native traffic lights appear, but we still want our custom title bar content. Tauri v2 supports this via `titleBarStyle: "overlay"` which shows native controls overlaid on the webview.
-
-In `src-tauri/tauri.conf.json`, change the window config:
+In `src-tauri/tauri.conf.json`, update the window config:
 
 ```json
 "windows": [
@@ -644,46 +535,19 @@ In `src-tauri/tauri.conf.json`, change the window config:
 
 Key changes:
 - `decorations: true` — re-enables native window chrome
-- `titleBarStyle: "overlay"` — on macOS, shows traffic lights overlaid on webview content; on Windows/Linux, this is ignored and we still need custom buttons
-- `hiddenTitle: true` — hides the native title text (we have our own "Chief Wiggum")
+- `titleBarStyle: "overlay"` — on macOS, shows native traffic lights overlaid on webview; on Windows/Linux, the native title bar is hidden and we render custom buttons
+- `hiddenTitle: true` — hides the native title text (we render our own "Chief Wiggum")
 
-**Important:** With `titleBarStyle: "overlay"`, on macOS the traffic lights appear at the top-left corner of the webview. The 70px spacer in the TitleBar prevents our content from overlapping them. On Windows/Linux, `titleBarStyle` has no effect with `decorations: true` — the native title bar appears. But we want custom buttons there.
+**How this works per platform:**
+- **macOS:** Native traffic lights appear at top-left corner of the webview. We add a 70px spacer to avoid overlapping them. No custom close/min/max buttons needed.
+- **Windows/Linux:** `titleBarStyle: "overlay"` hides the native title bar, giving us a frameless window just like `decorations: false`. We keep our custom minimize/maximize/close buttons on the right.
 
-**Alternative approach (simpler, cross-platform consistent):** Keep `decorations: false` and detect platform to show different styled buttons. The macOS traffic lights would be CSS circles matching macOS styling.
-
-After evaluating: **Keep `decorations: false`** (current behavior). This gives us full control on all platforms. Instead of native traffic lights, render styled macOS-like circles on macOS:
-
-```tsx
-{/* macOS traffic light buttons */}
-<Show when={isMac()}>
-  <div class="flex items-center gap-2 pl-3 pr-1">
-    <button
-      class="w-3 h-3 rounded-full bg-[#ff5f57] hover:brightness-90 transition-all"
-      onClick={() => appWindow.close()}
-      aria-label="Close"
-    />
-    <button
-      class="w-3 h-3 rounded-full bg-[#febc2e] hover:brightness-90 transition-all"
-      onClick={() => appWindow.minimize()}
-      aria-label="Minimize"
-    />
-    <button
-      class="w-3 h-3 rounded-full bg-[#28c840] hover:brightness-90 transition-all"
-      onClick={() => appWindow.toggleMaximize()}
-      aria-label="Maximize"
-    />
-  </div>
-</Show>
-```
-
-These go at the very start of the header (before sidebar toggle), replacing the spacer div.
-
-**Full updated TitleBar.tsx:**
+**Step 2: Update TitleBar.tsx with platform detection**
 
 ```tsx
 // src/components/layout/TitleBar.tsx
 // Custom title bar (40px) per SPEC-003 §2 Z1.
-// macOS: traffic-light-style circles (close, minimize, maximize) on the left.
+// macOS: native traffic lights via titleBarStyle overlay (70px spacer).
 // Windows/Linux: minimize, maximize, close buttons on the right.
 // Center spacer: data-tauri-drag-region for window dragging.
 
@@ -708,28 +572,9 @@ const TitleBar: Component = () => {
       class="flex items-center bg-bg-secondary border-b border-border-primary select-none"
       style={{ height: 'var(--title-bar-height)' }}
     >
-      {/* macOS: traffic light circles (left side) */}
+      {/* macOS: spacer for native traffic lights (rendered by OS via titleBarStyle overlay) */}
       <Show when={isMac()}>
-        <div class="flex items-center gap-2 pl-3 pr-1">
-          <button
-            class="w-3 h-3 rounded-full bg-[#ff5f57] hover:brightness-90 transition-all"
-            onClick={() => appWindow.close()}
-            aria-label="Close"
-            title="Close"
-          />
-          <button
-            class="w-3 h-3 rounded-full bg-[#febc2e] hover:brightness-90 transition-all"
-            onClick={() => appWindow.minimize()}
-            aria-label="Minimize"
-            title="Minimize"
-          />
-          <button
-            class="w-3 h-3 rounded-full bg-[#28c840] hover:brightness-90 transition-all"
-            onClick={() => appWindow.toggleMaximize()}
-            aria-label="Maximize"
-            title="Maximize"
-          />
-        </div>
+        <div class="w-[70px] shrink-0" />
       </Show>
 
       {/* Left: sidebar toggle + app name */}
@@ -775,7 +620,7 @@ const TitleBar: Component = () => {
           <Zap size={14} />
         </button>
 
-        {/* Windows/Linux: right-side window controls */}
+        {/* Windows/Linux: right-side window controls (macOS uses native traffic lights) */}
         <Show when={!isMac()}>
           <button
             class="flex items-center justify-center w-12 h-full text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
@@ -823,8 +668,8 @@ Expected: All clean.
 **Step 4: Commit**
 
 ```bash
-git add src/components/layout/TitleBar.tsx
-git commit -m "CHI-67: platform-native window controls — macOS circles, Windows/Linux buttons"
+git add src/components/layout/TitleBar.tsx src-tauri/tauri.conf.json
+git commit -m "CHI-67: native window controls — macOS traffic lights via overlay, Win/Linux custom buttons"
 ```
 
 ---
