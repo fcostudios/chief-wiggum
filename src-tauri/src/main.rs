@@ -34,6 +34,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(db)
         .manage(cli_location)
         .invoke_handler(tauri::generate_handler![
@@ -46,6 +47,9 @@ fn main() {
             chief_wiggum_lib::commands::session::list_messages,
             chief_wiggum_lib::commands::session::update_session_model,
             chief_wiggum_lib::commands::cli::get_cli_info,
+            chief_wiggum_lib::commands::project::pick_project_folder,
+            chief_wiggum_lib::commands::project::create_project,
+            chief_wiggum_lib::commands::project::list_projects,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Chief Wiggum");

@@ -3,4 +3,5 @@
 //! Per GUIDE-001 §2.3 and SPEC-004 §4.1.
 
 pub mod cli;
+pub mod project;
 pub mod session;

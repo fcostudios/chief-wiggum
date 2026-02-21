@@ -1,7 +1,9 @@
 {
   "identifier": "default",
   "description": "Default capability set for Chief Wiggum",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "core:window:allow-close",
@@ -11,6 +13,8 @@
     "core:window:allow-start-dragging",
     "shell:allow-open",
     "shell:allow-execute",
-    "shell:default"
+    "shell:default",
+    "dialog:default",
+    "dialog:allow-open"
   ]
 }
