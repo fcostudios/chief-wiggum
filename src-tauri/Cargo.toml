@@ -49,6 +49,9 @@ async-trait = "0.1"
 # Dialog plugin for folder picker
 tauri-plugin-dialog = "2"
 
+# OS plugin for platform detection
+tauri-plugin-os = "2"
+
 # Home directory detection
 dirs = "6"
 
