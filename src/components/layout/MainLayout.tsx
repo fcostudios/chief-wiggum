@@ -7,13 +7,14 @@
 // Z5: StatusBar (bottom, fixed height)
 
 import type { Component } from 'solid-js';
-import { onMount, onCleanup } from 'solid-js';
+import { onMount, onCleanup, Show } from 'solid-js';
 import { uiState, setActiveView, type ActiveView } from '@/stores/uiStore';
 import { handleGlobalKeyDown } from '@/lib/keybindings';
 import TitleBar from './TitleBar';
 import Sidebar from './Sidebar';
 import StatusBar from './StatusBar';
 import DetailsPanel from './DetailsPanel';
+import MessageInput from '@/components/conversation/MessageInput';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -70,7 +71,16 @@ const MainLayout: Component = () => {
             </div>
           </div>
 
-          {/* Message input placeholder — added in CHI-19 */}
+          {/* Message input — only visible in conversation view */}
+          <Show when={uiState.activeView === 'conversation'}>
+            <MessageInput
+              onSend={() => {
+                /* TODO: wire to IPC send_message command */
+              }}
+              isLoading={false}
+              isDisabled={false}
+            />
+          </Show>
         </main>
 
         {/* Z4: Details Panel — transitions width for smooth show/hide */}
