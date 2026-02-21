@@ -3,6 +3,7 @@
 // Per GUIDE-001 §3.3: createStore singleton, mutations via exported functions.
 
 import { createStore } from 'solid-js/store';
+import { invoke } from '@tauri-apps/api/core';
 import type { PermissionRequest } from '@/lib/types';
 
 export type ActiveView = 'conversation' | 'agents' | 'diff' | 'terminal';
@@ -59,13 +60,21 @@ export function dismissYoloDialog() {
 export function enableYoloMode() {
   setState('yoloMode', true);
   setState('yoloDialogVisible', false);
-  // TODO: invoke('toggle_yolo_mode', { enable: true }) when IPC is connected
+  invoke('toggle_yolo_mode', { enable: true }).catch((err) => {
+    if (import.meta.env.DEV) {
+      console.warn('[uiStore] Failed to enable YOLO mode:', err);
+    }
+  });
 }
 
 /** Disable YOLO mode. */
 export function disableYoloMode() {
   setState('yoloMode', false);
-  // TODO: invoke('toggle_yolo_mode', { enable: false }) when IPC is connected
+  invoke('toggle_yolo_mode', { enable: false }).catch((err) => {
+    if (import.meta.env.DEV) {
+      console.warn('[uiStore] Failed to disable YOLO mode:', err);
+    }
+  });
 }
 
 /** Toggle YOLO mode — shows warning dialog if enabling, disables immediately if on. */
