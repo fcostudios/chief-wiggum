@@ -3,8 +3,8 @@
 // Displays real session list from sessionStore, supports create/switch/delete.
 
 import type { Component } from 'solid-js';
-import { For, Show, onMount, createSignal } from 'solid-js';
-import { Plus, Trash2, MessageSquare, FolderOpen, Pin, FileCode } from 'lucide-solid';
+import { For, Show, onMount, onCleanup, createSignal } from 'solid-js';
+import { Plus, Trash2, MessageSquare, FolderOpen, Pin, FileCode, MoreHorizontal } from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
   sessionState,
@@ -13,6 +13,8 @@ import {
   setActiveSession,
   deleteSession,
   toggleSessionPinned,
+  updateSessionTitle,
+  duplicateSession,
 } from '@/stores/sessionStore';
 import {
   loadMessages,
@@ -534,6 +536,76 @@ const SessionItem: Component<{
   onDelete: (id: string) => void;
 }> = (props) => {
   let hoverBorderRef: HTMLDivElement | undefined;
+  let menuRef: HTMLDivElement | undefined;
+  let inputRef: HTMLInputElement | undefined;
+  const [menuOpen, setMenuOpen] = createSignal(false);
+  const [isRenaming, setIsRenaming] = createSignal(false);
+  const [draftTitle, setDraftTitle] = createSignal('');
+
+  function currentTitle() {
+    return props.session.title || 'New Session';
+  }
+
+  function startRenaming() {
+    setDraftTitle(currentTitle());
+    setMenuOpen(false);
+    setIsRenaming(true);
+    requestAnimationFrame(() => {
+      inputRef?.focus();
+      inputRef?.select();
+    });
+  }
+
+  function cancelRenaming() {
+    setDraftTitle(currentTitle());
+    setIsRenaming(false);
+  }
+
+  async function commitRename() {
+    const trimmed = draftTitle().trim();
+    if (!trimmed) {
+      cancelRenaming();
+      return;
+    }
+    if (trimmed !== currentTitle()) {
+      await updateSessionTitle(props.session.id, trimmed);
+    }
+    setIsRenaming(false);
+  }
+
+  async function handleDuplicateClick(e: MouseEvent) {
+    e.stopPropagation();
+    const dup = await duplicateSession(props.session.id);
+    setMenuOpen(false);
+    props.onSelect(dup.id);
+  }
+
+  function handleClickOutside(e: MouseEvent) {
+    if (!menuOpen()) return;
+    if (menuRef && !menuRef.contains(e.target as Node)) {
+      setMenuOpen(false);
+    }
+  }
+
+  function handleDocumentKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (isRenaming()) {
+        cancelRenaming();
+        return;
+      }
+      setMenuOpen(false);
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleDocumentKeyDown);
+  });
+
+  onCleanup(() => {
+    document.removeEventListener('mousedown', handleClickOutside);
+    document.removeEventListener('keydown', handleDocumentKeyDown);
+  });
 
   return (
     <div
@@ -567,6 +639,7 @@ const SessionItem: Component<{
       role="button"
       tabindex="0"
       onKeyDown={(e) => {
+        if (isRenaming()) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           props.onSelect(props.session.id);
@@ -617,7 +690,47 @@ const SessionItem: Component<{
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5">
-          <span class="text-xs font-medium truncate">{props.session.title || 'New Session'}</span>
+          <Show
+            when={!isRenaming()}
+            fallback={
+              <input
+                ref={inputRef}
+                value={draftTitle()}
+                class="text-xs font-medium min-w-0 flex-1 bg-bg-inset rounded px-1 py-0.5 border"
+                style={{
+                  border: '1px solid var(--color-border-focus)',
+                  color: 'var(--color-text-primary)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+                onInput={(e) => setDraftTitle(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void commitRename();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelRenaming();
+                  }
+                }}
+                onBlur={() => {
+                  void commitRename();
+                }}
+                aria-label="Rename session"
+              />
+            }
+          >
+            <span
+              class="text-xs font-medium truncate"
+              onDblClick={(e) => {
+                e.stopPropagation();
+                startRenaming();
+              }}
+              title="Double-click to rename"
+            >
+              {currentTitle()}
+            </span>
+          </Show>
           <span
             class="text-[9px] font-medium shrink-0 px-1 py-0.5 rounded"
             style={{
@@ -655,6 +768,78 @@ const SessionItem: Component<{
       >
         <Trash2 size={11} />
       </button>
+      <div ref={menuRef} class="relative">
+        <button
+          class="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-tertiary hover:text-text-primary transition-opacity"
+          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((open) => !open);
+          }}
+          aria-label="Session actions"
+          aria-expanded={menuOpen()}
+          title="Session actions"
+        >
+          <MoreHorizontal size={11} />
+        </button>
+
+        <Show when={menuOpen()}>
+          <div
+            class="absolute right-0 top-6 z-50 min-w-[132px] rounded-md overflow-hidden"
+            style={{
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border-primary)',
+              'box-shadow': 'var(--shadow-md)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                startRenaming();
+              }}
+            >
+              Rename
+            </button>
+            <button
+              class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                void toggleSessionPinned(props.session.id);
+                setMenuOpen(false);
+              }}
+            >
+              {props.session.pinned ? 'Unpin' : 'Pin'}
+            </button>
+            <button
+              class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+              onClick={(e) => {
+                void handleDuplicateClick(e);
+              }}
+            >
+              Duplicate
+            </button>
+            <button
+              class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
+              style={{
+                'transition-duration': 'var(--duration-fast)',
+                color: 'var(--color-error)',
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(false);
+                props.onDelete(props.session.id);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </Show>
+      </div>
     </div>
   );
 };
