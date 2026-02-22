@@ -15,6 +15,7 @@ import {
   toggleSessionPinned,
   updateSessionTitle,
   duplicateSession,
+  sessionHasMessages,
 } from '@/stores/sessionStore';
 import {
   loadMessages,
@@ -580,6 +581,21 @@ const SessionItem: Component<{
     props.onSelect(dup.id);
   }
 
+  async function handleDeleteRequest(e: MouseEvent) {
+    e.stopPropagation();
+    setMenuOpen(false);
+
+    const hasMessages = await sessionHasMessages(props.session.id);
+    if (hasMessages) {
+      const confirmed = window.confirm(
+        'Delete this session and all its messages? This cannot be undone.',
+      );
+      if (!confirmed) return;
+    }
+
+    await props.onDelete(props.session.id);
+  }
+
   function handleClickOutside(e: MouseEvent) {
     if (!menuOpen()) return;
     if (menuRef && !menuRef.contains(e.target as Node)) {
@@ -761,8 +777,7 @@ const SessionItem: Component<{
         class="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-tertiary hover:text-error transition-opacity"
         style={{ 'transition-duration': 'var(--duration-fast)' }}
         onClick={(e) => {
-          e.stopPropagation();
-          props.onDelete(props.session.id);
+          void handleDeleteRequest(e);
         }}
         aria-label="Delete session"
       >
@@ -830,9 +845,7 @@ const SessionItem: Component<{
                 color: 'var(--color-error)',
               }}
               onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen(false);
-                props.onDelete(props.session.id);
+                void handleDeleteRequest(e);
               }}
             >
               Delete
