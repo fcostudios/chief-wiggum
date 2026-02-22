@@ -6,6 +6,25 @@ import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
 import { uiState } from '@/stores/uiStore';
 import { cliState } from '@/stores/cliStore';
+import { conversationState } from '@/stores/conversationStore';
+import type { ProcessStatus } from '@/lib/types';
+
+function processStatusDisplay(status: ProcessStatus): { label: string; color: string } {
+  switch (status) {
+    case 'running':
+      return { label: 'Running', color: 'var(--color-success)' };
+    case 'starting':
+      return { label: 'Starting...', color: 'var(--color-warning)' };
+    case 'error':
+      return { label: 'Error', color: 'var(--color-error)' };
+    case 'shutting_down':
+      return { label: 'Stopping...', color: 'var(--color-warning)' };
+    case 'exited':
+      return { label: 'Done', color: 'var(--color-text-tertiary)' };
+    default:
+      return { label: 'Ready', color: 'var(--color-text-tertiary)' };
+  }
+}
 
 const StatusBar: Component = () => {
   return (
@@ -40,18 +59,27 @@ const StatusBar: Component = () => {
               </span>
             }
           >
-            <div class="flex items-center gap-1.5">
-              <div
-                class="w-1.5 h-1.5 rounded-full"
-                style={{
-                  background: 'var(--color-success)',
-                  'box-shadow': '0 0 4px rgba(63, 185, 80, 0.4)',
-                }}
-              />
-              <span class="text-text-tertiary font-mono" style={{ 'font-size': '10px' }}>
-                Ready
-              </span>
-            </div>
+            {(() => {
+              const status = processStatusDisplay(conversationState.processStatus);
+              return (
+                <div class="flex items-center gap-1.5">
+                  <div
+                    class="w-1.5 h-1.5 rounded-full"
+                    classList={{ 'animate-pulse': conversationState.processStatus === 'running' }}
+                    style={{
+                      background: status.color,
+                      'box-shadow':
+                        conversationState.processStatus === 'running'
+                          ? '0 0 4px rgba(63, 185, 80, 0.4)'
+                          : 'none',
+                    }}
+                  />
+                  <span class="text-text-tertiary font-mono" style={{ 'font-size': '10px' }}>
+                    {status.label}
+                  </span>
+                </div>
+              );
+            })()}
           </Show>
         }
       >

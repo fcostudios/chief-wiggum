@@ -13,8 +13,19 @@ import {
   setActiveSession,
   deleteSession,
 } from '@/stores/sessionStore';
-import { loadMessages, clearMessages } from '@/stores/conversationStore';
-import { projectState, loadProjects, pickAndCreateProject } from '@/stores/projectStore';
+import {
+  loadMessages,
+  clearMessages,
+  cleanupEventListeners,
+  switchSession,
+  stopSessionCli,
+} from '@/stores/conversationStore';
+import {
+  projectState,
+  loadProjects,
+  pickAndCreateProject,
+  setActiveProject,
+} from '@/stores/projectStore';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -43,11 +54,6 @@ function modelColorClass(model: string): string {
   return 'text-model-sonnet';
 }
 
-/** Reactive accessor for the active project. */
-function activeProject() {
-  return projectState.projects.find((p) => p.id === projectState.activeProjectId);
-}
-
 const Sidebar: Component = () => {
   onMount(async () => {
     await loadSessions();
@@ -61,46 +67,123 @@ const Sidebar: Component = () => {
   });
 
   async function handleNewSession() {
+    const oldId = sessionState.activeSessionId;
+    if (oldId) {
+      await stopSessionCli(oldId);
+    }
+    await cleanupEventListeners();
     clearMessages();
     await createNewSession('claude-sonnet-4-6');
   }
 
+  async function handleDeleteSession(sessionId: string) {
+    // Stop any running CLI process first
+    await stopSessionCli(sessionId);
+
+    const isActive = sessionState.activeSessionId === sessionId;
+    await deleteSession(sessionId);
+
+    if (isActive) {
+      const nextSession = sessionState.sessions[0];
+      if (nextSession) {
+        setActiveSession(nextSession.id);
+        await switchSession(nextSession.id, null);
+      } else {
+        clearMessages();
+      }
+    }
+  }
+
   async function handleSelectSession(sessionId: string) {
     if (sessionState.activeSessionId === sessionId) return;
+    const oldId = sessionState.activeSessionId;
     setActiveSession(sessionId);
-    await loadMessages(sessionId);
+    await switchSession(sessionId, oldId);
   }
 
   return (
     <nav class="flex flex-col h-full" aria-label="Sidebar">
-      {/* Project selector */}
-      <div
-        class="px-3 py-2.5"
-        style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
-      >
-        <Show
-          when={projectState.activeProjectId}
-          fallback={
-            <button
-              class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
-              style={{ 'transition-duration': 'var(--duration-fast)' }}
-              onClick={() => pickAndCreateProject()}
-            >
-              <FolderOpen size={13} />
-              <span class="tracking-wide">Open Project Folder</span>
-            </button>
-          }
-        >
+      {/* Project section */}
+      <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+        {/* Project header */}
+        <div class="flex items-center justify-between px-3 py-2">
+          <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+            Projects
+          </span>
           <button
-            class="flex items-center gap-2 w-full py-1 px-2 rounded-md text-xs text-text-primary hover:bg-bg-elevated/50 transition-colors truncate"
+            class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors"
             style={{ 'transition-duration': 'var(--duration-fast)' }}
             onClick={() => pickAndCreateProject()}
-            title={activeProject()?.path ?? ''}
+            aria-label="Add project folder"
+            title="Open project folder"
           >
-            <FolderOpen size={13} class="shrink-0 text-accent" />
-            <span class="truncate font-medium">{activeProject()?.name ?? 'Unknown'}</span>
+            <FolderOpen size={12} />
           </button>
-        </Show>
+        </div>
+
+        {/* Recent projects list (max 5) */}
+        <div class="px-2 pb-2">
+          <Show
+            when={projectState.projects.length > 0}
+            fallback={
+              <button
+                class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
+                style={{ 'transition-duration': 'var(--duration-fast)' }}
+                onClick={() => pickAndCreateProject()}
+              >
+                <Plus size={11} />
+                <span class="tracking-wide">Open a project folder</span>
+              </button>
+            }
+          >
+            <div class="space-y-0.5">
+              <For each={projectState.projects.slice(0, 5)}>
+                {(project) => (
+                  <button
+                    class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs transition-all truncate"
+                    style={{
+                      'transition-duration': 'var(--duration-fast)',
+                      background:
+                        projectState.activeProjectId === project.id
+                          ? 'var(--color-bg-elevated)'
+                          : 'transparent',
+                      color:
+                        projectState.activeProjectId === project.id
+                          ? 'var(--color-text-primary)'
+                          : 'var(--color-text-secondary)',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (projectState.activeProjectId !== project.id) {
+                        e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                        e.currentTarget.style.color = 'var(--color-text-primary)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (projectState.activeProjectId !== project.id) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--color-text-secondary)';
+                      }
+                    }}
+                    onClick={() => setActiveProject(project.id)}
+                    title={project.path}
+                  >
+                    <FolderOpen
+                      size={12}
+                      class="shrink-0"
+                      style={{
+                        color:
+                          projectState.activeProjectId === project.id
+                            ? 'var(--color-accent)'
+                            : 'var(--color-text-tertiary)',
+                      }}
+                    />
+                    <span class="truncate">{project.name}</span>
+                  </button>
+                )}
+              </For>
+            </div>
+          </Show>
+        </div>
       </div>
 
       {/* Sessions header */}
@@ -140,7 +223,7 @@ const Sidebar: Component = () => {
                   session={session}
                   isActive={sessionState.activeSessionId === session.id}
                   onSelect={() => handleSelectSession(session.id)}
-                  onDelete={() => deleteSession(session.id)}
+                  onDelete={() => handleDeleteSession(session.id)}
                 />
               )}
             </For>

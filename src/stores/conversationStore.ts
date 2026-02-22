@@ -5,7 +5,7 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { Message, PermissionRequest } from '@/lib/types';
+import type { Message, PermissionRequest, ProcessStatus } from '@/lib/types';
 import { updateSessionTitle, updateSessionCliId, getActiveSession } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
@@ -17,6 +17,8 @@ interface ConversationState {
   thinkingContent: string;
   isStreaming: boolean;
   error: string | null;
+  processStatus: ProcessStatus;
+  lastUserMessage: string | null;
 }
 
 const [state, setState] = createStore<ConversationState>({
@@ -26,6 +28,8 @@ const [state, setState] = createStore<ConversationState>({
   thinkingContent: '',
   isStreaming: false,
   error: null,
+  processStatus: 'not_started',
+  lastUserMessage: null,
 });
 
 /** Active event listener cleanup functions. */
@@ -60,10 +64,14 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     session_id: string;
     content: string;
     token_count: number | null;
+    // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
   }>('message:chunk', (event) => {
     if (event.payload.session_id !== sessionId) return;
     setState('streamingContent', (prev) => prev + event.payload.content);
     setState('isStreaming', true);
+    if (state.processStatus !== 'running') {
+      setState('processStatus', 'running');
+    }
   });
 
   unlistenComplete = await listen<{
@@ -195,6 +203,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
 
     setState('isLoading', false);
     setState('isStreaming', false);
+    setState('processStatus', 'exited');
     if (event.payload.exit_code !== 0 && event.payload.exit_code !== null) {
       setState('error', `CLI exited with code ${event.payload.exit_code}`);
     }
@@ -369,6 +378,7 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
   setState('messages', (prev) => [...prev, userMsg]);
   setState('isLoading', true);
   setState('error', null);
+  setState('lastUserMessage', content);
 
   // Persist user message to database
   invoke('save_message', {
@@ -416,9 +426,11 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
       is_follow_up: isFollowUp,
       cli_session_id: session?.cli_session_id ?? null,
     });
+    setState('processStatus', 'running');
   } catch (err) {
     setState('isLoading', false);
     setState('error', `Failed to send message: ${err}`);
+    setState('processStatus', 'error');
     devWarn('Failed to send message:', err);
   }
 }
@@ -431,6 +443,69 @@ export function clearMessages(): void {
   setState('thinkingContent', '');
   setState('isStreaming', false);
   setState('error', null);
+  setState('processStatus', 'not_started');
+  setState('lastUserMessage', null);
+}
+
+/** Switch to a different session: stop CLI, clean up, load new messages. */
+export async function switchSession(
+  newSessionId: string,
+  oldSessionId: string | null,
+): Promise<void> {
+  // Stop any running CLI process for the outgoing session
+  if (oldSessionId) {
+    try {
+      await invoke('stop_session_cli', { session_id: oldSessionId });
+    } catch {
+      // Process may already be stopped — that's fine
+    }
+  }
+
+  // Clean up event listeners from the previous session
+  await cleanupEventListeners();
+
+  // Reset streaming/loading state
+  clearMessages();
+
+  // Load persisted messages for the new session
+  await loadMessages(newSessionId);
+
+  // Set up event listeners for the new session (catches any in-flight CLI events)
+  await setupEventListeners(newSessionId);
+}
+
+/** Stop the CLI process for a session (if running). */
+export async function stopSessionCli(sessionId: string): Promise<void> {
+  try {
+    await invoke('stop_session_cli', { session_id: sessionId });
+  } catch {
+    // Process may not be running — that's fine
+  }
+}
+
+/** Retry the last failed message. */
+export async function retryLastMessage(sessionId: string): Promise<void> {
+  const lastMsg = state.lastUserMessage;
+  if (!lastMsg) return;
+
+  // Clear the error state
+  setState('error', null);
+  setState('processStatus', 'not_started');
+
+  // Remove the last user message from the display (it will be re-added by sendMessage)
+  const messages = state.messages;
+  let lastUserIdx = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') {
+      lastUserIdx = i;
+      break;
+    }
+  }
+  if (lastUserIdx !== -1) {
+    setState('messages', (prev) => [...prev.slice(0, lastUserIdx)]);
+  }
+
+  await sendMessage(lastMsg, sessionId);
 }
 
 /** Dev-only warning logger. */

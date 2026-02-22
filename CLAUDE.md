@@ -55,6 +55,12 @@
 | CHI-67: Native Window Controls | **Done** | `titleBarStyle: overlay`, platform detection, macOS traffic lights |
 | CHI-89: ToolUseBlock | **Done** | Collapsible, color-coded tool blocks (file=blue, bash=green, neutral=gray), structured JSON storage |
 | CHI-90: ThinkingBlock | **Done** | Collapsible thinking display, streaming + persisted, ~80 char preview when collapsed |
+| CHI-56: Process Status | **Done** | ProcessStatus tracking in conversationStore, StatusBar indicator |
+| CHI-57: Session Switching | **Done** | switchSession() stops CLI, cleans listeners, loads messages |
+| CHI-58: Graceful Shutdown | **Done** | stopSessionCli() before delete, auto-switch to next session |
+| CHI-59: Crash Recovery | **Done** | retryLastMessage(), Retry button in error display |
+| CHI-80: Empty State | **Done** | CW branding, 3 clickable sample prompt cards |
+| CHI-41: Project Sidebar | **Done** | Recent projects list (max 5), click-to-switch |
 
 ## Phase 1 Status
 
@@ -78,7 +84,7 @@
 | Task | Priority | Status | Description |
 |------|----------|--------|-------------|
 | CHI-40 | P0 | **Done** | Folder picker + project creation via native dialog |
-| CHI-41 | P1 | Todo | Project sidebar section with recent projects |
+| CHI-41 | P1 | **Done** | Project sidebar section with recent projects |
 | CHI-42 | P2 | Todo | Detect and display CLAUDE.md from project folder |
 | CHI-43 | P1 | Todo | Bind sessions to projects with inherited settings |
 
@@ -109,14 +115,14 @@
 | CHI-54 | P1 | Bind StatusBar + DetailsPanel to live cost events |
 | CHI-55 | P2 | Per-message token/cost display in MessageBubble |
 
-### Epic CHI-39: Session Lifecycle Management (P1)
+### Epic CHI-39: Session Lifecycle Management (P1) — DONE
 
 | Task | Priority | Status | Description |
 |------|----------|--------|-------------|
-| CHI-56 | P0 | Todo | Process lifecycle state machine |
-| CHI-57 | P0 | Todo | Handle session switching (suspend/resume) |
-| CHI-58 | P1 | Todo | Graceful shutdown on session delete/close |
-| CHI-59 | P1 | Todo | Crash recovery with error UI |
+| CHI-56 | P0 | **Done** | Process lifecycle state machine |
+| CHI-57 | P0 | **Done** | Handle session switching (suspend/resume) |
+| CHI-58 | P1 | **Done** | Graceful shutdown on session delete/close |
+| CHI-59 | P1 | **Done** | Crash recovery with error UI |
 | CHI-60 | P0 | **Done** | Shutdown all CLI processes on app quit |
 
 ### Parallel: E2E Testing (Epic CHI-27)
@@ -169,7 +175,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 | Task | Priority | Description |
 |------|----------|-------------|
-| CHI-80 | High | Conversation empty state redesign (sample prompts, personality) |
+| CHI-80 | High | **Done** | Conversation empty state redesign (sample prompts, personality) |
 | CHI-81 | Low | First-launch onboarding flow (3-5 step walkthrough) |
 | CHI-82 | Medium | Placeholder views for Agents/Diff (informative, not broken) |
 | CHI-83 | Medium | "No project selected" guidance state |

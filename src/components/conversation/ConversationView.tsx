@@ -4,7 +4,8 @@
 
 import type { Component } from 'solid-js';
 import { createEffect, createSignal, Show, For } from 'solid-js';
-import { conversationState } from '@/stores/conversationStore';
+import { conversationState, retryLastMessage, sendMessage } from '@/stores/conversationStore';
+import { sessionState } from '@/stores/sessionStore';
 import { cliState } from '@/stores/cliStore';
 import MessageBubble from './MessageBubble';
 import MarkdownContent from './MarkdownContent';
@@ -12,6 +13,25 @@ import { ToolUseBlock } from './ToolUseBlock';
 import { ToolResultBlock } from './ToolResultBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { StreamingThinkingBlock } from './StreamingThinkingBlock';
+
+const SAMPLE_PROMPTS = [
+  {
+    title: 'Explain this codebase',
+    description: 'Get a high-level overview of the project structure and architecture',
+    prompt:
+      'Give me a high-level overview of this codebase. What does it do, how is it structured, and what are the key files?',
+  },
+  {
+    title: 'Find and fix a bug',
+    description: 'Describe a bug and let Claude investigate and propose a fix',
+    prompt: "Help me debug an issue I'm seeing. Let me describe what's happening...",
+  },
+  {
+    title: 'Write a new feature',
+    description: 'Describe what you want to build and Claude will plan and implement it',
+    prompt: 'I want to add a new feature. Here is what it should do...',
+  },
+];
 
 const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
@@ -28,6 +48,12 @@ const ConversationView: Component = () => {
       });
     }
   });
+
+  function handleSamplePrompt(prompt: string) {
+    const sessionId = sessionState.activeSessionId;
+    if (!sessionId) return;
+    sendMessage(prompt, sessionId);
+  }
 
   // Detect manual scroll — pause auto-scroll when user scrolls up
   function handleScroll() {
@@ -78,29 +104,64 @@ const ConversationView: Component = () => {
                 </div>
               }
             >
-              <div class="text-center">
+              <div class="text-center max-w-md mx-auto px-4">
+                {/* App branding */}
                 <div
-                  class="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                  class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
                   style={{
                     background:
-                      'linear-gradient(135deg, rgba(232, 130, 90, 0.1) 0%, rgba(232, 130, 90, 0.05) 100%)',
+                      'linear-gradient(135deg, rgba(232, 130, 90, 0.12) 0%, rgba(232, 130, 90, 0.04) 100%)',
                     border: '1px solid rgba(232, 130, 90, 0.15)',
                     'box-shadow': 'var(--glow-accent-subtle)',
                   }}
                 >
-                  <span class="text-2xl" style={{ 'line-height': '1' }}>
-                    &gt;_
+                  <span
+                    class="text-xl font-bold"
+                    style={{ 'line-height': '1', color: 'var(--color-accent)' }}
+                  >
+                    CW
                   </span>
                 </div>
                 <p
-                  class="text-sm font-medium text-text-primary mb-1.5"
+                  class="text-sm font-medium text-text-primary mb-1"
                   style={{ 'letter-spacing': '-0.01em' }}
                 >
-                  Ready to go
+                  Chief Wiggum
                 </p>
-                <p class="text-xs text-text-tertiary/60 tracking-wide">
-                  Type a message to start a conversation
+                <p class="text-xs text-text-tertiary/60 mb-6 tracking-wide">
+                  What would you like to work on?
                 </p>
+
+                {/* Sample prompt cards */}
+                <div class="space-y-2">
+                  <For each={SAMPLE_PROMPTS}>
+                    {(sample) => (
+                      <button
+                        class="w-full text-left px-3.5 py-2.5 rounded-lg transition-all group"
+                        style={{
+                          background: 'var(--color-bg-secondary)',
+                          border: '1px solid var(--color-border-secondary)',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+                          e.currentTarget.style.background = 'var(--color-bg-elevated)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+                          e.currentTarget.style.background = 'var(--color-bg-secondary)';
+                        }}
+                        onClick={() => handleSamplePrompt(sample.prompt)}
+                      >
+                        <p class="text-xs font-medium text-text-primary mb-0.5 group-hover:text-accent transition-colors">
+                          {sample.title}
+                        </p>
+                        <p class="text-[11px] text-text-tertiary/70 leading-relaxed">
+                          {sample.description}
+                        </p>
+                      </button>
+                    )}
+                  </For>
+                </div>
               </div>
             </Show>
           </div>
@@ -194,18 +255,39 @@ const ConversationView: Component = () => {
             </div>
           </Show>
 
-          {/* Error display */}
+          {/* Error display with retry */}
           <Show when={conversationState.error}>
             <div class="flex justify-center animate-fade-in">
               <div
-                class="rounded-lg px-4 py-3 text-sm"
+                class="rounded-lg px-4 py-3 text-sm flex items-center gap-3"
                 style={{
                   background: 'rgba(248, 81, 73, 0.08)',
                   border: '1px solid rgba(248, 81, 73, 0.2)',
                   color: 'var(--color-error)',
                 }}
               >
-                {conversationState.error}
+                <span>{conversationState.error}</span>
+                <Show when={conversationState.lastUserMessage}>
+                  <button
+                    class="px-2.5 py-1 rounded text-[11px] font-medium transition-colors shrink-0"
+                    style={{
+                      background: 'rgba(248, 81, 73, 0.15)',
+                      color: 'var(--color-error)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(248, 81, 73, 0.25)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(248, 81, 73, 0.15)';
+                    }}
+                    onClick={() => {
+                      const sid = sessionState.activeSessionId;
+                      if (sid) retryLastMessage(sid);
+                    }}
+                  >
+                    Retry
+                  </button>
+                </Show>
               </div>
             </div>
           </Show>

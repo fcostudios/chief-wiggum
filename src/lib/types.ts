@@ -68,6 +68,15 @@ export interface ToolResultData {
 /** Tool classification category for color-coding. */
 export type ToolCategory = 'file' | 'bash' | 'neutral';
 
+/** Process lifecycle status (mirrors Rust ProcessStatus). */
+export type ProcessStatus =
+  | 'not_started'
+  | 'starting'
+  | 'running'
+  | 'shutting_down'
+  | 'exited'
+  | 'error';
+
 /** Session per SPEC-004 §6 — matches Rust SessionRow */
 export interface Session {
   id: string;

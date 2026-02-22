@@ -125,11 +125,7 @@ pub fn spawn_event_loop(
 /// - "claude.ai/Linear" → "mcp__claude_ai_Linear"
 /// - "plugin:claude-mem:mcp-search" → "mcp__plugin_claude-mem_mcp-search"
 fn normalize_mcp_server_name(server_name: &str) -> String {
-    let normalized = server_name
-        .replace(':', "_")
-        .replace('.', "_")
-        .replace('/', "_")
-        .replace(' ', "_");
+    let normalized = server_name.replace([':', '.', '/', ' '], "_");
     format!("mcp__{}", normalized)
 }
 
