@@ -951,10 +951,37 @@
       ],
       "tests": "74 Rust tests pass (3 new parser tests). Frontend compiles clean.",
       "verified": "DB confirmed: assistant messages with content (382-1493 chars), token counts, and integer cost_cents now persist correctly. Session restore loads full conversation history."
+    },
+    "2026-02-22_mcp_permission_fix": {
+      "description": "Fix WebSearch and MCP tools not working in non-interactive -p CLI mode",
+      "changes": [
+        {
+          "task": "macOS GUI PATH inheritance fix",
+          "files_modified": ["src-tauri/Cargo.toml (fix-path-env dep)", "src-tauri/src/main.rs (fix_path_env::fix())"],
+          "notes": "macOS GUI apps (launchd) don't inherit shell PATH. fix-path-env crate reads shell config and applies full PATH."
+        },
+        {
+          "task": "Built-in tool pre-authorization in -p mode",
+          "files_modified": ["src-tauri/src/commands/bridge.rs"],
+          "notes": "In -p mode CLI auto-denies all permissions. Added --allowedTools for safe built-in tools (WebSearch, WebFetch, Read, Glob, Grep, Edit, Write, NotebookEdit, Task, TodoRead, TodoWrite). Bash excluded (requires YOLO). YOLO mode uses --dangerously-skip-permissions."
+        },
+        {
+          "task": "MCP server prefix caching (workaround for broken mcp__* wildcard)",
+          "files_modified": [
+            "src-tauri/src/bridge/parser.rs (extract mcp_servers + tools from SystemInit)",
+            "src-tauri/src/bridge/manager.rs (mcp_server_prefixes cache on SessionBridgeMap)",
+            "src-tauri/src/bridge/event_loop.rs (normalize server names, populate cache from init event)",
+            "src-tauri/src/commands/bridge.rs (pass cached server prefixes as --allowedTools)"
+          ],
+          "notes": "mcp__* wildcard broken (GitHub #13077, #14730). Per docs, mcp__servername (no wildcard) matches all tools. Discovery: parse mcp_servers from CLI system:init event, normalize (: . / → _), cache as mcp__<prefix>. First message has no MCP; subsequent messages have all MCP tools authorized."
+        }
+      ],
+      "tests": "75 Rust tests pass (1 new parser test for MCP server extraction). Frontend compiles clean.",
+      "verified": "User confirmed: WebSearch works on first message. MCP tools (Context7, Linear, etc.) work on follow-up messages."
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67, CHI-70, CHI-71 DONE. CHI-89 (ToolUseBlock) + CHI-90 (ThinkingBlock) DONE — 4 new components, structured JSON storage, thinking persistence, tool_use_id pairing. 74 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62, CHI-66 remaining).",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67, CHI-70, CHI-71 DONE. CHI-89 (ToolUseBlock) + CHI-90 (ThinkingBlock) DONE. MCP permission fix DONE (fix-path-env + --allowedTools + server prefix caching). 75 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62, CHI-66 remaining).",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -962,6 +989,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 74 Rust tests pass (7 SessionBridgeMap + 3 parser tests). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v2 (cli_session_id column)."
+    "notes": "Full toolchain ready. 75 Rust tests pass (7 SessionBridgeMap + 4 parser tests). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v2 (cli_session_id column). fix-path-env for macOS GUI PATH."
   }
 }
