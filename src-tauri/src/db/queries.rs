@@ -191,6 +191,49 @@ pub fn delete_session(db: &Database, id: &str) -> Result<(), AppError> {
     })
 }
 
+pub fn count_session_messages(db: &Database, session_id: &str) -> Result<i64, AppError> {
+    db.with_conn(|conn| {
+        conn.query_row(
+            "SELECT COUNT(*) FROM messages WHERE session_id = ?1",
+            rusqlite::params![session_id],
+            |row| row.get(0),
+        )
+    })
+}
+
+pub fn duplicate_session_metadata_only(
+    db: &Database,
+    source_id: &str,
+    new_id: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        let inserted = conn.execute(
+            r#"
+            INSERT INTO sessions (id, project_id, title, model, status, parent_session_id)
+            SELECT
+                ?2,
+                project_id,
+                CASE
+                    WHEN title IS NULL OR trim(title) = '' THEN 'New Session (Copy)'
+                    ELSE title || ' (Copy)'
+                END,
+                model,
+                'active',
+                id
+            FROM sessions
+            WHERE id = ?1
+            "#,
+            rusqlite::params![source_id, new_id],
+        )?;
+
+        if inserted == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+
+        Ok(())
+    })
+}
+
 pub fn update_session_title(db: &Database, id: &str, title: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
@@ -560,5 +603,42 @@ mod tests {
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert!(!session.pinned.unwrap_or(false));
+    }
+
+    #[test]
+    fn duplicate_session_metadata_only_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+        update_session_title(&db, "s1", "Alpha").unwrap();
+        update_session_cost(&db, "s1", 100, 200, 5).unwrap();
+        update_session_cli_id(&db, "s1", "cli-abc").unwrap();
+        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+
+        let new_id = "s2";
+        duplicate_session_metadata_only(&db, "s1", new_id).unwrap();
+
+        let dup = get_session(&db, new_id).unwrap().unwrap();
+        assert_eq!(dup.project_id.as_deref(), Some("p1"));
+        assert_eq!(dup.model, "claude-sonnet-4-6");
+        assert_eq!(dup.title.as_deref(), Some("Alpha (Copy)"));
+        assert_eq!(dup.parent_session_id.as_deref(), Some("s1"));
+        assert_eq!(dup.total_input_tokens, Some(0));
+        assert_eq!(dup.total_output_tokens, Some(0));
+        assert_eq!(dup.total_cost_cents, Some(0));
+        assert!(dup.cli_session_id.is_none());
+        assert_eq!(list_messages(&db, new_id).unwrap().len(), 0);
+    }
+
+    #[test]
+    fn count_session_messages_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        assert_eq!(count_session_messages(&db, "s1").unwrap(), 0);
+
+        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        assert_eq!(count_session_messages(&db, "s1").unwrap(), 1);
     }
 }
