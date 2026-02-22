@@ -1,6 +1,20 @@
 // Prevents additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+#[allow(unused_variables)]
+fn apply_platform_window_effects(window: &tauri::WebviewWindow) {
+    #[cfg(target_os = "macos")]
+    {
+        use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+
+        if let Err(e) = apply_vibrancy(window, NSVisualEffectMaterial::Sidebar, None, None) {
+            tracing::warn!("Failed to apply macOS vibrancy: {:?}", e);
+        } else {
+            tracing::info!("Applied macOS vibrancy effect to main window");
+        }
+    }
+}
+
 fn main() {
     // Fix PATH for macOS/Linux GUI apps — launchd doesn't inherit shell profile.
     // Must run before CliLocation::detect() and any process spawning.
@@ -95,6 +109,8 @@ fn main() {
                 .clone();
 
             if let Some(main_window) = app.get_webview_window("main") {
+                apply_platform_window_effects(&main_window);
+
                 main_window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { .. } = event {
                         let bridge_map = bridge_map.clone();
