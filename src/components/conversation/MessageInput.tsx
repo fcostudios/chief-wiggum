@@ -3,12 +3,16 @@
 // Auto-expanding textarea (80–300px). Enter sends, Shift+Enter newline.
 // Send button with loading state. Cancel button while responding.
 // Character count indicator. Disabled when no CLI bridge connected.
+// @-mention file references (CHI-117) with context assembly on send.
 
 import type { Component } from 'solid-js';
-import { createSignal, createEffect, Show, onCleanup } from 'solid-js';
-import { Send, Square } from 'lucide-solid';
-import type { SlashCommand } from '@/lib/types';
+import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js';
+import { Send, Square, Paperclip } from 'lucide-solid';
+import { invoke } from '@tauri-apps/api/core';
+import type { SlashCommand, FileSearchResult, FileReference } from '@/lib/types';
 import SlashCommandMenu from './SlashCommandMenu';
+import FileMentionMenu from './FileMentionMenu';
+import ContextChip from './ContextChip';
 import {
   slashState,
   filteredCommands,
@@ -19,6 +23,16 @@ import {
   highlightNext,
   getHighlightedCommand,
 } from '@/stores/slashStore';
+import {
+  contextState,
+  addFileReference,
+  removeAttachment,
+  clearAttachments,
+  getAttachmentCount,
+  getTotalEstimatedTokens,
+  assembleContext,
+} from '@/stores/contextStore';
+import { projectState } from '@/stores/projectStore';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -30,13 +44,23 @@ interface MessageInputProps {
 const MessageInput: Component<MessageInputProps> = (props) => {
   const [content, setContent] = createSignal('');
   const [isFocused, setIsFocused] = createSignal(false);
+  const [mentionOpen, setMentionOpen] = createSignal(false);
+  const [mentionResults, setMentionResults] = createSignal<FileSearchResult[]>([]);
+  const [mentionHighlight, setMentionHighlight] = createSignal(0);
   let textareaRef: HTMLTextAreaElement | undefined;
 
-  // Local boolean synced with store — avoids any store proxy issues in event handlers
-  let menuOpen = false;
+  // Local booleans synced with stores — avoids store proxy issues in event handlers
+  let slashMenuOpen = false;
+  let mentionMenuOpen = false;
   createEffect(() => {
-    menuOpen = slashState.isOpen;
+    slashMenuOpen = slashState.isOpen;
   });
+  createEffect(() => {
+    mentionMenuOpen = mentionOpen();
+  });
+
+  // Debounce timer for mention search
+  let mentionSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Auto-resize textarea between min and max height
   function adjustHeight() {
@@ -52,27 +76,65 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     setContent(value);
     adjustHeight();
 
-    // Slash command detection: `/` after a space, newline, or at the start of text.
-    // Extracts the slash token from the cursor backwards to the triggering `/`.
     const cursorPos = target.selectionStart ?? 0;
     const textBeforeCursor = value.slice(0, cursorPos);
 
-    // Find the last `/` before the cursor that's preceded by whitespace or is at position 0
-    const slashMatch = textBeforeCursor.match(/(?:^|[\s])\/([^\s/]*)$/);
-    if (slashMatch) {
-      const afterSlash = slashMatch[1];
-      openMenu(afterSlash);
-      setFilter(afterSlash);
+    // @-mention detection: `@` after whitespace or at start
+    const mentionMatch = textBeforeCursor.match(/(?:^|[\s])@([^\s@]*)$/);
+    if (mentionMatch) {
+      const query = mentionMatch[1];
+      if (query.length > 0 && projectState.activeProjectId) {
+        setMentionOpen(true);
+        setMentionHighlight(0);
+        // Debounced search
+        if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout);
+        mentionSearchTimeout = setTimeout(async () => {
+          try {
+            const results = await invoke<FileSearchResult[]>('search_project_files', {
+              project_id: projectState.activeProjectId,
+              query,
+              max_results: 10,
+            });
+            setMentionResults(results);
+          } catch {
+            setMentionResults([]);
+          }
+        }, 100);
+      } else {
+        setMentionOpen(false);
+        setMentionResults([]);
+      }
     } else {
-      if (slashState.isOpen) closeMenu();
+      if (mentionOpen()) {
+        setMentionOpen(false);
+        setMentionResults([]);
+      }
+    }
+
+    // Slash command detection: `/` after a space, newline, or at the start of text.
+    if (!mentionMatch) {
+      const slashMatch = textBeforeCursor.match(/(?:^|[\s])\/([^\s/]*)$/);
+      if (slashMatch) {
+        const afterSlash = slashMatch[1];
+        openMenu(afterSlash);
+        setFilter(afterSlash);
+      } else {
+        if (slashState.isOpen) closeMenu();
+      }
     }
   }
 
-  function handleSend() {
+  async function handleSend() {
     const text = content().trim();
     if (!text || props.isLoading || props.isDisabled) return;
-    props.onSend(text);
+
+    // Assemble context from attached files
+    const contextPrefix = await assembleContext();
+    const fullMessage = contextPrefix ? contextPrefix + text : text;
+
+    props.onSend(fullMessage);
     setContent('');
+    clearAttachments();
     if (textareaRef) {
       textareaRef.value = '';
       textareaRef.style.height = '80px';
@@ -88,7 +150,6 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const value = textareaRef.value;
     const cursorPos = textareaRef.selectionStart ?? 0;
     const textBeforeCursor = value.slice(0, cursorPos);
-    // Find the `/` that triggered the menu (last `/` preceded by whitespace or at pos 0)
     const match = textBeforeCursor.match(/(?:^|[\s])(\/[^\s/]*)$/);
     if (!match) return;
     const slashStart = textBeforeCursor.length - match[1].length;
@@ -103,9 +164,101 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     adjustHeight();
   }
 
+  function handleMentionSelect(result: FileSearchResult) {
+    if (!textareaRef) return;
+
+    // Get token estimate for the file
+    const projectId = projectState.activeProjectId;
+    if (!projectId) return;
+
+    // Add as context attachment
+    const ref: FileReference = {
+      relative_path: result.relative_path,
+      name: result.name,
+      extension: result.extension,
+      estimated_tokens: Math.round((result.score || 1) * 250), // rough estimate; will be refined on assemble
+      is_directory: false,
+    };
+
+    // Get better token estimate async
+    invoke<number>('get_file_token_estimate', {
+      project_id: projectId,
+      relative_path: result.relative_path,
+    })
+      .then((tokens) => {
+        ref.estimated_tokens = tokens;
+        addFileReference(ref);
+      })
+      .catch(() => {
+        // Fallback: add with rough estimate
+        addFileReference(ref);
+      });
+
+    // Remove the @query from the textarea
+    const value = textareaRef.value;
+    const cursorPos = textareaRef.selectionStart ?? 0;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/(?:^|[\s])(@[^\s@]*)$/);
+    if (match) {
+      const mentionStart = textBeforeCursor.length - match[1].length;
+      const newValue = value.slice(0, mentionStart) + value.slice(cursorPos);
+      setContent(newValue);
+      textareaRef.value = newValue;
+      textareaRef.focus();
+      textareaRef.setSelectionRange(mentionStart, mentionStart);
+    }
+
+    setMentionOpen(false);
+    setMentionResults([]);
+    adjustHeight();
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
+    // When mention menu is open, intercept navigation keys
+    if (mentionMenuOpen) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        setMentionHighlight((i) => Math.max(0, i - 1));
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        setMentionHighlight((i) => Math.min(mentionResults().length - 1, i + 1));
+        return;
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        const results = mentionResults();
+        const idx = mentionHighlight();
+        if (results[idx]) {
+          handleMentionSelect(results[idx]);
+        }
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        const results = mentionResults();
+        const idx = mentionHighlight();
+        if (results[idx]) {
+          handleMentionSelect(results[idx]);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setMentionOpen(false);
+        setMentionResults([]);
+        return;
+      }
+    }
+
     // When slash menu is open, intercept navigation keys
-    if (menuOpen) {
+    if (slashMenuOpen) {
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         e.stopPropagation();
@@ -164,6 +317,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   const charCount = () => content().length;
   const canSend = () => content().trim().length > 0 && !props.isLoading && !props.isDisabled;
+  const tokenDisplay = () => {
+    const t = getTotalEstimatedTokens();
+    if (t === 0) return null;
+    if (t < 1000) return `~${t} tokens`;
+    return `~${(t / 1000).toFixed(1)}K tokens`;
+  };
 
   return (
     <div
@@ -174,6 +333,23 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         'border-top': '1px solid var(--color-border-secondary)',
       }}
     >
+      {/* Context chips bar */}
+      <Show when={getAttachmentCount() > 0}>
+        <div class="flex flex-wrap items-center gap-1.5 mb-2 max-w-4xl mx-auto">
+          <Paperclip size={10} style={{ color: 'var(--color-text-tertiary)' }} />
+          <For each={contextState.attachments}>
+            {(attachment) => (
+              <ContextChip attachment={attachment} onRemove={removeAttachment} />
+            )}
+          </For>
+          <Show when={tokenDisplay()}>
+            <span class="text-[9px] font-mono text-text-tertiary/40 ml-1">
+              {tokenDisplay()}
+            </span>
+          </Show>
+        </div>
+      </Show>
+
       {/* Textarea with ambient glow on focus */}
       <div class="relative max-w-4xl mx-auto">
         <SlashCommandMenu
@@ -182,6 +358,16 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           highlightedIndex={slashState.highlightedIndex}
           onSelect={handleSlashSelect}
           onClose={closeMenu}
+        />
+        <FileMentionMenu
+          isOpen={mentionOpen()}
+          results={mentionResults()}
+          highlightedIndex={mentionHighlight()}
+          onSelect={handleMentionSelect}
+          onClose={() => {
+            setMentionOpen(false);
+            setMentionResults([]);
+          }}
         />
         <textarea
           ref={textareaRef}
@@ -196,7 +382,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             'box-shadow': isFocused() ? 'var(--glow-accent-subtle)' : 'none',
             'transition-duration': 'var(--duration-normal)',
           }}
-          placeholder={props.isDisabled ? 'No CLI bridge connected' : 'Message Chief Wiggum...'}
+          placeholder={props.isDisabled ? 'No CLI bridge connected' : 'Message Chief Wiggum... (@ to mention files)'}
           disabled={props.isDisabled}
           onInput={handleInput}
           on:keydown={handleKeyDown}
@@ -206,6 +392,10 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             // Delay close to allow click on menu items
             setTimeout(() => {
               if (slashState.isOpen) closeMenu();
+              if (mentionOpen()) {
+                setMentionOpen(false);
+                setMentionResults([]);
+              }
             }, 200);
           }}
           rows={1}
