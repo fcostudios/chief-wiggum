@@ -79,6 +79,8 @@
 | CHI-102: Developer Mode | **Done** | Three-tier permission model, Bash allowedTools patterns |
 | CHI-103: HMR Resilience | **Done** | SessionRuntime event buffer (200-event ring), reconnectAfterReload(), dedup replay |
 | CHI-104: Parallel Sessions | **Done** | Per-session processStatus, per-session listeners, non-destructive switching, sidebar indicators |
+| CHI-94: 3-Layer Tracing | **Done** | `logging/` module — console + rolling file (JSON) + ring buffer (36K entries), platform-aware paths |
+| CHI-106: Slash Command Discovery | **Done** | `slash/` module — 11 built-in + project + user `.md` scanning, IPC commands |
 
 ## Phase 1 Status
 
@@ -230,6 +232,27 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
+### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-106 | Urgent | **Done** | Command Discovery Backend — file scanning `.claude/commands/` + IPC |
+| CHI-107 | High | Todo | SlashCommandMenu UI Component — inline autocomplete on `/` |
+| CHI-108 | Medium | Todo | SDK Command Discovery Integration (Phase B) — swap to `system:init` after CHI-101 |
+
+Two-phase architecture: Phase A (CHI-106/107) uses file scanning and works now. Phase B (CHI-108) swaps to SDK discovery after CHI-101 lands. UI carries over 100%. See SPEC-003 §4.13, §10.7 and SPEC-004 §4.4.7, §5.7.
+
+### Epic CHI-109: Parallel Sessions v2 — Split Panes & Resource Management (Phase 3)
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-110 | High | Todo | Split Pane Layout System — Cmd+\\, draggable divider, dual ConversationView |
+| CHI-111 | High | Todo | Concurrent Session Resource Limits — configurable max (default 4) |
+| CHI-112 | Medium | Todo | Aggregate Cost Tracking Across Sessions |
+| CHI-113 | Medium | Todo | Session Activity Notifications — unread badges, background toasts |
+
+Builds on CHI-104's per-session state and non-destructive switching. See SPEC-003 §4.14, §10.8 and SPEC-004 §4.4.8, §5.8.
+
 ---
 
 ## Document Map (Read Before Coding)
@@ -299,7 +322,15 @@ src-tauri/
     │   ├── session.rs          # 8 session/message IPC commands (CHI-22)
     │   ├── cli.rs              # get_cli_info IPC command (CHI-48)
     │   ├── project.rs          # pick_project_folder, create_project, list_projects (CHI-40)
-    │   └── bridge.rs           # start_session_cli, send_to_cli, stop/status (CHI-45)
+    │   ├── bridge.rs           # start_session_cli, send_to_cli, stop/status (CHI-45)
+    │   └── slash.rs            # list_slash_commands, refresh_slash_commands (CHI-106)
+    ├── logging/                # 3-layer tracing system (CHI-94)
+    │   ├── mod.rs              # Module root, re-exports
+    │   ├── init.rs             # init_logging(), get_ring_buffer(), log cleanup
+    │   └── ring_buffer.rs      # RingBufferLayer, LogEntry, 36K capacity
+    ├── slash/                  # Slash command discovery (CHI-106)
+    │   ├── mod.rs              # SlashCommand, CommandCategory, builtin_commands()
+    │   └── scanner.rs          # Filesystem scanner, discover_all(), YAML parsing
     ├── db/                     # SQLite database layer (DONE)
     │   ├── mod.rs              # Module root, re-exports Database
     │   ├── connection.rs       # Database struct, Mutex<Connection>, WAL mode

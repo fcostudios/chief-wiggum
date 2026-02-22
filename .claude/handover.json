@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T01:00:00Z",
+  "last_updated": "2026-02-23T02:00:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -978,7 +978,7 @@
       "linear_id": "d5aa1cb9-e2b0-46bc-bbed-d3faa381aa34",
       "notes": "New epic designed by Cowork. 3-layer tracing (console+file+ring buffer), privacy redaction, ZIP diagnostic bundles, frontend log forwarding, export UI with consent dialog.",
       "tasks": {
-        "CHI-94": { "title": "3-Layer Tracing Subscriber Setup", "status": "todo", "priority": "Urgent", "linear_id": "84a2450a" },
+        "CHI-94": { "title": "3-Layer Tracing Subscriber Setup", "status": "done", "priority": "Urgent", "linear_id": "84a2450a", "completed_at": "2026-02-23T02:00:00Z", "files": ["src-tauri/src/logging/mod.rs", "src-tauri/src/logging/init.rs", "src-tauri/src/logging/ring_buffer.rs", "src-tauri/src/lib.rs", "src-tauri/src/main.rs", "src-tauri/Cargo.toml"], "notes": "3-layer tracing: console (pretty/compact), rolling file (JSON, daily, platform-aware), ring buffer (36K entries, parking_lot). Log cleanup >30 days. get_ring_buffer() via OnceLock. 6 new tests." },
         "CHI-95": { "title": "Log Redaction Engine", "status": "todo", "priority": "High", "linear_id": "eb10835a", "dependencies": ["CHI-94"] },
         "CHI-96": { "title": "Diagnostic Bundle Export (ZIP)", "status": "todo", "priority": "High", "linear_id": "cb869b15", "dependencies": ["CHI-94", "CHI-95"] },
         "CHI-97": { "title": "Frontend Log Forwarding via IPC", "status": "todo", "priority": "Medium", "linear_id": "7532e389", "dependencies": ["CHI-94"] },
@@ -988,15 +988,46 @@
       }
     }
   },
+  "slash_commands_epic": {
+    "CHI-105": {
+      "title": "Slash Commands & Skill Invocation",
+      "status": "todo",
+      "priority": "High",
+      "linear_id": "c384d5dc-a0e5-4b14-9520-da04e86d5853",
+      "notes": "Two-phase architecture: Phase A (file scanning) works now, Phase B (SDK discovery) activates after CHI-101. Reuses CommandPalette fuzzy search logic.",
+      "tasks": {
+        "CHI-106": { "title": "Command Discovery Backend (File Scanning + IPC)", "status": "done", "priority": "Urgent", "linear_id": "7d5f46c4", "completed_at": "2026-02-23T02:00:00Z", "files": ["src-tauri/src/slash/mod.rs", "src-tauri/src/slash/scanner.rs", "src-tauri/src/commands/slash.rs", "src-tauri/src/commands/mod.rs", "src-tauri/src/main.rs", "src-tauri/src/lib.rs"], "notes": "11 built-in commands, project + user .md scanning, YAML frontmatter parsing, override priority (project>user>builtin), list_slash_commands + refresh_slash_commands IPC. 13 new tests." },
+        "CHI-107": { "title": "SlashCommandMenu UI Component", "status": "todo", "priority": "High", "linear_id": "a8cf727e", "dependencies": ["CHI-106"] },
+        "CHI-108": { "title": "SDK Command Discovery Integration (Phase B)", "status": "todo", "priority": "Medium", "linear_id": "704f174f", "dependencies": ["CHI-101", "CHI-106"] }
+      }
+    }
+  },
+  "parallel_sessions_v2_epic": {
+    "CHI-109": {
+      "title": "Parallel Sessions v2 — Split Panes & Resource Management",
+      "status": "todo",
+      "priority": "High",
+      "linear_id": "2ef13626-852d-4e3e-a4ab-a1d78ba309b3",
+      "notes": "Builds on CHI-104's per-session state. Adds visual split panes, resource limits, aggregate cost, and activity notifications.",
+      "tasks": {
+        "CHI-110": { "title": "Split Pane Layout System", "status": "todo", "priority": "High", "linear_id": "1a9f4d01", "dependencies": ["CHI-104"] },
+        "CHI-111": { "title": "Concurrent Session Resource Limits", "status": "todo", "priority": "High", "linear_id": "e52af42e", "dependencies": ["CHI-104"] },
+        "CHI-112": { "title": "Aggregate Cost Tracking Across Sessions", "status": "todo", "priority": "Medium", "linear_id": "d41e2067", "dependencies": ["CHI-53", "CHI-104"] },
+        "CHI-113": { "title": "Session Activity Notifications", "status": "todo", "priority": "Medium", "linear_id": "e35d06e0", "dependencies": ["CHI-104"] }
+      }
+    }
+  },
   "recommended_next": [
     "CHI-101",
+    "CHI-106",
     "CHI-94",
+    "CHI-110",
     "CHI-86",
     "CHI-69",
     "CHI-78",
     "CHI-82"
   ],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-35/36/37/38/39 all DONE. HMR resilience (CHI-103) and parallel sessions (CHI-104) DONE. Most UX polish done. Remaining: CHI-101 (Agent SDK — major architecture change), CHI-93 (logging epic — 7 tasks), CHI-61 remaining (CHI-69 vibrancy), CHI-63 remaining (CHI-78/79), CHI-64 remaining (CHI-81/82/83), CHI-65 remaining (CHI-86/87/88), CHI-66 remaining (CHI-92 diff preview).",
+  "critical_path": "All P0/P1 Phase 2 work complete. CHI-35/36/37/38/39 all DONE. HMR resilience (CHI-103) and parallel sessions v1 (CHI-104) DONE. Most UX polish done. KEY UPCOMING: CHI-101 (Agent SDK — critical enabler for CHI-105/CHI-108/CHI-109), CHI-105 (Slash Commands — CHI-106 can start now, CHI-108 needs CHI-101), CHI-109 (Parallel Sessions v2 — needs CHI-104 done ✓, CHI-110/111 can start now), CHI-93 (Logging epic — 7 tasks). Remaining UX: CHI-61 (CHI-69 vibrancy), CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-86/87/88), CHI-66 (CHI-92 diff preview).",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-69 (vibrancy), CHI-78 (context menus), CHI-82 (placeholder views), CHI-86 (session rename), CHI-87 (view tabs)"
@@ -1008,12 +1039,12 @@
       "changes": "Added tool use colors (§3.5), toast colors (§3.6), 7 new component specs (§10.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
     },
     "SPEC-003": {
-      "version": "2.0",
-      "changes": "Added 6 Phase 2 interaction flows (§4.7-4.12: CLI detection, project selection, real streaming, YOLO toggle, session lifecycle, cost tracking), keyboard shortcut updates, UX Polish specifications (§10.1-10.6) for all 6 UX epics"
+      "version": "2.1",
+      "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec (CHI-105/106/107/108), §10.8 Split Pane & Parallel Sessions v2 spec (CHI-109/110/111/112/113)"
     },
     "SPEC-004": {
-      "version": "2.0",
-      "changes": "Added Phase 2 files to monorepo structure, expanded module/store tables with Phase column, Phase 2 IPC contracts (§4.4), 3 data flow diagrams (§5.3-5.5: CLI detection, session bridge lifecycle, cost tracking), Phase 2 types"
+      "version": "2.2",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: Added slash/ module to monorepo structure, SlashCommandMenu.tsx + SplitConversationView.tsx to frontend, slashStore.ts + viewStore.ts, §4.4.7 Slash Command IPC, §4.4.8 Split Pane IPC, §5.7 Slash Command Discovery Flow, §5.8 Split Pane Flow, SlashCommand + ViewState types"
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1096,7 +1127,7 @@
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE (CHI-35/36/37/38/39). HMR resilience (CHI-103) and parallel sessions (CHI-104) DONE. UX polish nearly complete: CHI-61 (3/4), CHI-62 (5/5 DONE), CHI-63 (2/4), CHI-64 (1/4), CHI-65 (2/5), CHI-66 (3/4). Developer Mode (CHI-102) DONE. 84 Rust tests pass. DB schema v3 (pinned column). Next priorities: CHI-101 (Agent SDK migration), CHI-93 (logging), remaining UX tasks.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE (CHI-35/36/37/38/39). HMR resilience (CHI-103) and parallel sessions v1 (CHI-104) DONE. UX polish nearly complete: CHI-61 (3/4), CHI-62 (5/5 DONE), CHI-63 (2/4), CHI-64 (1/4), CHI-65 (2/5), CHI-66 (3/4). Developer Mode (CHI-102) DONE. CHI-94 (3-layer tracing) DONE. CHI-106 (slash command discovery) DONE. 103 Rust tests pass. DB schema v3.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -1104,6 +1135,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 84 Rust tests pass (12 SessionBridgeMap + 4 parser + 1 pinned). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3 (cli_session_id + pinned columns). fix-path-env for macOS GUI PATH. Session lifecycle fully wired (switch/delete/retry/shutdown). HMR resilience: SessionRuntime event buffer + reconnection protocol. Parallel sessions: per-session status + listeners + non-destructive switching."
+    "notes": "Full toolchain ready. 103 Rust tests pass (12 SessionBridgeMap + 4 parser + 1 pinned + 6 logging + 13 slash). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3 (cli_session_id + pinned columns). fix-path-env for macOS GUI PATH. Session lifecycle fully wired (switch/delete/retry/shutdown). HMR resilience: SessionRuntime event buffer + reconnection protocol. Parallel sessions: per-session status + listeners + non-destructive switching. 3-layer tracing: console + file + ring buffer. Slash command discovery: built-in + project + user."
   }
 }
