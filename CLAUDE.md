@@ -1,7 +1,7 @@
 # Chief Wiggum — Agent Instructions
 
 > **Read this file first.** It is the auto-briefing for any Claude Code session.
-> Updated: 2026-02-21
+> Updated: 2026-02-22
 
 ---
 
@@ -61,6 +61,22 @@
 | CHI-59: Crash Recovery | **Done** | retryLastMessage(), Retry button in error display |
 | CHI-80: Empty State | **Done** | CW branding, 3 clickable sample prompt cards |
 | CHI-41: Project Sidebar | **Done** | Recent projects list (max 5), click-to-switch |
+| CHI-42: CLAUDE.md Detection | **Done** | Detect and display CLAUDE.md from project folder |
+| CHI-43: Session-Project Binding | **Done** | Bind sessions to projects with inherited settings |
+| CHI-53: Cost Accumulator | **Done** | Cost accumulator service with SQLite persistence |
+| CHI-54: StatusBar Cost Display | **Done** | Bind StatusBar + DetailsPanel to live cost events |
+| CHI-55: Per-message Cost | **Done** | K-formatted tokens, dollar cost, copy button in MessageBubble |
+| CHI-68: Titlebar Redesign | **Done** | Settings gear, removed sidebar toggle, cleaner layout |
+| CHI-72: Typing Indicator | **Done** | Premium animated dots with shimmer effect |
+| CHI-73: Typewriter Buffer | **Done** | Smooth streaming text via adaptive character buffer |
+| CHI-74: Toast System | **Done** | `toastStore.ts`, `ToastContainer.tsx`, slide animations, max 3, auto-dismiss |
+| CHI-75: Micro-interactions | **Done** | Copy icon swap, hover-lift, session border slide, press feedback |
+| CHI-76: Command Palette | **Done** | Cmd+K, fuzzy search, categorized actions |
+| CHI-77: Session Quick-Switcher | **Done** | Cmd+Shift+P, filtered CommandPalette mode |
+| CHI-84: Sidebar Icon-Rail | **Done** | 48px collapsed mode with tooltips |
+| CHI-85: Session Sections | **Done** | Pinned/Recent/Older collapsible sections, DB migration v3 |
+| CHI-91: Permission Records | **Done** | Inline allowed/denied/YOLO blocks in conversation |
+| CHI-102: Developer Mode | **Done** | Three-tier permission model, Bash allowedTools patterns |
 
 ## Phase 1 Status
 
@@ -79,14 +95,14 @@
 
 **Critical Path:** CHI-40 → CHI-44 → CHI-45 → CHI-46 → CHI-47 = minimum to "it actually works"
 
-### Epic CHI-35: Project & Folder Management (P0) — Partial
+### Epic CHI-35: Project & Folder Management (P0) — DONE
 
 | Task | Priority | Status | Description |
 |------|----------|--------|-------------|
 | CHI-40 | P0 | **Done** | Folder picker + project creation via native dialog |
 | CHI-41 | P1 | **Done** | Project sidebar section with recent projects |
-| CHI-42 | P2 | Todo | Detect and display CLAUDE.md from project folder |
-| CHI-43 | P1 | Todo | Bind sessions to projects with inherited settings |
+| CHI-42 | P2 | **Done** | Detect and display CLAUDE.md from project folder |
+| CHI-43 | P1 | **Done** | Bind sessions to projects with inherited settings |
 
 ### Epic CHI-36: CLI Connection & Streaming (P0) — DONE
 
@@ -107,13 +123,13 @@
 | CHI-51 | P0 | **Done** | Build full permission event pipeline (frontend→backend) |
 | CHI-52 | P1 | **Done** | Wire YOLO mode frontend toggle to backend IPC |
 
-### Epic CHI-38: Live Cost Tracking (P2)
+### Epic CHI-38: Live Cost Tracking (P2) — DONE
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-53 | P1 | Cost accumulator service with SQLite persistence |
-| CHI-54 | P1 | Bind StatusBar + DetailsPanel to live cost events |
-| CHI-55 | P2 | Per-message token/cost display in MessageBubble |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-53 | P1 | **Done** | Cost accumulator service with SQLite persistence |
+| CHI-54 | P1 | **Done** | Bind StatusBar + DetailsPanel to live cost events |
+| CHI-55 | P2 | **Done** | Per-message token/cost display in MessageBubble |
 
 ### Epic CHI-39: Session Lifecycle Management (P1) — DONE
 
@@ -148,7 +164,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | Task | Priority | Status | Description |
 |------|----------|--------|-------------|
 | CHI-67 | Urgent | **Done** | Native window controls (macOS traffic lights + Windows buttons) |
-| CHI-68 | High | Todo | Titlebar redesign with platform-aware layout |
+| CHI-68 | High | **Done** | Titlebar redesign with platform-aware layout |
 | CHI-69 | Low | Todo | macOS vibrancy effects on sidebar and titlebar |
 | CHI-70 | Medium | **Done** | Custom scrollbar styling for dark theme |
 
@@ -157,17 +173,17 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | Task | Priority | Status | Description |
 |------|----------|--------|-------------|
 | CHI-71 | Medium | **Done** | Message enter/exit animations (slide + fade) |
-| CHI-72 | High | Todo | Premium typing indicator (animated dots, shimmer) |
-| CHI-73 | High | Smooth streaming text rendering (typewriter buffer) |
-| CHI-74 | Medium | Toast notification system |
-| CHI-75 | Medium | Copy feedback animations + hover micro-interactions |
+| CHI-72 | High | **Done** | Premium typing indicator (animated dots, shimmer) |
+| CHI-73 | High | **Done** | Smooth streaming text rendering (typewriter buffer) |
+| CHI-74 | Medium | **Done** | Toast notification system |
+| CHI-75 | Medium | **Done** | Copy feedback animations + hover micro-interactions |
 
 #### Epic CHI-63: Command Palette & Power User UX (Medium)
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-76 | High | Command palette UI (Cmd+K, fuzzy search, categorized actions) |
-| CHI-77 | Medium | Session quick-switcher (Cmd+Shift+P) |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-76 | High | **Done** | Command palette UI (Cmd+K, fuzzy search, categorized actions) |
+| CHI-77 | Medium | **Done** | Session quick-switcher (Cmd+Shift+P) |
 | CHI-78 | Medium | Custom context menus (messages, sessions, code blocks) |
 | CHI-79 | Medium | Keyboard navigation audit + focus management |
 
@@ -182,10 +198,10 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 #### Epic CHI-65: Sidebar & Navigation Polish (Medium)
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-84 | High | Sidebar collapsed icon-rail mode (48px with tooltips) |
-| CHI-85 | Medium | Session sections (Pinned, Recent, Older) |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-84 | High | **Done** | Sidebar collapsed icon-rail mode (48px with tooltips) |
+| CHI-85 | Medium | **Done** | Session sections (Pinned, Recent, Older) |
 | CHI-86 | Medium | Session rename inline + session actions menu |
 | CHI-87 | Medium | View tabs with icons + count badges |
 | CHI-88 | Low | Sidebar search/filter |
@@ -196,10 +212,10 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 |------|----------|--------|-------------|
 | CHI-89 | High | **Done** | ToolUseBlock component (collapsible, color-coded) |
 | CHI-90 | Medium | **Done** | ThinkingBlock component (muted reasoning display) |
-| CHI-91 | Medium | Todo | Permission inline record (approved/denied after dialog) |
+| CHI-91 | Medium | **Done** | Permission inline record (approved/denied after dialog) |
 | CHI-92 | Low | Todo | File diff preview within conversation |
 
-**Quick wins to start immediately:** CHI-72 (typing indicator), CHI-84 (sidebar collapsed), CHI-76 (command palette)
+**Quick wins completed:** CHI-72 (typing indicator), CHI-84 (sidebar collapsed), CHI-76 (command palette) — all done
 
 ### Phase 3: Agent SDK Integration (Planned)
 
@@ -310,7 +326,9 @@ src/                            # SolidJS frontend
 │   │   ├── StatusBar.tsx       # Bottom bar (status, tokens, cost)
 │   │   └── DetailsPanel.tsx    # Right panel (context, cost sections)
 │   ├── common/                 # Shared UI components (DONE — CHI-20)
-│   │   └── ModelSelector.tsx   # Model dropdown (Sonnet/Opus/Haiku)
+│   │   ├── ModelSelector.tsx   # Model dropdown (Sonnet/Opus/Haiku)
+│   │   ├── CommandPalette.tsx  # Command palette + session switcher (CHI-76, CHI-77)
+│   │   └── ToastContainer.tsx  # Toast notifications (CHI-74)
 │   ├── conversation/           # Conversation UI (DONE — CHI-18, CHI-19)
 │   │   ├── ConversationView.tsx # Message list, auto-scroll, empty state
 │   │   ├── MessageBubble.tsx   # Role labels, model badges, markdown content
@@ -319,21 +337,24 @@ src/                            # SolidJS frontend
 │   │   ├── ToolUseBlock.tsx    # Collapsible tool use display, color-coded (CHI-89)
 │   │   ├── ToolResultBlock.tsx # Tool result display with error state (CHI-89)
 │   │   ├── ThinkingBlock.tsx   # Collapsible thinking display (CHI-90)
-│   │   └── StreamingThinkingBlock.tsx # Live thinking with cursor blink (CHI-90)
+│   │   ├── StreamingThinkingBlock.tsx # Live thinking with cursor blink (CHI-90)
+│   │   └── PermissionRecordBlock.tsx # Inline permission records (CHI-91)
 │   ├── terminal/               # Terminal Mode (DONE — CHI-21)
 │   │   └── TerminalPane.tsx    # xterm.js v5 + WebGL + FitAddon
 │   └── permissions/            # Permission system UI (DONE — CHI-23, CHI-26)
 │       ├── PermissionDialog.tsx # Modal permission dialog
 │       └── YoloWarningDialog.tsx # YOLO mode confirmation warning
 ├── stores/
-│   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo)
-│   ├── sessionStore.ts         # Session state (CRUD, model cycling, active session)
-│   ├── conversationStore.ts    # Conversation state (real CLI streaming, event listeners)
+│   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo, command palette)
+│   ├── sessionStore.ts         # Session state (CRUD, model cycling, active session, pin)
+│   ├── conversationStore.ts    # Conversation state (real CLI streaming, event listeners, typewriter)
+│   ├── toastStore.ts           # Toast notification state (max 3, auto-dismiss) (CHI-74)
 │   ├── cliStore.ts             # CLI detection state (isDetected, location) (CHI-48)
 │   └── projectStore.ts         # Project state (folder picker, active project) (CHI-40)
 ├── lib/
 │   ├── types.ts                # TypeScript IPC types (Message, PermissionRequest, etc.)
-│   └── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+`, Cmd+Shift+Y)
+│   ├── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+`, Cmd+Shift+Y, Cmd+Shift+P)
+│   └── typewriterBuffer.ts     # Smooth streaming character buffer (CHI-73)
 └── styles/
     └── tokens.css              # SPEC-002 design tokens + TailwindCSS v4 @theme
 ```
