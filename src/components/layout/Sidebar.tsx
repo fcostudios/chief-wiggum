@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, onMount, createSignal } from 'solid-js';
-import { Plus, Trash2, MessageSquare, FolderOpen, Pin } from 'lucide-solid';
+import { Plus, Trash2, MessageSquare, FolderOpen, Pin, FileCode } from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
   sessionState,
@@ -28,7 +28,9 @@ import {
   setActiveProject,
   getActiveProject,
 } from '@/stores/projectStore';
+import { fileState, toggleFilesVisible } from '@/stores/fileStore';
 import { uiState } from '@/stores/uiStore';
+import FileTree from '@/components/explorer/FileTree';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -238,6 +240,58 @@ const Sidebar: Component = () => {
           </div>
         </Show>
       </div>
+
+      {/* Files section — only when project is active */}
+      <Show when={projectState.activeProjectId}>
+        <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+          <Show
+            when={!isCollapsed()}
+            fallback={
+              <div class="flex flex-col items-center py-2 gap-1">
+                <button
+                  class="flex items-center justify-center w-8 h-8 rounded-md text-text-tertiary hover:text-accent hover:bg-bg-elevated/50 transition-colors"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  onClick={() => toggleFilesVisible()}
+                  aria-label="Toggle files"
+                  title="Files"
+                >
+                  <FileCode size={16} />
+                </button>
+              </div>
+            }
+          >
+            {/* Files header */}
+            <button
+              class="flex items-center justify-between w-full px-3 py-2 text-left"
+              onClick={() => toggleFilesVisible()}
+            >
+              <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+                Files
+              </span>
+              <span
+                class="text-[9px] transition-transform"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  transform: fileState.isVisible ? 'rotate(90deg)' : 'rotate(0deg)',
+                  'transition-duration': 'var(--duration-fast)',
+                }}
+              >
+                ›
+              </span>
+            </button>
+
+            {/* File tree (collapsible) */}
+            <Show when={fileState.isVisible}>
+              <div
+                class="max-h-[250px] overflow-hidden"
+                style={{ 'transition-duration': 'var(--duration-normal)' }}
+              >
+                <FileTree />
+              </div>
+            </Show>
+          </Show>
+        </div>
+      </Show>
 
       {/* Sessions header */}
       <Show

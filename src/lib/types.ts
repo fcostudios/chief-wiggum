@@ -188,3 +188,57 @@ export interface SlashCommand {
   source_path: string | null;
   from_sdk: boolean;
 }
+
+// ── File Explorer (CHI-115/116/117) ──────────────────────
+
+/** Filesystem node type. */
+export type FileNodeType = 'File' | 'Directory' | 'Symlink';
+
+/** A node in the file tree. */
+export interface FileNode {
+  name: string;
+  relative_path: string;
+  node_type: FileNodeType;
+  size_bytes: number | null;
+  extension: string | null;
+  children: FileNode[] | null;
+  is_binary: boolean;
+}
+
+/** File content returned by read_project_file. */
+export interface FileContent {
+  relative_path: string;
+  content: string;
+  line_count: number;
+  size_bytes: number;
+  language: string | null;
+  estimated_tokens: number;
+  truncated: boolean;
+}
+
+/** Search result for file name matching. */
+export interface FileSearchResult {
+  relative_path: string;
+  name: string;
+  extension: string | null;
+  score: number;
+}
+
+/** Reference to a file attached to a prompt. */
+export interface FileReference {
+  relative_path: string;
+  name: string;
+  extension: string | null;
+  estimated_tokens: number;
+  start_line?: number;
+  end_line?: number;
+  is_directory: boolean;
+}
+
+/** An attached file in the context assembly. */
+export interface ContextAttachment {
+  id: string;
+  reference: FileReference;
+  content?: string;
+  actual_tokens?: number;
+}
