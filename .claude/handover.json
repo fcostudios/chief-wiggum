@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-22T12:00:00Z",
+  "last_updated": "2026-02-22T12:30:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -881,10 +881,20 @@
     },
     "CHI-102": {
       "title": "Add granular Bash allowedTools patterns (Developer Mode)",
-      "status": "todo",
+      "status": "done",
       "priority": "Urgent",
       "linear_id": "9b8f4bd9-43d3-4604-afe1-6a2a5f0328c2",
-      "notes": "Quick fix: pre-authorize common Bash patterns (git, gh, npm, cargo, etc.) via --allowedTools. Three permission tiers: Safe → Developer → YOLO. Interim solution until CHI-101 is implemented."
+      "completed_at": "2026-02-22T12:30:00Z",
+      "files": [
+        "src-tauri/src/bridge/permission.rs",
+        "src-tauri/src/commands/bridge.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/uiStore.ts",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/TitleBar.tsx",
+        "src/lib/keybindings.ts"
+      ],
+      "notes": "Three-tier permission model: Safe → Developer → YOLO. Developer mode adds 20 Bash(pattern) allowedTools for common dev commands (git, gh, npm, cargo, etc.). TitleBar shows cycling Shield/ShieldCheck/Zap icons. StatusBar shows DEV/YOLO indicators. Cmd+Shift+D keyboard shortcut. 3 new tests (78 total)."
     }
   },
   "logging_epic": {
@@ -906,7 +916,6 @@
     }
   },
   "recommended_next": [
-    "CHI-102",
     "CHI-53",
     "CHI-68",
     "CHI-72",

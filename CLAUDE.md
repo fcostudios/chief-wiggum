@@ -206,7 +206,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | Task | Priority | Status | Description |
 |------|----------|--------|-------------|
 | CHI-101 | High | Todo | Migrate CLI bridge from `-p` mode to Agent SDK control protocol (SPEC-004 §5.6) |
-| CHI-102 | Urgent | Todo | Add granular Bash allowedTools patterns (Developer Mode — interim fix) |
+| CHI-102 | Urgent | **Done** | Add granular Bash allowedTools patterns (Developer Mode — interim fix) |
 
 **CHI-101** is a major architecture change: replaces spawn-per-message (`-p`) with persistent sessions using the bidirectional JSONL control protocol (`--input-format stream-json`). Enables true interactive permissions, runtime model switching, and clean interruption. See SPEC-004 §5.6 for full protocol documentation.
 
