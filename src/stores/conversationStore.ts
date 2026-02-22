@@ -521,7 +521,13 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     setSessionStatus(sessionId, 'running');
   } catch (err) {
     setState('isLoading', false);
-    setState('error', `Failed to send message: ${err}`);
+    const errStr = String(err);
+    // Friendly message for session limit (CHI-111)
+    if (errStr.includes('Resource limit')) {
+      setState('error', 'Maximum concurrent sessions reached. Stop another session first.');
+    } else {
+      setState('error', `Failed to send message: ${errStr}`);
+    }
     setSessionStatus(sessionId, 'error');
     devWarn('Failed to send message:', err);
   }

@@ -41,6 +41,13 @@ pub async fn send_to_cli(
         bridge_map.remove(&session_id).await?;
     }
 
+    // Check concurrent session limit (CHI-111)
+    if !bridge_map.can_spawn().await {
+        let active = bridge_map.active_count().await;
+        let max = bridge_map.max_concurrent();
+        return Err(AppError::ResourceLimit { max, active });
+    }
+
     let cli_path = cli.binary_path()?.to_string();
     let yolo = permission_manager.is_yolo_mode().await;
     let developer = permission_manager.is_developer_mode().await;

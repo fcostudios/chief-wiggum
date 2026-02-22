@@ -15,6 +15,9 @@ use super::event_loop::{
 use super::process::{BridgeConfig, BridgeInterface, CliBridge};
 use crate::{AppError, AppResult};
 
+/// Default maximum number of concurrent CLI sessions.
+const DEFAULT_MAX_CONCURRENT: usize = 4;
+
 /// Maximum buffered events per session. Oldest events are evicted when full.
 const MAX_EVENT_BUFFER: usize = 200;
 
@@ -106,6 +109,8 @@ pub struct SessionBridgeMap {
     mcp_server_prefixes: Arc<RwLock<HashSet<String>>>,
     /// Per-session runtime state including event buffers for HMR resilience.
     session_runtimes: Arc<RwLock<HashMap<String, SessionRuntime>>>,
+    /// Maximum number of concurrent CLI sessions allowed.
+    max_concurrent: usize,
 }
 
 impl SessionBridgeMap {
@@ -115,6 +120,7 @@ impl SessionBridgeMap {
             bridges: Arc::new(RwLock::new(HashMap::new())),
             mcp_server_prefixes: Arc::new(RwLock::new(HashSet::new())),
             session_runtimes: Arc::new(RwLock::new(HashMap::new())),
+            max_concurrent: DEFAULT_MAX_CONCURRENT,
         }
     }
 
@@ -186,6 +192,16 @@ impl SessionBridgeMap {
     /// Get count of active bridges.
     pub async fn active_count(&self) -> usize {
         self.bridges.read().await.len()
+    }
+
+    /// Check if a new session can be spawned (under the concurrent limit).
+    pub async fn can_spawn(&self) -> bool {
+        self.active_count().await < self.max_concurrent
+    }
+
+    /// Get the maximum concurrent session limit.
+    pub fn max_concurrent(&self) -> usize {
+        self.max_concurrent
     }
 
     /// Get a clone of the runtimes map for passing to event loops.
@@ -403,6 +419,30 @@ mod tests {
         map.remove("s1").await.unwrap();
         let active = map.list_active_sessions().await;
         assert_eq!(active.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn can_spawn_respects_limit() {
+        let map = SessionBridgeMap::new(); // default limit = 4
+        assert!(map.can_spawn().await);
+
+        // Fill up to limit
+        for i in 0..4 {
+            map.insert_mock(&format!("s{}", i), Arc::new(MockBridge::new(vec![])))
+                .await;
+        }
+        assert!(!map.can_spawn().await);
+        assert_eq!(map.active_count().await, 4);
+
+        // Remove one -> can spawn again
+        map.remove("s0").await.unwrap();
+        assert!(map.can_spawn().await);
+    }
+
+    #[tokio::test]
+    async fn max_concurrent_default_is_four() {
+        let map = SessionBridgeMap::new();
+        assert_eq!(map.max_concurrent(), 4);
     }
 
     #[tokio::test]

@@ -178,3 +178,13 @@ export interface Project {
   created_at: string | null;
   last_opened_at: string | null;
 }
+
+/** Slash command from backend discovery (mirrors Rust SlashCommand). */
+export interface SlashCommand {
+  name: string;
+  description: string;
+  category: 'Builtin' | 'Project' | 'User';
+  args_hint: string | null;
+  source_path: string | null;
+  from_sdk: boolean;
+}

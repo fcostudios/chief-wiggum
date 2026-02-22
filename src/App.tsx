@@ -3,6 +3,7 @@ import { onMount } from 'solid-js';
 import MainLayout from '@/components/layout/MainLayout';
 import { detectCli } from '@/stores/cliStore';
 import { loadProjects } from '@/stores/projectStore';
+import { loadCommands } from '@/stores/slashStore';
 import { reconnectAfterReload } from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
 
@@ -10,6 +11,7 @@ const App: Component = () => {
   onMount(() => {
     detectCli();
     loadProjects();
+    loadCommands();
 
     // Allow session store to load first, then reconnect to active CLI bridges
     setTimeout(async () => {

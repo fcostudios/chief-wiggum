@@ -5,8 +5,20 @@
 // Character count indicator. Disabled when no CLI bridge connected.
 
 import type { Component } from 'solid-js';
-import { createSignal, Show, onCleanup } from 'solid-js';
+import { createSignal, createEffect, Show, onCleanup } from 'solid-js';
 import { Send, Square } from 'lucide-solid';
+import type { SlashCommand } from '@/lib/types';
+import SlashCommandMenu from './SlashCommandMenu';
+import {
+  slashState,
+  filteredCommands,
+  openMenu,
+  closeMenu,
+  setFilter,
+  highlightPrev,
+  highlightNext,
+  getHighlightedCommand,
+} from '@/stores/slashStore';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -20,6 +32,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   const [isFocused, setIsFocused] = createSignal(false);
   let textareaRef: HTMLTextAreaElement | undefined;
 
+  // Local boolean synced with store — avoids any store proxy issues in event handlers
+  let menuOpen = false;
+  createEffect(() => {
+    menuOpen = slashState.isOpen;
+  });
+
   // Auto-resize textarea between min and max height
   function adjustHeight() {
     if (!textareaRef) return;
@@ -30,8 +48,24 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   function handleInput(e: InputEvent) {
     const target = e.target as HTMLTextAreaElement;
-    setContent(target.value);
+    const value = target.value;
+    setContent(value);
     adjustHeight();
+
+    // Slash command detection: `/` after a space, newline, or at the start of text.
+    // Extracts the slash token from the cursor backwards to the triggering `/`.
+    const cursorPos = target.selectionStart ?? 0;
+    const textBeforeCursor = value.slice(0, cursorPos);
+
+    // Find the last `/` before the cursor that's preceded by whitespace or is at position 0
+    const slashMatch = textBeforeCursor.match(/(?:^|[\s])\/([^\s/]*)$/);
+    if (slashMatch) {
+      const afterSlash = slashMatch[1];
+      openMenu(afterSlash);
+      setFilter(afterSlash);
+    } else {
+      if (slashState.isOpen) closeMenu();
+    }
   }
 
   function handleSend() {
@@ -49,7 +83,67 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     props.onCancel?.();
   }
 
+  function handleSlashSelect(cmd: SlashCommand) {
+    if (!textareaRef) return;
+    const value = textareaRef.value;
+    const cursorPos = textareaRef.selectionStart ?? 0;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    // Find the `/` that triggered the menu (last `/` preceded by whitespace or at pos 0)
+    const match = textBeforeCursor.match(/(?:^|[\s])(\/[^\s/]*)$/);
+    if (!match) return;
+    const slashStart = textBeforeCursor.length - match[1].length;
+    const replacement = `/${cmd.name}${cmd.args_hint ? ' ' : ' '}`;
+    const newValue = value.slice(0, slashStart) + replacement + value.slice(cursorPos);
+    setContent(newValue);
+    textareaRef.value = newValue;
+    const newCursorPos = slashStart + replacement.length;
+    textareaRef.focus();
+    textareaRef.setSelectionRange(newCursorPos, newCursorPos);
+    closeMenu();
+    adjustHeight();
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
+    // When slash menu is open, intercept navigation keys
+    if (menuOpen) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        e.stopPropagation();
+        highlightPrev();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        e.stopPropagation();
+        highlightNext();
+        return;
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        const cmd = getHighlightedCommand();
+        if (cmd) {
+          handleSlashSelect(cmd);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenu();
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        e.stopPropagation();
+        const cmd = getHighlightedCommand();
+        if (cmd) {
+          handleSlashSelect(cmd);
+        }
+        return;
+      }
+    }
+
     // Enter (without Shift) sends the message
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
@@ -82,6 +176,13 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     >
       {/* Textarea with ambient glow on focus */}
       <div class="relative max-w-4xl mx-auto">
+        <SlashCommandMenu
+          isOpen={slashState.isOpen}
+          commands={filteredCommands()}
+          highlightedIndex={slashState.highlightedIndex}
+          onSelect={handleSlashSelect}
+          onClose={closeMenu}
+        />
         <textarea
           ref={textareaRef}
           class="w-full resize-none rounded-lg px-3 py-2.5 text-md text-text-primary placeholder:text-text-tertiary/50 font-ui focus:outline-none transition-all"
@@ -98,9 +199,15 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           placeholder={props.isDisabled ? 'No CLI bridge connected' : 'Message Chief Wiggum...'}
           disabled={props.isDisabled}
           onInput={handleInput}
-          onKeyDown={handleKeyDown}
+          on:keydown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            setIsFocused(false);
+            // Delay close to allow click on menu items
+            setTimeout(() => {
+              if (slashState.isOpen) closeMenu();
+            }, 200);
+          }}
           rows={1}
           aria-label="Message input"
         />

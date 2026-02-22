@@ -43,6 +43,12 @@ const StatusBar: Component = () => {
     const c = activeSession()?.total_cost_cents;
     return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
   };
+  const runningCount = () => {
+    const statuses = conversationState.sessionStatuses;
+    return Object.values(statuses).filter(
+      (s) => s === 'running' || s === 'starting',
+    ).length;
+  };
 
   return (
     <footer
@@ -114,6 +120,18 @@ const StatusBar: Component = () => {
               </span>
             </div>
           </Show>
+        </Show>
+        <Show when={runningCount() > 1}>
+          <span
+            class="font-mono px-1 py-0.5 rounded"
+            style={{
+              'font-size': '9px',
+              color: 'var(--color-text-tertiary)',
+              background: 'var(--color-bg-elevated)',
+            }}
+          >
+            {runningCount()} active
+          </span>
         </Show>
       </div>
 

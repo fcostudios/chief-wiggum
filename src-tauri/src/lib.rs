@@ -36,6 +36,9 @@ pub enum AppError {
     #[error("Budget exceeded: {scope} limit of {limit_cents} cents reached")]
     BudgetExceeded { scope: String, limit_cents: i64 },
 
+    #[error("Resource limit: maximum {max} concurrent sessions reached ({active} active)")]
+    ResourceLimit { max: usize, active: usize },
+
     #[error("{0}")]
     Other(String),
 }
