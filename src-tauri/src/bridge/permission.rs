@@ -2,6 +2,12 @@
 //!
 //! Implements CHI-16: permission request interception from CLI.
 //! Also implements CHI-26: YOLO Mode (auto-approve all permissions).
+//! Also implements CHI-102: Developer Mode (pre-authorize common Bash patterns).
+//!
+//! Three-tier permission model:
+//! - **Safe** (default): No Bash. Only read-only + edit tools allowed.
+//! - **Developer**: Bash with pattern restrictions for common dev tools.
+//! - **YOLO**: Auto-approve everything (bypasses all dialogs).
 //!
 //! Security-critical: default mode must block CLI until user responds.
 //! YOLO Mode (opt-in): bypasses all dialogs, auto-approves everything.
@@ -97,6 +103,9 @@ pub struct PermissionManager {
 
     /// YOLO mode flag: when true, all requests are auto-approved (SPEC-001 §7.1).
     yolo_mode: Arc<RwLock<bool>>,
+
+    /// Developer mode flag: when true, common Bash patterns are pre-authorized (CHI-102).
+    developer_mode: Arc<RwLock<bool>>,
 }
 
 /// A pending permission request with its resolution channel.
@@ -115,6 +124,7 @@ impl PermissionManager {
             allow_rules: Arc::new(RwLock::new(Vec::new())),
             timeout: Duration::from_secs(DEFAULT_PERMISSION_TIMEOUT_SECS),
             yolo_mode: Arc::new(RwLock::new(false)),
+            developer_mode: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -125,6 +135,7 @@ impl PermissionManager {
             allow_rules: Arc::new(RwLock::new(Vec::new())),
             timeout: Duration::from_secs(timeout_secs),
             yolo_mode: Arc::new(RwLock::new(false)),
+            developer_mode: Arc::new(RwLock::new(false)),
         }
     }
 
@@ -144,6 +155,24 @@ impl PermissionManager {
     pub async fn disable_yolo_mode(&self) {
         *self.yolo_mode.write().await = false;
         tracing::info!("[YOLO] YOLO mode disabled — returning to normal permission flow");
+    }
+
+    /// Check if Developer mode is active (CHI-102).
+    pub async fn is_developer_mode(&self) -> bool {
+        *self.developer_mode.read().await
+    }
+
+    /// Enable Developer mode — pre-authorize common Bash patterns via --allowedTools.
+    /// Safer than YOLO: only allows specific tool patterns, not everything.
+    pub async fn enable_developer_mode(&self) {
+        *self.developer_mode.write().await = true;
+        tracing::info!("[DEV] Developer mode enabled — common Bash patterns pre-authorized");
+    }
+
+    /// Disable Developer mode — return to safe mode (no Bash).
+    pub async fn disable_developer_mode(&self) {
+        *self.developer_mode.write().await = false;
+        tracing::info!("[DEV] Developer mode disabled — Bash patterns removed");
     }
 
     /// Check if a permission request is auto-allowed by existing rules.
@@ -663,5 +692,45 @@ mod tests {
         let req = make_request("Bash", "ls");
         let _ = manager.request_permission(req).await.unwrap();
         assert!(manager.rules().await.is_empty());
+    }
+
+    // --- Developer mode tests (CHI-102) ---
+
+    #[tokio::test]
+    async fn developer_mode_default_off() {
+        let manager = PermissionManager::new();
+        assert!(!manager.is_developer_mode().await);
+    }
+
+    #[tokio::test]
+    async fn developer_mode_enable_disable() {
+        let manager = PermissionManager::new();
+        assert!(!manager.is_developer_mode().await);
+
+        manager.enable_developer_mode().await;
+        assert!(manager.is_developer_mode().await);
+
+        manager.disable_developer_mode().await;
+        assert!(!manager.is_developer_mode().await);
+    }
+
+    #[tokio::test]
+    async fn developer_mode_independent_of_yolo() {
+        let manager = PermissionManager::new();
+
+        // Enable developer mode
+        manager.enable_developer_mode().await;
+        assert!(manager.is_developer_mode().await);
+        assert!(!manager.is_yolo_mode().await);
+
+        // Enable YOLO too — both can be on (YOLO takes priority in bridge.rs)
+        manager.enable_yolo_mode().await;
+        assert!(manager.is_developer_mode().await);
+        assert!(manager.is_yolo_mode().await);
+
+        // Disable YOLO — developer mode persists
+        manager.disable_yolo_mode().await;
+        assert!(manager.is_developer_mode().await);
+        assert!(!manager.is_yolo_mode().await);
     }
 }

@@ -47,10 +47,31 @@ const StatusBar: Component = () => {
         }}
       />
 
-      {/* Left: status */}
-      <Show
-        when={uiState.yoloMode}
-        fallback={
+      {/* Left: status — permission tier indicator + process status */}
+      <div class="flex items-center gap-2">
+        <Show when={uiState.yoloMode}>
+          <span
+            class="font-semibold tracking-[0.08em] uppercase"
+            style={{
+              'font-size': '10px',
+              color: 'var(--color-warning)',
+            }}
+          >
+            YOLO
+          </span>
+        </Show>
+        <Show when={!uiState.yoloMode && uiState.developerMode}>
+          <span
+            class="font-semibold tracking-[0.08em] uppercase"
+            style={{
+              'font-size': '10px',
+              color: 'var(--color-accent)',
+            }}
+          >
+            DEV
+          </span>
+        </Show>
+        <Show when={!uiState.yoloMode}>
           <Show
             when={cliState.isDetected}
             fallback={
@@ -81,18 +102,8 @@ const StatusBar: Component = () => {
               );
             })()}
           </Show>
-        }
-      >
-        <span
-          class="font-semibold tracking-[0.08em] uppercase"
-          style={{
-            'font-size': '10px',
-            color: 'var(--color-warning)',
-          }}
-        >
-          YOLO MODE
-        </span>
-      </Show>
+        </Show>
+      </div>
 
       {/* Center: token usage */}
       <span

@@ -9,6 +9,8 @@ import {
   setActiveView,
   uiState,
   toggleYoloMode,
+  enableDeveloperMode,
+  disableDeveloperMode,
   type ActiveView,
 } from '@/stores/uiStore';
 import { cycleModel } from '@/stores/sessionStore';
@@ -50,6 +52,17 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyY' && e.shiftKey) {
     e.preventDefault();
     toggleYoloMode();
+    return;
+  }
+
+  // Cmd+Shift+D — toggle Developer mode (CHI-102)
+  if (e.code === 'KeyD' && e.shiftKey) {
+    e.preventDefault();
+    if (uiState.developerMode) {
+      disableDeveloperMode();
+    } else {
+      enableDeveloperMode();
+    }
     return;
   }
 

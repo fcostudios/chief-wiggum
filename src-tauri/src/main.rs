@@ -69,6 +69,7 @@ fn main() {
             chief_wiggum_lib::commands::bridge::get_cli_status,
             chief_wiggum_lib::commands::bridge::respond_permission,
             chief_wiggum_lib::commands::bridge::toggle_yolo_mode,
+            chief_wiggum_lib::commands::bridge::toggle_developer_mode,
         ])
         .setup(|app| {
             use tauri::Manager;

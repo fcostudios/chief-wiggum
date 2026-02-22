@@ -5,10 +5,16 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal, onMount } from 'solid-js';
-import { Menu, Minus, Maximize2, X, Zap } from 'lucide-solid';
+import { Menu, Minus, Maximize2, X, Zap, Shield, ShieldCheck } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
-import { toggleSidebar, uiState, toggleYoloMode } from '@/stores/uiStore';
+import {
+  toggleSidebar,
+  uiState,
+  toggleYoloMode,
+  cyclePermissionTier,
+  getPermissionTier,
+} from '@/stores/uiStore';
 import ModelSelector from '@/components/common/ModelSelector';
 
 const TitleBar: Component = () => {
@@ -72,6 +78,18 @@ const TitleBar: Component = () => {
             YOLO
           </span>
         </Show>
+        <Show when={!uiState.yoloMode && uiState.developerMode}>
+          <span
+            class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
+            style={{
+              background: 'rgba(232, 130, 90, 0.15)',
+              color: 'var(--color-accent)',
+              border: '1px solid rgba(232, 130, 90, 0.3)',
+            }}
+          >
+            DEV
+          </span>
+        </Show>
       </div>
 
       {/* Center: model selector + drag region */}
@@ -79,22 +97,43 @@ const TitleBar: Component = () => {
         <ModelSelector />
       </div>
 
-      {/* Right: YOLO toggle + window controls */}
+      {/* Right: permission tier toggle + window controls */}
       <div class="flex items-center">
+        {/* Permission tier cycle: Safe → Developer → YOLO */}
         <button
           class="flex items-center justify-center w-10 h-full transition-colors"
           style={{
             'transition-duration': 'var(--duration-fast)',
-            color: uiState.yoloMode ? 'var(--color-warning)' : 'var(--color-text-tertiary)',
-            background: uiState.yoloMode ? 'rgba(210, 153, 34, 0.1)' : 'transparent',
+            color: uiState.yoloMode
+              ? 'var(--color-warning)'
+              : uiState.developerMode
+                ? 'var(--color-accent)'
+                : 'var(--color-text-tertiary)',
+            background: uiState.yoloMode
+              ? 'rgba(210, 153, 34, 0.1)'
+              : uiState.developerMode
+                ? 'rgba(232, 130, 90, 0.1)'
+                : 'transparent',
           }}
-          onClick={toggleYoloMode}
-          aria-label={uiState.yoloMode ? 'Disable YOLO Mode' : 'Enable YOLO Mode'}
+          onClick={cyclePermissionTier}
+          aria-label={`Permission: ${getPermissionTier()} — click to cycle`}
           title={
-            uiState.yoloMode ? 'YOLO Mode active (Cmd+Shift+Y)' : 'Enable YOLO Mode (Cmd+Shift+Y)'
+            uiState.yoloMode
+              ? 'YOLO Mode — click for Safe mode'
+              : uiState.developerMode
+                ? 'Developer Mode — click for YOLO mode (Cmd+Shift+Y)'
+                : 'Safe Mode — click for Developer mode'
           }
         >
-          <Zap size={13} />
+          <Show when={uiState.yoloMode}>
+            <Zap size={13} />
+          </Show>
+          <Show when={!uiState.yoloMode && uiState.developerMode}>
+            <ShieldCheck size={13} />
+          </Show>
+          <Show when={!uiState.yoloMode && !uiState.developerMode}>
+            <Shield size={13} />
+          </Show>
         </button>
 
         {/* Windows/Linux: right-side window controls */}

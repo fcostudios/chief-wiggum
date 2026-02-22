@@ -43,6 +43,7 @@ pub async fn send_to_cli(
 
     let cli_path = cli.binary_path()?.to_string();
     let yolo = permission_manager.is_yolo_mode().await;
+    let developer = permission_manager.is_developer_mode().await;
 
     let mut extra_args = vec![
         "--verbose".to_string(),
@@ -50,14 +51,14 @@ pub async fn send_to_cli(
         message,
     ];
 
-    // Permission strategy for `-p` mode:
+    // Three-tier permission strategy for `-p` mode (CHI-102):
+    //
     // In non-interactive mode the CLI auto-denies permission requests (it can't
     // show prompts). We must pre-authorize tools via --allowedTools.
-    // - YOLO on:  skip all permission prompts (auto-approve everything)
-    // - YOLO off: pre-authorize built-in tools + all MCP tools via wildcard
     //
-    // Note: Bash is intentionally excluded from the allow list when YOLO is off.
-    // Users must enable YOLO mode to allow shell command execution.
+    // Tier 1 — YOLO:     Skip all permission prompts (auto-approve everything)
+    // Tier 2 — Developer: Pre-authorize built-in tools + common Bash patterns
+    // Tier 3 — Safe:     Pre-authorize built-in tools only (no Bash)
     if yolo {
         extra_args.push("--dangerously-skip-permissions".to_string());
     } else {
@@ -70,6 +71,42 @@ pub async fn send_to_cli(
         for tool in &allowed_tools {
             extra_args.push("--allowedTools".to_string());
             extra_args.push(tool.to_string());
+        }
+
+        // Developer mode: add common Bash patterns for dev workflows (CHI-102).
+        // These use Claude Code's Bash(pattern) syntax with glob matching.
+        // Still safer than YOLO — only allows specific command prefixes.
+        if developer {
+            let bash_patterns = [
+                "Bash(git *)",
+                "Bash(gh *)",
+                "Bash(npm *)",
+                "Bash(npx *)",
+                "Bash(pnpm *)",
+                "Bash(bun *)",
+                "Bash(yarn *)",
+                "Bash(cargo *)",
+                "Bash(rustup *)",
+                "Bash(ls *)",
+                "Bash(cat *)",
+                "Bash(which *)",
+                "Bash(echo *)",
+                "Bash(pwd)",
+                "Bash(env)",
+                "Bash(node *)",
+                "Bash(python *)",
+                "Bash(python3 *)",
+                "Bash(pip *)",
+                "Bash(pip3 *)",
+            ];
+            tracing::info!(
+                "send_to_cli: developer mode — adding {} Bash patterns to --allowedTools",
+                bash_patterns.len()
+            );
+            for pattern in &bash_patterns {
+                extra_args.push("--allowedTools".to_string());
+                extra_args.push(pattern.to_string());
+            }
         }
 
         // MCP tools: pass individual server prefixes from cache.
@@ -188,6 +225,24 @@ pub async fn toggle_yolo_mode(
         permission_manager.enable_yolo_mode().await;
     } else {
         permission_manager.disable_yolo_mode().await;
+    }
+    Ok(())
+}
+
+/// Toggle Developer mode for the permission system (CHI-102).
+///
+/// When enabled, common Bash patterns (git, gh, npm, cargo, etc.) are pre-authorized
+/// via `--allowedTools "Bash(pattern)"`. This is the middle tier between Safe
+/// (no Bash at all) and YOLO (auto-approve everything).
+#[tauri::command(rename_all = "snake_case")]
+pub async fn toggle_developer_mode(
+    permission_manager: State<'_, PermissionManager>,
+    enable: bool,
+) -> Result<(), AppError> {
+    if enable {
+        permission_manager.enable_developer_mode().await;
+    } else {
+        permission_manager.disable_developer_mode().await;
     }
     Ok(())
 }

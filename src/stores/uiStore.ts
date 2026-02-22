@@ -8,6 +8,13 @@ import type { PermissionRequest } from '@/lib/types';
 
 export type ActiveView = 'conversation' | 'agents' | 'diff' | 'terminal';
 
+/** Three-tier permission model (CHI-102):
+ * - Safe (default): No Bash. Only read-only + edit tools allowed.
+ * - Developer: Bash with pattern restrictions for common dev tools.
+ * - YOLO: Auto-approve everything.
+ */
+export type PermissionTier = 'safe' | 'developer' | 'yolo';
+
 interface UIState {
   sidebarVisible: boolean;
   detailsPanelVisible: boolean;
@@ -15,6 +22,7 @@ interface UIState {
   permissionRequest: PermissionRequest | null;
   yoloMode: boolean;
   yoloDialogVisible: boolean;
+  developerMode: boolean;
 }
 
 const [state, setState] = createStore<UIState>({
@@ -24,6 +32,7 @@ const [state, setState] = createStore<UIState>({
   permissionRequest: null,
   yoloMode: false,
   yoloDialogVisible: false,
+  developerMode: false,
 });
 
 export function toggleSidebar() {
@@ -84,6 +93,49 @@ export function toggleYoloMode() {
   } else {
     showYoloDialog();
   }
+}
+
+/** Enable Developer mode (CHI-102) — pre-authorize common Bash patterns. */
+export function enableDeveloperMode() {
+  setState('developerMode', true);
+  invoke('toggle_developer_mode', { enable: true }).catch((err) => {
+    if (import.meta.env.DEV) {
+      console.warn('[uiStore] Failed to enable developer mode:', err);
+    }
+  });
+}
+
+/** Disable Developer mode — return to safe mode (no Bash). */
+export function disableDeveloperMode() {
+  setState('developerMode', false);
+  invoke('toggle_developer_mode', { enable: false }).catch((err) => {
+    if (import.meta.env.DEV) {
+      console.warn('[uiStore] Failed to disable developer mode:', err);
+    }
+  });
+}
+
+/** Cycle through permission tiers: Safe → Developer → YOLO → Safe.
+ * YOLO shows the warning dialog, others apply immediately. */
+export function cyclePermissionTier() {
+  const current = getPermissionTier();
+  if (current === 'safe') {
+    enableDeveloperMode();
+  } else if (current === 'developer') {
+    disableDeveloperMode();
+    showYoloDialog();
+  } else {
+    // YOLO → Safe
+    disableYoloMode();
+    disableDeveloperMode();
+  }
+}
+
+/** Get the current permission tier based on flags. YOLO takes priority. */
+export function getPermissionTier(): PermissionTier {
+  if (state.yoloMode) return 'yolo';
+  if (state.developerMode) return 'developer';
+  return 'safe';
 }
 
 export { state as uiState };
