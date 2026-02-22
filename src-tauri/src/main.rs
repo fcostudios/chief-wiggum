@@ -2,6 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    // Fix PATH for macOS/Linux GUI apps — launchd doesn't inherit shell profile.
+    // Must run before CliLocation::detect() and any process spawning.
+    let _ = fix_path_env::fix();
+
     // Initialize tracing subscriber for structured logging per GUIDE-001 §2.5
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -55,6 +59,7 @@ fn main() {
             chief_wiggum_lib::commands::session::save_message,
             chief_wiggum_lib::commands::session::list_messages,
             chief_wiggum_lib::commands::session::update_session_model,
+            chief_wiggum_lib::commands::session::update_session_cli_id,
             chief_wiggum_lib::commands::cli::get_cli_info,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,

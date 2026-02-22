@@ -55,6 +55,9 @@ tauri-plugin-os = "2"
 # Home directory detection
 dirs = "6"
 
+# Fix PATH for macOS/Linux GUI apps (launchd doesn't inherit shell profile)
+fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+
 [dev-dependencies]
 tempfile = "3"
 

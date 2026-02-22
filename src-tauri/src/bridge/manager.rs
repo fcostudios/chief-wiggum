@@ -1,7 +1,7 @@
 // Session-to-process manager: maps session IDs to CliBridge instances.
 // Per CHI-44: central piece for multi-session CLI process management.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
@@ -14,6 +14,10 @@ use crate::{AppError, AppResult};
 #[derive(Clone)]
 pub struct SessionBridgeMap {
     bridges: Arc<RwLock<HashMap<String, Arc<dyn BridgeInterface>>>>,
+    /// Cached MCP server prefixes for --allowedTools (e.g., "mcp__plugin_context7_context7").
+    /// Populated from the CLI's system:init event. Shared across sessions since MCP
+    /// servers are user-level, not session-level.
+    mcp_server_prefixes: Arc<RwLock<HashSet<String>>>,
 }
 
 impl SessionBridgeMap {
@@ -21,7 +25,18 @@ impl SessionBridgeMap {
     pub fn new() -> Self {
         Self {
             bridges: Arc::new(RwLock::new(HashMap::new())),
+            mcp_server_prefixes: Arc::new(RwLock::new(HashSet::new())),
         }
+    }
+
+    /// Get a clone of the MCP server prefix cache for passing to event loops.
+    pub fn mcp_cache(&self) -> Arc<RwLock<HashSet<String>>> {
+        self.mcp_server_prefixes.clone()
+    }
+
+    /// Get the current cached MCP server prefixes as --allowedTools entries.
+    pub async fn mcp_allowed_tools(&self) -> Vec<String> {
+        self.mcp_server_prefixes.read().await.iter().cloned().collect()
     }
 
     /// Spawn a new CLI bridge for a session.

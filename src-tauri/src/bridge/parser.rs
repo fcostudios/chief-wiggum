@@ -42,6 +42,7 @@ pub enum BridgeEvent {
     /// Tool use detected (e.g., file read, bash command).
     ToolUse {
         session_id: String,
+        tool_use_id: String,
         tool_name: String,
         tool_input: serde_json::Value,
     },
@@ -87,6 +88,16 @@ pub enum BridgeEvent {
         old_state: String,
         new_state: String,
         details: Option<String>,
+    },
+
+    /// CLI session init event — carries the CLI's own session ID.
+    SystemInit {
+        cli_session_id: String,
+        model: String,
+        /// MCP server names from the init event (e.g., "plugin:context7:context7").
+        mcp_servers: Vec<String>,
+        /// All available tool names from the init event.
+        tools: Vec<String>,
     },
 
     /// Raw/unrecognized output line (forward-compatible).
@@ -311,6 +322,9 @@ impl StreamParser {
 
             // Tool use
             "tool_use" | "tool_call" => {
+                let tool_use_id = extract_string(&event.data, "id")
+                    .unwrap_or_default();
+
                 let tool_name = extract_string(&event.data, "name")
                     .or_else(|| extract_string(&event.data, "tool_name"))
                     .unwrap_or_else(|| "unknown".to_string());
@@ -324,6 +338,7 @@ impl StreamParser {
 
                 Ok(Some(ParsedOutput::Event(BridgeEvent::ToolUse {
                     session_id: self.session_id.clone(),
+                    tool_use_id,
                     tool_name,
                     tool_input,
                 })))
@@ -387,8 +402,59 @@ impl StreamParser {
                 cache_write_tokens: extract_u64(&event.data, "cache_write_tokens").unwrap_or(0),
             }))),
 
-            // System info/warning
-            "system" | "info" | "warning" | "error" => {
+            // System events — init subtype carries CLI session_id
+            "system" => {
+                let subtype = extract_string(&event.data, "subtype");
+                if subtype.as_deref() == Some("init") {
+                    let cli_session_id = extract_string(&event.data, "session_id")
+                        .unwrap_or_default();
+                    let model = extract_string(&event.data, "model")
+                        .unwrap_or_else(|| "unknown".to_string());
+
+                    // Extract MCP server names from init event
+                    let mcp_servers = event
+                        .data
+                        .get("mcp_servers")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|s| s.get("name").and_then(|n| n.as_str()))
+                                .map(|s| s.to_string())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    // Extract available tool names
+                    let tools = event
+                        .data
+                        .get("tools")
+                        .and_then(|v| v.as_array())
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|t| t.as_str())
+                                .map(|s| s.to_string())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
+                    Ok(Some(ParsedOutput::Event(BridgeEvent::SystemInit {
+                        cli_session_id,
+                        model,
+                        mcp_servers,
+                        tools,
+                    })))
+                } else {
+                    Ok(Some(ParsedOutput::Event(BridgeEvent::SystemMessage {
+                        level: event.event_type.clone(),
+                        message: extract_string(&event.data, "message")
+                            .or_else(|| extract_string(&event.data, "text"))
+                            .unwrap_or_default(),
+                    })))
+                }
+            }
+
+            // Info/warning/error messages
+            "info" | "warning" | "error" => {
                 Ok(Some(ParsedOutput::Event(BridgeEvent::SystemMessage {
                     level: event.event_type.clone(),
                     message: extract_string(&event.data, "message")
@@ -512,16 +578,18 @@ mod tests {
     #[test]
     fn parse_tool_use() {
         let mut parser = make_parser();
-        let line = r#"{"type":"tool_use","name":"Bash","input":{"command":"ls -la"}}"#;
+        let line = r#"{"type":"tool_use","id":"toolu_abc123","name":"Bash","input":{"command":"ls -la"}}"#;
         let outputs = parser.feed(&format!("{}\n", line));
 
         assert_eq!(outputs.len(), 1);
         match &outputs[0] {
             ParsedOutput::Event(BridgeEvent::ToolUse {
+                tool_use_id,
                 tool_name,
                 tool_input,
                 ..
             }) => {
+                assert_eq!(tool_use_id, "toolu_abc123");
                 assert_eq!(tool_name, "Bash");
                 assert_eq!(tool_input["command"], "ls -la");
             }
@@ -626,6 +694,65 @@ mod tests {
         let chunk = "\n\n\n";
         let outputs = parser.feed(chunk);
         assert!(outputs.is_empty());
+    }
+
+    #[test]
+    fn parse_system_init_extracts_cli_session_id() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"system","subtype":"init","session_id":"cli-sess-abc","model":"claude-sonnet-4-6"}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 1);
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::SystemInit {
+                cli_session_id,
+                model,
+                ..
+            }) => {
+                assert_eq!(cli_session_id, "cli-sess-abc");
+                assert_eq!(model, "claude-sonnet-4-6");
+            }
+            _ => panic!("Expected SystemInit event"),
+        }
+    }
+
+    #[test]
+    fn parse_system_init_extracts_mcp_servers() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"system","subtype":"init","session_id":"s1","model":"claude-sonnet-4-6","mcp_servers":[{"name":"plugin:context7:context7","status":"connected"},{"name":"claude.ai/Linear","status":"connected"}],"tools":["Read","mcp__plugin_context7_context7__query-docs"]}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 1);
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::SystemInit {
+                mcp_servers,
+                tools,
+                ..
+            }) => {
+                assert_eq!(mcp_servers.len(), 2);
+                assert_eq!(mcp_servers[0], "plugin:context7:context7");
+                assert_eq!(mcp_servers[1], "claude.ai/Linear");
+                assert_eq!(tools.len(), 2);
+                assert!(tools.contains(&"mcp__plugin_context7_context7__query-docs".to_string()));
+            }
+            _ => panic!("Expected SystemInit event"),
+        }
+    }
+
+    #[test]
+    fn parse_system_non_init_is_system_message() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"system","message":"Session started"}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 1);
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::SystemMessage { level, message }) => {
+                assert_eq!(level, "system");
+                assert_eq!(message, "Session started");
+            }
+            _ => panic!("Expected SystemMessage event"),
+        }
     }
 
     #[test]
