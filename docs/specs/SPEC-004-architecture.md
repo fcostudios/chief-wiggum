@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 2.1
+**Version:** 2.3
 **Date:** 2026-02-22
-**Status:** Draft — Updated for Phase 2 + Agent SDK Protocol
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -63,6 +63,14 @@ chief-wiggum/
 │   │   │   ├── worktree.rs         # Worktree management
 │   │   │   ├── status.rs           # Status, branch, log queries
 │   │   │   └── commit.rs           # Commit, PR creation
+│   │   ├── slash/                   # Slash command discovery (Phase 3 — CHI-105)
+│   │   │   ├── mod.rs              # SlashCommand type, CommandSource enum
+│   │   │   ├── scanner.rs          # File-based command scanner (.claude/commands/)
+│   │   │   └── registry.rs         # CommandRegistry: merge file-scanned + SDK-discovered
+│   │   ├── files/                   # File explorer backend (Phase 3 — CHI-114)
+│   │   │   ├── mod.rs              # FileNode, FileContent, FileSearchResult types
+│   │   │   ├── scanner.rs          # Directory walker (ignore crate, gitignore-aware)
+│   │   │   └── watcher.rs          # FS change watcher (notify crate, debounced)
 │   │   └── mcp/                    # MCP server management
 │   │       ├── mod.rs
 │   │       ├── registry.rs         # Server registration, discovery
@@ -92,6 +100,7 @@ chief-wiggum/
 │   │   │   ├── ThinkingBlock.tsx
 │   │   │   ├── PlanBlock.tsx
 │   │   │   ├── ToolUseBlock.tsx
+│   │   │   ├── SlashCommandMenu.tsx  # Inline autocomplete dropdown (Phase 3 — CHI-107)
 │   │   │   └── ConversationView.tsx
 │   │   ├── agents/                 # Agent dashboard components
 │   │   │   ├── AgentCard.tsx
@@ -112,6 +121,7 @@ chief-wiggum/
 │   │   │   ├── Sidebar.tsx
 │   │   │   ├── DetailsPanel.tsx
 │   │   │   ├── StatusBar.tsx
+│   │   │   ├── SplitConversationView.tsx  # Split pane container (Phase 3 — CHI-110)
 │   │   │   └── MainLayout.tsx
 │   │   ├── widgets/                # Persistent overlay widgets
 │   │   │   ├── CostTracker.tsx
@@ -135,6 +145,8 @@ chief-wiggum/
 │   │   ├── cliStore.ts             # CLI detection state (isDetected, location) (Phase 2 — CHI-48)
 │   │   ├── projectStore.ts         # Project state (folder picker, active project) (Phase 2 — CHI-40)
 │   │   ├── costStore.ts            # Cost tracking state (Phase 2 — CHI-53)
+│   │   ├── slashStore.ts           # Slash command state (Phase 3 — CHI-107)
+│   │   ├── viewStore.ts            # Split pane layout state (Phase 3 — CHI-110)
 │   │   ├── agentStore.ts           # Agent states (future)
 │   │   ├── contextStore.ts         # Context utilization state (future)
 │   │   ├── settingsStore.ts        # App settings (future)
@@ -470,6 +482,100 @@ listen<CostEvent>('cost:update', (event) => { /* update costStore */ });
 listen<BudgetWarning>('cost:budget_warning', (event) => { /* show toast/modal */ });
 ```
 
+#### 4.4.7 Slash Command Discovery IPC (Phase 3 — CHI-105/CHI-106)
+
+```typescript
+// Commands
+export const getSlashCommands = (project_path?: string) =>
+  invoke<SlashCommand[]>('get_slash_commands', { project_path });
+export const refreshSlashCommands = (project_path?: string) =>
+  invoke<SlashCommand[]>('refresh_slash_commands', { project_path });
+
+// Events (after Agent SDK migration — CHI-108)
+listen<SlashCommand[]>('cli:init', (event) => {
+  // Parse init payload for tools/commands
+  // Merge SDK-discovered with file-scanned commands
+  // Update slashStore
+});
+
+// Types
+interface SlashCommand {
+  name: string;           // e.g., "review", "test"
+  description: string;    // Human-readable description
+  source: 'builtin' | 'project' | 'user' | 'sdk';
+  category: string;       // Grouping category
+  file_path?: string;     // For file-scanned commands
+  mcp_server?: string;    // For MCP-provided tools (Phase B)
+}
+```
+
+#### 4.4.8 Split Pane & Parallel Sessions IPC (Phase 3 — CHI-109/CHI-110)
+
+```typescript
+// Commands
+export const getActiveSessionCount = () =>
+  invoke<number>('get_active_session_count');
+export const getTotalCostAllSessions = () =>
+  invoke<CostSummary>('get_total_cost_all_sessions');
+
+// Events
+listen<{ session_id: string; event_type: string }>('session:activity', (event) => {
+  // For background session notifications (CHI-113)
+  // event_type: 'complete' | 'permission_needed' | 'error'
+});
+
+// Note: Split pane layout is fully frontend — viewStore manages pane→session mapping
+// No additional IPC needed beyond existing start_session_cli / send_to_cli / stop_session_cli
+```
+
+#### 4.4.9 File Explorer & @-Mention IPC (Phase 3 — CHI-114/CHI-115)
+
+```typescript
+// Commands
+export const listProjectFiles = (project_id: string, relative_path?: string, max_depth?: number) =>
+  invoke<FileNode[]>('list_project_files', { project_id, relative_path, max_depth });
+export const readProjectFile = (project_id: string, relative_path: string, opts?: { max_lines?: number; start_line?: number; end_line?: number }) =>
+  invoke<FileContent>('read_project_file', { project_id, relative_path, ...opts });
+export const searchProjectFiles = (project_id: string, query: string, max_results?: number) =>
+  invoke<FileSearchResult[]>('search_project_files', { project_id, query, max_results });
+export const getFileTokenEstimate = (project_id: string, relative_path: string) =>
+  invoke<number>('get_file_token_estimate', { project_id, relative_path });
+
+// Events
+listen<{ paths: string[] }>('files:changed', (event) => {
+  // Invalidate cached tree nodes for changed paths
+  // Triggered by notify crate fs watcher (debounced 500ms)
+});
+
+// Types
+interface FileNode {
+  name: string;
+  relative_path: string;
+  node_type: 'file' | 'directory' | 'symlink';
+  size_bytes: number | null;
+  extension: string | null;
+  children: FileNode[] | null;
+  is_binary: boolean;
+}
+
+interface FileContent {
+  relative_path: string;
+  content: string;
+  line_count: number;
+  size_bytes: number;
+  language: string | null;
+  estimated_tokens: number;
+  truncated: boolean;
+}
+
+interface FileSearchResult {
+  relative_path: string;
+  name: string;
+  extension: string | null;
+  score: number;
+}
+```
+
 ---
 
 ## 5. Data Flow Diagrams
@@ -744,6 +850,126 @@ Three permission tiers: **Safe** (no Bash) → **Developer** (patterned Bash) �
 
 Note: Claude Code prevents shell chaining in patterns, but bypass vectors exist (GitHub #4956, #13371). Developer mode is convenience, not a security boundary.
 
+### 5.7 Slash Command Discovery Flow (Phase 3 — CHI-105/CHI-106)
+
+Two-phase architecture: Phase A (file scanning) works immediately, Phase B (SDK discovery via CHI-108) activates after CHI-101.
+
+```
+Phase A — File Scanning (CHI-106):
+
+Frontend                    slash/scanner.rs            Filesystem
+   │                              │                          │
+   │ invoke('get_slash_commands') │                          │
+   ├────────────────────────────→ │                          │
+   │                              │ scan .claude/commands/   │
+   │                              ├────────────────────────→ │
+   │                              │ ◄── file list ────────── │
+   │                              │ parse YAML frontmatter   │
+   │                              │ merge with builtins      │
+   │ ◄── SlashCommand[]           │                          │
+   │                              │                          │
+   │ User types "/" in input      │                          │
+   │ → slashStore.open()          │                          │
+   │ → SlashCommandMenu renders   │                          │
+
+Phase B — SDK Discovery (CHI-108, after CHI-101):
+
+AgentSdkBridge             slash/registry.rs           slashStore.ts
+   │                              │                          │
+   │ system:init event            │                          │
+   │ {tools, mcp_servers, ...}    │                          │
+   ├────────────────────────────→ │                          │
+   │                              │ parse into SlashCommand  │
+   │                              │ merge with file-scanned  │
+   │                              │   (SDK wins conflicts)   │
+   │                              │ emit cli:init event      │
+   │                              ├────────────────────────→ │
+   │                              │                          │ update filteredCommands
+```
+
+### 5.8 Split Pane & Parallel Sessions Flow (Phase 3 — CHI-109/CHI-110)
+
+Builds on CHI-104's per-session state. Split panes allow two conversations visible simultaneously.
+
+```
+viewStore.ts               MainLayout.tsx              SessionBridgeMap
+   │                              │                          │
+   │ splitSession('horizontal')   │                          │
+   │ → panes = [paneA, paneB]     │                          │
+   │ → paneB.sessionId = new      │                          │
+   │                              │                          │
+   │ render change ──────────────→│                          │
+   │                              │ SplitConversationView    │
+   │                              │ ┌──────────┬──────────┐  │
+   │                              │ │  Pane A   │  Pane B   │ │
+   │                              │ │  (active) │          │  │
+   │                              │ │ ConvView  │ ConvView │  │
+   │                              │ │ MsgInput  │ MsgInput │  │
+   │                              │ └──────────┴──────────┘  │
+   │                              │                          │
+   │ User sends in Pane B         │                          │
+   │                              │ invoke('send_to_cli')    │
+   │                              ├────────────────────────→ │
+   │                              │                          │ lookup bridge for paneB.sessionId
+   │                              │                          │ write to that bridge's stdin
+   │                              │                          │
+   │                              │ ◄── emit events ──────── │
+   │                              │ (session_id in event     │
+   │                              │  routes to correct pane) │
+
+Resource Limit Check (CHI-111):
+
+   invoke('start_session_cli')
+   → SessionBridgeMap.can_spawn()
+   → if active_count >= MAX_CONCURRENT (default 4):
+       return Err("Maximum concurrent sessions reached")
+   → else: spawn new AgentSdkBridge
+```
+
+### 5.9 File Explorer & @-Mention Context Flow (Phase 3 — CHI-114)
+
+```
+File Tree Browsing (CHI-116):
+
+Sidebar/FileTree            files/scanner.rs            Filesystem
+   │                              │                          │
+   │ invoke('list_project_files') │                          │
+   │ { project_id, path: "src/" }│                          │
+   ├────────────────────────────→ │                          │
+   │                              │ ignore::WalkBuilder      │
+   │                              │ respect .gitignore       │
+   │                              ├────────────────────────→ │
+   │                              │ ◄── dir entries ──────── │
+   │                              │ sort: dirs first, alpha  │
+   │ ◄── FileNode[]               │                          │
+   │ render tree nodes            │                          │
+
+@-Mention Context Assembly (CHI-117):
+
+MessageInput               contextStore              conversationStore
+   │                              │                          │
+   │ User types "@parser"         │                          │
+   │ → FileMentionMenu opens      │                          │
+   │ → invoke('search_project_files')                        │
+   │ → User selects parser.rs     │                          │
+   │                              │                          │
+   │ addFileReference({           │                          │
+   │   path: "src/.../parser.rs", │                          │
+   │   tokens: ~2400              │                          │
+   │ })                           │                          │
+   │ ├──────────────────────────→ │                          │
+   │ ◄── chip rendered            │                          │
+   │                              │                          │
+   │ User clicks Send             │                          │
+   │ ├──────────────────────────→ │                          │
+   │                              │ assembleContext()         │
+   │                              │ → read_project_file()    │
+   │                              │ → format XML context     │
+   │                              │ → prepend to prompt      │
+   │                              ├────────────────────────→ │
+   │                              │                  sendMessage(contextifiedPrompt)
+```
+
 ---
 
 ## 6. Type Definitions
@@ -865,6 +1091,31 @@ interface McpServer {
   scope: 'user' | 'project';
   status: 'connected' | 'disconnected' | 'error';
   tool_count: number;
+}
+
+// Phase 3: Slash Commands (CHI-105)
+interface SlashCommand {
+  name: string;           // Command name (e.g., "review", "test")
+  description: string;    // Human-readable description
+  source: 'builtin' | 'project' | 'user' | 'sdk';
+  category: string;       // Grouping category for menu sections
+  file_path?: string;     // For file-scanned commands (.claude/commands/)
+  mcp_server?: string;    // For MCP-provided tools (Phase B — CHI-108)
+  args_schema?: object;   // Optional argument schema
+}
+
+// Phase 3: Split Pane Layout (CHI-110)
+type LayoutMode = 'single' | 'split-horizontal' | 'split-vertical';
+
+interface Pane {
+  id: string;
+  sessionId: string;
+}
+
+interface ViewState {
+  layoutMode: LayoutMode;
+  panes: Pane[];
+  activePaneId: string;
 }
 
 interface Settings {

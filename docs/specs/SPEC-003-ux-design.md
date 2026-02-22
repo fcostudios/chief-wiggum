@@ -1,8 +1,8 @@
 # SPEC-003: UX Design Specification
 
-**Version:** 2.0
-**Date:** 2026-02-21
-**Status:** Draft — Updated for Phase 2 + UX Polish
+**Version:** 2.2
+**Date:** 2026-02-22
+**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer
 **Parent:** SPEC-001 (Section 6, 10), SPEC-002 (Design System)
 **Audience:** Frontend developers, coding agents, UX reviewers
 
@@ -613,6 +613,180 @@ Budget enforcement:
   → [at 100% soft limit]: Toast warning, execution continues
 ```
 
+### 4.13 Slash Command Interaction Flow (Phase 3 — CHI-105/CHI-107)
+
+```
+User types "/" as first character in MessageInput
+  → slashStore.open()
+  → SlashCommandMenu renders anchored above input
+  → Commands grouped by category:
+    ┌─────────────────────────────────────┐
+    │ Built-in                            │
+    │  /review   Review code changes      │
+    │  /test     Run test suite           │
+    │ Project (.claude/commands/)          │
+    │  /deploy   Deploy to staging        │
+    │  /lint     Run linter               │
+    │ MCP Tools (after CHI-108)           │
+    │  /github:create-pr  Create pull req │
+    └─────────────────────────────────────┘
+
+User continues typing → fuzzy filter (reuses CHI-76 logic)
+  → e.g., "/dep" → matches "/deploy"
+
+Navigation:
+  → Arrow Up/Down: highlight item
+  → Enter: insert command name into input, close menu
+  → Escape: close menu, keep text
+  → Backspace past "/": close menu
+  → Click outside: close menu
+
+After command selection:
+  → Command text inserted into MessageInput
+  → User adds arguments and sends normally
+  → Backend processes as regular prompt (Phase A)
+  → After CHI-101: SDK routes to correct handler (Phase B)
+
+Visual design:
+  → Positioned above MessageInput (popover, not modal)
+  → Max height 300px with scroll
+  → /name in accent color + description in text-secondary
+  → Highlighted item: --color-surface-hover background
+  → All SPEC-002 tokens
+```
+
+### 4.14 Split Pane Layout Flow (Phase 3 — CHI-109/CHI-110)
+
+```
+User triggers split: Cmd+\
+  → viewStore.splitSession('horizontal')
+  → MainLayout renders SplitConversationView
+  → Two panes, each with full ConversationView + MessageInput
+
+Split view layout:
+  ┌──────────────────────────────────────────┐
+  │ TitleBar                                 │
+  ├─────────┬───────────────┬────────────────┤
+  │         │   Pane A      │   Pane B       │
+  │ Sidebar │ [active]      │                │
+  │         │ ConvView      │ ConvView       │
+  │         │ MsgInput      │ MsgInput       │
+  │         │               │                │
+  ├─────────┴───────────────┴────────────────┤
+  │ StatusBar (aggregate cost, session count)│
+  └──────────────────────────────────────────┘
+
+Pane interaction:
+  → Click pane to focus → subtle border highlight (accent)
+  → Keyboard shortcuts scoped to focused pane
+  → Draggable divider between panes (min 300px each)
+  → Cmd+W closes focused pane → returns to single mode
+
+Background session notifications (CHI-113):
+  → Non-focused session receives response → sidebar unread dot
+  → Permission needed in background → toast notification
+  → User switches to session → unread state cleared
+
+Resource limits (CHI-111):
+  → Max 4 concurrent CLI sessions (configurable)
+  → Attempt to exceed → toast: "Maximum sessions reached"
+  → Active count shown in StatusBar
+```
+
+### 4.15 File Explorer & @-Mention Context Flow (Phase 3 — CHI-114)
+
+```
+File Tree browsing (CHI-116):
+  User clicks file icon in Sidebar (Cmd+E toggle)
+  → Sidebar switches to file tree view
+  → invoke('list_project_files', { path: '/', max_depth: 1 })
+  → Renders FileTreeView with lazy-loaded directory nodes
+
+  File tree layout (replaces session list when active):
+  ┌──────────────────┐
+  │ 📁 src/          │  ← click to expand
+  │   📁 components/ │
+  │   📁 stores/     │
+  │   📄 App.tsx     │  ← click to preview
+  │   📄 index.tsx   │
+  │ 📁 src-tauri/    │
+  │ 📄 package.json  │
+  │ 📄 CLAUDE.md     │
+  └──────────────────┘
+
+  Expand folder:
+  → invoke('list_project_files', { path: 'src/components', max_depth: 1 })
+  → Children inserted under parent with indent
+  → Arrow icon rotates 90° (transition 150ms)
+
+  Click file:
+  → DetailsPanel shows file content preview (CHI-118)
+  → invoke('read_project_file', { path, max_lines: 200 })
+  → Syntax-highlighted with line numbers
+
+  Keyboard navigation:
+  → ↑/↓ navigate nodes
+  → → expand folder / ← collapse folder
+  → Enter opens preview in DetailsPanel
+  → Escape returns to session list view
+
+@-Mention autocomplete (CHI-117):
+  User types "@" in MessageInput
+  → FileMentionMenu appears above cursor (anchored to @)
+  → invoke('search_project_files', { query: '', limit: 10 })
+  → Shows recently-accessed files by default
+
+  Continue typing after "@":
+  → Debounced fuzzy search (150ms) against file index
+  → invoke('search_project_files', { query: typed_text, limit: 10 })
+  → Results ranked by score, grouped: files first, then directories
+
+  Menu layout:
+  ┌────────────────────────────┐
+  │ 📄 App.tsx                 │  ← highlighted
+  │ 📄 AppLayout.tsx           │
+  │ 📁 components/             │
+  │ 📄 conversation/Conv...    │
+  └────────────────────────────┘
+
+  Select file:
+  → Enter or click → inserts ContextChip inline in MessageInput
+  → Chip shows: [📄 App.tsx ✕] (removable)
+  → File added to contextStore.attachedFiles[]
+
+  Escape or empty results:
+  → Menu closes, "@" text remains editable
+
+Context assembly on send (CHI-117):
+  → conversationStore.sendMessage() checks contextStore.attachedFiles
+  → For each file reference:
+    → If full file: prepend <file path="src/App.tsx">...content...</file>
+    → If range: prepend <file path="src/App.tsx" lines="10-25">...content...</file>
+  → Token estimation shown in StatusBar: "~2.4K tokens attached"
+  → Warning toast at 50K tokens, hard cap at 100K tokens
+
+Code range selection (CHI-119):
+  File preview in DetailsPanel shows line numbers
+  → Click line number → selects single line (highlighted)
+  → Click+drag or Shift+click → selects range (highlighted block)
+  → "Add to prompt" button appears above selection
+  → Click "Add to prompt" → inserts ContextChip: [📄 App.tsx:10-25 ✕]
+  → Only selected lines included in context assembly
+
+  Range display in DetailsPanel:
+  ┌──────────────────────────────────────┐
+  │  8 │ import { Component } from ...   │
+  │  9 │                                 │
+  │ 10 │ export default function App() { │ ← selection start (blue bg)
+  │ 11 │   const [count, setCount] = ... │
+  │ 12 │   return (                      │
+  │ 13 │     <div>                       │ ← selection end
+  │ 14 │       <h1>Hello</h1>            │
+  │ 15 │     </div>                      │
+  │    │  [➕ Add lines 10-13 to prompt] │ ← floating button
+  └──────────────────────────────────────┘
+```
+
 ---
 
 ## 5. State Machines
@@ -1141,3 +1315,222 @@ Mini inline diff within ToolUseBlock for file modifications:
 - Shows +/- line counts
 - Expandable to show actual diff hunks
 - Click to open full diff in Diff Review view
+
+### 10.7 Slash Commands & Skill Invocation (CHI-105)
+
+**CHI-106: Command Discovery Backend (Urgent)**
+
+File-based command scanner for `.claude/commands/` directory:
+- Scans project directory and user home for command files
+- Parses YAML frontmatter for description and category
+- Returns `SlashCommand[]` via IPC
+- Caches results, refreshes on project switch
+
+**CHI-107: SlashCommandMenu UI Component (High)**
+
+Inline autocomplete dropdown triggered by `/` at input start:
+
+```
+User types "/" →
+┌─────────────────────────────────────────┐
+│ Built-in                                │
+│  /review    Review current changes  [↵] │  ← highlighted
+│  /test      Run test suite              │
+│ Project                                 │
+│  /deploy    Deploy to staging           │
+│  /lint      Run project linter          │
+│ User                                    │
+│  /mycommand Custom user command         │
+└─────────────────────────────────────────┘
+```
+
+Behavior:
+- Positioned above MessageInput (popover, uses portal)
+- Max height 300px, overflow scroll
+- Grouped by category with section headers
+- `/name` in accent color, description in text-secondary
+- Fuzzy search filter as user types (reuse CHI-76 logic)
+- Keyboard: Up/Down navigate, Enter select, Escape close
+- Selected command inserted into input field
+- All SPEC-002 tokens
+
+**CHI-108: SDK Command Discovery Integration (Medium)**
+
+After CHI-101 Agent SDK migration:
+- `system:init` event provides tools, MCP servers, slash commands
+- SDK-discovered commands merged with file-scanned (SDK wins conflicts)
+- MCP tools appear with server prefix (e.g., `/github:create-pr`)
+- File-scanned commands remain as fallback
+
+### 10.8 Split Pane & Parallel Sessions v2 (CHI-109)
+
+**CHI-110: Split Pane Layout System (High)**
+
+Horizontal/vertical split of the main content area:
+
+```
+┌──────────────────────────────────────────┐
+│ TitleBar                                 │
+├────────┬───────────────┬─────────────────┤
+│        │   Pane A      ┃   Pane B        │
+│Sidebar │ [focused]     ┃                 │
+│        │ ┌──────────┐  ┃ ┌──────────┐   │
+│        │ │ Messages │  ┃ │ Messages │    │
+│        │ └──────────┘  ┃ └──────────┘   │
+│        │ ┌──────────┐  ┃ ┌──────────┐   │
+│        │ │  Input   │  ┃ │  Input   │    │
+│        │ └──────────┘  ┃ └──────────┘   │
+├────────┴───────────────┴─────────────────┤
+│ StatusBar: $4.23 total │ 2 active        │
+└──────────────────────────────────────────┘
+```
+
+Controls:
+- Cmd+\\ to split (horizontal default)
+- Cmd+W to close focused pane
+- Click to focus pane (subtle accent border)
+- Draggable divider (min 300px per pane)
+- Keyboard shortcuts scoped to active pane
+
+**CHI-111: Concurrent Session Resource Limits (High)**
+
+- Configurable max concurrent sessions (default 4)
+- `can_spawn()` check before starting new CLI process
+- StatusBar shows active session count
+- Toast notification when limit reached
+
+**CHI-112: Aggregate Cost Tracking (Medium)**
+
+- StatusBar shows total cost across all active sessions
+- Sidebar shows per-session cost badge
+- Budget warnings consider aggregate, not per-session
+
+**CHI-113: Session Activity Notifications (Medium)**
+
+- Unread dot badge on sidebar for background session activity
+- Toast for permission requests from non-focused sessions
+- Badge clears when session is focused
+- Only fires on `complete` and `permission` events (not streaming chunks)
+
+### 10.9 File Explorer & @-Mention Context System (CHI-114)
+
+**CHI-115: Backend File Scanner (Urgent)**
+
+Rust IPC module providing project file operations:
+
+- `list_project_files(path, max_depth)` — gitignore-aware directory walking via `ignore` crate
+- `read_project_file(path, max_lines, offset)` — paginated file reading with language detection
+- `search_project_files(query, limit)` — fuzzy filename matching, score-ranked results
+- `get_file_token_estimate(path, start_line, end_line)` — `chars/4` token estimation
+- `files:changed` Tauri event — `notify` crate watching with 500ms debounce
+- Binary file detection (skip content read, show metadata only)
+- Hidden directory exclusion (`.git/`, `node_modules/`, `target/`)
+- Unit tests: 8+ covering walker, search, token estimation, binary detection
+
+Types:
+```typescript
+interface FileNode {
+  name: string;
+  relative_path: string;
+  node_type: 'file' | 'directory' | 'symlink';
+  size_bytes: number | null;
+  extension: string | null;
+  children: FileNode[] | null;
+  is_binary: boolean;
+}
+```
+
+**CHI-116: File Tree Sidebar Component (High)**
+
+Visual file browser in the Sidebar zone (Z2):
+
+- Toggle between session list and file tree via Cmd+E or icon click
+- Lazy-loaded: only fetches children when folder expanded
+- Virtual scrolling for projects with 1000+ visible nodes
+- Expand/collapse folders with arrow icons (animated rotate)
+- File icons by extension (`.ts` → TypeScript, `.rs` → Rust, `.md` → Markdown)
+- Keyboard navigation: ↑/↓ navigate, →/← expand/collapse, Enter preview
+- Right-click context menu: "Copy path", "Add to prompt", "Open in editor"
+- Respects gitignore: hidden files dimmed or excluded
+- File tree auto-refreshes on `files:changed` events
+
+Layout:
+```
+┌──────────────────┐
+│ 🔍 Filter files  │  ← search input
+├──────────────────┤
+│ 📁 src/          │
+│   📁 components/ │
+│     📄 App.tsx   │
+│     📄 ...       │
+│ 📁 src-tauri/    │
+│ 📄 package.json  │
+└──────────────────┘
+```
+
+**CHI-117: @-Mention Autocomplete (High)**
+
+Inline file reference system in MessageInput:
+
+- `@` character triggers FileMentionMenu (popover anchored to cursor)
+- Fuzzy search against project file index (debounced 150ms)
+- Results show: file icon + name + relative path (truncated)
+- Keyboard nav: ↑/↓ move highlight, Enter select, Escape dismiss
+- Selection inserts ContextChip inline: `[📄 filename.ext ✕]`
+- Multiple files can be attached (each gets a chip)
+- ContextChip is removable (click ✕ or Backspace when focused)
+- `contextStore.ts` manages attached files array
+- On send: context XML assembled and prepended to user message
+- Token budget display: "~2.4K tokens attached" in StatusBar
+- Warning toast at 50K tokens, hard cap at 100K tokens
+- Reuses SlashCommandMenu trigger pattern from CHI-107
+- Reuses CommandPalette fuzzy filter from CHI-76
+
+**CHI-118: File Content Preview (Medium)**
+
+Syntax-highlighted file viewer in DetailsPanel (Z4):
+
+- Triggered by clicking file in tree or @-mention chip
+- `read_project_file()` with paginated loading (200 lines at a time)
+- Syntax highlighting via highlight.js (reuses MarkdownContent renderer)
+- Line numbers gutter (monospace, dimmed)
+- "Add to prompt" action button in header
+- File metadata header: name, path, size, estimated tokens
+- Binary files show metadata only (no content)
+- Scroll-to-line support for range references
+- Loading skeleton while fetching
+
+Layout:
+```
+┌──────────────────────────────────────┐
+│ 📄 App.tsx  ·  src/App.tsx           │
+│ 245 lines  ·  ~1.2K tokens          │
+│ [➕ Add to prompt]                   │
+├──────────────────────────────────────┤
+│  1 │ import { Component } from ...   │
+│  2 │ import { createSignal } from .. │
+│  3 │                                 │
+│  4 │ export default function App() { │
+│  5 │   // ...                        │
+│ ...│                                 │
+└──────────────────────────────────────┘
+```
+
+**CHI-119: Code Range Selection (Medium)**
+
+Select specific lines/ranges for targeted context attachment:
+
+- Click line number in preview to select single line
+- Click+drag or Shift+click for range selection
+- Selected lines highlighted with accent background
+- Floating "Add lines X-Y to prompt" button above selection
+- Inserts ranged ContextChip: `[📄 App.tsx:10-25 ✕]`
+- Only selected lines included in context XML assembly:
+  ```xml
+  <file path="src/App.tsx" lines="10-25">
+  ...selected content only...
+  </file>
+  ```
+- Range token estimation via `get_file_token_estimate(path, start, end)`
+- Multiple ranges from same file allowed (merged if overlapping)
+- `@file.ext:10-25` syntax supported in MessageInput text (parsed on send)

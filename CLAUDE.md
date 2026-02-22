@@ -81,6 +81,9 @@
 | CHI-104: Parallel Sessions | **Done** | Per-session processStatus, per-session listeners, non-destructive switching, sidebar indicators |
 | CHI-94: 3-Layer Tracing | **Done** | `logging/` module — console + rolling file (JSON) + ring buffer (36K entries), platform-aware paths |
 | CHI-106: Slash Command Discovery | **Done** | `slash/` module — 11 built-in + project + user `.md` scanning, IPC commands |
+| CHI-107: SlashCommandMenu UI | **Done** | Inline autocomplete dropdown, categorized, fuzzy search, keyboard nav (Arrow/Enter/Esc/Tab) |
+| CHI-95: Log Redaction Engine | **Done** | `logging/redactor.rs` — 7 regex rules, export-time redaction, RedactionSummary, 13 tests |
+| CHI-111: Concurrent Session Limits | **Done** | `can_spawn()` guard (default 4), ResourceLimit error, StatusBar running count badge |
 
 ## Phase 1 Status
 
@@ -252,6 +255,18 @@ Two-phase architecture: Phase A (CHI-106/107) uses file scanning and works now. 
 | CHI-113 | Medium | Todo | Session Activity Notifications — unread badges, background toasts |
 
 Builds on CHI-104's per-session state and non-destructive switching. See SPEC-003 §4.14, §10.8 and SPEC-004 §4.4.8, §5.8.
+
+### Epic CHI-114: File Explorer & @-Mention Context System (Phase 3)
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-115 | Urgent | Todo | Backend File Scanner — Rust IPC for directory walking (ignore + notify crates) |
+| CHI-116 | High | Todo | File Tree Sidebar Component — visual file browser with lazy loading |
+| CHI-117 | High | Todo | @-Mention Autocomplete — type `@` in MessageInput to reference files |
+| CHI-118 | Medium | Todo | File Content Preview — syntax-highlighted viewer in DetailsPanel |
+| CHI-119 | Medium | Todo | Code Range Selection — select lines/ranges to attach to prompt |
+
+Five incremental layers: backend scanner → file tree → @-mention → preview → range selection. Token-aware context assembly, gitignore-respecting, reuses CommandPalette fuzzy search. See SPEC-003 §4.15, §10.9 and SPEC-004 §4.4.9, §5.9.
 
 ---
 
