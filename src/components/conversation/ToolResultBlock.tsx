@@ -3,6 +3,8 @@ import { ChevronDown, ChevronRight, CheckCircle, XCircle } from 'lucide-solid';
 import type { Message, ToolResultData, ToolUseData } from '../../lib/types';
 import { conversationState } from '@/stores/conversationStore';
 import { extractInlineDiffPreview } from '@/lib/inlineDiff';
+import { setActiveInlineDiff } from '@/stores/diffReviewStore';
+import { setActiveView } from '@/stores/uiStore';
 import InlineDiff from './InlineDiff';
 
 interface ToolResultBlockProps {
@@ -121,7 +123,16 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
             style={{ 'border-color': 'var(--color-border-secondary)' }}
           >
             <Show when={inlineDiff()}>
-              {(diff) => <InlineDiff preview={diff()} />}
+              {(diff) => (
+                <InlineDiff
+                  preview={diff()}
+                  showOpenInDiff
+                  onOpenInDiff={() => {
+                    setActiveInlineDiff(diff());
+                    setActiveView('diff');
+                  }}
+                />
+              )}
             </Show>
 
             <Show when={inlineDiff()}>

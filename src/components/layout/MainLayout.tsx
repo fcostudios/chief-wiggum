@@ -37,6 +37,7 @@ import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 import CommandPalette from '@/components/common/CommandPalette';
 import ToastContainer from '@/components/common/ToastContainer';
+import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -118,12 +119,7 @@ const MainLayout: Component = () => {
               </div>
             </Show>
             <Show when={uiState.activeView === 'diff'}>
-              <div class="flex items-center justify-center h-full">
-                <div class="text-center animate-fade-in">
-                  <p class="text-text-tertiary text-sm tracking-wide">Diff review</p>
-                  <p class="text-text-tertiary/50 text-xs mt-1">Coming soon</p>
-                </div>
-              </div>
+              <DiffPreviewPane />
             </Show>
             <Show when={uiState.activeView === 'terminal'}>
               <TerminalPane />
