@@ -8,7 +8,9 @@ import { createSignal, Show } from 'solid-js';
 import { ChevronDown, ChevronRight } from 'lucide-solid';
 import { sessionState } from '@/stores/sessionStore';
 import { projectState } from '@/stores/projectStore';
+import { fileState } from '@/stores/fileStore';
 import MarkdownContent from '@/components/conversation/MarkdownContent';
+import FilePreview from '@/components/explorer/FilePreview';
 
 interface SectionProps {
   title: string;
@@ -78,6 +80,29 @@ const DetailsPanel: Component = () => {
 
   return (
     <aside class="flex flex-col h-full overflow-y-auto" aria-label="Details panel">
+      <Show when={fileState.selectedPath && fileState.previewContent}>
+        <CollapsibleSection title="File Preview">
+          <FilePreview
+            content={fileState.previewContent!}
+            isLoading={fileState.isPreviewLoading}
+          />
+        </CollapsibleSection>
+      </Show>
+
+      <Show
+        when={
+          !fileState.selectedPath &&
+          fileState.isVisible &&
+          projectState.activeProjectId
+        }
+      >
+        <CollapsibleSection title="File Preview" defaultOpen={false}>
+          <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Select a file from the sidebar to preview
+          </p>
+        </CollapsibleSection>
+      </Show>
+
       <Show when={projectState.claudeMdContent}>
         <CollapsibleSection title="Project Context" defaultOpen={false}>
           <div class="text-xs max-h-48 overflow-y-auto">
