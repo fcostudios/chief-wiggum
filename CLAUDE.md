@@ -199,7 +199,18 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | CHI-91 | Medium | Todo | Permission inline record (approved/denied after dialog) |
 | CHI-92 | Low | Todo | File diff preview within conversation |
 
-**Quick wins to start immediately:** CHI-67 (native controls), CHI-70 (scrollbars), CHI-80 (empty state)
+**Quick wins to start immediately:** CHI-72 (typing indicator), CHI-84 (sidebar collapsed), CHI-76 (command palette)
+
+### Phase 3: Agent SDK Integration (Planned)
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-101 | High | Todo | Migrate CLI bridge from `-p` mode to Agent SDK control protocol (SPEC-004 §5.6) |
+| CHI-102 | Urgent | Todo | Add granular Bash allowedTools patterns (Developer Mode — interim fix) |
+
+**CHI-101** is a major architecture change: replaces spawn-per-message (`-p`) with persistent sessions using the bidirectional JSONL control protocol (`--input-format stream-json`). Enables true interactive permissions, runtime model switching, and clean interruption. See SPEC-004 §5.6 for full protocol documentation.
+
+**CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
 ---
 

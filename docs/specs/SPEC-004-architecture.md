@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 2.0
-**Date:** 2026-02-21
-**Status:** Draft — Updated for Phase 2
+**Version:** 2.1
+**Date:** 2026-02-22
+**Status:** Draft — Updated for Phase 2 + Agent SDK Protocol
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -540,6 +540,10 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
      │                         │                           │
 ```
 
+**Current Limitation:** In `-p` mode, the CLI auto-denies tools not in `--allowedTools`. The permission response path (`respond_permission` → CLI stdin) does NOT work — the CLI doesn't read stdin for permission responses in `-p` mode. This flow only becomes fully functional after CHI-101 (Agent SDK control protocol, §5.6).
+
+**Interim (CHI-102):** Developer Mode pre-authorizes common Bash patterns via `--allowedTools`, bypassing the need for runtime permission responses. See §5.6.8.
+
 **YOLO Mode IPC:**
 
 | Event | Payload | Direction |
@@ -623,6 +627,122 @@ event_loop.rs              cost/calculator.rs           db/queries.rs
      │ [if budget > 80%]:        │                          │
      │   emit('cost:budget_warning')                        │
 ```
+
+### 5.6 Agent SDK Control Protocol (Phase 3 — CHI-101, Planned)
+
+The current `-p` per-message architecture (§5.1) has a fundamental limitation: in non-interactive mode, the CLI auto-denies permission requests for tools not in `--allowedTools`. This means the PermissionDialog (§5.2) cannot actually send responses back to the CLI — interactive permission granting is impossible.
+
+**CHI-101** migrates the bridge from `-p` mode to the Agent SDK bidirectional control protocol, enabling true interactive permissions, persistent sessions, and runtime model switching.
+
+#### 5.6.1 Transport
+
+- **JSONL (newline-delimited JSON)** over stdin/stdout pipes (NOT PTY)
+- Each message is one complete JSON object terminated by `\n`
+- Stderr contains debug output (not protocol messages)
+- Stdin requires a write lock (not threadsafe for concurrent writes)
+
+#### 5.6.2 CLI Spawn Flags
+
+```bash
+claude \
+  --output-format stream-json \
+  --input-format stream-json \
+  --verbose \
+  --permission-prompt-tool stdio \
+  --model <model> \
+  --resume <session_id>
+```
+
+Key difference: `--input-format stream-json` enables bidirectional JSONL protocol. `--permission-prompt-tool stdio` routes permission decisions through the control protocol.
+
+#### 5.6.3 Initialization Handshake
+
+```
+CW → CLI (stdin):  {"type":"control_request","request_id":"req_1","request":{"subtype":"initialize"}}
+CLI → CW (stdout): {"type":"control_response","request_id":"req_1","response":{...}}
+CLI → CW (stdout): {"type":"system","subtype":"init","session_id":"...","model":"...","tools":[...]}
+```
+
+#### 5.6.4 Message Types
+
+**stdout (CLI → CW):**
+
+| type | Description |
+|------|-------------|
+| `system` | Init event with session_id, model, tools, mcp_servers |
+| `assistant` | Complete assistant turn with content blocks (text, thinking, tool_use) |
+| `user` | Tool results (tool_result content blocks) |
+| `result` | Final result with cost, tokens, session_id |
+| `stream_event` | Partial streaming deltas (with `--include-partial-messages`) |
+| `control_request` | CLI requesting permission/hook execution |
+| `control_response` | CLI responding to SDK control requests |
+
+**stdin (CW → CLI):**
+
+| type | Description |
+|------|-------------|
+| `user` | User messages: `{"type":"user","message":{"role":"user","content":"prompt"}}` |
+| `control_request` | Initialize, set_model, set_permission_mode, interrupt, rewind_files |
+| `control_response` | Permission decisions in response to CLI's `can_use_tool` |
+
+#### 5.6.5 Permission Flow (can_use_tool)
+
+```
+Claude Code CLI          Rust Backend (bridge)          Frontend
+     │                         │                           │
+     │ control_request         │                           │
+     │ {can_use_tool,          │                           │
+     │  tool: "Bash",          │                           │
+     │  input: {cmd: "gh pr"}} │                           │
+     ├───────────────────────→ │                           │
+     │                         │ emit('permission:request')│
+     │                         ├─────────────────────────→ │
+     │                         │                           │ show dialog
+     │                         │                           │ user clicks
+     │                         │ ◄── invoke('respond_permission')
+     │                         │                           │
+     │ ◄── control_response    │                           │
+     │ {allow: true}           │                           │
+     │                         │                           │
+     │ (executes tool)         │                           │
+```
+
+#### 5.6.6 Control Request Subtypes
+
+**CW → CLI (outbound):**
+1. `initialize` — session setup (hooks, MCP servers, agents)
+2. `set_permission_mode` — change mode mid-session (default, acceptEdits, plan, dontAsk)
+3. `set_model` — change model mid-session
+4. `interrupt` — stop current execution
+5. `rewind_files` — restore files to state at a given message UUID
+6. `mcp_status` — query MCP server status
+
+**CLI → CW (inbound):**
+1. `can_use_tool` — requesting permission to use a tool
+2. `hook_callback` — requesting hook execution (PreToolUse, PostToolUse)
+
+#### 5.6.7 Follow-up Messages
+
+Instead of spawning a new process with `-p`, write to stdin:
+
+```json
+{"type":"user","message":{"role":"user","content":"follow up question"}}
+```
+
+The CLI processes it and emits streaming events, then a `result` message. One persistent process per session.
+
+#### 5.6.8 Interim: Bash allowedTools Patterns (CHI-102)
+
+Until CHI-101 is implemented, a "Developer Mode" provides granular Bash access via `--allowedTools` patterns:
+
+```
+Bash(git *)   Bash(gh *)    Bash(npm *)   Bash(npx *)
+Bash(cargo *) Bash(ls *)    Bash(cat *)   Bash(which *)
+```
+
+Three permission tiers: **Safe** (no Bash) → **Developer** (patterned Bash) → **YOLO** (skip all).
+
+Note: Claude Code prevents shell chaining in patterns, but bypass vectors exist (GitHub #4956, #13371). Developer mode is convenience, not a security boundary.
 
 ---
 
