@@ -1,7 +1,8 @@
 //! Gitignore-aware filesystem scanner using the `ignore` crate.
 //! Provides directory listing, file reading, and fuzzy name search.
 
-use std::path::Path;
+use std::io::{BufRead, Read};
+use std::path::{Path, PathBuf};
 
 use crate::AppError;
 
@@ -26,6 +27,44 @@ const ALWAYS_SKIP: &[&str] = &[
     ".venv",
     "venv",
 ];
+
+/// Canonicalize an existing path and ensure it stays within the project root.
+/// This blocks `..` traversal and symlink escapes for file operations.
+fn ensure_within_project_root(
+    project_root: &Path,
+    path: &Path,
+    display_path: &str,
+) -> Result<PathBuf, AppError> {
+    let root = std::fs::canonicalize(project_root)?;
+    let resolved = std::fs::canonicalize(path)?;
+    if !resolved.starts_with(&root) {
+        return Err(AppError::Other(format!(
+            "Path escapes project root: {}",
+            display_path
+        )));
+    }
+    Ok(resolved)
+}
+
+/// Count lines in a UTF-8 text file without loading the entire file into memory.
+fn count_lines(path: &Path) -> Result<usize, AppError> {
+    let file = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(file);
+    let mut count = 0usize;
+    for line in reader.lines() {
+        line?;
+        count += 1;
+    }
+    Ok(count)
+}
+
+/// Read at most `max_bytes` and convert safely to UTF-8, even if truncated mid-char.
+fn read_limited_text(path: &Path, max_bytes: u64) -> Result<String, AppError> {
+    let file = std::fs::File::open(path)?;
+    let mut buf = Vec::new();
+    file.take(max_bytes).read_to_end(&mut buf)?;
+    Ok(String::from_utf8_lossy(&buf).into_owned())
+}
 
 /// Check if first `n` bytes contain null bytes (binary heuristic).
 fn is_binary(data: &[u8]) -> bool {
@@ -71,6 +110,12 @@ pub fn list_files(
     relative_path: Option<&str>,
     max_depth: Option<usize>,
 ) -> Result<Vec<FileNode>, AppError> {
+    tracing::debug!(
+        root = %project_root.display(),
+        relative_path = ?relative_path,
+        max_depth = ?max_depth,
+        "listing project files"
+    );
     let scan_root = match relative_path {
         Some(rel) if !rel.is_empty() => project_root.join(rel),
         _ => project_root.to_path_buf(),
@@ -79,6 +124,12 @@ pub fn list_files(
     if !scan_root.exists() {
         return Ok(Vec::new());
     }
+
+    ensure_within_project_root(
+        project_root,
+        &scan_root,
+        relative_path.unwrap_or("."),
+    )?;
 
     let depth = max_depth.unwrap_or(1);
     let mut entries: Vec<FileNode> = Vec::new();
@@ -194,6 +245,12 @@ pub fn list_files(
         }
     }
 
+    tracing::debug!(
+        root = %project_root.display(),
+        relative_path = ?relative_path,
+        returned_entries = entries.len(),
+        "listed project files"
+    );
     Ok(entries)
 }
 
@@ -205,6 +262,13 @@ pub fn read_file(
     start_line: Option<usize>,
     end_line: Option<usize>,
 ) -> Result<FileContent, AppError> {
+    tracing::debug!(
+        root = %project_root.display(),
+        relative_path = %relative_path,
+        start_line = ?start_line,
+        end_line = ?end_line,
+        "reading project file"
+    );
     let full_path = project_root.join(relative_path);
 
     if !full_path.exists() {
@@ -214,13 +278,14 @@ pub fn read_file(
         )));
     }
 
-    let metadata = std::fs::metadata(&full_path)?;
+    let safe_path = ensure_within_project_root(project_root, &full_path, relative_path)?;
+    let metadata = std::fs::metadata(&safe_path)?;
     let size_bytes = metadata.len();
 
     // Binary check — read first 8KB
     if size_bytes > 0 {
         let mut buf = vec![0u8; 8192.min(size_bytes as usize)];
-        if let Ok(n) = std::fs::File::open(&full_path)
+        if let Ok(n) = std::fs::File::open(&safe_path)
             .and_then(|mut f| std::io::Read::read(&mut f, &mut buf))
         {
             if is_binary(&buf[..n]) {
@@ -237,39 +302,41 @@ pub fn read_file(
         }
     }
 
-    let raw_content = std::fs::read_to_string(&full_path)?;
-    let total_lines = raw_content.lines().count();
     let truncated = size_bytes > MAX_READ_BYTES;
+    let (content, total_lines) = match (start_line, end_line) {
+        (Some(_), _) | (None, Some(_)) => {
+            let file = std::fs::File::open(&safe_path)?;
+            let reader = std::io::BufReader::new(file);
+            let mut selected = Vec::new();
+            let mut line_no = 0usize;
 
-    let content = match (start_line, end_line) {
-        (Some(start), Some(end)) => {
-            let start_idx = start.saturating_sub(1);
-            raw_content
-                .lines()
-                .skip(start_idx)
-                .take(end.saturating_sub(start))
-                .collect::<Vec<_>>()
-                .join("\n")
-        }
-        (Some(start), None) => {
-            let start_idx = start.saturating_sub(1);
-            raw_content
-                .lines()
-                .skip(start_idx)
-                .collect::<Vec<_>>()
-                .join("\n")
-        }
-        _ => {
-            if truncated {
-                let limit = MAX_READ_BYTES as usize;
-                if raw_content.len() > limit {
-                    raw_content[..limit].to_string()
-                } else {
-                    raw_content.clone()
+            for line in reader.lines() {
+                let line = line?;
+                line_no += 1;
+
+                let include = match (start_line, end_line) {
+                    (Some(start), Some(end)) => line_no >= start && line_no < end,
+                    (Some(start), None) => line_no >= start,
+                    (None, Some(end)) => line_no <= end,
+                    (None, None) => false,
+                };
+
+                if include {
+                    selected.push(line);
                 }
-            } else {
-                raw_content.clone()
             }
+
+            (selected.join("\n"), line_no)
+        }
+        (None, None) if truncated => {
+            let content = read_limited_text(&safe_path, MAX_READ_BYTES)?;
+            let total_lines = count_lines(&safe_path)?;
+            (content, total_lines)
+        }
+        (None, None) => {
+            let raw_content = std::fs::read_to_string(&safe_path)?;
+            let total_lines = raw_content.lines().count();
+            (raw_content, total_lines)
         }
     };
 
@@ -279,6 +346,14 @@ pub fn read_file(
         .unwrap_or("");
     let language = detect_language(extension);
     let estimated_tokens = content.len() / 4;
+
+    tracing::debug!(
+        relative_path = %relative_path,
+        total_lines,
+        truncated,
+        estimated_tokens,
+        "read project file"
+    );
 
     Ok(FileContent {
         relative_path: relative_path.to_string(),
@@ -297,6 +372,12 @@ pub fn search_files(
     query: &str,
     max_results: Option<usize>,
 ) -> Result<Vec<FileSearchResult>, AppError> {
+    tracing::debug!(
+        root = %project_root.display(),
+        query = %query,
+        max_results = ?max_results,
+        "searching project files"
+    );
     let limit = max_results.unwrap_or(20).min(100);
     let query_lower = query.to_lowercase();
     let mut results: Vec<FileSearchResult> = Vec::new();
@@ -371,14 +452,60 @@ pub fn search_files(
     });
 
     results.truncate(limit);
+    tracing::debug!(query = %query, result_count = results.len(), "searched project files");
     Ok(results)
 }
 
 /// Estimate token count for a file (~chars/4).
 pub fn estimate_tokens(project_root: &Path, relative_path: &str) -> Result<usize, AppError> {
+    tracing::debug!(
+        root = %project_root.display(),
+        relative_path = %relative_path,
+        "estimating file tokens"
+    );
     let full_path = project_root.join(relative_path);
-    let metadata = std::fs::metadata(&full_path)?;
+    let safe_path = ensure_within_project_root(project_root, &full_path, relative_path)?;
+    let metadata = std::fs::metadata(&safe_path)?;
     Ok(metadata.len() as usize / 4)
+}
+
+/// Open a file in the system default app/editor after validating path containment.
+pub fn open_file_in_system(project_root: &Path, relative_path: &str) -> Result<(), AppError> {
+    tracing::debug!(
+        root = %project_root.display(),
+        relative_path = %relative_path,
+        "opening project file in system app"
+    );
+
+    let full_path = project_root.join(relative_path);
+    let safe_path = ensure_within_project_root(project_root, &full_path, relative_path)?;
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&safe_path)
+            .spawn()
+            .map_err(AppError::from)?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&safe_path)
+            .spawn()
+            .map_err(AppError::from)?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(["/C", "start", ""])
+            .arg(&safe_path)
+            .spawn()
+            .map_err(AppError::from)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -449,6 +576,17 @@ mod tests {
     }
 
     #[test]
+    fn list_files_rejects_path_traversal() {
+        let base = tempfile::tempdir().unwrap();
+        let project_dir = base.path().join("project");
+        fs::create_dir_all(&project_dir).unwrap();
+        fs::write(base.path().join("outside.txt"), "secret").unwrap();
+
+        let result = list_files(&project_dir, Some(".."), Some(1));
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn list_files_directories_sorted_first() {
         let project = create_test_project();
         let result = list_files(project.path(), None, Some(1)).unwrap();
@@ -488,9 +626,31 @@ mod tests {
     }
 
     #[test]
+    fn read_file_end_line_without_start_returns_first_n_lines() {
+        let project = create_test_project();
+        let content = "line1\nline2\nline3\nline4\n";
+        fs::write(project.path().join("multi2.txt"), content).unwrap();
+
+        let result = read_file(project.path(), "multi2.txt", None, Some(3)).unwrap();
+        assert_eq!(result.content, "line1\nline2\nline3");
+    }
+
+    #[test]
     fn read_file_not_found() {
         let project = create_test_project();
         let result = read_file(project.path(), "nonexistent.txt", None, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn read_file_rejects_path_traversal() {
+        let base = tempfile::tempdir().unwrap();
+        let project_dir = base.path().join("project");
+        fs::create_dir_all(&project_dir).unwrap();
+        fs::write(project_dir.join("inside.txt"), "ok").unwrap();
+        fs::write(base.path().join("outside.txt"), "secret").unwrap();
+
+        let result = read_file(&project_dir, "../outside.txt", None, None);
         assert!(result.is_err());
     }
 
@@ -548,6 +708,17 @@ mod tests {
         let project = create_test_project();
         let tokens = estimate_tokens(project.path(), "src/main.rs").unwrap();
         assert_eq!(tokens, 3);
+    }
+
+    #[test]
+    fn estimate_tokens_rejects_path_traversal() {
+        let base = tempfile::tempdir().unwrap();
+        let project_dir = base.path().join("project");
+        fs::create_dir_all(&project_dir).unwrap();
+        fs::write(base.path().join("outside.txt"), "secret").unwrap();
+
+        let result = estimate_tokens(&project_dir, "../outside.txt");
+        assert!(result.is_err());
     }
 
     #[test]

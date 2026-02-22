@@ -20,6 +20,32 @@ const [state, setState] = createStore<ProjectState>({
   claudeMdContent: null,
 });
 
+let watchedProjectId: string | null = null;
+
+async function syncProjectFileWatcher(nextProjectId: string | null): Promise<void> {
+  if (watchedProjectId === nextProjectId) return;
+
+  const previousProjectId = watchedProjectId;
+
+  try {
+    if (previousProjectId) {
+      await invoke('stop_project_file_watcher', { project_id: previousProjectId });
+    }
+  } catch (err) {
+    console.warn('[projectStore] Failed to stop file watcher:', err);
+  }
+  watchedProjectId = null;
+
+  if (!nextProjectId) return;
+
+  try {
+    await invoke('start_project_file_watcher', { project_id: nextProjectId });
+    watchedProjectId = nextProjectId;
+  } catch (err) {
+    console.warn('[projectStore] Failed to start file watcher:', err);
+  }
+}
+
 /** Load all projects from the database. */
 export async function loadProjects(): Promise<void> {
   setState('isLoading', true);
@@ -29,7 +55,10 @@ export async function loadProjects(): Promise<void> {
     // Auto-select the first project if none selected
     if (!state.activeProjectId && projects.length > 0) {
       setState('activeProjectId', projects[0].id);
+      void syncProjectFileWatcher(projects[0].id);
       loadClaudeMd(projects[0].id);
+    } else {
+      void syncProjectFileWatcher(state.activeProjectId);
     }
   } finally {
     setState('isLoading', false);
@@ -46,6 +75,7 @@ export async function pickAndCreateProject(): Promise<Project | null> {
   });
   setState('projects', (prev) => [project, ...prev]);
   setState('activeProjectId', project.id);
+  await syncProjectFileWatcher(project.id);
   loadClaudeMd(project.id);
   return project;
 }
@@ -63,6 +93,7 @@ export async function loadClaudeMd(projectId: string): Promise<void> {
 /** Set the active project. */
 export function setActiveProject(projectId: string | null): void {
   setState('activeProjectId', projectId);
+  void syncProjectFileWatcher(projectId);
   if (projectId) {
     loadClaudeMd(projectId);
   } else {

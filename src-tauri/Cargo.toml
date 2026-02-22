@@ -62,6 +62,8 @@ tauri-plugin-os = "2"
 dirs = "6"
 # Gitignore-aware directory walking (same engine as ripgrep)
 ignore = "0.4"
+# Filesystem watching for project file changes (CHI-115)
+notify = "8"
 
 # Fix PATH for macOS/Linux GUI apps (launchd doesn't inherit shell profile)
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }

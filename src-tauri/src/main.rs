@@ -37,6 +37,9 @@ fn main() {
     // Create the permission manager for handling CLI permission requests (CHI-50)
     let permission_manager = chief_wiggum_lib::bridge::PermissionManager::new();
 
+    // Project file watcher manager (CHI-115)
+    let file_watcher_manager = chief_wiggum_lib::files::watcher::FileWatcherManager::new();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -45,6 +48,7 @@ fn main() {
         .manage(cli_location)
         .manage(bridge_map)
         .manage(permission_manager)
+        .manage(file_watcher_manager)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -76,6 +80,9 @@ fn main() {
             chief_wiggum_lib::commands::files::read_project_file,
             chief_wiggum_lib::commands::files::search_project_files,
             chief_wiggum_lib::commands::files::get_file_token_estimate,
+            chief_wiggum_lib::commands::files::open_project_file_in_system,
+            chief_wiggum_lib::commands::files::start_project_file_watcher,
+            chief_wiggum_lib::commands::files::stop_project_file_watcher,
         ])
         .setup(|app| {
             use tauri::Manager;
