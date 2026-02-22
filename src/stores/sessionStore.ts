@@ -113,4 +113,16 @@ export async function toggleSessionPinned(sessionId: string): Promise<void> {
   setState('sessions', (s) => s.id === sessionId, 'pinned', newPinned);
 }
 
+/** Duplicate a session's metadata (project/model/title) into a new session. */
+export async function duplicateSession(sessionId: string): Promise<Session> {
+  const session = await invoke<Session>('duplicate_session', { session_id: sessionId });
+  setState('sessions', (prev) => [session, ...prev]);
+  return session;
+}
+
+/** Check whether a session contains any messages (used for delete confirmation). */
+export async function sessionHasMessages(sessionId: string): Promise<boolean> {
+  return invoke<boolean>('session_has_messages', { session_id: sessionId });
+}
+
 export { state as sessionState };

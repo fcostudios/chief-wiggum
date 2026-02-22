@@ -126,3 +126,19 @@ pub fn toggle_session_pinned(
 ) -> Result<(), AppError> {
     db.with_conn(|conn| queries::update_session_pinned(conn, &session_id, pinned))
 }
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn duplicate_session(
+    db: State<'_, Database>,
+    session_id: String,
+) -> Result<SessionRow, AppError> {
+    let new_id = uuid::Uuid::new_v4().to_string();
+    queries::duplicate_session_metadata_only(&db, &session_id, &new_id)?;
+    queries::get_session(&db, &new_id)?
+        .ok_or_else(|| AppError::Other("Duplicated session not found".to_string()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn session_has_messages(db: State<'_, Database>, session_id: String) -> Result<bool, AppError> {
+    Ok(queries::count_session_messages(&db, &session_id)? > 0)
+}

@@ -61,6 +61,8 @@ fn main() {
             chief_wiggum_lib::commands::session::update_session_cli_id,
             chief_wiggum_lib::commands::session::get_session_cost,
             chief_wiggum_lib::commands::session::toggle_session_pinned,
+            chief_wiggum_lib::commands::session::duplicate_session,
+            chief_wiggum_lib::commands::session::session_has_messages,
             chief_wiggum_lib::commands::cli::get_cli_info,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
