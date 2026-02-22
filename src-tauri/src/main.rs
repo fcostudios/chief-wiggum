@@ -73,6 +73,8 @@ fn main() {
             chief_wiggum_lib::commands::bridge::respond_permission,
             chief_wiggum_lib::commands::bridge::toggle_yolo_mode,
             chief_wiggum_lib::commands::bridge::toggle_developer_mode,
+            chief_wiggum_lib::commands::bridge::list_active_bridges,
+            chief_wiggum_lib::commands::bridge::drain_session_buffer,
         ])
         .setup(|app| {
             use tauri::Manager;

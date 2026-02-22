@@ -17,9 +17,9 @@ import {
 import {
   loadMessages,
   clearMessages,
-  cleanupEventListeners,
   switchSession,
   stopSessionCli,
+  getSessionStatus,
 } from '@/stores/conversationStore';
 import {
   projectState,
@@ -100,11 +100,7 @@ const Sidebar: Component = () => {
   });
 
   async function handleNewSession() {
-    const oldId = sessionState.activeSessionId;
-    if (oldId) {
-      await stopSessionCli(oldId);
-    }
-    await cleanupEventListeners();
+    // Don't stop old CLI -- it continues running in the background
     clearMessages();
     const project = getActiveProject();
     await createNewSession(project?.default_model ?? 'claude-sonnet-4-6', project?.id);
@@ -546,7 +542,25 @@ const SessionItem: Component<{
         />
       </Show>
 
-      <MessageSquare size={13} class="mt-0.5 shrink-0 text-text-tertiary" />
+      <div class="relative mt-0.5 shrink-0">
+        <MessageSquare size={13} class="text-text-tertiary" />
+        {/* Per-session status indicator */}
+        <Show when={getSessionStatus(props.session.id) === 'running'}>
+          <div
+            class="absolute -right-0.5 -top-0.5 w-1.5 h-1.5 rounded-full"
+            style={{
+              background: 'var(--color-success)',
+              animation: 'pulse 2s ease-in-out infinite',
+            }}
+          />
+        </Show>
+        <Show when={getSessionStatus(props.session.id) === 'error'}>
+          <div
+            class="absolute -right-0.5 -top-0.5 w-1.5 h-1.5 rounded-full"
+            style={{ background: 'var(--color-error)' }}
+          />
+        </Show>
+      </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5">
           <span class="text-xs font-medium truncate">{props.session.title || 'New Session'}</span>

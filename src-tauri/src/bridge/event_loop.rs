@@ -1,26 +1,27 @@
 //! Tokio task that reads BridgeOutput and emits Tauri events to the frontend.
 //! Per CHI-46: one task per CliBridge, exits when bridge shuts down.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::RwLock;
 
+use super::manager::{BufferedEvent, SessionRuntime};
 use super::process::BridgeInterface;
 use super::{BridgeEvent, BridgeOutput};
 
 /// Event payloads emitted to the frontend.
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkPayload {
     pub session_id: String,
     pub content: String,
     pub token_count: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageCompletePayload {
     pub session_id: String,
     pub role: String,
@@ -33,13 +34,13 @@ pub struct MessageCompletePayload {
     pub is_error: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliExitedPayload {
     pub session_id: String,
     pub exit_code: Option<i32>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermissionRequestPayload {
     pub session_id: String,
     pub request_id: String,
@@ -49,14 +50,14 @@ pub struct PermissionRequestPayload {
     pub risk_level: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliInitPayload {
     pub session_id: String,
     pub cli_session_id: String,
     pub model: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolUsePayload {
     pub session_id: String,
     pub tool_use_id: String,
@@ -64,7 +65,7 @@ pub struct ToolUsePayload {
     pub tool_input: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolResultPayload {
     pub session_id: String,
     pub tool_use_id: String,
@@ -72,7 +73,7 @@ pub struct ToolResultPayload {
     pub is_error: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThinkingPayload {
     pub session_id: String,
     pub content: String,
@@ -91,6 +92,7 @@ pub fn spawn_event_loop(
     session_id: String,
     bridge: Arc<dyn BridgeInterface>,
     mcp_cache: Arc<RwLock<HashSet<String>>>,
+    runtimes: Arc<RwLock<HashMap<String, SessionRuntime>>>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         tracing::info!("Event loop started for session {}", session_id);
@@ -98,7 +100,7 @@ pub fn spawn_event_loop(
         loop {
             match bridge.receive().await {
                 Ok(Some(output)) => {
-                    emit_bridge_output(&app, &session_id, output, &mcp_cache).await;
+                    emit_bridge_output(&app, &session_id, output, &mcp_cache, &runtimes).await;
                 }
                 Ok(None) => {
                     tracing::info!(
@@ -140,11 +142,13 @@ fn extract_mcp_prefix(tool_name: &str) -> Option<String> {
 }
 
 /// Map a BridgeOutput to the appropriate Tauri event emission.
+/// Also buffers each event into the session's `SessionRuntime` for HMR replay.
 async fn emit_bridge_output(
     app: &AppHandle,
     session_id: &str,
     output: BridgeOutput,
     mcp_cache: &Arc<RwLock<HashSet<String>>>,
+    runtimes: &Arc<RwLock<HashMap<String, SessionRuntime>>>,
 ) {
     match output {
         BridgeOutput::Chunk(chunk) => {
@@ -160,6 +164,13 @@ async fn emit_bridge_output(
             };
             if let Err(e) = app.emit("message:chunk", &payload) {
                 tracing::warn!("Failed to emit message:chunk: {}", e);
+            }
+            // Buffer for HMR reconnection
+            {
+                let mut rts = runtimes.write().await;
+                if let Some(rt) = rts.get_mut(session_id) {
+                    rt.buffer_event(BufferedEvent::Chunk(payload.clone()));
+                }
             }
         }
         BridgeOutput::Event(event) => match event {
@@ -195,6 +206,13 @@ async fn emit_bridge_output(
                 };
                 if let Err(e) = app.emit("message:complete", &payload) {
                     tracing::warn!("Failed to emit message:complete: {}", e);
+                }
+                // Buffer for HMR reconnection
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.buffer_event(BufferedEvent::MessageComplete(payload.clone()));
+                    }
                 }
             }
             BridgeEvent::SystemInit {
@@ -250,6 +268,16 @@ async fn emit_bridge_output(
                 if let Err(e) = app.emit("cli:init", &payload) {
                     tracing::warn!("Failed to emit cli:init: {}", e);
                 }
+                // Buffer for HMR reconnection + update runtime state
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.process_status = "running".to_string();
+                        rt.cli_session_id = Some(payload.cli_session_id.clone());
+                        rt.model = Some(payload.model.clone());
+                        rt.buffer_event(BufferedEvent::CliInit(payload.clone()));
+                    }
+                }
             }
             BridgeEvent::ToolUse {
                 session_id: _,
@@ -274,6 +302,13 @@ async fn emit_bridge_output(
                 if let Err(e) = app.emit("tool:use", &payload) {
                     tracing::warn!("Failed to emit tool:use: {}", e);
                 }
+                // Buffer for HMR reconnection
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.buffer_event(BufferedEvent::ToolUse(payload.clone()));
+                    }
+                }
             }
             BridgeEvent::ToolResult {
                 session_id: _,
@@ -295,6 +330,13 @@ async fn emit_bridge_output(
                 if let Err(e) = app.emit("tool:result", &payload) {
                     tracing::warn!("Failed to emit tool:result: {}", e);
                 }
+                // Buffer for HMR reconnection
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.buffer_event(BufferedEvent::ToolResult(payload.clone()));
+                    }
+                }
             }
             BridgeEvent::Thinking {
                 session_id: _,
@@ -313,6 +355,13 @@ async fn emit_bridge_output(
                 };
                 if let Err(e) = app.emit("message:thinking", &payload) {
                     tracing::warn!("Failed to emit message:thinking: {}", e);
+                }
+                // Buffer for HMR reconnection
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.buffer_event(BufferedEvent::Thinking(payload.clone()));
+                    }
                 }
             }
             other => {
@@ -337,6 +386,13 @@ async fn emit_bridge_output(
             if let Err(e) = app.emit("permission:request", &payload) {
                 tracing::warn!("Failed to emit permission:request: {}", e);
             }
+            // Buffer for HMR reconnection
+            {
+                let mut rts = runtimes.write().await;
+                if let Some(rt) = rts.get_mut(session_id) {
+                    rt.buffer_event(BufferedEvent::PermissionRequest(payload.clone()));
+                }
+            }
         }
         BridgeOutput::ProcessExited { exit_code } => {
             tracing::info!(
@@ -350,6 +406,14 @@ async fn emit_bridge_output(
             };
             if let Err(e) = app.emit("cli:exited", &payload) {
                 tracing::warn!("Failed to emit cli:exited: {}", e);
+            }
+            // Buffer for HMR reconnection + update runtime state
+            {
+                let mut rts = runtimes.write().await;
+                if let Some(rt) = rts.get_mut(session_id) {
+                    rt.process_status = "exited".to_string();
+                    rt.buffer_event(BufferedEvent::CliExited(payload.clone()));
+                }
             }
         }
     }

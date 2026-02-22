@@ -110,6 +110,57 @@ export interface Session {
   pinned: boolean | null;
 }
 
+/** Backend info about an active CLI bridge (for reconnection after HMR/reload). */
+export interface ActiveBridgeInfo {
+  session_id: string;
+  process_status: string;
+  cli_session_id: string | null;
+  model: string | null;
+  has_buffered_events: boolean;
+}
+
+/** Buffered event from backend replay after frontend reconnect. */
+export interface BufferedEvent {
+  type:
+    | 'Chunk'
+    | 'MessageComplete'
+    | 'CliInit'
+    | 'CliExited'
+    | 'ToolUse'
+    | 'ToolResult'
+    | 'Thinking'
+    | 'PermissionRequest';
+  session_id: string;
+  // Chunk fields
+  content?: string;
+  token_count?: number | null;
+  // MessageComplete fields
+  role?: string;
+  model?: string | null;
+  input_tokens?: number | null;
+  output_tokens?: number | null;
+  thinking_tokens?: number | null;
+  cost_cents?: number | null;
+  is_error?: boolean;
+  // CliInit fields
+  cli_session_id?: string;
+  // CliExited fields
+  exit_code?: number | null;
+  // ToolUse fields
+  tool_use_id?: string;
+  tool_name?: string;
+  tool_input?: string;
+  // ToolResult fields (content, is_error, tool_use_id already covered above)
+  // Thinking fields (content already covered above)
+  is_streaming?: boolean;
+  // PermissionRequest fields
+  request_id?: string;
+  tool?: string;
+  command?: string;
+  file_path?: string | null;
+  risk_level?: string;
+}
+
 /** CLI location info from backend (mirrors Rust CliLocation) */
 export interface CliLocation {
   path_override: string | null;

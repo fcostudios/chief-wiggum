@@ -157,7 +157,13 @@ pub async fn send_to_cli(
 
     // Start the event loop for this session
     if let Some(bridge) = bridge_map.get(&session_id).await {
-        event_loop::spawn_event_loop(app.clone(), session_id, bridge, bridge_map.mcp_cache());
+        event_loop::spawn_event_loop(
+            app.clone(),
+            session_id,
+            bridge,
+            bridge_map.mcp_cache(),
+            bridge_map.runtimes(),
+        );
     }
 
     Ok(())
@@ -231,6 +237,23 @@ pub async fn toggle_yolo_mode(
         permission_manager.disable_yolo_mode().await;
     }
     Ok(())
+}
+
+/// List sessions with active CLI bridges. Called on frontend mount for reconnection.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn list_active_bridges(
+    bridge_map: State<'_, SessionBridgeMap>,
+) -> Result<Vec<crate::bridge::manager::ActiveBridgeInfo>, AppError> {
+    Ok(bridge_map.list_active_sessions().await)
+}
+
+/// Drain buffered events for a session (replay after HMR reload).
+#[tauri::command(rename_all = "snake_case")]
+pub async fn drain_session_buffer(
+    bridge_map: State<'_, SessionBridgeMap>,
+    session_id: String,
+) -> Result<Vec<crate::bridge::manager::BufferedEvent>, AppError> {
+    Ok(bridge_map.drain_session_buffer(&session_id).await)
 }
 
 /// Toggle Developer mode for the permission system (CHI-102).
