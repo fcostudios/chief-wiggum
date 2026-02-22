@@ -6,13 +6,8 @@ fn main() {
     // Must run before CliLocation::detect() and any process spawning.
     let _ = fix_path_env::fix();
 
-    // Initialize tracing subscriber for structured logging per GUIDE-001 §2.5
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
-        )
-        .init();
+    // Initialize 3-layer tracing: console + rolling file + ring buffer (CHI-94)
+    let _ring_buffer = chief_wiggum_lib::logging::init_logging();
 
     tracing::info!("Starting Chief Wiggum v{}", env!("CARGO_PKG_VERSION"));
 
@@ -75,6 +70,8 @@ fn main() {
             chief_wiggum_lib::commands::bridge::toggle_developer_mode,
             chief_wiggum_lib::commands::bridge::list_active_bridges,
             chief_wiggum_lib::commands::bridge::drain_session_buffer,
+            chief_wiggum_lib::commands::slash::list_slash_commands,
+            chief_wiggum_lib::commands::slash::refresh_slash_commands,
         ])
         .setup(|app| {
             use tauri::Manager;

@@ -6,3 +6,4 @@ pub mod bridge;
 pub mod cli;
 pub mod project;
 pub mod session;
+pub mod slash;

@@ -6,6 +6,8 @@
 pub mod bridge;
 pub mod commands;
 pub mod db;
+pub mod logging;
+pub mod slash;
 
 /// Unified application error type per GUIDE-001 §2.4 and SPEC-004 §7.
 #[derive(Debug, thiserror::Error)]
