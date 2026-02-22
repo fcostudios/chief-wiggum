@@ -228,9 +228,7 @@ mod tests {
     #[test]
     fn redacts_anthropic_api_key() {
         let r = LogRedactor::new();
-        let entries = vec![make_entry(
-            "Using key sk-ant-api03-abc123def456ghi789jkl",
-        )];
+        let entries = vec![make_entry("Using key sk-ant-api03-abc123def456ghi789jkl")];
         let (redacted, summary) = r.redact_entries(&entries);
 
         assert!(!redacted[0].message.contains("abc123"));
@@ -269,9 +267,7 @@ mod tests {
         let entries = vec![make_entry("ANTHROPIC_API_KEY=sk-ant-api03-secret123")];
         let (redacted, summary) = r.redact_entries(&entries);
 
-        assert!(redacted[0]
-            .message
-            .contains("ANTHROPIC_API_KEY=[REDACTED]"));
+        assert!(redacted[0].message.contains("ANTHROPIC_API_KEY=[REDACTED]"));
         assert!(summary.entries_redacted >= 1);
     }
 
@@ -288,9 +284,7 @@ mod tests {
     #[test]
     fn redacts_home_directory() {
         let r = redactor_with_home("/Users/francisco");
-        let entries = vec![make_entry(
-            "Loading /Users/francisco/projects/chief-wiggum",
-        )];
+        let entries = vec![make_entry("Loading /Users/francisco/projects/chief-wiggum")];
         let (redacted, _) = r.redact_entries(&entries);
 
         assert!(redacted[0].message.contains("~/projects/chief-wiggum"));

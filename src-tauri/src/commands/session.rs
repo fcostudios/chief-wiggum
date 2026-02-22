@@ -124,7 +124,5 @@ pub fn toggle_session_pinned(
     session_id: String,
     pinned: bool,
 ) -> Result<(), AppError> {
-    db.with_conn(|conn| {
-        queries::update_session_pinned(conn, &session_id, pinned)
-    })
+    db.with_conn(|conn| queries::update_session_pinned(conn, &session_id, pinned))
 }

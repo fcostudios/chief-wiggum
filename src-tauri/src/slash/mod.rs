@@ -132,7 +132,10 @@ mod tests {
     #[test]
     fn builtin_commands_has_minimum_set() {
         let commands = builtin_commands();
-        assert!(commands.len() >= 10, "Expected at least 10 built-in commands");
+        assert!(
+            commands.len() >= 10,
+            "Expected at least 10 built-in commands"
+        );
 
         let names: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
         assert!(names.contains(&"clear"));

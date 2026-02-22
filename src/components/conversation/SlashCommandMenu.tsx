@@ -16,9 +16,7 @@ interface SlashCommandMenuProps {
 }
 
 /** Group commands by category for sectioned display. */
-function groupByCategory(
-  commands: SlashCommand[],
-): { label: string; commands: SlashCommand[] }[] {
+function groupByCategory(commands: SlashCommand[]): { label: string; commands: SlashCommand[] }[] {
   const groups: { label: string; category: string; commands: SlashCommand[] }[] = [
     { label: 'Built-in', category: 'Builtin', commands: [] },
     { label: 'Project', category: 'Project', commands: [] },
@@ -95,9 +93,7 @@ const SlashCommandMenu: Component<SlashCommandMenuProps> = (props) => {
                     <button
                       class="w-full text-left px-3 py-2 flex items-baseline gap-2 transition-colors"
                       style={{
-                        background: isHighlighted()
-                          ? 'var(--color-accent-muted)'
-                          : 'transparent',
+                        background: isHighlighted() ? 'var(--color-accent-muted)' : 'transparent',
                         'border-left': isHighlighted()
                           ? '2px solid var(--color-accent)'
                           : '2px solid transparent',
@@ -118,9 +114,7 @@ const SlashCommandMenu: Component<SlashCommandMenuProps> = (props) => {
                           {cmd.args_hint}
                         </span>
                       </Show>
-                      <span class="text-[11px] text-text-tertiary truncate">
-                        {cmd.description}
-                      </span>
+                      <span class="text-[11px] text-text-tertiary truncate">{cmd.description}</span>
                     </button>
                   );
                 }}

@@ -549,12 +549,14 @@ mod tests {
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert!(!session.pinned.unwrap_or(false));
 
-        db.with_conn(|conn| update_session_pinned(conn, "s1", true)).unwrap();
+        db.with_conn(|conn| update_session_pinned(conn, "s1", true))
+            .unwrap();
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert!(session.pinned.unwrap_or(false));
 
-        db.with_conn(|conn| update_session_pinned(conn, "s1", false)).unwrap();
+        db.with_conn(|conn| update_session_pinned(conn, "s1", false))
+            .unwrap();
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert!(!session.pinned.unwrap_or(false));

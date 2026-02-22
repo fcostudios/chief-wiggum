@@ -31,8 +31,7 @@ function fuzzyMatch(command: SlashCommand, filter: string): boolean {
   if (!filter) return true;
   const lower = filter.toLowerCase();
   return (
-    command.name.toLowerCase().includes(lower) ||
-    command.description.toLowerCase().includes(lower)
+    command.name.toLowerCase().includes(lower) || command.description.toLowerCase().includes(lower)
   );
 }
 

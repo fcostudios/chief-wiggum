@@ -124,9 +124,7 @@ pub fn discover_all(project_path: Option<&Path>) -> Vec<SlashCommand> {
     let mut commands = super::builtin_commands();
 
     let user_commands = scan_user_commands();
-    let project_commands = project_path
-        .map(scan_project_commands)
-        .unwrap_or_default();
+    let project_commands = project_path.map(scan_project_commands).unwrap_or_default();
 
     // User commands override built-ins
     for cmd in user_commands {
@@ -166,7 +164,11 @@ mod tests {
     #[test]
     fn scan_directory_finds_md_files() {
         let dir = tempfile::tempdir().unwrap();
-        fs::write(dir.path().join("deploy.md"), "# Deploy to production\nSteps here.").unwrap();
+        fs::write(
+            dir.path().join("deploy.md"),
+            "# Deploy to production\nSteps here.",
+        )
+        .unwrap();
         fs::write(dir.path().join("lint.md"), "Run linters on the codebase").unwrap();
         fs::write(dir.path().join("readme.txt"), "Not a command").unwrap();
 

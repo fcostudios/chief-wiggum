@@ -620,7 +620,10 @@ const SessionItem: Component<{
           <span class="text-xs font-medium truncate">{props.session.title || 'New Session'}</span>
           <span
             class="text-[9px] font-medium shrink-0 px-1 py-0.5 rounded"
-            style={{ background: modelBgColor(props.session.model), color: 'var(--color-bg-primary)' }}
+            style={{
+              background: modelBgColor(props.session.model),
+              color: 'var(--color-bg-primary)',
+            }}
           >
             {modelLabel(props.session.model)}
           </span>

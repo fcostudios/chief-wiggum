@@ -228,10 +228,7 @@ impl StreamParser {
                     .and_then(|c| c.as_array())
                 {
                     for block in content_arr {
-                        let block_type = block
-                            .get("type")
-                            .and_then(|t| t.as_str())
-                            .unwrap_or("");
+                        let block_type = block.get("type").and_then(|t| t.as_str()).unwrap_or("");
                         match block_type {
                             "text" => {
                                 if let Some(text) = block.get("text").and_then(|t| t.as_str()) {
@@ -355,8 +352,7 @@ impl StreamParser {
 
             // Tool use
             "tool_use" | "tool_call" => {
-                let tool_use_id = extract_string(&event.data, "id")
-                    .unwrap_or_default();
+                let tool_use_id = extract_string(&event.data, "id").unwrap_or_default();
 
                 let tool_name = extract_string(&event.data, "name")
                     .or_else(|| extract_string(&event.data, "tool_name"))
@@ -439,8 +435,8 @@ impl StreamParser {
             "system" => {
                 let subtype = extract_string(&event.data, "subtype");
                 if subtype.as_deref() == Some("init") {
-                    let cli_session_id = extract_string(&event.data, "session_id")
-                        .unwrap_or_default();
+                    let cli_session_id =
+                        extract_string(&event.data, "session_id").unwrap_or_default();
                     let model = extract_string(&event.data, "model")
                         .unwrap_or_else(|| "unknown".to_string());
 
@@ -625,7 +621,8 @@ mod tests {
     #[test]
     fn parse_tool_use() {
         let mut parser = make_parser();
-        let line = r#"{"type":"tool_use","id":"toolu_abc123","name":"Bash","input":{"command":"ls -la"}}"#;
+        let line =
+            r#"{"type":"tool_use","id":"toolu_abc123","name":"Bash","input":{"command":"ls -la"}}"#;
         let outputs = parser.feed(&format!("{}\n", line));
 
         assert_eq!(outputs.len(), 1);
@@ -772,9 +769,7 @@ mod tests {
         assert_eq!(outputs.len(), 1);
         match &outputs[0] {
             ParsedOutput::Event(BridgeEvent::SystemInit {
-                mcp_servers,
-                tools,
-                ..
+                mcp_servers, tools, ..
             }) => {
                 assert_eq!(mcp_servers.len(), 2);
                 assert_eq!(mcp_servers[0], "plugin:context7:context7");

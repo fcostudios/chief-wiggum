@@ -45,9 +45,7 @@ const StatusBar: Component = () => {
   };
   const runningCount = () => {
     const statuses = conversationState.sessionStatuses;
-    return Object.values(statuses).filter(
-      (s) => s === 'running' || s === 'starting',
-    ).length;
+    return Object.values(statuses).filter((s) => s === 'running' || s === 'starting').length;
   };
 
   return (

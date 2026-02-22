@@ -125,11 +125,7 @@ pub fn list_files(
         return Ok(Vec::new());
     }
 
-    ensure_within_project_root(
-        project_root,
-        &scan_root,
-        relative_path.unwrap_or("."),
-    )?;
+    ensure_within_project_root(project_root, &scan_root, relative_path.unwrap_or("."))?;
 
     let depth = max_depth.unwrap_or(1);
     let mut entries: Vec<FileNode> = Vec::new();
@@ -143,9 +139,7 @@ pub fn list_files(
         .git_exclude(true)
         .filter_entry(|entry| {
             if let Some(name) = entry.file_name().to_str() {
-                if entry.file_type().is_some_and(|ft| ft.is_dir())
-                    && ALWAYS_SKIP.contains(&name)
-                {
+                if entry.file_type().is_some_and(|ft| ft.is_dir()) && ALWAYS_SKIP.contains(&name) {
                     return false;
                 }
             }
@@ -187,11 +181,7 @@ pub fn list_files(
             Err(_) => continue,
         };
 
-        let name = entry
-            .file_name()
-            .to_str()
-            .unwrap_or("?")
-            .to_string();
+        let name = entry.file_name().to_str().unwrap_or("?").to_string();
 
         let node_type = if metadata.is_dir() {
             FileNodeType::Directory
@@ -285,8 +275,8 @@ pub fn read_file(
     // Binary check — read first 8KB
     if size_bytes > 0 {
         let mut buf = vec![0u8; 8192.min(size_bytes as usize)];
-        if let Ok(n) = std::fs::File::open(&safe_path)
-            .and_then(|mut f| std::io::Read::read(&mut f, &mut buf))
+        if let Ok(n) =
+            std::fs::File::open(&safe_path).and_then(|mut f| std::io::Read::read(&mut f, &mut buf))
         {
             if is_binary(&buf[..n]) {
                 return Ok(FileContent {
@@ -340,10 +330,7 @@ pub fn read_file(
         }
     };
 
-    let extension = full_path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
+    let extension = full_path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let language = detect_language(extension);
     let estimated_tokens = content.len() / 4;
 
@@ -389,9 +376,7 @@ pub fn search_files(
         .git_exclude(true)
         .filter_entry(|entry| {
             if let Some(name) = entry.file_name().to_str() {
-                if entry.file_type().is_some_and(|ft| ft.is_dir())
-                    && ALWAYS_SKIP.contains(&name)
-                {
+                if entry.file_type().is_some_and(|ft| ft.is_dir()) && ALWAYS_SKIP.contains(&name) {
                     return false;
                 }
             }
@@ -531,11 +516,7 @@ mod tests {
             "module.exports = {};\n",
         )
         .unwrap();
-        fs::write(
-            dir.path().join(".git/objects/abc"),
-            "git object data",
-        )
-        .unwrap();
+        fs::write(dir.path().join(".git/objects/abc"), "git object data").unwrap();
         fs::write(dir.path().join(".gitignore"), "*.log\n").unwrap();
         fs::write(dir.path().join("debug.log"), "log data").unwrap();
         dir
@@ -692,7 +673,9 @@ mod tests {
     fn search_files_skips_always_skip_dirs() {
         let project = create_test_project();
         let results = search_files(project.path(), "index", None).unwrap();
-        assert!(!results.iter().any(|r| r.relative_path.contains("node_modules")));
+        assert!(!results
+            .iter()
+            .any(|r| r.relative_path.contains("node_modules")));
     }
 
     #[test]

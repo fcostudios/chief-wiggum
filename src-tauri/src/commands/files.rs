@@ -2,8 +2,8 @@
 //! Thin handlers: resolve project path from DB, delegate to `files::scanner`.
 
 use crate::db::{queries, Database};
-use crate::files::{scanner, FileContent, FileNode, FileSearchResult};
 use crate::files::watcher::FileWatcherManager;
+use crate::files::{scanner, FileContent, FileNode, FileSearchResult};
 use crate::AppError;
 use tauri::State;
 

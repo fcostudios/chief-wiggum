@@ -82,10 +82,7 @@ export async function loadDirectoryChildren(
 }
 
 /** Toggle a directory expanded/collapsed. Loads children on first expand. */
-export async function toggleFolder(
-  projectId: string,
-  relativePath: string,
-): Promise<void> {
+export async function toggleFolder(projectId: string, relativePath: string): Promise<void> {
   const isExpanded = state.expandedPaths.includes(relativePath);
   if (isExpanded) {
     setState(
@@ -101,10 +98,7 @@ export async function toggleFolder(
 }
 
 /** Select a file for preview. */
-export async function selectFile(
-  projectId: string,
-  relativePath: string,
-): Promise<void> {
+export async function selectFile(projectId: string, relativePath: string): Promise<void> {
   setState('selectedPath', relativePath);
   setState('isPreviewLoading', true);
   setState('selectedRange', null);
@@ -195,9 +189,7 @@ export function getRootNodes(): FileNode[] {
 }
 
 /** Set the selected line range. */
-export function setSelectedRange(
-  range: { start: number; end: number } | null,
-): void {
+export function setSelectedRange(range: { start: number; end: number } | null): void {
   setState('selectedRange', range);
 }
 

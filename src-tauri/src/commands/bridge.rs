@@ -52,11 +52,7 @@ pub async fn send_to_cli(
     let yolo = permission_manager.is_yolo_mode().await;
     let developer = permission_manager.is_developer_mode().await;
 
-    let mut extra_args = vec![
-        "--verbose".to_string(),
-        "-p".to_string(),
-        message,
-    ];
+    let mut extra_args = vec!["--verbose".to_string(), "-p".to_string(), message];
 
     // Three-tier permission strategy for `-p` mode (CHI-102):
     //
@@ -71,9 +67,17 @@ pub async fn send_to_cli(
     } else {
         // Built-in tools: safe read-only + file editing (needed for coding tasks)
         let allowed_tools = [
-            "WebSearch", "WebFetch", "Read", "Glob", "Grep",
-            "Edit", "Write", "NotebookEdit",
-            "Task", "TodoRead", "TodoWrite",
+            "WebSearch",
+            "WebFetch",
+            "Read",
+            "Glob",
+            "Grep",
+            "Edit",
+            "Write",
+            "NotebookEdit",
+            "Task",
+            "TodoRead",
+            "TodoWrite",
         ];
         for tool in &allowed_tools {
             extra_args.push("--allowedTools".to_string());

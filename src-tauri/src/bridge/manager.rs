@@ -131,7 +131,12 @@ impl SessionBridgeMap {
 
     /// Get the current cached MCP server prefixes as --allowedTools entries.
     pub async fn mcp_allowed_tools(&self) -> Vec<String> {
-        self.mcp_server_prefixes.read().await.iter().cloned().collect()
+        self.mcp_server_prefixes
+            .read()
+            .await
+            .iter()
+            .cloned()
+            .collect()
     }
 
     /// Spawn a new CLI bridge for a session.
@@ -224,9 +229,7 @@ impl SessionBridgeMap {
                         .unwrap_or_else(|| "unknown".to_string()),
                     cli_session_id: runtime.and_then(|r| r.cli_session_id.clone()),
                     model: runtime.and_then(|r| r.model.clone()),
-                    has_buffered_events: runtime
-                        .map(|r| r.has_buffered_events())
-                        .unwrap_or(false),
+                    has_buffered_events: runtime.map(|r| r.has_buffered_events()).unwrap_or(false),
                 }
             })
             .collect()

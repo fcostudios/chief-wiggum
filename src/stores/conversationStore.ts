@@ -6,7 +6,13 @@ import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { createTypewriterBuffer } from '@/lib/typewriterBuffer';
-import type { Message, PermissionRequest, ProcessStatus, ActiveBridgeInfo, BufferedEvent } from '@/lib/types';
+import type {
+  Message,
+  PermissionRequest,
+  ProcessStatus,
+  ActiveBridgeInfo,
+  BufferedEvent,
+} from '@/lib/types';
 import {
   updateSessionTitle,
   updateSessionCliId,
@@ -86,7 +92,6 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       session_id: string;
       content: string;
       token_count: number | null;
-
     }>('message:chunk', (event) => {
       if (event.payload.session_id !== sessionId) return;
       // Always update per-session status
@@ -276,10 +281,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
             output_tokens: null,
             cost_cents: null,
           }).catch((err) =>
-            console.error(
-              '[conversationStore] Failed to persist fallback assistant message:',
-              err,
-            ),
+            console.error('[conversationStore] Failed to persist fallback assistant message:', err),
           );
         }
 
@@ -698,10 +700,7 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
       }
 
       // Restore UI streaming state if process is still running
-      if (
-        activeBridge.process_status === 'running' ||
-        activeBridge.process_status === 'starting'
-      ) {
+      if (activeBridge.process_status === 'running' || activeBridge.process_status === 'starting') {
         setState('isLoading', true);
       }
     }

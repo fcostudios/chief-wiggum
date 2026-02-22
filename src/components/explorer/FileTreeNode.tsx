@@ -6,13 +6,7 @@ import type { Component } from 'solid-js';
 import { Show, For } from 'solid-js';
 import { ChevronRight, File, Folder, FolderOpen } from 'lucide-solid';
 import type { FileNode } from '@/lib/types';
-import {
-  fileState,
-  isExpanded,
-  getChildren,
-  toggleFolder,
-  selectFile,
-} from '@/stores/fileStore';
+import { fileState, isExpanded, getChildren, toggleFolder, selectFile } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 
 interface FileTreeNodeProps {
@@ -79,10 +73,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         title={props.node.relative_path}
       >
         {/* Expand chevron for directories */}
-        <Show
-          when={isDir()}
-          fallback={<span class="w-3 shrink-0" />}
-        >
+        <Show when={isDir()} fallback={<span class="w-3 shrink-0" />}>
           <ChevronRight
             size={10}
             class="shrink-0 transition-transform"
@@ -124,7 +115,10 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           </span>
         </Show>
         <Show when={props.node.is_binary}>
-          <span class="text-[9px] font-mono shrink-0 opacity-40" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="text-[9px] font-mono shrink-0 opacity-40"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             bin
           </span>
         </Show>

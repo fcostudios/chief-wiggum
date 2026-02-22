@@ -27,7 +27,11 @@ import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
 import YoloWarningDialog from '@/components/permissions/YoloWarningDialog';
 import { sessionState, createNewSession } from '@/stores/sessionStore';
-import { sendMessage, conversationState, recordPermissionOutcome } from '@/stores/conversationStore';
+import {
+  sendMessage,
+  conversationState,
+  recordPermissionOutcome,
+} from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 import CommandPalette from '@/components/common/CommandPalette';

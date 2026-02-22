@@ -187,7 +187,13 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       rebuilt += text.slice(lastIndex, startIndex);
       lastIndex = startIndex + fullMatch.length;
 
-      if (!fileQuery || !Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end < start) {
+      if (
+        !fileQuery ||
+        !Number.isFinite(start) ||
+        !Number.isFinite(end) ||
+        start <= 0 ||
+        end < start
+      ) {
         rebuilt += fullMatch;
         unresolvedCount += 1;
         continue;
@@ -478,14 +484,10 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         <div class="flex flex-wrap items-center gap-1.5 mb-2 max-w-4xl mx-auto">
           <Paperclip size={10} style={{ color: 'var(--color-text-tertiary)' }} />
           <For each={contextState.attachments}>
-            {(attachment) => (
-              <ContextChip attachment={attachment} onRemove={removeAttachment} />
-            )}
+            {(attachment) => <ContextChip attachment={attachment} onRemove={removeAttachment} />}
           </For>
           <Show when={tokenDisplay()}>
-            <span class="text-[9px] font-mono text-text-tertiary/40 ml-1">
-              {tokenDisplay()}
-            </span>
+            <span class="text-[9px] font-mono text-text-tertiary/40 ml-1">{tokenDisplay()}</span>
           </Show>
         </div>
       </Show>
@@ -522,7 +524,11 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             'box-shadow': isFocused() ? 'var(--glow-accent-subtle)' : 'none',
             'transition-duration': 'var(--duration-normal)',
           }}
-          placeholder={props.isDisabled ? 'No CLI bridge connected' : 'Message Chief Wiggum... (@ to mention files)'}
+          placeholder={
+            props.isDisabled
+              ? 'No CLI bridge connected'
+              : 'Message Chief Wiggum... (@ to mention files)'
+          }
           disabled={props.isDisabled}
           onInput={handleInput}
           on:keydown={handleKeyDown}

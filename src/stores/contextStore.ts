@@ -52,10 +52,7 @@ export function addFileReference(ref: FileReference): void {
   setState('attachments', (prev) => [...prev, attachment]);
 
   if (newTotal > TOKEN_WARNING_THRESHOLD) {
-    addToast(
-      `Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`,
-      'warning',
-    );
+    addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
   }
 }
 
@@ -74,10 +71,7 @@ export function clearAttachments(): void {
 
 /** Get total estimated tokens across all attachments. */
 export function getTotalEstimatedTokens(): number {
-  return state.attachments.reduce(
-    (sum, a) => sum + a.reference.estimated_tokens,
-    0,
-  );
+  return state.attachments.reduce((sum, a) => sum + a.reference.estimated_tokens, 0);
 }
 
 /** Get attachment count. */
@@ -112,22 +106,15 @@ export async function assembleContext(): Promise<string> {
           end_line: ref.end_line ? ref.end_line + 1 : null,
         });
 
-        const lineAttr = ref.start_line
-          ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"`
-          : '';
+        const lineAttr = ref.start_line ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"` : '';
         parts.push(
           `<file path="${ref.relative_path}"${lineAttr} tokens="~${content.estimated_tokens}">`,
         );
         parts.push(content.content);
         parts.push('</file>');
       } catch (err) {
-        console.error(
-          `[contextStore] Failed to read ${ref.relative_path}:`,
-          err,
-        );
-        parts.push(
-          `<file path="${ref.relative_path}" error="failed to read" />`,
-        );
+        console.error(`[contextStore] Failed to read ${ref.relative_path}:`, err);
+        parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
       }
     }
 

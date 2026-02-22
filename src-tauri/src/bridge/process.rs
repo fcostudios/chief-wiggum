@@ -232,13 +232,8 @@ impl CliBridge {
         let monitor_shutdown = shutdown_rx;
 
         tokio::spawn(async move {
-            Self::pty_process_monitor(
-                child,
-                monitor_status,
-                monitor_output_tx,
-                monitor_shutdown,
-            )
-            .await;
+            Self::pty_process_monitor(child, monitor_status, monitor_output_tx, monitor_shutdown)
+                .await;
         });
 
         // Mark as running
@@ -294,17 +289,18 @@ impl CliBridge {
                     let raw_text = String::from_utf8_lossy(chunk);
 
                     // Log raw data for debugging
-                    tracing::debug!(
-                        "CLI reader: received {} bytes (total: {})",
-                        n,
-                        total_bytes
-                    );
+                    tracing::debug!("CLI reader: received {} bytes (total: {})", n, total_bytes);
                     // Log first 1500 chars of each chunk for visibility.
                     // Error results from the CLI can be very long — we need
                     // enough to see the error message, not just the usage block.
                     let preview: String = raw_text.chars().take(1500).collect();
                     if raw_text.len() > 1500 {
-                        tracing::info!("CLI stdout (truncated {}/{}): {}", 1500, raw_text.len(), preview);
+                        tracing::info!(
+                            "CLI stdout (truncated {}/{}): {}",
+                            1500,
+                            raw_text.len(),
+                            preview
+                        );
                     } else {
                         tracing::info!("CLI stdout: {}", preview);
                     }
@@ -387,10 +383,7 @@ impl CliBridge {
                         break;
                     }
 
-                    tracing::info!(
-                        "CLI writer: sending {} bytes to stdin",
-                        input.len()
-                    );
+                    tracing::info!("CLI writer: sending {} bytes to stdin", input.len());
                     if let Err(e) = writer.write_all(input.as_bytes()) {
                         tracing::error!("CLI writer error: {}", e);
                         break;

@@ -82,20 +82,11 @@ const DetailsPanel: Component = () => {
     <aside class="flex flex-col h-full overflow-y-auto" aria-label="Details panel">
       <Show when={fileState.selectedPath && fileState.previewContent}>
         <CollapsibleSection title="File Preview">
-          <FilePreview
-            content={fileState.previewContent!}
-            isLoading={fileState.isPreviewLoading}
-          />
+          <FilePreview content={fileState.previewContent!} isLoading={fileState.isPreviewLoading} />
         </CollapsibleSection>
       </Show>
 
-      <Show
-        when={
-          !fileState.selectedPath &&
-          fileState.isVisible &&
-          projectState.activeProjectId
-        }
-      >
+      <Show when={!fileState.selectedPath && fileState.isVisible && projectState.activeProjectId}>
         <CollapsibleSection title="File Preview" defaultOpen={false}>
           <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
             Select a file from the sidebar to preview

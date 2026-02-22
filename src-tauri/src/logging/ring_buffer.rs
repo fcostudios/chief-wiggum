@@ -93,11 +93,15 @@ impl RingBufferLayer {
 
     /// Create a new ring buffer layer with a specific capacity.
     pub fn with_capacity(max_entries: usize) -> (Self, RingBufferHandle) {
-        let buffer = Arc::new(Mutex::new(VecDeque::with_capacity(
-            max_entries.min(1024),
-        )));
+        let buffer = Arc::new(Mutex::new(VecDeque::with_capacity(max_entries.min(1024))));
         let handle = buffer.clone();
-        (Self { buffer, max_entries }, handle)
+        (
+            Self {
+                buffer,
+                max_entries,
+            },
+            handle,
+        )
     }
 }
 

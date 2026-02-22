@@ -21,8 +21,7 @@ static RING_BUFFER: std::sync::OnceLock<RingBufferHandle> = std::sync::OnceLock:
 /// Must be called exactly once, before any tracing macros.
 /// Returns the ring buffer handle for export access.
 pub fn init_logging() -> RingBufferHandle {
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
 
     // Layer 1: Console
     let console_layer = tracing_subscriber::fmt::layer()

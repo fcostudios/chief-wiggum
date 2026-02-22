@@ -77,7 +77,13 @@ const FileTree: Component = () => {
               <Show when={fileState.isSearching}>
                 <div class="px-2 py-2 text-[10px] text-text-tertiary/50">Searching...</div>
               </Show>
-              <Show when={!fileState.isSearching && fileState.searchResults.length === 0 && fileState.searchQuery}>
+              <Show
+                when={
+                  !fileState.isSearching &&
+                  fileState.searchResults.length === 0 &&
+                  fileState.searchQuery
+                }
+              >
                 <div class="px-2 py-2 text-[10px] text-text-tertiary/50">No files found</div>
               </Show>
               <For each={fileState.searchResults}>
@@ -112,20 +118,14 @@ const FileTree: Component = () => {
           {/* File tree */}
           <Show
             when={!fileState.isLoading}
-            fallback={
-              <div class="px-2 py-2 text-[10px] text-text-tertiary/50">Loading...</div>
-            }
+            fallback={<div class="px-2 py-2 text-[10px] text-text-tertiary/50">Loading...</div>}
           >
             <Show
               when={getRootNodes().length > 0}
-              fallback={
-                <div class="px-2 py-2 text-[10px] text-text-tertiary/50">No files</div>
-              }
+              fallback={<div class="px-2 py-2 text-[10px] text-text-tertiary/50">No files</div>}
             >
               <div class="px-1">
-                <For each={getRootNodes()}>
-                  {(node) => <FileTreeNode node={node} depth={0} />}
-                </For>
+                <For each={getRootNodes()}>{(node) => <FileTreeNode node={node} depth={0} />}</For>
               </div>
             </Show>
           </Show>

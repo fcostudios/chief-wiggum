@@ -62,9 +62,7 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
               <button
                 class="w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors"
                 style={{
-                  background: isHighlighted()
-                    ? 'var(--color-accent-muted)'
-                    : 'transparent',
+                  background: isHighlighted() ? 'var(--color-accent-muted)' : 'transparent',
                   'border-left': isHighlighted()
                     ? '2px solid var(--color-accent)'
                     : '2px solid transparent',
@@ -74,11 +72,7 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
                 aria-selected={isHighlighted()}
                 onClick={() => props.onSelect(result)}
               >
-                <File
-                  size={12}
-                  class="shrink-0"
-                  style={{ color: 'var(--color-text-tertiary)' }}
-                />
+                <File size={12} class="shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />
                 <span
                   class="text-xs font-mono font-medium truncate"
                   style={{ color: 'var(--color-accent)' }}

@@ -246,11 +246,7 @@ fn run_watch_loop(
     }
 }
 
-fn collect_event_paths(
-    project_root: &Path,
-    event: &Event,
-    pending_paths: &mut BTreeSet<String>,
-) {
+fn collect_event_paths(project_root: &Path, event: &Event, pending_paths: &mut BTreeSet<String>) {
     for path in &event.paths {
         if let Some(relative) = normalize_relative_path(project_root, path) {
             pending_paths.insert(relative);

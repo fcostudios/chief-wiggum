@@ -2,14 +2,7 @@
 // File preview panel with syntax highlighting, line numbers, and range selection.
 
 import type { Component } from 'solid-js';
-import {
-  For,
-  Show,
-  createEffect,
-  createMemo,
-  createSignal,
-  onCleanup,
-} from 'solid-js';
+import { For, Show, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
@@ -312,19 +305,13 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
       </Show>
 
       <Show when={isBinaryFile()}>
-        <div
-          class="py-4 text-center text-xs"
-          style={{ color: 'var(--color-text-tertiary)' }}
-        >
+        <div class="py-4 text-center text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
           Binary file — cannot preview ({(activeContent().size_bytes / 1024).toFixed(0)}KB)
         </div>
       </Show>
 
       <Show when={isEmptyTextFile()}>
-        <div
-          class="py-4 text-center text-xs"
-          style={{ color: 'var(--color-text-tertiary)' }}
-        >
+        <div class="py-4 text-center text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
           Empty file
         </div>
       </Show>
