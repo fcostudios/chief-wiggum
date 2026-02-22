@@ -293,11 +293,43 @@ impl StreamParser {
             // Message complete / final result.
             // `result` events have content in `result` field and cost in `total_cost_usd`.
             // `message_complete` / `assistant_message` use `content` field.
+            // Error results (`is_error: true`) may have the message in `error`, `error_message`,
+            // or `result` — try all paths.
             "message_complete" | "result" | "assistant_message" => {
+                let is_error = event
+                    .data
+                    .get("is_error")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+
                 let content = extract_string(&event.data, "result")
                     .or_else(|| extract_string(&event.data, "content"))
                     .or_else(|| extract_string(&event.data, "text"))
+                    .or_else(|| {
+                        // For error results: try error-specific fields
+                        if is_error {
+                            extract_string(&event.data, "error")
+                                .or_else(|| extract_string(&event.data, "error_message"))
+                                .or_else(|| extract_string(&event.data, "subtype"))
+                        } else {
+                            None
+                        }
+                    })
                     .unwrap_or_default();
+
+                // Log error results at warn level for visibility
+                if is_error {
+                    tracing::warn!(
+                        "CLI returned error result: subtype={:?}, content={:?}",
+                        extract_string(&event.data, "subtype"),
+                        if content.is_empty() {
+                            // Dump the full raw JSON if we couldn't extract a message
+                            event.data.to_string()
+                        } else {
+                            content.clone()
+                        }
+                    );
+                }
 
                 // Cost: `result` events use `total_cost_usd` (dollars → cents)
                 let cost_cents = extract_f64(&event.data, "total_cost_usd")

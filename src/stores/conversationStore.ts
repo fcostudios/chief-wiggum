@@ -119,11 +119,29 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       }).catch((err) => console.error('[conversationStore] Failed to persist thinking:', err));
     }
 
+    const finalContent = p.content || state.streamingContent;
+
+    // Detect error results: empty content + 0 tokens = CLI failed before processing
+    const isErrorResult =
+      !finalContent &&
+      (p.input_tokens === 0 || p.input_tokens == null) &&
+      (p.output_tokens === 0 || p.output_tokens == null);
+
+    if (isErrorResult) {
+      // Don't create an empty assistant message — just set the error state
+      setState('streamingContent', '');
+      setState('thinkingContent', '');
+      setState('isStreaming', false);
+      setState('isLoading', false);
+      setState('error', 'CLI returned an error — check logs for details (Cmd+`)');
+      return;
+    }
+
     const assistantMsg: Message = {
       id: crypto.randomUUID(),
       session_id: sessionId,
       role: (p.role as Message['role']) || 'assistant',
-      content: p.content || state.streamingContent,
+      content: finalContent,
       model: p.model,
       input_tokens: p.input_tokens,
       output_tokens: p.output_tokens,

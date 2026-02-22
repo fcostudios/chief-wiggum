@@ -299,9 +299,15 @@ impl CliBridge {
                         n,
                         total_bytes
                     );
-                    // Log first 500 chars of each chunk for visibility
-                    let preview: String = raw_text.chars().take(500).collect();
-                    tracing::info!("CLI stdout: {}", preview);
+                    // Log first 1500 chars of each chunk for visibility.
+                    // Error results from the CLI can be very long — we need
+                    // enough to see the error message, not just the usage block.
+                    let preview: String = raw_text.chars().take(1500).collect();
+                    if raw_text.len() > 1500 {
+                        tracing::info!("CLI stdout (truncated {}/{}): {}", 1500, raw_text.len(), preview);
+                    } else {
+                        tracing::info!("CLI stdout: {}", preview);
+                    }
 
                     // Parse the chunk into events
                     let events = parser.feed(&raw_text);
