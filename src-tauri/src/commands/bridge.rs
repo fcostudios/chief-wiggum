@@ -133,8 +133,12 @@ pub async fn send_to_cli(
     // Resume by CLI session ID when available, fall back to --continue
     if is_follow_up {
         if let Some(ref id) = cli_session_id {
-            extra_args.push("--resume".to_string());
-            extra_args.push(id.clone());
+            if !id.is_empty() {
+                extra_args.push("--resume".to_string());
+                extra_args.push(id.clone());
+            } else {
+                extra_args.push("--continue".to_string());
+            }
         } else {
             extra_args.push("--continue".to_string());
         }

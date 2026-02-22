@@ -30,6 +30,7 @@ pub struct MessageCompletePayload {
     pub output_tokens: Option<u64>,
     pub thinking_tokens: Option<u64>,
     pub cost_cents: Option<f64>,
+    pub is_error: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -171,13 +172,15 @@ async fn emit_bridge_output(
                 output_tokens,
                 thinking_tokens,
                 cost_cents,
+                is_error,
             } => {
                 tracing::info!(
-                    "Event loop [{}]: emitting message:complete (role: {}, content len: {}, model: {:?})",
+                    "Event loop [{}]: emitting message:complete (role: {}, content len: {}, model: {:?}, is_error: {})",
                     session_id,
                     role,
                     content.len(),
-                    model
+                    model,
+                    is_error
                 );
                 let payload = MessageCompletePayload {
                     session_id: session_id.to_string(),
@@ -188,6 +191,7 @@ async fn emit_bridge_output(
                     output_tokens,
                     thinking_tokens,
                     cost_cents,
+                    is_error,
                 };
                 if let Err(e) = app.emit("message:complete", &payload) {
                     tracing::warn!("Failed to emit message:complete: {}", e);

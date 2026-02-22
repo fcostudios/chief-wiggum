@@ -37,6 +37,7 @@ pub enum BridgeEvent {
         output_tokens: Option<u64>,
         thinking_tokens: Option<u64>,
         cost_cents: Option<f64>,
+        is_error: bool,
     },
 
     /// Tool use detected (e.g., file read, bash command).
@@ -302,32 +303,31 @@ impl StreamParser {
                     .and_then(|v| v.as_bool())
                     .unwrap_or(false);
 
-                let content = extract_string(&event.data, "result")
-                    .or_else(|| extract_string(&event.data, "content"))
-                    .or_else(|| extract_string(&event.data, "text"))
-                    .or_else(|| {
-                        // For error results: try error-specific fields
-                        if is_error {
-                            extract_string(&event.data, "error")
-                                .or_else(|| extract_string(&event.data, "error_message"))
-                                .or_else(|| extract_string(&event.data, "subtype"))
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or_default();
+                let content = if is_error {
+                    // Error results: the real message is in the `errors` array,
+                    // not in `result` or `content` (which are typically empty/null).
+                    extract_errors_array(&event.data)
+                        .or_else(|| extract_string(&event.data, "error"))
+                        .or_else(|| extract_string(&event.data, "error_message"))
+                        .or_else(|| extract_string(&event.data, "result"))
+                        .or_else(|| extract_string(&event.data, "content"))
+                        .unwrap_or_else(|| {
+                            extract_string(&event.data, "subtype")
+                                .unwrap_or_else(|| "Unknown CLI error".to_string())
+                        })
+                } else {
+                    extract_string(&event.data, "result")
+                        .or_else(|| extract_string(&event.data, "content"))
+                        .or_else(|| extract_string(&event.data, "text"))
+                        .unwrap_or_default()
+                };
 
                 // Log error results at warn level for visibility
                 if is_error {
                     tracing::warn!(
-                        "CLI returned error result: subtype={:?}, content={:?}",
+                        "CLI returned error result: subtype={:?}, error={:?}",
                         extract_string(&event.data, "subtype"),
-                        if content.is_empty() {
-                            // Dump the full raw JSON if we couldn't extract a message
-                            event.data.to_string()
-                        } else {
-                            content.clone()
-                        }
+                        content
                     );
                 }
 
@@ -349,6 +349,7 @@ impl StreamParser {
                     thinking_tokens: extract_u64(&event.data, "usage.thinking_tokens")
                         .or_else(|| extract_nested_u64(&event.data, &["usage", "thinking_tokens"])),
                     cost_cents,
+                    is_error,
                 })))
             }
 
@@ -557,6 +558,20 @@ fn extract_nested_u64(value: &serde_json::Value, keys: &[&str]) -> Option<u64> {
 
 fn extract_f64(value: &serde_json::Value, key: &str) -> Option<f64> {
     value.get(key).and_then(|v| v.as_f64())
+}
+
+/// Extract error messages from the `errors` array in result events.
+/// Returns them joined with "; " if multiple errors exist.
+fn extract_errors_array(value: &serde_json::Value) -> Option<String> {
+    let arr = value.get("errors")?.as_array()?;
+    if arr.is_empty() {
+        return None;
+    }
+    let messages: Vec<&str> = arr.iter().filter_map(|v| v.as_str()).collect();
+    if messages.is_empty() {
+        return None;
+    }
+    Some(messages.join("; "))
 }
 
 #[cfg(test)]

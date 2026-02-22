@@ -83,6 +83,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     output_tokens: number | null;
     thinking_tokens: number | null;
     cost_cents: number | null;
+    is_error: boolean;
     // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
   }>('message:complete', (event) => {
     if (event.payload.session_id !== sessionId) return;
@@ -121,19 +122,18 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
 
     const finalContent = p.content || state.streamingContent;
 
-    // Detect error results: empty content + 0 tokens = CLI failed before processing
-    const isErrorResult =
-      !finalContent &&
-      (p.input_tokens === 0 || p.input_tokens == null) &&
-      (p.output_tokens === 0 || p.output_tokens == null);
-
-    if (isErrorResult) {
-      // Don't create an empty assistant message — just set the error state
+    // Handle error results from the CLI (e.g., stale --resume session, auth failures).
+    // Don't create an assistant message — surface the error to the user.
+    if (p.is_error) {
       setState('streamingContent', '');
       setState('thinkingContent', '');
       setState('isStreaming', false);
       setState('isLoading', false);
-      setState('error', 'CLI returned an error — check logs for details (Cmd+`)');
+      setState('error', finalContent || 'CLI returned an error — check logs for details');
+      // Clear stale CLI session ID so next attempt doesn't use --resume with a dead ID
+      updateSessionCliId(sessionId, '').catch((err) =>
+        console.error('[conversationStore] Failed to clear stale cli_session_id:', err),
+      );
       return;
     }
 
@@ -442,7 +442,7 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
       model,
       message: content,
       is_follow_up: isFollowUp,
-      cli_session_id: session?.cli_session_id ?? null,
+      cli_session_id: session?.cli_session_id || null,
     });
     setState('processStatus', 'running');
   } catch (err) {
