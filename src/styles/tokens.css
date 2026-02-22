@@ -147,6 +147,17 @@
   --glass-bg: rgba(22, 27, 34, 0.7);
   --glass-border: rgba(48, 54, 61, 0.6);
   --glass-blur: 12px;
+
+  /* --- Chrome surfaces (CHI-69 vibrancy-safe translucent shells) --- */
+  --color-chrome-bg: rgba(22, 27, 34, 0.82);
+  --color-chrome-bg-strong: rgba(28, 33, 40, 0.88);
+  --color-chrome-border: rgba(48, 54, 61, 0.7);
+}
+
+.cw-platform-macos {
+  --color-chrome-bg: rgba(22, 27, 34, 0.72);
+  --color-chrome-bg-strong: rgba(28, 33, 40, 0.8);
+  --color-chrome-border: rgba(48, 54, 61, 0.65);
 }
 
 /* ============================================================

@@ -9,6 +9,7 @@
 import type { Component } from 'solid-js';
 import { onMount, onCleanup, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
+import { platform } from '@tauri-apps/plugin-os';
 import {
   uiState,
   setActiveView,
@@ -41,9 +42,15 @@ const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
   onMount(() => {
     document.addEventListener('keydown', handleGlobalKeyDown);
+    try {
+      document.documentElement.classList.toggle('cw-platform-macos', platform() === 'macos');
+    } catch {
+      document.documentElement.classList.remove('cw-platform-macos');
+    }
   });
   onCleanup(() => {
     document.removeEventListener('keydown', handleGlobalKeyDown);
+    document.documentElement.classList.remove('cw-platform-macos');
   });
 
   return (
@@ -53,7 +60,7 @@ const MainLayout: Component = () => {
       <div class="flex-1 flex overflow-hidden">
         {/* Z2: Sidebar — transitions width for expanded/collapsed/hidden tri-state */}
         <div
-          class="bg-bg-secondary overflow-hidden shrink-0 transition-[width,border-width]"
+          class="overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
             width:
               uiState.sidebarState === 'expanded'
@@ -63,9 +70,11 @@ const MainLayout: Component = () => {
                   : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
+            background: 'var(--color-chrome-bg)',
+            'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.05)',
             'border-right':
               uiState.sidebarState !== 'hidden'
-                ? '1px solid var(--color-border-secondary)'
+                ? '1px solid var(--color-chrome-border)'
                 : 'none',
           }}
         >
@@ -142,13 +151,15 @@ const MainLayout: Component = () => {
 
         {/* Z4: Details Panel — transitions width for smooth show/hide */}
         <div
-          class="bg-bg-secondary overflow-hidden shrink-0 transition-[width,border-width]"
+          class="overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
             width: uiState.detailsPanelVisible ? 'var(--details-panel-width)' : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
+            background: 'var(--color-chrome-bg)',
+            'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.05)',
             'border-left': uiState.detailsPanelVisible
-              ? '1px solid var(--color-border-secondary)'
+              ? '1px solid var(--color-chrome-border)'
               : 'none',
           }}
         >

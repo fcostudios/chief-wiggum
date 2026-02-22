@@ -33,8 +33,9 @@ const TitleBar: Component = () => {
       style={{
         height: 'var(--title-bar-height)',
         background:
-          'linear-gradient(180deg, var(--color-bg-elevated) 0%, var(--color-bg-secondary) 100%)',
-        'border-bottom': '1px solid var(--color-border-secondary)',
+          'linear-gradient(180deg, var(--color-chrome-bg-strong) 0%, var(--color-chrome-bg) 100%)',
+        'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.08)',
+        'border-bottom': '1px solid var(--color-chrome-border)',
       }}
     >
       {/* Subtle warm glow on bottom edge */}

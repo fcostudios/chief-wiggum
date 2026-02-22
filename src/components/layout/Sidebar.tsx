@@ -142,7 +142,14 @@ const Sidebar: Component = () => {
   }
 
   return (
-    <nav class="flex flex-col h-full overflow-hidden" aria-label="Sidebar">
+    <nav
+      class="flex flex-col h-full overflow-hidden"
+      style={{
+        background: 'transparent',
+        'backdrop-filter': 'saturate(1.02)',
+      }}
+      aria-label="Sidebar"
+    >
       {/* Project section */}
       <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
         <Show
