@@ -11,8 +11,10 @@ import {
   toggleYoloMode,
   enableDeveloperMode,
   disableDeveloperMode,
+  toggleCommandPalette,
   type ActiveView,
 } from '@/stores/uiStore';
+import { conversationState } from '@/stores/conversationStore';
 import { cycleModel } from '@/stores/sessionStore';
 
 const viewMap: Record<string, ActiveView> = {
@@ -26,6 +28,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   // Use metaKey on macOS, ctrlKey elsewhere
   const mod = e.metaKey || e.ctrlKey;
   if (!mod) return;
+
+  // Cmd+K — toggle command palette
+  if (e.code === 'KeyK' && !e.shiftKey) {
+    e.preventDefault();
+    toggleCommandPalette();
+    return;
+  }
 
   // Cmd+B — toggle sidebar
   if (e.code === 'KeyB' && !e.shiftKey) {
@@ -48,20 +57,24 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
     return;
   }
 
-  // Cmd+Shift+Y — toggle YOLO mode
+  // Cmd+Shift+Y — toggle YOLO mode (blocked while agent is responding)
   if (e.code === 'KeyY' && e.shiftKey) {
     e.preventDefault();
-    toggleYoloMode();
+    if (conversationState.processStatus !== 'running' && !conversationState.isStreaming) {
+      toggleYoloMode();
+    }
     return;
   }
 
-  // Cmd+Shift+D — toggle Developer mode (CHI-102)
+  // Cmd+Shift+D — toggle Developer mode (blocked while agent is responding)
   if (e.code === 'KeyD' && e.shiftKey) {
     e.preventDefault();
-    if (uiState.developerMode) {
-      disableDeveloperMode();
-    } else {
-      enableDeveloperMode();
+    if (conversationState.processStatus !== 'running' && !conversationState.isStreaming) {
+      if (uiState.developerMode) {
+        disableDeveloperMode();
+      } else {
+        enableDeveloperMode();
+      }
     }
     return;
   }

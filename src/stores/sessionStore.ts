@@ -30,8 +30,11 @@ export async function loadSessions(): Promise<void> {
 }
 
 /** Create a new session and make it active. */
-export async function createNewSession(model: string): Promise<Session> {
-  const session = await invoke<Session>('create_session', { model });
+export async function createNewSession(model: string, projectId?: string): Promise<Session> {
+  const session = await invoke<Session>('create_session', {
+    model,
+    project_id: projectId ?? null,
+  });
   setState('sessions', (prev) => [session, ...prev]);
   setState('activeSessionId', session.id);
   return session;
@@ -90,6 +93,18 @@ export function cycleModel(): void {
   };
   const next = cycle[session.model] ?? 'claude-sonnet-4-6';
   changeSessionModel(next);
+}
+
+/** Refresh active session data from DB (picks up accumulated cost/tokens — CHI-53). */
+export async function refreshActiveSession(): Promise<void> {
+  const id = state.activeSessionId;
+  if (!id) return;
+  try {
+    const session = await invoke<Session>('get_session_cost', { session_id: id });
+    setState('sessions', (s) => s.id === id, session);
+  } catch (err) {
+    if (import.meta.env.DEV) console.warn('[sessionStore] Failed to refresh session:', err);
+  }
 }
 
 export { state as sessionState };

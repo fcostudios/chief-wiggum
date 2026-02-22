@@ -7,9 +7,13 @@ use crate::AppError;
 use tauri::State;
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn create_session(db: State<'_, Database>, model: String) -> Result<SessionRow, AppError> {
+pub fn create_session(
+    db: State<'_, Database>,
+    model: String,
+    project_id: Option<String>,
+) -> Result<SessionRow, AppError> {
     let id = uuid::Uuid::new_v4().to_string();
-    queries::insert_session(&db, &id, None, &model)?;
+    queries::insert_session(&db, &id, project_id.as_deref(), &model)?;
     queries::get_session(&db, &id)?
         .ok_or_else(|| AppError::Other("Session not found after creation".to_string()))
 }
@@ -62,7 +66,20 @@ pub fn save_message(
         input_tokens,
         output_tokens,
         cost_cents,
-    )
+    )?;
+
+    // Accumulate cost on the session row (CHI-53).
+    if input_tokens.is_some() || output_tokens.is_some() || cost_cents.is_some() {
+        queries::update_session_cost(
+            &db,
+            &session_id,
+            input_tokens.unwrap_or(0),
+            output_tokens.unwrap_or(0),
+            cost_cents.unwrap_or(0),
+        )?;
+    }
+
+    Ok(())
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -80,6 +97,16 @@ pub fn update_session_model(
     model: String,
 ) -> Result<(), AppError> {
     queries::update_session_model(&db, &session_id, &model)
+}
+
+/// Get session cost/token totals for display (CHI-53).
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_session_cost(
+    db: State<'_, Database>,
+    session_id: String,
+) -> Result<SessionRow, AppError> {
+    queries::get_session(&db, &session_id)?
+        .ok_or_else(|| AppError::Other(format!("Session {} not found", session_id)))
 }
 
 #[tauri::command(rename_all = "snake_case")]

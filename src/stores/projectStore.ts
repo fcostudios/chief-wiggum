@@ -10,12 +10,14 @@ interface ProjectState {
   projects: Project[];
   activeProjectId: string | null;
   isLoading: boolean;
+  claudeMdContent: string | null;
 }
 
 const [state, setState] = createStore<ProjectState>({
   projects: [],
   activeProjectId: null,
   isLoading: false,
+  claudeMdContent: null,
 });
 
 /** Load all projects from the database. */
@@ -27,6 +29,7 @@ export async function loadProjects(): Promise<void> {
     // Auto-select the first project if none selected
     if (!state.activeProjectId && projects.length > 0) {
       setState('activeProjectId', projects[0].id);
+      loadClaudeMd(projects[0].id);
     }
   } finally {
     setState('isLoading', false);
@@ -43,12 +46,28 @@ export async function pickAndCreateProject(): Promise<Project | null> {
   });
   setState('projects', (prev) => [project, ...prev]);
   setState('activeProjectId', project.id);
+  loadClaudeMd(project.id);
   return project;
 }
 
+/** Fetch CLAUDE.md content for a project. Returns null if not found. */
+export async function loadClaudeMd(projectId: string): Promise<void> {
+  try {
+    const content = await invoke<string | null>('read_claude_md', { project_id: projectId });
+    setState('claudeMdContent', content);
+  } catch {
+    setState('claudeMdContent', null);
+  }
+}
+
 /** Set the active project. */
-export function setActiveProject(projectId: string): void {
+export function setActiveProject(projectId: string | null): void {
   setState('activeProjectId', projectId);
+  if (projectId) {
+    loadClaudeMd(projectId);
+  } else {
+    setState('claudeMdContent', null);
+  }
 }
 
 /** Get the active project object. */

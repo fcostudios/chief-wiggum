@@ -6,7 +6,12 @@ import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { Message, PermissionRequest, ProcessStatus } from '@/lib/types';
-import { updateSessionTitle, updateSessionCliId, getActiveSession } from '@/stores/sessionStore';
+import {
+  updateSessionTitle,
+  updateSessionCliId,
+  getActiveSession,
+  refreshActiveSession,
+} from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
 
@@ -173,6 +178,11 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       // Log at error level always — silent save failures cause missing messages on restore
       console.error('[conversationStore] Failed to persist assistant message:', err);
     });
+
+    // Refresh session cost totals after persisting (CHI-53)
+    refreshActiveSession().catch((err) =>
+      console.error('[conversationStore] Failed to refresh session cost:', err),
+    );
   });
 
   unlistenExited = await listen<{

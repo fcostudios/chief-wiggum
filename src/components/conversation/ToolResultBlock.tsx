@@ -1,7 +1,6 @@
-import { Component, Show, createSignal, createEffect } from 'solid-js';
+import { Component, Show, createSignal } from 'solid-js';
 import { ChevronDown, ChevronRight, CheckCircle, XCircle } from 'lucide-solid';
 import type { Message, ToolResultData } from '../../lib/types';
-import { conversationState } from '../../stores/conversationStore';
 
 interface ToolResultBlockProps {
   message: Message;
@@ -34,16 +33,7 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   const isError = () => data().is_error;
   const preview = () => resultPreview(data().content);
 
-  // Collapsed by default, expanded during streaming
   const [expanded, setExpanded] = createSignal(false);
-
-  createEffect(() => {
-    if (conversationState.isStreaming) {
-      setExpanded(true);
-    } else {
-      setExpanded(false);
-    }
-  });
 
   const toggleExpanded = () => setExpanded((prev) => !prev);
 

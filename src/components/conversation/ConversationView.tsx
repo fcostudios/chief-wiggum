@@ -216,36 +216,37 @@ const ConversationView: Component = () => {
             </div>
           </Show>
 
-          {/* Loading indicator — shimmer effect */}
+          {/* Premium typing indicator (CHI-72) */}
           <Show when={conversationState.isLoading && !conversationState.isStreaming}>
             <div class="flex justify-start animate-fade-in-up">
               <div
                 class="rounded-lg px-4 py-3"
                 style={{
+                  'background-color': 'var(--color-bg-secondary)',
                   border: '1px solid var(--color-border-secondary)',
                 }}
               >
-                <div class="flex items-center gap-2">
-                  <div class="flex gap-1">
+                <div class="flex items-center gap-2.5">
+                  <div class="flex gap-1.5">
                     <span
-                      class="w-1.5 h-1.5 rounded-full animate-pulse"
+                      class="w-2 h-2 rounded-full animate-typing-bounce"
                       style={{
-                        background: 'var(--color-accent)',
+                        'background-color': 'var(--color-accent)',
                         'animation-delay': '0ms',
                       }}
                     />
                     <span
-                      class="w-1.5 h-1.5 rounded-full animate-pulse"
+                      class="w-2 h-2 rounded-full animate-typing-bounce"
                       style={{
-                        background: 'var(--color-accent)',
-                        'animation-delay': '150ms',
+                        'background-color': 'var(--color-accent)',
+                        'animation-delay': '200ms',
                       }}
                     />
                     <span
-                      class="w-1.5 h-1.5 rounded-full animate-pulse"
+                      class="w-2 h-2 rounded-full animate-typing-bounce"
                       style={{
-                        background: 'var(--color-accent)',
-                        'animation-delay': '300ms',
+                        'background-color': 'var(--color-accent)',
+                        'animation-delay': '400ms',
                       }}
                     />
                   </div>

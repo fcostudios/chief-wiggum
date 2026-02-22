@@ -24,6 +24,7 @@ import { sessionState, createNewSession } from '@/stores/sessionStore';
 import { sendMessage, conversationState } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
+import CommandPalette from '@/components/common/CommandPalette';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -39,20 +40,33 @@ const MainLayout: Component = () => {
       <TitleBar />
 
       <div class="flex-1 flex overflow-hidden">
-        {/* Z2: Sidebar — transitions width for smooth show/hide */}
+        {/* Z2: Sidebar — transitions width for expanded/collapsed/hidden tri-state */}
         <div
           class="bg-bg-secondary overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
-            width: uiState.sidebarVisible ? 'var(--sidebar-width)' : '0px',
+            width:
+              uiState.sidebarState === 'expanded'
+                ? 'var(--sidebar-width)'
+                : uiState.sidebarState === 'collapsed'
+                  ? 'var(--sidebar-collapsed)'
+                  : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
-            'border-right': uiState.sidebarVisible
-              ? '1px solid var(--color-border-secondary)'
-              : 'none',
+            'border-right':
+              uiState.sidebarState !== 'hidden'
+                ? '1px solid var(--color-border-secondary)'
+                : 'none',
           }}
         >
           {/* Inner wrapper maintains full width during transition */}
-          <div style={{ width: 'var(--sidebar-width)' }}>
+          <div
+            style={{
+              width:
+                uiState.sidebarState === 'collapsed'
+                  ? 'var(--sidebar-collapsed)'
+                  : 'var(--sidebar-width)',
+            }}
+          >
             <Sidebar />
           </div>
         </div>
@@ -163,6 +177,11 @@ const MainLayout: Component = () => {
       {/* YOLO warning dialog */}
       <Show when={uiState.yoloDialogVisible}>
         <YoloWarningDialog />
+      </Show>
+
+      {/* Command palette (Cmd+K) */}
+      <Show when={uiState.commandPaletteVisible}>
+        <CommandPalette />
       </Show>
     </div>
   );

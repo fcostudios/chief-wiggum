@@ -25,7 +25,9 @@ import {
   loadProjects,
   pickAndCreateProject,
   setActiveProject,
+  getActiveProject,
 } from '@/stores/projectStore';
+import { uiState } from '@/stores/uiStore';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -47,21 +49,34 @@ function modelLabel(model: string): string {
   return 'Sonnet';
 }
 
-/** Map model ID to badge color class. */
-function modelColorClass(model: string): string {
-  if (model.includes('opus')) return 'text-model-opus';
-  if (model.includes('haiku')) return 'text-model-haiku';
-  return 'text-model-sonnet';
+/** Map model ID to badge background color. */
+function modelBgColor(model: string): string {
+  if (model.includes('opus')) return 'var(--color-model-opus)';
+  if (model.includes('haiku')) return 'var(--color-model-haiku)';
+  return 'var(--color-model-sonnet)';
 }
 
 const Sidebar: Component = () => {
+  const isCollapsed = () => uiState.sidebarState === 'collapsed';
+
+  /** Sessions filtered by active project. Shows all if no project selected. */
+  const filteredSessions = () => {
+    const projectId = projectState.activeProjectId;
+    if (!projectId) return sessionState.sessions;
+    return sessionState.sessions.filter((s) => s.project_id === projectId || !s.project_id);
+  };
+
   onMount(async () => {
     await loadSessions();
-    loadProjects();
+    await loadProjects();
     // Auto-select the most recent session on app start
     if (sessionState.sessions.length > 0 && !sessionState.activeSessionId) {
       const firstSession = sessionState.sessions[0];
       setActiveSession(firstSession.id);
+      // Restore the project context for this session
+      if (firstSession.project_id) {
+        setActiveProject(firstSession.project_id);
+      }
       await loadMessages(firstSession.id);
     }
   });
@@ -73,7 +88,8 @@ const Sidebar: Component = () => {
     }
     await cleanupEventListeners();
     clearMessages();
-    await createNewSession('claude-sonnet-4-6');
+    const project = getActiveProject();
+    await createNewSession(project?.default_model ?? 'claude-sonnet-4-6', project?.id);
   }
 
   async function handleDeleteSession(sessionId: string) {
@@ -98,133 +114,218 @@ const Sidebar: Component = () => {
     if (sessionState.activeSessionId === sessionId) return;
     const oldId = sessionState.activeSessionId;
     setActiveSession(sessionId);
+    // Switch active project to match the session's project
+    const session = sessionState.sessions.find((s) => s.id === sessionId);
+    if (session?.project_id) {
+      setActiveProject(session.project_id);
+    }
     await switchSession(sessionId, oldId);
   }
 
   return (
-    <nav class="flex flex-col h-full" aria-label="Sidebar">
+    <nav class="flex flex-col h-full overflow-hidden" aria-label="Sidebar">
       {/* Project section */}
       <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
-        {/* Project header */}
-        <div class="flex items-center justify-between px-3 py-2">
-          <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-            Projects
-          </span>
-          <button
-            class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={() => pickAndCreateProject()}
-            aria-label="Add project folder"
-            title="Open project folder"
-          >
-            <FolderOpen size={12} />
-          </button>
-        </div>
-
-        {/* Recent projects list (max 5) */}
-        <div class="px-2 pb-2">
-          <Show
-            when={projectState.projects.length > 0}
-            fallback={
+        <Show
+          when={!isCollapsed()}
+          fallback={
+            /* Collapsed: single centered folder icon */
+            <div class="flex flex-col items-center py-2 gap-1">
               <button
-                class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
+                class="flex items-center justify-center w-8 h-8 rounded-md text-text-tertiary hover:text-accent hover:bg-bg-elevated/50 transition-colors"
                 style={{ 'transition-duration': 'var(--duration-fast)' }}
                 onClick={() => pickAndCreateProject()}
+                aria-label="Open project folder"
+                title="Projects"
               >
-                <Plus size={11} />
-                <span class="tracking-wide">Open a project folder</span>
+                <FolderOpen size={16} />
               </button>
-            }
-          >
-            <div class="space-y-0.5">
-              <For each={projectState.projects.slice(0, 5)}>
-                {(project) => (
-                  <button
-                    class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs transition-all truncate"
-                    style={{
-                      'transition-duration': 'var(--duration-fast)',
-                      background:
-                        projectState.activeProjectId === project.id
-                          ? 'var(--color-bg-elevated)'
-                          : 'transparent',
-                      color:
-                        projectState.activeProjectId === project.id
-                          ? 'var(--color-text-primary)'
-                          : 'var(--color-text-secondary)',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (projectState.activeProjectId !== project.id) {
-                        e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
-                        e.currentTarget.style.color = 'var(--color-text-primary)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (projectState.activeProjectId !== project.id) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--color-text-secondary)';
-                      }
-                    }}
-                    onClick={() => setActiveProject(project.id)}
-                    title={project.path}
-                  >
-                    <FolderOpen
-                      size={12}
-                      class="shrink-0"
-                      style={{
-                        color:
-                          projectState.activeProjectId === project.id
-                            ? 'var(--color-accent)'
-                            : 'var(--color-text-tertiary)',
-                      }}
-                    />
-                    <span class="truncate">{project.name}</span>
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
-        </div>
-      </div>
-
-      {/* Sessions header */}
-      <div
-        class="flex items-center justify-between px-3 py-2"
-        style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
-      >
-        <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-          Sessions
-        </span>
-        <span
-          class="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
-          style={{
-            background: 'var(--color-bg-elevated)',
-            color: 'var(--color-text-tertiary)',
-          }}
-        >
-          {sessionState.sessions.length}
-        </span>
-      </div>
-
-      {/* Session list */}
-      <div class="flex-1 overflow-y-auto px-2 py-2">
-        <Show
-          when={sessionState.sessions.length > 0}
-          fallback={
-            <div class="px-2 py-6 text-center animate-fade-in">
-              <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
-              <p class="text-[10px] text-text-tertiary/40 mt-1">Create one to get started</p>
             </div>
           }
         >
+          {/* Project header */}
+          <div class="flex items-center justify-between px-3 py-2">
+            <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+              Projects
+            </span>
+            <button
+              class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+              onClick={() => pickAndCreateProject()}
+              aria-label="Add project folder"
+              title="Open project folder"
+            >
+              <FolderOpen size={12} />
+            </button>
+          </div>
+
+          {/* Recent projects list (max 5) */}
+          <div class="px-2 pb-2">
+            <Show
+              when={projectState.projects.length > 0}
+              fallback={
+                <button
+                  class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  onClick={() => pickAndCreateProject()}
+                >
+                  <Plus size={11} />
+                  <span class="tracking-wide">Open a project folder</span>
+                </button>
+              }
+            >
+              <div class="space-y-0.5">
+                <For each={projectState.projects.slice(0, 5)}>
+                  {(project) => (
+                    <button
+                      class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs transition-all truncate"
+                      style={{
+                        'transition-duration': 'var(--duration-fast)',
+                        background:
+                          projectState.activeProjectId === project.id
+                            ? 'var(--color-bg-elevated)'
+                            : 'transparent',
+                        color:
+                          projectState.activeProjectId === project.id
+                            ? 'var(--color-text-primary)'
+                            : 'var(--color-text-secondary)',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (projectState.activeProjectId !== project.id) {
+                          e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                          e.currentTarget.style.color = 'var(--color-text-primary)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (projectState.activeProjectId !== project.id) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = 'var(--color-text-secondary)';
+                        }
+                      }}
+                      onClick={() => setActiveProject(project.id)}
+                      title={project.path}
+                    >
+                      <FolderOpen
+                        size={12}
+                        class="shrink-0"
+                        style={{
+                          color:
+                            projectState.activeProjectId === project.id
+                              ? 'var(--color-accent)'
+                              : 'var(--color-text-tertiary)',
+                        }}
+                      />
+                      <span class="truncate">{project.name}</span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </div>
+        </Show>
+      </div>
+
+      {/* Sessions header */}
+      <Show
+        when={!isCollapsed()}
+        fallback={
+          /* Collapsed: divider line only (sessions section flows directly below) */
+          <div
+            class="flex justify-center py-1"
+            style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+          >
+            <span
+              class="text-[9px] font-mono px-1 py-0.5 rounded-full"
+              style={{
+                background: 'var(--color-bg-elevated)',
+                color: 'var(--color-text-tertiary)',
+              }}
+              title={`${filteredSessions().length} sessions`}
+            >
+              {filteredSessions().length}
+            </span>
+          </div>
+        }
+      >
+        <div
+          class="flex items-center justify-between px-3 py-2"
+          style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+        >
+          <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+            Sessions
+          </span>
+          <span
+            class="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
+            style={{
+              background: 'var(--color-bg-elevated)',
+              color: 'var(--color-text-tertiary)',
+            }}
+          >
+            {filteredSessions().length}
+          </span>
+        </div>
+      </Show>
+
+      {/* Session list */}
+      <div class="flex-1 overflow-y-auto px-1 py-2" classList={{ 'px-2': !isCollapsed() }}>
+        <Show
+          when={filteredSessions().length > 0}
+          fallback={
+            <Show when={!isCollapsed()}>
+              <div class="px-2 py-6 text-center animate-fade-in">
+                <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
+                <p class="text-[10px] text-text-tertiary/40 mt-1">Create one to get started</p>
+              </div>
+            </Show>
+          }
+        >
           <div class="space-y-0.5">
-            <For each={sessionState.sessions}>
+            <For each={filteredSessions()}>
               {(session) => (
-                <SessionItem
-                  session={session}
-                  isActive={sessionState.activeSessionId === session.id}
-                  onSelect={() => handleSelectSession(session.id)}
-                  onDelete={() => handleDeleteSession(session.id)}
-                />
+                <Show
+                  when={!isCollapsed()}
+                  fallback={
+                    /* Collapsed: icon-only session button */
+                    <button
+                      class="flex items-center justify-center w-full h-8 rounded-md transition-colors"
+                      style={{
+                        'transition-duration': 'var(--duration-fast)',
+                        background:
+                          sessionState.activeSessionId === session.id
+                            ? 'var(--color-bg-elevated)'
+                            : 'transparent',
+                        color:
+                          sessionState.activeSessionId === session.id
+                            ? 'var(--color-accent)'
+                            : 'var(--color-text-tertiary)',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (sessionState.activeSessionId !== session.id) {
+                          e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                          e.currentTarget.style.color = 'var(--color-text-primary)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (sessionState.activeSessionId !== session.id) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = 'var(--color-text-tertiary)';
+                        }
+                      }}
+                      onClick={() => handleSelectSession(session.id)}
+                      title={session.title || 'New Session'}
+                      aria-label={session.title || 'New Session'}
+                    >
+                      <MessageSquare size={14} />
+                    </button>
+                  }
+                >
+                  <SessionItem
+                    session={session}
+                    isActive={sessionState.activeSessionId === session.id}
+                    onSelect={() => handleSelectSession(session.id)}
+                    onDelete={() => handleDeleteSession(session.id)}
+                  />
+                </Show>
               )}
             </For>
           </div>
@@ -233,30 +334,61 @@ const Sidebar: Component = () => {
 
       {/* New session button */}
       <div class="p-2" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
-        <button
-          class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
-          style={{
-            'transition-duration': 'var(--duration-normal)',
-            color: 'var(--color-text-secondary)',
-            background: 'transparent',
-            border: '1px solid var(--color-border-secondary)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--color-accent)';
-            e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
-            e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--color-text-secondary)';
-            e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
-            e.currentTarget.style.background = 'transparent';
-          }}
-          onClick={handleNewSession}
-          aria-label="New session"
+        <Show
+          when={!isCollapsed()}
+          fallback={
+            /* Collapsed: icon-only new session button */
+            <button
+              class="flex items-center justify-center w-full h-8 rounded-md transition-all"
+              style={{
+                'transition-duration': 'var(--duration-normal)',
+                color: 'var(--color-text-secondary)',
+                background: 'transparent',
+                border: '1px solid var(--color-border-secondary)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-accent)';
+                e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+                e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--color-text-secondary)';
+                e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+              onClick={handleNewSession}
+              aria-label="New session"
+              title="New Session"
+            >
+              <Plus size={14} />
+            </button>
+          }
         >
-          <Plus size={13} />
-          <span class="tracking-wide">New Session</span>
-        </button>
+          <button
+            class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
+            style={{
+              'transition-duration': 'var(--duration-normal)',
+              color: 'var(--color-text-secondary)',
+              background: 'transparent',
+              border: '1px solid var(--color-border-secondary)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--color-accent)';
+              e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+              e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--color-text-secondary)';
+              e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+              e.currentTarget.style.background = 'transparent';
+            }}
+            onClick={handleNewSession}
+            aria-label="New session"
+          >
+            <Plus size={13} />
+            <span class="tracking-wide">New Session</span>
+          </button>
+        </Show>
       </div>
     </nav>
   );
@@ -315,8 +447,8 @@ const SessionItem: Component<{
         <div class="flex items-center gap-1.5">
           <span class="text-xs font-medium truncate">{props.session.title || 'New Session'}</span>
           <span
-            class={`text-[9px] font-medium shrink-0 px-1 py-0.5 rounded ${modelColorClass(props.session.model)}`}
-            style={{ background: 'currentColor', color: 'var(--color-bg-primary)' }}
+            class="text-[9px] font-medium shrink-0 px-1 py-0.5 rounded"
+            style={{ background: modelBgColor(props.session.model), color: 'var(--color-bg-primary)' }}
           >
             {modelLabel(props.session.model)}
           </span>

@@ -7,6 +7,7 @@ import { Show } from 'solid-js';
 import { uiState } from '@/stores/uiStore';
 import { cliState } from '@/stores/cliStore';
 import { conversationState } from '@/stores/conversationStore';
+import { sessionState } from '@/stores/sessionStore';
 import type { ProcessStatus } from '@/lib/types';
 
 function processStatusDisplay(status: ProcessStatus): { label: string; color: string } {
@@ -22,11 +23,27 @@ function processStatusDisplay(status: ProcessStatus): { label: string; color: st
     case 'exited':
       return { label: 'Done', color: 'var(--color-text-tertiary)' };
     default:
-      return { label: 'Ready', color: 'var(--color-text-tertiary)' };
+      return { label: 'Ready', color: 'var(--color-success)' };
   }
 }
 
 const StatusBar: Component = () => {
+  const activeSession = () =>
+    sessionState.sessions.find((s) => s.id === sessionState.activeSessionId);
+
+  const inputK = () => {
+    const t = activeSession()?.total_input_tokens;
+    return t ? `${(t / 1000).toFixed(1)}K` : '\u2013';
+  };
+  const outputK = () => {
+    const t = activeSession()?.total_output_tokens;
+    return t ? `${(t / 1000).toFixed(1)}K` : '\u2013';
+  };
+  const costDisplay = () => {
+    const c = activeSession()?.total_cost_cents;
+    return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
+  };
+
   return (
     <footer
       class="flex items-center justify-between px-3 text-[11px] select-none relative"
@@ -80,27 +97,22 @@ const StatusBar: Component = () => {
               </span>
             }
           >
-            {(() => {
-              const status = processStatusDisplay(conversationState.processStatus);
-              return (
-                <div class="flex items-center gap-1.5">
-                  <div
-                    class="w-1.5 h-1.5 rounded-full"
-                    classList={{ 'animate-pulse': conversationState.processStatus === 'running' }}
-                    style={{
-                      background: status.color,
-                      'box-shadow':
-                        conversationState.processStatus === 'running'
-                          ? '0 0 4px rgba(63, 185, 80, 0.4)'
-                          : 'none',
-                    }}
-                  />
-                  <span class="text-text-tertiary font-mono" style={{ 'font-size': '10px' }}>
-                    {status.label}
-                  </span>
-                </div>
-              );
-            })()}
+            <div class="flex items-center gap-1.5">
+              <div
+                class="w-1.5 h-1.5 rounded-full"
+                classList={{ 'animate-pulse': conversationState.processStatus === 'running' }}
+                style={{
+                  background: processStatusDisplay(conversationState.processStatus).color,
+                  'box-shadow':
+                    conversationState.processStatus === 'running'
+                      ? '0 0 4px rgba(63, 185, 80, 0.4)'
+                      : 'none',
+                }}
+              />
+              <span class="text-text-tertiary font-mono" style={{ 'font-size': '10px' }}>
+                {processStatusDisplay(conversationState.processStatus).label}
+              </span>
+            </div>
           </Show>
         </Show>
       </div>
@@ -110,7 +122,7 @@ const StatusBar: Component = () => {
         class="font-mono text-text-tertiary/50"
         style={{ 'font-size': '10px', 'letter-spacing': '0.02em' }}
       >
-        &ndash; / &ndash;
+        {inputK()} / {outputK()}
       </span>
 
       {/* Right: cost pill */}
@@ -122,7 +134,7 @@ const StatusBar: Component = () => {
           background: 'var(--color-bg-elevated)',
         }}
       >
-        $0.00
+        {costDisplay()}
       </span>
     </footer>
   );

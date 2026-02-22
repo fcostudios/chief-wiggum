@@ -1,7 +1,6 @@
-import { Component, Show, Switch, Match, createSignal, createEffect } from 'solid-js';
+import { Component, Show, Switch, Match, createSignal } from 'solid-js';
 import { ChevronDown, ChevronRight, Wrench, Terminal, FileEdit } from 'lucide-solid';
 import type { Message, ToolUseData, ToolCategory } from '../../lib/types';
-import { conversationState } from '../../stores/conversationStore';
 
 interface ToolUseBlockProps {
   message: Message;
@@ -92,17 +91,7 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
   const color = () => toolColor(category());
   const summary = () => toolSummary(data().tool_name, data().tool_input);
 
-  // Expanded during streaming, collapsed after
   const [expanded, setExpanded] = createSignal(false);
-
-  // Auto-expand during streaming, auto-collapse when done
-  createEffect(() => {
-    if (conversationState.isStreaming) {
-      setExpanded(true);
-    } else {
-      setExpanded(false);
-    }
-  });
 
   const toggleExpanded = () => setExpanded((prev) => !prev);
 

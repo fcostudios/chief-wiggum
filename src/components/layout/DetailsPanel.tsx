@@ -6,6 +6,9 @@
 import type { Component, JSX } from 'solid-js';
 import { createSignal, Show } from 'solid-js';
 import { ChevronDown, ChevronRight } from 'lucide-solid';
+import { sessionState } from '@/stores/sessionStore';
+import { projectState } from '@/stores/projectStore';
+import MarkdownContent from '@/components/conversation/MarkdownContent';
 
 interface SectionProps {
   title: string;
@@ -57,15 +60,39 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
 };
 
 const DetailsPanel: Component = () => {
+  const activeSession = () =>
+    sessionState.sessions.find((s) => s.id === sessionState.activeSessionId);
+
+  const tokenDisplay = () => {
+    const inp = activeSession()?.total_input_tokens;
+    const out = activeSession()?.total_output_tokens;
+    const inStr = inp ? `${(inp / 1000).toFixed(1)}K` : '\u2013';
+    const outStr = out ? `${(out / 1000).toFixed(1)}K` : '\u2013';
+    return `${inStr} / ${outStr}`;
+  };
+
+  const costDisplay = () => {
+    const c = activeSession()?.total_cost_cents;
+    return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
+  };
+
   return (
     <aside class="flex flex-col h-full overflow-y-auto" aria-label="Details panel">
+      <Show when={projectState.claudeMdContent}>
+        <CollapsibleSection title="Project Context" defaultOpen={false}>
+          <div class="text-xs max-h-48 overflow-y-auto">
+            <MarkdownContent content={projectState.claudeMdContent!} />
+          </div>
+        </CollapsibleSection>
+      </Show>
+
       <CollapsibleSection title="Context">
         <div
           class="flex items-center justify-between font-mono"
           style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)' }}
         >
           <span>Tokens</span>
-          <span>&ndash; / &ndash;</span>
+          <span>{tokenDisplay()}</span>
         </div>
         <div
           class="mt-2.5 h-1.5 rounded-full overflow-hidden"
@@ -88,7 +115,7 @@ const DetailsPanel: Component = () => {
           style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)' }}
         >
           <span>Session total</span>
-          <span>$0.00</span>
+          <span>{costDisplay()}</span>
         </div>
       </CollapsibleSection>
     </aside>

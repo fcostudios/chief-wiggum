@@ -37,3 +37,22 @@ pub fn create_project(
 pub fn list_projects(db: State<'_, Database>) -> Result<Vec<queries::ProjectRow>, AppError> {
     queries::list_projects(&db)
 }
+
+/// Read CLAUDE.md from a project's folder path (CHI-42).
+/// Returns the file content or None if not found.
+#[tauri::command(rename_all = "snake_case")]
+pub fn read_claude_md(
+    db: State<'_, Database>,
+    project_id: String,
+) -> Result<Option<String>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project {} not found", project_id)))?;
+
+    let claude_md_path = std::path::Path::new(&project.path).join("CLAUDE.md");
+
+    match std::fs::read_to_string(&claude_md_path) {
+        Ok(content) => Ok(Some(content)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(AppError::Other(format!("Failed to read CLAUDE.md: {}", e))),
+    }
+}

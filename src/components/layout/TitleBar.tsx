@@ -11,15 +11,17 @@ import { platform } from '@tauri-apps/plugin-os';
 import {
   toggleSidebar,
   uiState,
-  toggleYoloMode,
   cyclePermissionTier,
   getPermissionTier,
 } from '@/stores/uiStore';
+import { conversationState } from '@/stores/conversationStore';
 import ModelSelector from '@/components/common/ModelSelector';
 
 const TitleBar: Component = () => {
   const appWindow = getCurrentWindow();
   const [isMac, setIsMac] = createSignal(false);
+  const isAgentBusy = () =>
+    conversationState.processStatus === 'running' || conversationState.isStreaming;
 
   onMount(() => {
     setIsMac(platform() === 'macos');
@@ -114,15 +116,22 @@ const TitleBar: Component = () => {
               : uiState.developerMode
                 ? 'rgba(232, 130, 90, 0.1)'
                 : 'transparent',
+            opacity: isAgentBusy() ? '0.4' : '1',
+            cursor: isAgentBusy() ? 'not-allowed' : 'pointer',
           }}
-          onClick={cyclePermissionTier}
-          aria-label={`Permission: ${getPermissionTier()} — click to cycle`}
+          onClick={() => {
+            if (!isAgentBusy()) cyclePermissionTier();
+          }}
+          disabled={isAgentBusy()}
+          aria-label={`Permission: ${getPermissionTier()} — ${isAgentBusy() ? 'locked while agent is responding' : 'click to cycle'}`}
           title={
-            uiState.yoloMode
-              ? 'YOLO Mode — click for Safe mode'
-              : uiState.developerMode
-                ? 'Developer Mode — click for YOLO mode (Cmd+Shift+Y)'
-                : 'Safe Mode — click for Developer mode'
+            isAgentBusy()
+              ? 'Cannot change mode while agent is responding'
+              : uiState.yoloMode
+                ? 'YOLO Mode — click for Safe mode'
+                : uiState.developerMode
+                  ? 'Developer Mode — click for YOLO mode (Cmd+Shift+Y)'
+                  : 'Safe Mode — click for Developer mode'
           }
         >
           <Show when={uiState.yoloMode}>
