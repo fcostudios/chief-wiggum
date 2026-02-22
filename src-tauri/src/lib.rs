@@ -6,6 +6,7 @@
 pub mod bridge;
 pub mod commands;
 pub mod db;
+pub mod files;
 pub mod logging;
 pub mod slash;
 
