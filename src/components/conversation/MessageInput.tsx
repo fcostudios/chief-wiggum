@@ -33,12 +33,60 @@ import {
   assembleContext,
 } from '@/stores/contextStore';
 import { projectState } from '@/stores/projectStore';
+import { addToast } from '@/stores/toastStore';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
   onCancel?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
+}
+
+interface MentionRange {
+  start: number;
+  end: number;
+}
+
+interface ParsedMentionQuery {
+  fileQuery: string;
+  range: MentionRange | null;
+}
+
+function parseMentionQuery(rawQuery: string): ParsedMentionQuery {
+  const match = rawQuery.match(/^(.*?):(\\d+)-(\\d+)$/);
+  if (!match) {
+    return { fileQuery: rawQuery, range: null };
+  }
+
+  const start = Number.parseInt(match[2], 10);
+  const end = Number.parseInt(match[3], 10);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end < start) {
+    return { fileQuery: rawQuery, range: null };
+  }
+
+  return {
+    fileQuery: match[1],
+    range: { start, end },
+  };
+}
+
+function pickBestMentionResult(
+  query: string,
+  results: FileSearchResult[],
+): FileSearchResult | null {
+  if (results.length === 0) return null;
+  const q = query.toLowerCase();
+
+  const exactPath = results.find((r) => r.relative_path.toLowerCase() === q);
+  if (exactPath) return exactPath;
+
+  const exactName = results.find((r) => r.name.toLowerCase() === q);
+  if (exactName) return exactName;
+
+  const suffixPath = results.find((r) => r.relative_path.toLowerCase().endsWith(`/${q}`));
+  if (suffixPath) return suffixPath;
+
+  return results[0] ?? null;
 }
 
 const MessageInput: Component<MessageInputProps> = (props) => {
@@ -70,6 +118,115 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     textareaRef.style.height = `${Math.min(Math.max(scrollHeight, 80), 300)}px`;
   }
 
+  async function buildFileReference(
+    result: FileSearchResult,
+    range: MentionRange | null,
+  ): Promise<FileReference> {
+    const projectId = projectState.activeProjectId;
+    const ref: FileReference = {
+      relative_path: result.relative_path,
+      name: result.name,
+      extension: result.extension,
+      estimated_tokens: Math.round((result.score || 1) * 250),
+      is_directory: false,
+    };
+
+    if (!projectId) return ref;
+
+    if (range) {
+      ref.start_line = range.start;
+      ref.end_line = range.end;
+      try {
+        const rangeContent = await invoke<{ estimated_tokens: number }>('read_project_file', {
+          project_id: projectId,
+          relative_path: result.relative_path,
+          start_line: range.start,
+          // Backend scanner treats `end_line` as exclusive.
+          end_line: range.end + 1,
+        });
+        ref.estimated_tokens = rangeContent.estimated_tokens;
+      } catch {
+        ref.estimated_tokens = Math.max(1, Math.round((range.end - range.start + 1) * 12));
+      }
+      return ref;
+    }
+
+    try {
+      const tokens = await invoke<number>('get_file_token_estimate', {
+        project_id: projectId,
+        relative_path: result.relative_path,
+      });
+      ref.estimated_tokens = tokens;
+    } catch {
+      // Keep rough estimate fallback.
+    }
+
+    return ref;
+  }
+
+  async function resolveInlineRangeMentions(text: string): Promise<string> {
+    const projectId = projectState.activeProjectId;
+    if (!projectId) return text;
+
+    const pattern = /(^|[\s])@([^\s@]+):(\d+)-(\d+)(?=$|[\s])/g;
+    const matches = Array.from(text.matchAll(pattern));
+    if (matches.length === 0) return text;
+
+    let rebuilt = '';
+    let lastIndex = 0;
+    let unresolvedCount = 0;
+
+    for (const match of matches) {
+      const fullMatch = match[0];
+      const prefix = match[1] ?? '';
+      const fileQuery = match[2] ?? '';
+      const start = Number.parseInt(match[3] ?? '', 10);
+      const end = Number.parseInt(match[4] ?? '', 10);
+      const startIndex = match.index ?? 0;
+
+      rebuilt += text.slice(lastIndex, startIndex);
+      lastIndex = startIndex + fullMatch.length;
+
+      if (!fileQuery || !Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end < start) {
+        rebuilt += fullMatch;
+        unresolvedCount += 1;
+        continue;
+      }
+
+      try {
+        const results = await invoke<FileSearchResult[]>('search_project_files', {
+          project_id: projectId,
+          query: fileQuery,
+          max_results: 10,
+        });
+        const resolved = pickBestMentionResult(fileQuery, results);
+        if (!resolved) {
+          rebuilt += fullMatch;
+          unresolvedCount += 1;
+          continue;
+        }
+
+        const ref = await buildFileReference(resolved, { start, end });
+        addFileReference(ref);
+        rebuilt += prefix;
+      } catch {
+        rebuilt += fullMatch;
+        unresolvedCount += 1;
+      }
+    }
+
+    rebuilt += text.slice(lastIndex);
+
+    if (unresolvedCount > 0) {
+      addToast(
+        `Could not resolve ${unresolvedCount} inline file range mention${unresolvedCount > 1 ? 's' : ''}`,
+        'warning',
+      );
+    }
+
+    return rebuilt;
+  }
+
   function handleInput(e: InputEvent) {
     const target = e.target as HTMLTextAreaElement;
     const value = target.value;
@@ -82,7 +239,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     // @-mention detection: `@` after whitespace or at start
     const mentionMatch = textBeforeCursor.match(/(?:^|[\s])@([^\s@]*)$/);
     if (mentionMatch) {
-      const query = mentionMatch[1];
+      const parsedMention = parseMentionQuery(mentionMatch[1]);
+      const query = parsedMention.fileQuery;
       if (query.length > 0 && projectState.activeProjectId) {
         setMentionOpen(true);
         setMentionHighlight(0);
@@ -128,9 +286,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const text = content().trim();
     if (!text || props.isLoading || props.isDisabled) return;
 
+    const cleanedText = (await resolveInlineRangeMentions(text)).trim();
+    const finalText = cleanedText || text;
+
     // Assemble context from attached files
     const contextPrefix = await assembleContext();
-    const fullMessage = contextPrefix ? contextPrefix + text : text;
+    const fullMessage = contextPrefix ? contextPrefix + finalText : finalText;
 
     props.onSend(fullMessage);
     setContent('');
@@ -164,40 +325,19 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     adjustHeight();
   }
 
-  function handleMentionSelect(result: FileSearchResult) {
+  async function handleMentionSelect(result: FileSearchResult) {
     if (!textareaRef) return;
 
-    // Get token estimate for the file
-    const projectId = projectState.activeProjectId;
-    if (!projectId) return;
-
-    // Add as context attachment
-    const ref: FileReference = {
-      relative_path: result.relative_path,
-      name: result.name,
-      extension: result.extension,
-      estimated_tokens: Math.round((result.score || 1) * 250), // rough estimate; will be refined on assemble
-      is_directory: false,
-    };
-
-    // Get better token estimate async
-    invoke<number>('get_file_token_estimate', {
-      project_id: projectId,
-      relative_path: result.relative_path,
-    })
-      .then((tokens) => {
-        ref.estimated_tokens = tokens;
-        addFileReference(ref);
-      })
-      .catch(() => {
-        // Fallback: add with rough estimate
-        addFileReference(ref);
-      });
-
-    // Remove the @query from the textarea
     const value = textareaRef.value;
     const cursorPos = textareaRef.selectionStart ?? 0;
     const textBeforeCursor = value.slice(0, cursorPos);
+    const mentionToken = textBeforeCursor.match(/(?:^|[\s])@([^\s@]*)$/);
+    const parsedMention = parseMentionQuery(mentionToken?.[1] ?? '');
+
+    const ref = await buildFileReference(result, parsedMention.range);
+    addFileReference(ref);
+
+    // Remove the @query from the textarea
     const match = textBeforeCursor.match(/(?:^|[\s])(@[^\s@]*)$/);
     if (match) {
       const mentionStart = textBeforeCursor.length - match[1].length;
@@ -234,7 +374,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         const results = mentionResults();
         const idx = mentionHighlight();
         if (results[idx]) {
-          handleMentionSelect(results[idx]);
+          void handleMentionSelect(results[idx]);
         }
         return;
       }
@@ -244,7 +384,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         const results = mentionResults();
         const idx = mentionHighlight();
         if (results[idx]) {
-          handleMentionSelect(results[idx]);
+          void handleMentionSelect(results[idx]);
         }
         return;
       }

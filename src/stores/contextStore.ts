@@ -108,7 +108,8 @@ export async function assembleContext(): Promise<string> {
           project_id: projectId,
           relative_path: ref.relative_path,
           start_line: ref.start_line ?? null,
-          end_line: ref.end_line ?? null,
+          // Backend scanner uses end-exclusive ranges; chips store inclusive ranges.
+          end_line: ref.end_line ? ref.end_line + 1 : null,
         });
 
         const lineAttr = ref.start_line
