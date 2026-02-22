@@ -3,8 +3,8 @@
 // Displays real session list from sessionStore, supports create/switch/delete.
 
 import type { Component } from 'solid-js';
-import { For, Show, onMount } from 'solid-js';
-import { Plus, Trash2, MessageSquare, FolderOpen } from 'lucide-solid';
+import { For, Show, onMount, createSignal } from 'solid-js';
+import { Plus, Trash2, MessageSquare, FolderOpen, Pin } from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
   sessionState,
@@ -12,6 +12,7 @@ import {
   createNewSession,
   setActiveSession,
   deleteSession,
+  toggleSessionPinned,
 } from '@/stores/sessionStore';
 import {
   loadMessages,
@@ -58,12 +59,29 @@ function modelBgColor(model: string): string {
 
 const Sidebar: Component = () => {
   const isCollapsed = () => uiState.sidebarState === 'collapsed';
+  const [pinnedOpen, setPinnedOpen] = createSignal(true);
+  const [recentOpen, setRecentOpen] = createSignal(true);
+  const [olderOpen, setOlderOpen] = createSignal(true);
 
   /** Sessions filtered by active project. Shows all if no project selected. */
   const filteredSessions = () => {
     const projectId = projectState.activeProjectId;
     if (!projectId) return sessionState.sessions;
     return sessionState.sessions.filter((s) => s.project_id === projectId || !s.project_id);
+  };
+
+  const pinnedSessions = () => filteredSessions().filter((s) => s.pinned);
+  const recentSessions = () => {
+    const cutoff = Date.now() - 86400000; // 24 hours
+    return filteredSessions().filter(
+      (s) => !s.pinned && s.updated_at && new Date(s.updated_at).getTime() > cutoff,
+    );
+  };
+  const olderSessions = () => {
+    const cutoff = Date.now() - 86400000;
+    return filteredSessions().filter(
+      (s) => !s.pinned && (!s.updated_at || new Date(s.updated_at).getTime() <= cutoff),
+    );
   };
 
   onMount(async () => {
@@ -280,54 +298,33 @@ const Sidebar: Component = () => {
           }
         >
           <div class="space-y-0.5">
-            <For each={filteredSessions()}>
-              {(session) => (
-                <Show
-                  when={!isCollapsed()}
-                  fallback={
-                    /* Collapsed: icon-only session button */
-                    <button
-                      class="flex items-center justify-center w-full h-8 rounded-md transition-colors"
-                      style={{
-                        'transition-duration': 'var(--duration-fast)',
-                        background:
-                          sessionState.activeSessionId === session.id
-                            ? 'var(--color-bg-elevated)'
-                            : 'transparent',
-                        color:
-                          sessionState.activeSessionId === session.id
-                            ? 'var(--color-accent)'
-                            : 'var(--color-text-tertiary)',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (sessionState.activeSessionId !== session.id) {
-                          e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
-                          e.currentTarget.style.color = 'var(--color-text-primary)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (sessionState.activeSessionId !== session.id) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = 'var(--color-text-tertiary)';
-                        }
-                      }}
-                      onClick={() => handleSelectSession(session.id)}
-                      title={session.title || 'New Session'}
-                      aria-label={session.title || 'New Session'}
-                    >
-                      <MessageSquare size={14} />
-                    </button>
-                  }
-                >
-                  <SessionItem
-                    session={session}
-                    isActive={sessionState.activeSessionId === session.id}
-                    onSelect={() => handleSelectSession(session.id)}
-                    onDelete={() => handleDeleteSession(session.id)}
-                  />
-                </Show>
-              )}
-            </For>
+            <SidebarSection
+              title="Pinned"
+              sessions={pinnedSessions()}
+              open={pinnedOpen()}
+              onToggle={() => setPinnedOpen((p) => !p)}
+              isCollapsed={isCollapsed()}
+              onSelect={handleSelectSession}
+              onDelete={handleDeleteSession}
+            />
+            <SidebarSection
+              title="Recent"
+              sessions={recentSessions()}
+              open={recentOpen()}
+              onToggle={() => setRecentOpen((p) => !p)}
+              isCollapsed={isCollapsed()}
+              onSelect={handleSelectSession}
+              onDelete={handleDeleteSession}
+            />
+            <SidebarSection
+              title="Older"
+              sessions={olderSessions()}
+              open={olderOpen()}
+              onToggle={() => setOlderOpen((p) => !p)}
+              isCollapsed={isCollapsed()}
+              onSelect={handleSelectSession}
+              onDelete={handleDeleteSession}
+            />
           </div>
         </Show>
       </div>
@@ -394,13 +391,100 @@ const Sidebar: Component = () => {
   );
 };
 
+/** Collapsible section for grouping sessions (Pinned / Recent / Older). */
+function SidebarSection(props: {
+  title: string;
+  sessions: Session[];
+  open: boolean;
+  onToggle: () => void;
+  isCollapsed: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <Show when={props.sessions.length > 0}>
+      <Show when={!props.isCollapsed}>
+        <button
+          class="flex items-center gap-1.5 w-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary hover:text-text-secondary transition-colors"
+          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          onClick={() => props.onToggle()}
+        >
+          <span
+            class="transition-transform"
+            style={{
+              transform: props.open ? 'rotate(90deg)' : 'rotate(0deg)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
+          >
+            ›
+          </span>
+          <span>{props.title}</span>
+          <span style={{ opacity: '0.5' }}>({props.sessions.length})</span>
+        </button>
+      </Show>
+      <Show when={props.open || props.isCollapsed}>
+        <For each={props.sessions}>
+          {(session) => (
+            <Show
+              when={!props.isCollapsed}
+              fallback={
+                /* Collapsed: icon-only session button */
+                <button
+                  class="flex items-center justify-center w-full h-8 rounded-md transition-colors"
+                  style={{
+                    'transition-duration': 'var(--duration-fast)',
+                    background:
+                      sessionState.activeSessionId === session.id
+                        ? 'var(--color-bg-elevated)'
+                        : 'transparent',
+                    color:
+                      sessionState.activeSessionId === session.id
+                        ? 'var(--color-accent)'
+                        : 'var(--color-text-tertiary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (sessionState.activeSessionId !== session.id) {
+                      e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                      e.currentTarget.style.color = 'var(--color-text-primary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (sessionState.activeSessionId !== session.id) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--color-text-tertiary)';
+                    }
+                  }}
+                  onClick={() => props.onSelect(session.id)}
+                  title={session.title || 'New Session'}
+                  aria-label={session.title || 'New Session'}
+                >
+                  <MessageSquare size={14} />
+                </button>
+              }
+            >
+              <SessionItem
+                session={session}
+                isActive={sessionState.activeSessionId === session.id}
+                onSelect={props.onSelect}
+                onDelete={props.onDelete}
+              />
+            </Show>
+          )}
+        </For>
+      </Show>
+    </Show>
+  );
+}
+
 /** Individual session item in the sidebar list. */
 const SessionItem: Component<{
   session: Session;
   isActive: boolean;
-  onSelect: () => void;
-  onDelete: () => void;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
 }> = (props) => {
+  let hoverBorderRef: HTMLDivElement | undefined;
+
   return (
     <div
       class="group flex items-start gap-2 px-2 py-2 rounded-md cursor-pointer transition-all relative"
@@ -413,21 +497,29 @@ const SessionItem: Component<{
         if (!props.isActive) {
           e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
           e.currentTarget.style.color = 'var(--color-text-primary)';
+          if (hoverBorderRef) {
+            hoverBorderRef.style.width = '2px';
+            hoverBorderRef.style.opacity = '0.4';
+          }
         }
       }}
       onMouseLeave={(e) => {
         if (!props.isActive) {
           e.currentTarget.style.background = 'transparent';
           e.currentTarget.style.color = 'var(--color-text-secondary)';
+          if (hoverBorderRef) {
+            hoverBorderRef.style.width = '0px';
+            hoverBorderRef.style.opacity = '0';
+          }
         }
       }}
-      onClick={() => props.onSelect()}
+      onClick={() => props.onSelect(props.session.id)}
       role="button"
       tabindex="0"
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          props.onSelect();
+          props.onSelect(props.session.id);
         }
       }}
     >
@@ -438,6 +530,18 @@ const SessionItem: Component<{
           style={{
             background: 'var(--color-accent)',
             'box-shadow': '0 0 6px rgba(232, 130, 90, 0.3)',
+          }}
+        />
+      </Show>
+
+      {/* Hover indicator for non-active sessions */}
+      <Show when={!props.isActive}>
+        <div
+          ref={hoverBorderRef}
+          class="absolute left-0 top-2 bottom-2 w-0 rounded-full opacity-0 transition-all"
+          style={{
+            background: 'var(--color-accent)',
+            'transition-duration': 'var(--duration-fast)',
           }}
         />
       </Show>
@@ -458,11 +562,23 @@ const SessionItem: Component<{
         </span>
       </div>
       <button
+        class="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-tertiary hover:text-accent transition-all"
+        style={{ 'transition-duration': 'var(--duration-fast)' }}
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleSessionPinned(props.session.id);
+        }}
+        aria-label={props.session.pinned ? 'Unpin session' : 'Pin session'}
+        title={props.session.pinned ? 'Unpin' : 'Pin'}
+      >
+        <Pin size={11} class={props.session.pinned ? 'fill-current' : ''} />
+      </button>
+      <button
         class="opacity-0 group-hover:opacity-100 p-0.5 rounded text-text-tertiary hover:text-error transition-opacity"
         style={{ 'transition-duration': 'var(--duration-fast)' }}
         onClick={(e) => {
           e.stopPropagation();
-          props.onDelete();
+          props.onDelete(props.session.id);
         }}
         aria-label="Delete session"
       >

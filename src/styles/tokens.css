@@ -252,6 +252,28 @@
   }
 }
 
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
 @keyframes border-glow {
   0%,
   100% {
@@ -290,6 +312,14 @@
   animation: typing-bounce 1.4s ease-in-out infinite;
 }
 
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s var(--ease-default) forwards;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s var(--ease-default) forwards;
+}
+
 .animate-thinking-shimmer {
   background: linear-gradient(
     90deg,
@@ -299,6 +329,22 @@
   );
   background-size: 200% 100%;
   animation: thinking-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+ * Micro-interaction utilities (CHI-75)
+ * ============================================================ */
+
+.press-feedback:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease;
+}
+
+.hover-lift {
+  transition: background 150ms ease;
+}
+.hover-lift:hover {
+  filter: brightness(1.08);
 }
 
 /* ============================================================
@@ -424,7 +470,10 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
   font-size: 11px;
   font-family: var(--font-ui);
   color: var(--color-text-tertiary);
@@ -435,7 +484,7 @@
   opacity: 0;
   transition:
     opacity 100ms,
-    color 100ms,
+    color 200ms,
     background-color 100ms;
 }
 

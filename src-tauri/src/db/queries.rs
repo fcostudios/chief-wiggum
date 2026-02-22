@@ -89,7 +89,7 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
-                    created_at, updated_at, cli_session_id
+                    created_at, updated_at, cli_session_id, pinned
              FROM sessions WHERE id = ?1",
         )?;
         let row = stmt.query_row(rusqlite::params![id], |row| {
@@ -107,6 +107,7 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
                 cli_session_id: row.get(12)?,
+                pinned: row.get(13)?,
             })
         });
         match row {
@@ -143,7 +144,7 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
-                    created_at, updated_at, cli_session_id
+                    created_at, updated_at, cli_session_id, pinned
              FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC",
         )?;
         let rows = stmt
@@ -162,6 +163,7 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
                     created_at: row.get(10)?,
                     updated_at: row.get(11)?,
                     cli_session_id: row.get(12)?,
+                    pinned: row.get(13)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -221,6 +223,18 @@ pub fn update_session_cli_id(
         )?;
         Ok(())
     })
+}
+
+pub fn update_session_pinned(
+    conn: &rusqlite::Connection,
+    session_id: &str,
+    pinned: bool,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "UPDATE sessions SET pinned = ?1 WHERE id = ?2",
+        rusqlite::params![pinned, session_id],
+    )?;
+    Ok(())
 }
 
 // ── Messages ───────────────────────────────────────────────────
@@ -326,6 +340,7 @@ pub struct SessionRow {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub cli_session_id: Option<String>,
+    pub pinned: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -523,5 +538,25 @@ mod tests {
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert_eq!(session.cli_session_id.as_deref(), Some("cli-abc-123"));
+    }
+
+    #[test]
+    fn update_session_pinned_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert!(!session.pinned.unwrap_or(false));
+
+        db.with_conn(|conn| update_session_pinned(conn, "s1", true)).unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert!(session.pinned.unwrap_or(false));
+
+        db.with_conn(|conn| update_session_pinned(conn, "s1", false)).unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert!(!session.pinned.unwrap_or(false));
     }
 }

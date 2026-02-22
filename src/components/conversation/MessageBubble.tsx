@@ -3,8 +3,10 @@
 // Role label, model badge, markdown content, timestamp + cost footer.
 
 import type { Component } from 'solid-js';
-import { Show } from 'solid-js';
+import { Show, createSignal } from 'solid-js';
+import { Copy, Check } from 'lucide-solid';
 import type { Message } from '@/lib/types';
+import { addToast } from '@/stores/toastStore';
 import MarkdownContent from './MarkdownContent';
 
 interface MessageBubbleProps {
@@ -26,6 +28,8 @@ function roleLabel(role: string): string {
       return 'Tool Result';
     case 'thinking':
       return 'Thinking';
+    case 'permission':
+      return 'Permission';
     default:
       return role;
   }
@@ -74,6 +78,41 @@ function formatTime(iso: string): string {
   }
 }
 
+/** Format token count as K notation */
+function formatTokens(input: number | null, output: number | null): string | null {
+  const total = (input ?? 0) + (output ?? 0);
+  if (total === 0) return null;
+  return total >= 1000 ? `${(total / 1000).toFixed(1)}K tokens` : `${total} tokens`;
+}
+
+/** Format cost in dollars */
+function formatCost(cents: number | null): string | null {
+  if (!cents || cents <= 0) return null;
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+const CopyButton: Component<{ content: string }> = (props) => {
+  const [copied, setCopied] = createSignal(false);
+  return (
+    <button
+      class="p-0.5 rounded text-text-tertiary hover:text-text-primary transition-colors press-feedback"
+      style={{ 'transition-duration': 'var(--duration-fast)' }}
+      onClick={() => {
+        navigator.clipboard.writeText(props.content);
+        setCopied(true);
+        addToast('Copied to clipboard', 'success');
+        setTimeout(() => setCopied(false), 2000);
+      }}
+      aria-label="Copy message"
+      title="Copy message"
+    >
+      <Show when={copied()} fallback={<Copy size={11} />}>
+        <Check size={11} color="var(--color-success)" />
+      </Show>
+    </button>
+  );
+};
+
 const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isUser = () => props.message.role === 'user';
   const isSystem = () => props.message.role === 'system';
@@ -81,7 +120,7 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>
       <div
-        class="max-w-[85%] rounded-lg px-4 py-3 relative"
+        class="max-w-[85%] rounded-lg px-4 py-3 relative hover-lift"
         style={{
           background: isUser()
             ? 'rgba(232, 130, 90, 0.08)'
@@ -146,19 +185,43 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
           <MarkdownContent content={props.message.content} />
         </Show>
 
-        {/* Footer: timestamp + cost — refined typography */}
-        <div
-          class="flex items-center gap-3 mt-2 font-mono"
-          style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)', opacity: '0.6' }}
-        >
-          <span>{formatTime(props.message.created_at)}</span>
-          <Show when={props.message.cost_cents != null && props.message.cost_cents! > 0}>
-            <span>${((props.message.cost_cents ?? 0) / 100).toFixed(4)}</span>
-          </Show>
-          <Show when={props.message.input_tokens != null}>
-            <span>
-              {props.message.input_tokens}+{props.message.output_tokens} tok
-            </span>
+        {/* Footer: timestamp + tokens + cost + hover actions */}
+        <div class="group/footer flex items-center gap-2 mt-2">
+          <div
+            class="flex items-center gap-1.5 font-mono"
+            style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)', opacity: '0.6' }}
+          >
+            <span>{formatTime(props.message.created_at)}</span>
+            <Show
+              when={
+                !isUser() && formatTokens(props.message.input_tokens, props.message.output_tokens)
+              }
+            >
+              {(tokens) => (
+                <>
+                  <span style={{ opacity: '0.4' }}>&middot;</span>
+                  <span>{tokens()}</span>
+                </>
+              )}
+            </Show>
+            <Show when={!isUser() && formatCost(props.message.cost_cents)}>
+              {(cost) => (
+                <>
+                  <span style={{ opacity: '0.4' }}>&middot;</span>
+                  <span>{cost()}</span>
+                </>
+              )}
+            </Show>
+          </div>
+
+          {/* Hover actions — Copy (assistant messages only) */}
+          <Show when={!isUser() && !isSystem() && props.message.role === 'assistant'}>
+            <div
+              class="flex items-center gap-1 opacity-0 group-hover/footer:opacity-100 transition-opacity"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+            >
+              <CopyButton content={props.message.content} />
+            </div>
           </Show>
         </div>
       </div>

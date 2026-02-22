@@ -15,7 +15,14 @@ export type AgentRole = 'lead' | 'teammate' | 'background';
 export type ModelId = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
 
 /** Message role per SPEC-001 §9 */
-export type MessageRole = 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result' | 'thinking';
+export type MessageRole =
+  | 'user'
+  | 'assistant'
+  | 'system'
+  | 'tool_use'
+  | 'tool_result'
+  | 'thinking'
+  | 'permission';
 
 /** Permission request from CLI bridge (mirrors Rust PermissionRequest) */
 export interface PermissionRequest {
@@ -65,6 +72,14 @@ export interface ToolResultData {
   is_error: boolean;
 }
 
+/** Structured data stored in permission message content (JSON string). */
+export interface PermissionRecordData {
+  tool: string;
+  command: string;
+  outcome: 'allowed' | 'denied' | 'yolo';
+  risk_level: string;
+}
+
 /** Tool classification category for color-coding. */
 export type ToolCategory = 'file' | 'bash' | 'neutral';
 
@@ -92,6 +107,7 @@ export interface Session {
   created_at: string | null;
   updated_at: string | null;
   cli_session_id: string | null;
+  pinned: boolean | null;
 }
 
 /** CLI location info from backend (mirrors Rust CliLocation) */

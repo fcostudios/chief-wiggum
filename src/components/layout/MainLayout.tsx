@@ -9,7 +9,13 @@
 import type { Component } from 'solid-js';
 import { onMount, onCleanup, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
-import { uiState, setActiveView, dismissPermissionDialog, type ActiveView } from '@/stores/uiStore';
+import {
+  uiState,
+  setActiveView,
+  dismissPermissionDialog,
+  closeSessionSwitcher,
+  type ActiveView,
+} from '@/stores/uiStore';
 import type { PermissionAction } from '@/lib/types';
 import { handleGlobalKeyDown } from '@/lib/keybindings';
 import TitleBar from './TitleBar';
@@ -21,10 +27,11 @@ import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
 import YoloWarningDialog from '@/components/permissions/YoloWarningDialog';
 import { sessionState, createNewSession } from '@/stores/sessionStore';
-import { sendMessage, conversationState } from '@/stores/conversationStore';
+import { sendMessage, conversationState, recordPermissionOutcome } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 import CommandPalette from '@/components/common/CommandPalette';
+import ToastContainer from '@/components/common/ToastContainer';
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -158,6 +165,13 @@ const MainLayout: Component = () => {
             onRespond={async (action: PermissionAction) => {
               const req = request();
               dismissPermissionDialog();
+              // Record permission outcome as an inline message in the conversation (CHI-91)
+              const outcome =
+                action === 'Approve' || action === 'AlwaysAllow' ? 'allowed' : 'denied';
+              const sid = sessionState.activeSessionId;
+              if (sid && req) {
+                recordPermissionOutcome(sid, req.tool, req.command, outcome, req.risk_level);
+              }
               try {
                 await invoke('respond_permission', {
                   request_id: req.request_id,
@@ -183,6 +197,14 @@ const MainLayout: Component = () => {
       <Show when={uiState.commandPaletteVisible}>
         <CommandPalette />
       </Show>
+
+      {/* Session quick-switcher (Cmd+Shift+P) */}
+      <Show when={uiState.sessionSwitcherVisible}>
+        <CommandPalette mode="sessions" onClose={closeSessionSwitcher} />
+      </Show>
+
+      {/* Toast notifications — fixed bottom-right overlay */}
+      <ToastContainer />
     </div>
   );
 };

@@ -4,7 +4,12 @@
 
 import type { Component } from 'solid-js';
 import { createEffect, createSignal, Show, For } from 'solid-js';
-import { conversationState, retryLastMessage, sendMessage } from '@/stores/conversationStore';
+import {
+  conversationState,
+  retryLastMessage,
+  sendMessage,
+  typewriter,
+} from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
 import { cliState } from '@/stores/cliStore';
 import MessageBubble from './MessageBubble';
@@ -13,6 +18,7 @@ import { ToolUseBlock } from './ToolUseBlock';
 import { ToolResultBlock } from './ToolResultBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { StreamingThinkingBlock } from './StreamingThinkingBlock';
+import { PermissionRecordBlock } from './PermissionRecordBlock';
 
 const SAMPLE_PROMPTS = [
   {
@@ -39,9 +45,9 @@ const ConversationView: Component = () => {
 
   // Auto-scroll to bottom when messages change or streaming content updates
   createEffect(() => {
-    // Access length and streamingContent to track as reactive dependencies
+    // Access length and typewriter rendered content to track as reactive dependencies
     void conversationState.messages.length;
-    void conversationState.streamingContent;
+    void typewriter.rendered();
     if (isAutoScroll() && scrollRef) {
       requestAnimationFrame(() => {
         scrollRef!.scrollTop = scrollRef!.scrollHeight;
@@ -180,6 +186,8 @@ const ConversationView: Component = () => {
                   <ToolResultBlock message={msg} />
                 ) : msg.role === 'thinking' ? (
                   <ThinkingBlock message={msg} />
+                ) : msg.role === 'permission' ? (
+                  <PermissionRecordBlock message={msg} />
                 ) : (
                   <MessageBubble message={msg} />
                 )}
@@ -192,8 +200,8 @@ const ConversationView: Component = () => {
             <StreamingThinkingBlock content={conversationState.thinkingContent} />
           </Show>
 
-          {/* Streaming content */}
-          <Show when={conversationState.isStreaming && conversationState.streamingContent}>
+          {/* Streaming content (CHI-73: typewriter buffer for smooth rendering) */}
+          <Show when={conversationState.isStreaming && typewriter.rendered()}>
             <div class="flex justify-start animate-fade-in-up">
               <div
                 class="max-w-[85%] rounded-lg px-4 py-3"
@@ -207,7 +215,7 @@ const ConversationView: Component = () => {
                     Assistant
                   </span>
                 </div>
-                <MarkdownContent content={conversationState.streamingContent} />
+                <MarkdownContent content={typewriter.rendered()} />
                 <span
                   class="inline-block w-[3px] h-4 rounded-[1px] animate-cursor-blink ml-0.5"
                   style={{ background: 'var(--color-accent)' }}

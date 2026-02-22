@@ -41,16 +41,30 @@ interface Command {
   shortcut?: string;
   icon?: () => JSX.Element;
   action: () => void;
+  meta?: { model?: string };
+}
+
+interface CommandPaletteProps {
+  /** When 'sessions', only show session commands. Default: show all. */
+  mode?: 'all' | 'sessions';
+  onClose?: () => void;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-const CommandPalette: Component = () => {
+const CommandPalette: Component<CommandPaletteProps> = (props) => {
   const [query, setQuery] = createSignal('');
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   let inputRef: HTMLInputElement | undefined;
+
+  const mode = () => props.mode ?? 'all';
+
+  const handleClose = () => {
+    if (props.onClose) props.onClose();
+    else closeCommandPalette();
+  };
 
   // Build static commands list
   const staticCommands: Command[] = [
@@ -142,15 +156,22 @@ const CommandPalette: Component = () => {
           if (import.meta.env.DEV) console.warn('[CommandPalette] Failed to switch session:', err);
         });
       },
+      meta: { model: s.model },
     }));
     return [...staticCommands, ...sessionCommands];
+  });
+
+  // Filter commands based on mode (sessions-only or all)
+  const modeCommands = createMemo<Command[]>(() => {
+    const all = allCommands();
+    return mode() === 'sessions' ? all.filter((c) => c.category === 'Sessions') : all;
   });
 
   // Filter by query (simple case-insensitive substring match)
   const filteredCommands = createMemo<Command[]>(() => {
     const q = query().toLowerCase().trim();
-    if (!q) return allCommands();
-    return allCommands().filter(
+    if (!q) return modeCommands();
+    return modeCommands().filter(
       (cmd) => cmd.label.toLowerCase().includes(q) || cmd.category.toLowerCase().includes(q),
     );
   });
@@ -177,7 +198,7 @@ const CommandPalette: Component = () => {
 
   // Execute a command and close the palette
   function executeCommand(cmd: Command) {
-    closeCommandPalette();
+    handleClose();
     cmd.action();
   }
 
@@ -195,7 +216,7 @@ const CommandPalette: Component = () => {
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      closeCommandPalette();
+      handleClose();
       return;
     }
 
@@ -247,7 +268,7 @@ const CommandPalette: Component = () => {
       onClick={(e) => {
         // Close when clicking the backdrop
         if (e.target === e.currentTarget) {
-          closeCommandPalette();
+          handleClose();
         }
       }}
     >
@@ -272,7 +293,7 @@ const CommandPalette: Component = () => {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Type a command..."
+            placeholder={mode() === 'sessions' ? 'Switch to session...' : 'Type a command...'}
             class="flex-1 bg-transparent text-sm outline-none"
             style={{
               color: 'var(--color-text-primary)',
@@ -400,6 +421,21 @@ const CommandItem: Component<CommandItemProps> = (props) => {
       </Show>
       {/* Label */}
       <span class="flex-1 truncate">{props.command.label}</span>
+      {/* Model badge dot */}
+      <Show when={props.command.meta?.model}>
+        {(model) => (
+          <span
+            class="w-2 h-2 rounded-full shrink-0"
+            style={{
+              background: model().includes('opus')
+                ? 'var(--color-model-opus)'
+                : model().includes('haiku')
+                  ? 'var(--color-model-haiku)'
+                  : 'var(--color-model-sonnet)',
+            }}
+          />
+        )}
+      </Show>
       {/* Shortcut badge */}
       <Show when={props.command.shortcut}>
         <kbd

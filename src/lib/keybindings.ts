@@ -12,6 +12,7 @@ import {
   enableDeveloperMode,
   disableDeveloperMode,
   toggleCommandPalette,
+  openSessionSwitcher,
   type ActiveView,
 } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
@@ -33,6 +34,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyK' && !e.shiftKey) {
     e.preventDefault();
     toggleCommandPalette();
+    return;
+  }
+
+  // Cmd+Shift+P — session quick-switcher
+  if (e.code === 'KeyP' && e.shiftKey) {
+    e.preventDefault();
+    openSessionSwitcher();
     return;
   }
 

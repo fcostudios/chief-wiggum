@@ -107,4 +107,13 @@ export async function refreshActiveSession(): Promise<void> {
   }
 }
 
+/** Toggle the pinned state of a session. */
+export async function toggleSessionPinned(sessionId: string): Promise<void> {
+  const session = state.sessions.find((s) => s.id === sessionId);
+  if (!session) return;
+  const newPinned = !session.pinned;
+  await invoke('toggle_session_pinned', { session_id: sessionId, pinned: newPinned });
+  setState('sessions', (s) => s.id === sessionId, 'pinned', newPinned);
+}
+
 export { state as sessionState };

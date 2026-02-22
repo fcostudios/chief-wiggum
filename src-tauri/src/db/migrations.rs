@@ -111,6 +111,11 @@ const MIGRATIONS: &[Migration] = &[
         description: "Add cli_session_id to sessions for reliable --resume",
         sql: "ALTER TABLE sessions ADD COLUMN cli_session_id TEXT;",
     },
+    Migration {
+        version: 3,
+        description: "Add pinned column to sessions for section grouping",
+        sql: "ALTER TABLE sessions ADD COLUMN pinned BOOLEAN DEFAULT 0;",
+    },
 ];
 
 impl super::Database {
@@ -210,7 +215,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, 3);
     }
 
     #[test]
@@ -221,7 +226,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 2);
+        assert_eq!(count, 3);
     }
 
     #[test]
@@ -264,11 +269,13 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 2);
+        assert_eq!(rows.len(), 3);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
         assert!(rows[1].1.contains("cli_session_id"));
+        assert_eq!(rows[2].0, 3);
+        assert!(rows[2].1.contains("pinned"));
     }
 
     #[test]

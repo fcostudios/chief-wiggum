@@ -117,3 +117,14 @@ pub fn update_session_cli_id(
 ) -> Result<(), AppError> {
     queries::update_session_cli_id(&db, &session_id, &cli_session_id)
 }
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn toggle_session_pinned(
+    db: State<'_, Database>,
+    session_id: String,
+    pinned: bool,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        queries::update_session_pinned(conn, &session_id, pinned)
+    })
+}

@@ -5,14 +5,14 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal, onMount } from 'solid-js';
-import { Menu, Minus, Maximize2, X, Zap, Shield, ShieldCheck } from 'lucide-solid';
+import { Minus, Maximize2, X, Zap, Shield, ShieldCheck, Settings } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
 import {
-  toggleSidebar,
   uiState,
   cyclePermissionTier,
   getPermissionTier,
+  toggleDetailsPanel,
 } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
 import ModelSelector from '@/components/common/ModelSelector';
@@ -51,16 +51,8 @@ const TitleBar: Component = () => {
         <div class="w-[70px] shrink-0" />
       </Show>
 
-      {/* Left: sidebar toggle + app name */}
+      {/* Left: app name */}
       <div class="flex items-center gap-2.5 px-3">
-        <button
-          class="p-1 rounded-md text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={toggleSidebar}
-          aria-label="Toggle sidebar"
-        >
-          <Menu size={15} />
-        </button>
         <span
           class="text-sm font-semibold tracking-tight text-text-primary"
           style={{ 'letter-spacing': '-0.02em' }}
@@ -99,8 +91,19 @@ const TitleBar: Component = () => {
         <ModelSelector />
       </div>
 
-      {/* Right: permission tier toggle + window controls */}
+      {/* Right: settings + permission tier toggle + window controls */}
       <div class="flex items-center">
+        {/* Settings gear — toggles details panel */}
+        <button
+          class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
+          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          onClick={toggleDetailsPanel}
+          aria-label="Toggle settings panel"
+          title="Toggle details panel (Cmd+Shift+B)"
+        >
+          <Settings size={13} />
+        </button>
+
         {/* Permission tier cycle: Safe → Developer → YOLO */}
         <button
           class="flex items-center justify-center w-10 h-full transition-colors"

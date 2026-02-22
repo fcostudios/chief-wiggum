@@ -27,6 +27,7 @@ interface UIState {
   yoloDialogVisible: boolean;
   developerMode: boolean;
   commandPaletteVisible: boolean;
+  sessionSwitcherVisible: boolean;
 }
 
 /** Restore persisted permission tier from localStorage. */
@@ -61,6 +62,7 @@ const [state, setState] = createStore<UIState>({
   yoloDialogVisible: false,
   developerMode: persisted.developerMode,
   commandPaletteVisible: false,
+  sessionSwitcherVisible: false,
 });
 
 // Sync persisted tier to backend on startup
@@ -201,6 +203,16 @@ export function closeCommandPalette() {
 /** Toggle the command palette visibility. */
 export function toggleCommandPalette() {
   setState('commandPaletteVisible', (prev) => !prev);
+}
+
+/** Open the session quick-switcher (Cmd+Shift+P). */
+export function openSessionSwitcher() {
+  setState('sessionSwitcherVisible', true);
+}
+
+/** Close the session quick-switcher. */
+export function closeSessionSwitcher() {
+  setState('sessionSwitcherVisible', false);
 }
 
 export { state as uiState };

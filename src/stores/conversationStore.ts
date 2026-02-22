@@ -5,6 +5,7 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { createTypewriterBuffer } from '@/lib/typewriterBuffer';
 import type { Message, PermissionRequest, ProcessStatus } from '@/lib/types';
 import {
   updateSessionTitle,
@@ -36,6 +37,9 @@ const [state, setState] = createStore<ConversationState>({
   processStatus: 'not_started',
   lastUserMessage: null,
 });
+
+/** Typewriter buffer for smooth streaming rendering (CHI-73). */
+const typewriter = createTypewriterBuffer();
 
 /** Active event listener cleanup functions. */
 let unlistenChunk: UnlistenFn | null = null;
@@ -73,6 +77,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
   }>('message:chunk', (event) => {
     if (event.payload.session_id !== sessionId) return;
     setState('streamingContent', (prev) => prev + event.payload.content);
+    typewriter.push(event.payload.content);
     setState('isStreaming', true);
     if (state.processStatus !== 'running') {
       setState('processStatus', 'running');
@@ -94,6 +99,9 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     if (event.payload.session_id !== sessionId) return;
 
     const p = event.payload;
+
+    // Flush any remaining typewriter buffer so rendered() matches streamingContent
+    typewriter.flush();
 
     // Persist thinking content as a separate message (before the assistant message)
     const thinkingText = state.thinkingContent;
@@ -134,6 +142,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       setState('thinkingContent', '');
       setState('isStreaming', false);
       setState('isLoading', false);
+      typewriter.reset();
       setState('error', finalContent || 'CLI returned an error — check logs for details');
       // Clear stale CLI session ID so next attempt doesn't use --resume with a dead ID
       updateSessionCliId(sessionId, '').catch((err) =>
@@ -161,6 +170,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     setState('thinkingContent', '');
     setState('isStreaming', false);
     setState('isLoading', false);
+    typewriter.reset();
 
     // Persist assistant message to DB.
     // cost_cents arrives as f64 from the backend (usd * 100.0) but the DB column
@@ -192,6 +202,9 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
   }>('cli:exited', (event) => {
     if (event.payload.session_id !== sessionId) return;
 
+    // Flush any remaining typewriter buffer before checking accumulated content
+    typewriter.flush();
+
     // Safety net: if CLI exited cleanly but message:complete never fired,
     // save any accumulated streaming content as the assistant response.
     const accumulated = state.streamingContent;
@@ -214,6 +227,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       setState('streamingContent', '');
       setState('thinkingContent', '');
       setState('isStreaming', false);
+      typewriter.reset();
 
       invoke('save_message', {
         session_id: sessionId,
@@ -473,6 +487,7 @@ export function clearMessages(): void {
   setState('error', null);
   setState('processStatus', 'not_started');
   setState('lastUserMessage', null);
+  typewriter.reset();
 }
 
 /** Switch to a different session: stop CLI, clean up, load new messages. */
@@ -536,6 +551,42 @@ export async function retryLastMessage(sessionId: string): Promise<void> {
   await sendMessage(lastMsg, sessionId);
 }
 
+/** Record a permission outcome as an inline message. */
+export function recordPermissionOutcome(
+  sessionId: string,
+  tool: string,
+  command: string,
+  outcome: 'allowed' | 'denied' | 'yolo',
+  riskLevel: string,
+): void {
+  const msgId = crypto.randomUUID();
+  const content = JSON.stringify({ tool, command, outcome, risk_level: riskLevel });
+  const msg: Message = {
+    id: msgId,
+    session_id: sessionId,
+    role: 'permission',
+    content,
+    model: null,
+    input_tokens: null,
+    output_tokens: null,
+    thinking_tokens: null,
+    cost_cents: null,
+    is_compacted: false,
+    created_at: new Date().toISOString(),
+  };
+  setState('messages', (prev) => [...prev, msg]);
+  invoke('save_message', {
+    session_id: sessionId,
+    id: msgId,
+    role: 'permission',
+    content,
+    model: null,
+    input_tokens: null,
+    output_tokens: null,
+    cost_cents: null,
+  }).catch((err) => console.error('[conversationStore] Failed to persist permission record:', err));
+}
+
 /** Dev-only warning logger. */
 function devWarn(msg: string, err: unknown): void {
   if (import.meta.env.DEV) {
@@ -543,4 +594,4 @@ function devWarn(msg: string, err: unknown): void {
   }
 }
 
-export { state as conversationState };
+export { state as conversationState, typewriter };
