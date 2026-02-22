@@ -1191,7 +1191,7 @@
       "status": "done",
       "priority": "High",
       "linear_id": "63dfab56-60e5-4e37-99cf-be4b6821903d",
-      "completed_at": "2026-02-22T23:50:00Z",
+      "completed_at": "2026-02-23T00:35:00Z",
       "notes": "All 5 tasks complete and merged to main. Backend scanner with gitignore-aware walking + notify watcher, file tree sidebar with lazy loading, @-mention autocomplete with context chips and XML assembly, syntax-highlighted file preview in DetailsPanel, code range selection with @file:start-end shorthand. 142 Rust tests pass.",
       "tasks": {
         "CHI-115": {

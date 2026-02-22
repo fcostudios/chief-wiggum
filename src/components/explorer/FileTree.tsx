@@ -42,7 +42,7 @@ const FileTree: Component = () => {
   }
 
   return (
-    <div class="flex flex-col h-full">
+    <div class="flex flex-col h-full min-h-0">
       {/* Search input */}
       <div class="px-2 pb-1.5">
         <div class="relative">
@@ -68,7 +68,7 @@ const FileTree: Component = () => {
       </div>
 
       {/* Search results or tree */}
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 min-h-0 overflow-y-auto">
         <Show
           when={!fileState.searchQuery}
           fallback={

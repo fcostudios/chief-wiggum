@@ -283,7 +283,7 @@ const Sidebar: Component = () => {
             {/* File tree (collapsible) */}
             <Show when={fileState.isVisible}>
               <div
-                class="max-h-[250px] overflow-hidden"
+                class="h-[250px] min-h-0 overflow-hidden"
                 style={{ 'transition-duration': 'var(--duration-normal)' }}
               >
                 <FileTree />

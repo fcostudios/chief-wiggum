@@ -4,7 +4,9 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, FileContent, FileSearchResult } from '@/lib/types';
+import { projectState } from '@/stores/projectStore';
 
 interface FileState {
   /** Cached tree nodes per relative path (path -> children). */
@@ -47,8 +49,96 @@ const [state, setState] = createStore<FileState>({
 
 export { state as fileState };
 
+interface FilesChangedEvent {
+  project_id: string;
+  paths: string[];
+}
+
+let filesChangedListenerReady: Promise<void> | null = null;
+let filesChangedUnlisten: UnlistenFn | null = null;
+
+function collectAffectedTreeKeys(paths: string[]): Set<string> {
+  const keys = new Set<string>(['']);
+  for (const path of paths) {
+    if (!path) continue;
+    const parts = path.split('/').filter(Boolean);
+    let current = '';
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      keys.add(current);
+    }
+  }
+  return keys;
+}
+
+function invalidateTreeCache(paths: string[]): void {
+  if (paths.length === 0) return;
+  const keys = collectAffectedTreeKeys(paths);
+  const nextTree = { ...state.tree };
+  for (const key of keys) {
+    delete nextTree[key];
+  }
+  setState('tree', nextTree);
+}
+
+async function handleFilesChanged(
+  payload: FilesChangedEvent,
+  activeProjectId: string | null,
+): Promise<void> {
+  if (!activeProjectId || payload.project_id !== activeProjectId) {
+    return;
+  }
+
+  const changedPaths = payload.paths.filter(Boolean);
+  if (changedPaths.length === 0) return;
+
+  invalidateTreeCache(changedPaths);
+
+  // Refresh root and any visible expanded folders impacted by the change.
+  await loadRootFiles(payload.project_id);
+  const affectedKeys = collectAffectedTreeKeys(changedPaths);
+  const dirsToRefresh = state.expandedPaths.filter((path) => affectedKeys.has(path));
+  for (const dir of dirsToRefresh) {
+    await loadDirectoryChildren(payload.project_id, dir);
+  }
+
+  // Refresh the selected preview if its file changed.
+  if (state.selectedPath && changedPaths.includes(state.selectedPath)) {
+    await selectFile(payload.project_id, state.selectedPath);
+  }
+
+  // Keep search results fresh while searching.
+  if (state.searchQuery.trim()) {
+    searchFiles(payload.project_id, state.searchQuery);
+  }
+}
+
+async function ensureFilesChangedListener(): Promise<void> {
+  if (filesChangedUnlisten) return;
+  if (filesChangedListenerReady) return filesChangedListenerReady;
+
+  filesChangedListenerReady = (async () => {
+    try {
+      // eslint-disable-next-line solid/reactivity -- Tauri event callback intentionally snapshots store state on each event
+      filesChangedUnlisten = await listen<FilesChangedEvent>('files:changed', (event) => {
+        const activeProjectId = projectState.activeProjectId;
+        void handleFilesChanged(event.payload, activeProjectId).catch((err) => {
+          console.error('[fileStore] Failed to handle files:changed event:', err);
+        });
+      });
+    } catch (err) {
+      console.warn('[fileStore] Failed to register files:changed listener:', err);
+    } finally {
+      filesChangedListenerReady = null;
+    }
+  })();
+
+  await filesChangedListenerReady;
+}
+
 /** Load root-level files for a project. */
 export async function loadRootFiles(projectId: string): Promise<void> {
+  void ensureFilesChangedListener();
   setState('isLoading', true);
   try {
     const nodes = await invoke<FileNode[]>('list_project_files', {
@@ -99,6 +189,7 @@ export async function toggleFolder(projectId: string, relativePath: string): Pro
 
 /** Select a file for preview. */
 export async function selectFile(projectId: string, relativePath: string): Promise<void> {
+  void ensureFilesChangedListener();
   setState('selectedPath', relativePath);
   setState('isPreviewLoading', true);
   setState('selectedRange', null);
@@ -122,6 +213,7 @@ export async function selectFile(projectId: string, relativePath: string): Promi
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export function searchFiles(projectId: string, query: string): void {
+  void ensureFilesChangedListener();
   setState('searchQuery', query);
   if (!query.trim()) {
     setState('searchResults', []);
