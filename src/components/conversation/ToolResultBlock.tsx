@@ -1,6 +1,9 @@
 import { Component, Show, createSignal } from 'solid-js';
 import { ChevronDown, ChevronRight, CheckCircle, XCircle } from 'lucide-solid';
-import type { Message, ToolResultData } from '../../lib/types';
+import type { Message, ToolResultData, ToolUseData } from '../../lib/types';
+import { conversationState } from '@/stores/conversationStore';
+import { extractInlineDiffPreview } from '@/lib/inlineDiff';
+import InlineDiff from './InlineDiff';
 
 interface ToolResultBlockProps {
   message: Message;
@@ -28,10 +31,40 @@ function resultPreview(content: string): string {
   return firstLine.length > 80 ? firstLine.slice(0, 77) + '...' : firstLine;
 }
 
+function parseToolUseContent(content: string): ToolUseData | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed && typeof parsed === 'object' && 'tool_name' in parsed) {
+      return parsed as ToolUseData;
+    }
+  } catch {
+    // Best-effort only for pairing tool_result to tool_use
+  }
+  return null;
+}
+
+function findRelatedToolUse(toolUseId: string): ToolUseData | null {
+  if (!toolUseId) return null;
+  const messages = conversationState.messages;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== 'tool_use') continue;
+    const parsed = parseToolUseContent(msg.content);
+    if (parsed?.tool_use_id === toolUseId) return parsed;
+  }
+  return null;
+}
+
 export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   const data = () => parseToolResultContent(props.message.content);
   const isError = () => data().is_error;
   const preview = () => resultPreview(data().content);
+  const relatedToolUse = () => findRelatedToolUse(data().tool_use_id);
+  const inlineDiff = () => {
+    if (isError()) return null;
+    const toolUse = relatedToolUse();
+    return extractInlineDiffPreview(data().content, toolUse?.tool_name, toolUse?.tool_input);
+  };
 
   const [expanded, setExpanded] = createSignal(false);
 
@@ -87,6 +120,22 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
             class="px-3 pb-2 border-t"
             style={{ 'border-color': 'var(--color-border-secondary)' }}
           >
+            <Show when={inlineDiff()}>
+              {(diff) => <InlineDiff preview={diff()} />}
+            </Show>
+
+            <Show when={inlineDiff()}>
+              <div
+                class="mt-2 text-[10px] font-mono px-2 py-1 rounded"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--color-border-secondary)',
+                }}
+              >
+                Raw tool output
+              </div>
+            </Show>
             <pre
               class="mt-1.5 rounded overflow-x-auto text-xs leading-5 max-h-[300px]"
               style={{
