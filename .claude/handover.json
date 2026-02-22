@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T00:35:00Z",
+  "last_updated": "2026-02-22T23:58:01Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -682,7 +682,7 @@
   "ux_polish_epics": {
     "CHI-61": {
       "title": "Native Window Chrome & Platform Feel",
-      "status": "in_progress",
+      "status": "done",
       "priority": "High",
       "linear_id": "29bca201-a71c-4a95-bba0-cb6377cdf733",
       "tasks": {
@@ -710,8 +710,20 @@
         },
         "CHI-69": {
           "title": "macOS vibrancy effects on sidebar and titlebar",
-          "status": "todo",
-          "priority": "Low"
+          "status": "done",
+          "priority": "Low",
+          "completed_at": "2026-02-22T23:44:00Z",
+          "files": [
+            "src-tauri/Cargo.toml",
+            "src-tauri/Cargo.lock",
+            "src-tauri/src/main.rs",
+            "src-tauri/tauri.conf.json",
+            "src/styles/tokens.css",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/TitleBar.tsx",
+            "src/components/layout/Sidebar.tsx"
+          ],
+          "notes": "Added macOS-gated window-vibrancy hook (`NSVisualEffectMaterial::Sidebar`) in Tauri setup, enabled transparent window config, and introduced chrome-specific translucent tokens/styles for titlebar + sidebar shells with `.cw-platform-macos` overrides. Verified with `cargo check`, `npm run typecheck`, `npm run lint`, `npm run build`. Commits: `e267f4e`, `527af0c`, `845fbcb`."
         },
         "CHI-70": {
           "title": "Custom scrollbar styling for dark theme",
@@ -859,7 +871,7 @@
     },
     "CHI-65": {
       "title": "Sidebar & Navigation Polish",
-      "status": "todo",
+      "status": "in_progress",
       "priority": "Medium",
       "linear_id": "a4a12e72-eb1f-44c1-ad84-4bba17e5a83a",
       "tasks": {
@@ -888,8 +900,17 @@
         },
         "CHI-86": {
           "title": "Session rename inline + session actions menu",
-          "status": "todo",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "completed_at": "2026-02-22T23:41:00Z",
+          "files": [
+            "src-tauri/src/db/queries.rs",
+            "src-tauri/src/commands/session.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/sessionStore.ts",
+            "src/components/layout/Sidebar.tsx"
+          ],
+          "notes": "Added inline rename (double-click, Enter/Escape/blur), hover `...` session actions menu (Rename, Pin/Unpin, Duplicate, Delete), metadata-only session duplication IPC/store flow, and conditional delete confirmation when a session has messages. Verified via Rust query tests (`db::queries`), `cargo check`, `npm run typecheck`, `npm run lint`. Commits: `ca0ca86`, `156cf32`, `f9f7d24`, `5551505`."
         },
         "CHI-87": {
           "title": "View tabs with icons + count badges",
@@ -901,7 +922,7 @@
     },
     "CHI-66": {
       "title": "Tool Use Visualization & Inline Activity",
-      "status": "in_progress",
+      "status": "done",
       "priority": "High",
       "linear_id": "2431d2f6-3d5a-4dcb-bc00-1b1adb57693e",
       "tasks": {
@@ -951,8 +972,18 @@
         },
         "CHI-92": {
           "title": "File diff preview within conversation",
-          "status": "todo",
-          "priority": "Low"
+          "status": "done",
+          "priority": "Low",
+          "completed_at": "2026-02-22T23:56:00Z",
+          "files": [
+            "src/lib/inlineDiff.ts",
+            "src/components/conversation/InlineDiff.tsx",
+            "src/components/conversation/ToolResultBlock.tsx",
+            "src/stores/diffReviewStore.ts",
+            "src/components/diff/DiffPreviewPane.tsx",
+            "src/components/layout/MainLayout.tsx"
+          ],
+          "notes": "Implemented heuristic unified-diff parser for tool results, inline diff preview with highlight.js + SPEC-002 diff colors, preserved raw tool output fallback, and added `Open in Diff` bridge to a minimal Diff tab preview pane. NOTE: issue text dependency on CHI-89 was stale (CHI-89 already done). Verified with `npm run typecheck`, `npm run lint`, `npm run build`. Commits: `3927002`, `cb93f70`."
         }
       }
     }
@@ -1276,11 +1307,11 @@
       }
     }
   },
-  "recommended_next": ["CHI-101", "CHI-96", "CHI-110", "CHI-86", "CHI-69", "CHI-92"],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-114 (File Explorer & @-Mention) DONE and merged to main (all 5 tasks). CHI-101 (Agent SDK) remains high priority for CHI-108. CHI-96 (Diagnostic Bundle) next in logging epic. CHI-110 (Split Panes) available. Remaining UX: CHI-61 (CHI-69 vibrancy), CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-86/87/88), CHI-66 (CHI-92 diff preview).",
+  "recommended_next": ["CHI-101", "CHI-96", "CHI-110"],
+  "critical_path": "All P0/P1 Phase 2 work complete. CHI-114 (File Explorer & @-Mention) DONE and merged to main (all 5 tasks). CHI-101 (Agent SDK) remains high priority for CHI-108. CHI-96 (Diagnostic Bundle) next in logging epic. CHI-110 (Split Panes) available. Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-87/88). CHI-61 (vibrancy) and CHI-66 (inline diff preview) are now complete.",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
-    "Remaining UX: CHI-69 (vibrancy), CHI-78 (context menus), CHI-82 (placeholder views), CHI-86 (session rename), CHI-87 (view tabs)"
+    "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
   ],
   "spec_updates": {
     "completed_at": "2026-02-21T23:45:00Z",
@@ -1380,7 +1411,7 @@
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE. HMR (CHI-103), parallel sessions v1 (CHI-104) DONE. UX polish nearly complete. CHI-94 (tracing), CHI-106 (slash discovery), CHI-107 (SlashCommandMenu), CHI-95 (log redaction), CHI-111 (session limits) all DONE. CHI-114 (File Explorer & @-Mention) DONE and merged to main — all 5 tasks (CHI-115/116/117/118/119). 142 Rust tests pass. DB schema v3.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE. HMR (CHI-103), parallel sessions v1 (CHI-104) DONE. UX polish nearly complete. CHI-94 (tracing), CHI-106 (slash discovery), CHI-107 (SlashCommandMenu), CHI-95 (log redaction), CHI-111 (session limits) all DONE. CHI-114 (File Explorer & @-Mention) DONE and merged to main — all 5 tasks (CHI-115/116/117/118/119). CHI-69 (vibrancy), CHI-86 (session actions), and CHI-92 (inline diff preview + Diff tab bridge) implemented and verified on branch. 144 Rust tests pass. DB schema v3.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -1388,6 +1419,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 142 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3. SlashCommandMenu with keyboard nav. LogRedactor with 7 rules. Concurrent session limits (max 4). CHI-114 (File Explorer & @-Mention) merged to main — scanner, file tree, @-mention, preview, range selection all done."
+    "notes": "Full toolchain ready. 144 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3. SlashCommandMenu with keyboard nav. LogRedactor with 7 rules. Concurrent session limits (max 4). CHI-114 (File Explorer & @-Mention) merged to main — scanner, file tree, @-mention, preview, range selection all done."
   }
 }

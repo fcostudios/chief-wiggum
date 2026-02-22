@@ -179,7 +179,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | ------ | -------- | -------- | --------------------------------------------------------------- |
 | CHI-67 | Urgent   | **Done** | Native window controls (macOS traffic lights + Windows buttons) |
 | CHI-68 | High     | **Done** | Titlebar redesign with platform-aware layout                    |
-| CHI-69 | Low      | Todo     | macOS vibrancy effects on sidebar and titlebar                  |
+| CHI-69 | Low      | **Done** | macOS vibrancy effects on sidebar and titlebar                  |
 | CHI-70 | Medium   | **Done** | Custom scrollbar styling for dark theme                         |
 
 #### Epic CHI-62: Delightful Interactions & Micro-animations (High)
@@ -216,7 +216,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | ------ | -------- | -------------------------------------------- | ----------------------------------------------------- |
 | CHI-84 | High     | **Done**                                     | Sidebar collapsed icon-rail mode (48px with tooltips) |
 | CHI-85 | Medium   | **Done**                                     | Session sections (Pinned, Recent, Older)              |
-| CHI-86 | Medium   | Session rename inline + session actions menu |
+| CHI-86 | Medium   | **Done** | Session rename inline + session actions menu                    |
 | CHI-87 | Medium   | View tabs with icons + count badges          |
 | CHI-88 | Low      | Sidebar search/filter                        |
 
@@ -227,7 +227,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | CHI-89 | High     | **Done** | ToolUseBlock component (collapsible, color-coded)       |
 | CHI-90 | Medium   | **Done** | ThinkingBlock component (muted reasoning display)       |
 | CHI-91 | Medium   | **Done** | Permission inline record (approved/denied after dialog) |
-| CHI-92 | Low      | Todo     | File diff preview within conversation                   |
+| CHI-92 | Low      | **Done** | File diff preview within conversation                   |
 
 **Quick wins completed:** CHI-72 (typing indicator), CHI-84 (sidebar collapsed), CHI-76 (command palette) — all done
 
