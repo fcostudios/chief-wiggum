@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-22T18:00:00Z",
+  "last_updated": "2026-02-23T01:00:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -912,6 +912,38 @@
       }
     }
   },
+  "resilience_epic": {
+    "CHI-103": {
+      "title": "HMR Resilience — Event Buffering & Frontend Reconnection",
+      "status": "done",
+      "priority": "Urgent",
+      "linear_id": "CHI-103",
+      "completed_at": "2026-02-23T01:00:00Z",
+      "files": [
+        "src-tauri/src/bridge/manager.rs (SessionRuntime, BufferedEvent, ring buffer, 5 new tests)",
+        "src-tauri/src/bridge/event_loop.rs (buffer events alongside Tauri emission, runtime status updates)",
+        "src-tauri/src/commands/bridge.rs (list_active_bridges, drain_session_buffer IPC)",
+        "src-tauri/src/main.rs (register new commands)",
+        "src/lib/types.ts (ActiveBridgeInfo, BufferedEvent interfaces)",
+        "src/stores/conversationStore.ts (reconnectAfterReload, replayBufferedEvent)",
+        "src/App.tsx (onMount reconnect call)"
+      ],
+      "notes": "Backend survives HMR — only webview reloads. 200-event ring buffer per session with chunk coalescing. Frontend queries active bridges on mount, replays buffered events with deduplication. 84 Rust tests pass."
+    },
+    "CHI-104": {
+      "title": "Parallel Sessions — Per-Session State & Non-Destructive Switching",
+      "status": "done",
+      "priority": "High",
+      "linear_id": "CHI-104",
+      "completed_at": "2026-02-23T01:00:00Z",
+      "files": [
+        "src/stores/conversationStore.ts (sessionStatuses Record, getSessionStatus, setSessionStatus, Map<string,UnlistenFn[]>, non-destructive switchSession)",
+        "src/components/layout/Sidebar.tsx (status indicators, non-destructive new session)",
+        "src/lib/types.ts (ActiveBridgeInfo, BufferedEvent)"
+      ],
+      "notes": "Per-session processStatus via sessionStatuses Record. Per-session event listeners via Map. switchSession no longer kills old CLI. Sidebar shows green pulse (running) and red dot (error) per session. Multiple CLI sessions run simultaneously."
+    }
+  },
   "agent_sdk_migration": {
     "CHI-101": {
       "title": "Migrate CLI bridge from -p mode to Agent SDK control protocol",
@@ -964,7 +996,7 @@
     "CHI-78",
     "CHI-82"
   ],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-35, CHI-36, CHI-37, CHI-38, CHI-39 all DONE. Most UX polish done. Remaining: CHI-101 (Agent SDK — major architecture change), CHI-93 (logging epic — 7 tasks), CHI-61 remaining (CHI-69 vibrancy), CHI-63 remaining (CHI-78/79), CHI-64 remaining (CHI-81/82/83), CHI-65 remaining (CHI-86/87/88), CHI-66 remaining (CHI-92 diff preview).",
+  "critical_path": "All P0/P1 Phase 2 work complete. CHI-35/36/37/38/39 all DONE. HMR resilience (CHI-103) and parallel sessions (CHI-104) DONE. Most UX polish done. Remaining: CHI-101 (Agent SDK — major architecture change), CHI-93 (logging epic — 7 tasks), CHI-61 remaining (CHI-69 vibrancy), CHI-63 remaining (CHI-78/79), CHI-64 remaining (CHI-81/82/83), CHI-65 remaining (CHI-86/87/88), CHI-66 remaining (CHI-92 diff preview).",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-69 (vibrancy), CHI-78 (context menus), CHI-82 (placeholder views), CHI-86 (session rename), CHI-87 (view tabs)"
@@ -1064,7 +1096,7 @@
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE (CHI-35/36/37/38/39). UX polish nearly complete: CHI-61 (3/4), CHI-62 (5/5 DONE), CHI-63 (2/4), CHI-64 (1/4), CHI-65 (2/5), CHI-66 (3/4). Developer Mode (CHI-102) DONE. 79 Rust tests pass. DB schema v3 (pinned column). Next priorities: CHI-101 (Agent SDK migration), CHI-93 (logging), remaining UX tasks.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE (CHI-35/36/37/38/39). HMR resilience (CHI-103) and parallel sessions (CHI-104) DONE. UX polish nearly complete: CHI-61 (3/4), CHI-62 (5/5 DONE), CHI-63 (2/4), CHI-64 (1/4), CHI-65 (2/5), CHI-66 (3/4). Developer Mode (CHI-102) DONE. 84 Rust tests pass. DB schema v3 (pinned column). Next priorities: CHI-101 (Agent SDK migration), CHI-93 (logging), remaining UX tasks.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -1072,6 +1104,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 79 Rust tests pass (7 SessionBridgeMap + 4 parser + 1 pinned). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3 (cli_session_id + pinned columns). fix-path-env for macOS GUI PATH. Session lifecycle fully wired (switch/delete/retry/shutdown). Toast system, typewriter buffer, command palette, session sections all operational."
+    "notes": "Full toolchain ready. 84 Rust tests pass (12 SessionBridgeMap + 4 parser + 1 pinned). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3 (cli_session_id + pinned columns). fix-path-env for macOS GUI PATH. Session lifecycle fully wired (switch/delete/retry/shutdown). HMR resilience: SessionRuntime event buffer + reconnection protocol. Parallel sessions: per-session status + listeners + non-destructive switching."
   }
 }

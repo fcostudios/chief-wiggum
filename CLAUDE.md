@@ -1,7 +1,7 @@
 # Chief Wiggum — Agent Instructions
 
 > **Read this file first.** It is the auto-briefing for any Claude Code session.
-> Updated: 2026-02-22
+> Updated: 2026-02-23
 
 ---
 
@@ -77,6 +77,8 @@
 | CHI-85: Session Sections | **Done** | Pinned/Recent/Older collapsible sections, DB migration v3 |
 | CHI-91: Permission Records | **Done** | Inline allowed/denied/YOLO blocks in conversation |
 | CHI-102: Developer Mode | **Done** | Three-tier permission model, Bash allowedTools patterns |
+| CHI-103: HMR Resilience | **Done** | SessionRuntime event buffer (200-event ring), reconnectAfterReload(), dedup replay |
+| CHI-104: Parallel Sessions | **Done** | Per-session processStatus, per-session listeners, non-destructive switching, sidebar indicators |
 
 ## Phase 1 Status
 
