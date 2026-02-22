@@ -8,6 +8,10 @@ import { conversationState } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import MessageBubble from './MessageBubble';
 import MarkdownContent from './MarkdownContent';
+import { ToolUseBlock } from './ToolUseBlock';
+import { ToolResultBlock } from './ToolResultBlock';
+import { ThinkingBlock } from './ThinkingBlock';
+import { StreamingThinkingBlock } from './StreamingThinkingBlock';
 
 const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
@@ -109,10 +113,23 @@ const ConversationView: Component = () => {
                 class="animate-fade-in-up"
                 style={{ 'animation-delay': `${Math.min(index() * 30, 200)}ms` }}
               >
-                <MessageBubble message={msg} />
+                {msg.role === 'tool_use' ? (
+                  <ToolUseBlock message={msg} />
+                ) : msg.role === 'tool_result' ? (
+                  <ToolResultBlock message={msg} />
+                ) : msg.role === 'thinking' ? (
+                  <ThinkingBlock message={msg} />
+                ) : (
+                  <MessageBubble message={msg} />
+                )}
               </div>
             )}
           </For>
+
+          {/* Live thinking display during streaming */}
+          <Show when={conversationState.isStreaming && conversationState.thinkingContent}>
+            <StreamingThinkingBlock content={conversationState.thinkingContent} />
+          </Show>
 
           {/* Streaming content */}
           <Show when={conversationState.isStreaming && conversationState.streamingContent}>

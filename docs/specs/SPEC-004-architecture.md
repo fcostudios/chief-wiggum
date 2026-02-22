@@ -188,7 +188,7 @@ chief-wiggum/
 |---|---|---|---|
 | `uiStore` | Active view, sidebar/panel visibility, permission dialog, yolo mode | Direct user interaction | Phase 1 |
 | `sessionStore` | Active session, session list, model cycling | IPC commands (session CRUD) | Phase 1 |
-| `conversationStore` | Messages, streaming content, loading/error state | IPC commands + Tauri event listeners (message:chunk, message:complete, cli:exited, permission:request) | Phase 2 |
+| `conversationStore` | Messages, streaming content, thinking content, loading/error state | IPC commands + Tauri event listeners (message:chunk, message:complete, cli:exited, permission:request, cli:init, tool:use, tool:result, message:thinking) | Phase 2 |
 | `cliStore` | CLI detection (isDetected, location, version) | IPC command (get_cli_info) on startup | Phase 2 |
 | `projectStore` | Project list, active project | IPC commands (pick/create/list projects) | Phase 2 |
 | `costStore` | Running cost totals, budget status | Tauri events from cost engine | Phase 2 |
@@ -334,19 +334,23 @@ app_handle.emit("message:chunk", MessageChunk {
 
 Pattern: `{domain}:{action}` in lowercase snake_case.
 
-| Event | Payload | Direction |
-|---|---|---|
-| `message:chunk` | `{ session_id, content, token_count }` | Backend → Frontend |
-| `message:complete` | Full `Message` struct | Backend → Frontend |
-| `message:thinking` | `{ session_id, content, is_streaming }` | Backend → Frontend |
-| `agent:state_change` | `{ agent_id, old_state, new_state, details }` | Backend → Frontend |
-| `agent:output` | `{ agent_id, output_line }` | Backend → Frontend |
-| `cost:update` | `{ session_id, agent_id?, cost_event }` | Backend → Frontend |
-| `cost:budget_warning` | `{ scope, percent, limit_cents, spent_cents }` | Backend → Frontend |
-| `context:update` | `{ session_id, tokens_used, tokens_limit, zone }` | Backend → Frontend |
-| `permission:request` | `{ request_id, tool, command, risk_level }` | Backend → Frontend |
-| `permission:response` | `{ request_id, action, pattern? }` | Frontend → Backend |
-| `mcp:status_change` | `{ server_id, old_status, new_status }` | Backend → Frontend |
+| Event | Payload | Direction | Status |
+|---|---|---|---|
+| `message:chunk` | `{ session_id, content, token_count }` | Backend → Frontend | Implemented |
+| `message:complete` | `{ session_id, role, content, model?, input_tokens?, output_tokens?, thinking_tokens?, cost_cents? }` | Backend → Frontend | Implemented |
+| `message:thinking` | `{ session_id, content, is_streaming }` | Backend → Frontend | Implemented |
+| `cli:init` | `{ session_id, cli_session_id, model }` | Backend → Frontend | Implemented |
+| `cli:exited` | `{ session_id, exit_code }` | Backend → Frontend | Implemented |
+| `tool:use` | `{ session_id, tool_name, tool_input }` | Backend → Frontend | Implemented |
+| `tool:result` | `{ session_id, tool_use_id, content, is_error }` | Backend → Frontend | Implemented |
+| `permission:request` | `{ session_id, request_id, tool, command, file_path?, risk_level }` | Backend → Frontend | Implemented |
+| `permission:response` | `{ request_id, action, pattern? }` | Frontend → Backend | Implemented |
+| `agent:state_change` | `{ agent_id, old_state, new_state, details }` | Backend → Frontend | Future |
+| `agent:output` | `{ agent_id, output_line }` | Backend → Frontend | Future |
+| `cost:update` | `{ session_id, agent_id?, cost_event }` | Backend → Frontend | Future |
+| `cost:budget_warning` | `{ scope, percent, limit_cents, spent_cents }` | Backend → Frontend | Future |
+| `context:update` | `{ session_id, tokens_used, tokens_limit, zone }` | Backend → Frontend | Future |
+| `mcp:status_change` | `{ server_id, old_status, new_status }` | Backend → Frontend | Future |
 
 ### 4.4 Phase 2 IPC Contracts (Implemented)
 
@@ -401,24 +405,33 @@ export const getCliStatus = (session_id: string) =>
 
 | Event | Payload | Source | Consumer |
 |---|---|---|---|
-| `message:chunk` | `{ session_id: string, content: string }` | `event_loop.rs` | `conversationStore.ts` |
-| `message:complete` | `{ session_id: string, content: string }` | `event_loop.rs` | `conversationStore.ts` |
-| `cli:exited` | `{ session_id: string, code: number \| null }` | `event_loop.rs` | `conversationStore.ts` |
-| `permission:request` | `{ session_id: string, tool: string, command: string, risk_level: string }` | `event_loop.rs` | `uiStore.ts` |
+| `message:chunk` | `{ session_id: string, content: string, token_count: number \| null }` | `event_loop.rs` | `conversationStore.ts` |
+| `message:complete` | `{ session_id: string, role: string, content: string, model?: string, input_tokens?: number, output_tokens?: number, thinking_tokens?: number, cost_cents?: number }` | `event_loop.rs` | `conversationStore.ts` |
+| `cli:exited` | `{ session_id: string, exit_code: number \| null }` | `event_loop.rs` | `conversationStore.ts` |
+| `cli:init` | `{ session_id: string, cli_session_id: string, model: string }` | `event_loop.rs` | `conversationStore.ts` → `sessionStore.ts` |
+| `tool:use` | `{ session_id: string, tool_name: string, tool_input: string }` | `event_loop.rs` | `conversationStore.ts` |
+| `tool:result` | `{ session_id: string, tool_use_id: string, content: string, is_error: boolean }` | `event_loop.rs` | `conversationStore.ts` |
+| `message:thinking` | `{ session_id: string, content: string, is_streaming: boolean }` | `event_loop.rs` | `conversationStore.ts` |
+| `permission:request` | `{ session_id: string, request_id: string, tool: string, command: string, file_path?: string, risk_level: string }` | `event_loop.rs` | `conversationStore.ts` → `uiStore.ts` |
+
+**Important:** `cost_cents` in `message:complete` is `f64` (from `total_cost_usd * 100`). Frontend must `Math.round()` before passing to `save_message` IPC which expects `i64`.
+
+**Event listener ordering:** `setupEventListeners()` must complete BEFORE `invoke('send_to_cli')` to avoid missing fast CLI responses.
 
 ```typescript
-// Frontend: stores/conversationStore.ts — event listeners
-listen<{ session_id: string; content: string }>('message:chunk', (event) => {
-  appendStreamingContent(event.payload.content);
-});
-
-listen<{ session_id: string; content: string }>('message:complete', (event) => {
-  finalizeMessage(event.payload.session_id, event.payload.content);
-});
-
-listen<{ session_id: string; code: number | null }>('cli:exited', (event) => {
-  handleCliExit(event.payload.session_id, event.payload.code);
-});
+// Frontend: stores/conversationStore.ts — 8 event listeners
+// All filtered by session_id to scope events to the active session.
+//
+// CRITICAL: listeners set up BEFORE send_to_cli to avoid race condition.
+//
+// message:chunk → accumulate streamingContent
+// message:complete → create assistant Message, persist to DB, clear streaming state
+// cli:exited → safety net: save accumulated content if complete never fired
+// cli:init → extract CLI session ID for --resume support
+// tool:use → create tool_use Message, persist to DB
+// tool:result → create tool_result Message, persist to DB
+// message:thinking → accumulate thinkingContent (not persisted separately)
+// permission:request → show PermissionDialog via uiStore
 ```
 
 #### 4.4.5 Permission IPC (Phase 2 — CHI-50/CHI-51, In Progress)
@@ -466,22 +479,38 @@ listen<BudgetWarning>('cost:budget_warning', (event) => { /* show toast/modal */
 ```
 Frontend                    Rust Backend                    Claude Code CLI
    │                            │                               │
-   │ invoke('send_message')     │                               │
-   ├──────────────────────────→ │                               │
-   │                            │ write to PTY stdin            │
+   │ setupEventListeners()      │                               │
+   │ (MUST be before send)      │                               │
+   │                            │                               │
+   │ invoke('send_to_cli')      │                               │
+   ├──────────────────────────→ │ spawn PTY with -p "prompt"   │
    │                            ├─────────────────────────────→ │
    │                            │                               │
-   │                            │ ◄── stdout stream ────────── │
-   │                            │ parse structured output       │
+   │                            │ ◄── system init (subtype:init)│
+   │ ◄── emit('cli:init')      │ (cli_session_id, model)       │
+   │   → store cli_session_id   │                               │
    │                            │                               │
-   │ ◄── emit('message:chunk') │                               │
-   │ ◄── emit('cost:update')   │                               │
-   │ ◄── emit('context:update')│                               │
+   │                            │ ◄── assistant events ──────── │
+   │ ◄── emit('message:chunk') │ (text content blocks)         │
+   │ ◄── emit('message:thinking')│ (thinking blocks)            │
    │                            │                               │
-   │                            │ ◄── output complete ──────── │
-   │                            │ persist to SQLite             │
-   │ ◄── emit('message:complete')                              │
+   │                            │ ◄── tool:use events ──────── │
+   │ ◄── emit('tool:use')      │ (tool_name, tool_input)       │
+   │   → persist to DB          │                               │
+   │                            │ ◄── tool:result events ───── │
+   │ ◄── emit('tool:result')   │ (content, is_error)           │
+   │   → persist to DB          │                               │
    │                            │                               │
+   │                            │ ◄── result event ──────────── │
+   │ ◄── emit('message:complete')│ (role, content, cost, tokens) │
+   │   → persist to DB           │                               │
+   │   (Math.round cost_cents!)  │                               │
+   │                            │                               │
+   │                            │ ◄── process exits ─────────── │
+   │ ◄── emit('cli:exited')    │ (exit_code)                   │
+   │   → safety net: save       │                               │
+   │     accumulated content    │                               │
+   │     if complete never fired│                               │
 ```
 
 ### 5.2 Permission Flow

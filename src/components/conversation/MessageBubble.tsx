@@ -24,6 +24,8 @@ function roleLabel(role: string): string {
       return 'Tool Use';
     case 'tool_result':
       return 'Tool Result';
+    case 'thinking':
+      return 'Thinking';
     default:
       return role;
   }
@@ -74,10 +76,7 @@ function formatTime(iso: string): string {
 
 const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isUser = () => props.message.role === 'user';
-  const isSystem = () =>
-    props.message.role === 'system' ||
-    props.message.role === 'tool_use' ||
-    props.message.role === 'tool_result';
+  const isSystem = () => props.message.role === 'system';
 
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>

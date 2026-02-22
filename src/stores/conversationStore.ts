@@ -6,7 +6,7 @@ import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { Message, PermissionRequest } from '@/lib/types';
-import { updateSessionTitle, getActiveSession } from '@/stores/sessionStore';
+import { updateSessionTitle, updateSessionCliId, getActiveSession } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
 
@@ -14,6 +14,7 @@ interface ConversationState {
   messages: Message[];
   isLoading: boolean;
   streamingContent: string;
+  thinkingContent: string;
   isStreaming: boolean;
   error: string | null;
 }
@@ -22,6 +23,7 @@ const [state, setState] = createStore<ConversationState>({
   messages: [],
   isLoading: false,
   streamingContent: '',
+  thinkingContent: '',
   isStreaming: false,
   error: null,
 });
@@ -31,6 +33,10 @@ let unlistenChunk: UnlistenFn | null = null;
 let unlistenComplete: UnlistenFn | null = null;
 let unlistenExited: UnlistenFn | null = null;
 let unlistenPermission: UnlistenFn | null = null;
+let unlistenInit: UnlistenFn | null = null;
+let unlistenToolUse: UnlistenFn | null = null;
+let unlistenToolResult: UnlistenFn | null = null;
+let unlistenThinking: UnlistenFn | null = null;
 
 /** Load messages for a session from the database. */
 export async function loadMessages(sessionId: string): Promise<void> {
@@ -74,6 +80,37 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     if (event.payload.session_id !== sessionId) return;
 
     const p = event.payload;
+
+    // Persist thinking content as a separate message (before the assistant message)
+    const thinkingText = state.thinkingContent;
+    if (thinkingText) {
+      const thinkingId = crypto.randomUUID();
+      const thinkingMsg: Message = {
+        id: thinkingId,
+        session_id: sessionId,
+        role: 'thinking',
+        content: thinkingText,
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        thinking_tokens: null,
+        cost_cents: null,
+        is_compacted: false,
+        created_at: new Date().toISOString(),
+      };
+      setState('messages', (prev) => [...prev, thinkingMsg]);
+      invoke('save_message', {
+        session_id: sessionId,
+        id: thinkingId,
+        role: 'thinking',
+        content: thinkingText,
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }).catch((err) => console.error('[conversationStore] Failed to persist thinking:', err));
+    }
+
     const assistantMsg: Message = {
       id: crypto.randomUUID(),
       session_id: sessionId,
@@ -90,10 +127,13 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
 
     setState('messages', (prev) => [...prev, assistantMsg]);
     setState('streamingContent', '');
+    setState('thinkingContent', '');
     setState('isStreaming', false);
     setState('isLoading', false);
 
-    // Persist assistant message to DB
+    // Persist assistant message to DB.
+    // cost_cents arrives as f64 from the backend (usd * 100.0) but the DB column
+    // and save_message IPC expect i64. Round to avoid serde deserialization failure.
     invoke('save_message', {
       session_id: sessionId,
       id: assistantMsg.id,
@@ -102,15 +142,57 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       model: assistantMsg.model,
       input_tokens: assistantMsg.input_tokens,
       output_tokens: assistantMsg.output_tokens,
-      cost_cents: assistantMsg.cost_cents,
-    }).catch((err) => devWarn('Failed to persist assistant message:', err));
+      cost_cents: assistantMsg.cost_cents != null ? Math.round(assistantMsg.cost_cents) : null,
+    }).catch((err) => {
+      // Log at error level always — silent save failures cause missing messages on restore
+      console.error('[conversationStore] Failed to persist assistant message:', err);
+    });
   });
 
   unlistenExited = await listen<{
     session_id: string;
     exit_code: number | null;
+    // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
   }>('cli:exited', (event) => {
     if (event.payload.session_id !== sessionId) return;
+
+    // Safety net: if CLI exited cleanly but message:complete never fired,
+    // save any accumulated streaming content as the assistant response.
+    const accumulated = state.streamingContent;
+    if (accumulated && state.isStreaming) {
+      const msgId = crypto.randomUUID();
+      const assistantMsg: Message = {
+        id: msgId,
+        session_id: sessionId,
+        role: 'assistant',
+        content: accumulated,
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        thinking_tokens: null,
+        cost_cents: null,
+        is_compacted: false,
+        created_at: new Date().toISOString(),
+      };
+      setState('messages', (prev) => [...prev, assistantMsg]);
+      setState('streamingContent', '');
+      setState('thinkingContent', '');
+      setState('isStreaming', false);
+
+      invoke('save_message', {
+        session_id: sessionId,
+        id: msgId,
+        role: 'assistant',
+        content: accumulated,
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }).catch((err) =>
+        console.error('[conversationStore] Failed to persist fallback assistant message:', err),
+      );
+    }
+
     setState('isLoading', false);
     setState('isStreaming', false);
     if (event.payload.exit_code !== 0 && event.payload.exit_code !== null) {
@@ -136,6 +218,98 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     };
     showPermissionDialog(req);
   });
+
+  unlistenInit = await listen<{
+    session_id: string;
+    cli_session_id: string;
+    model: string;
+  }>('cli:init', (event) => {
+    if (event.payload.session_id !== sessionId) return;
+    updateSessionCliId(sessionId, event.payload.cli_session_id).catch((err) =>
+      devWarn('Failed to update CLI session ID:', err),
+    );
+  });
+
+  unlistenToolUse = await listen<{
+    session_id: string;
+    tool_use_id: string;
+    tool_name: string;
+    tool_input: string;
+  }>('tool:use', (event) => {
+    if (event.payload.session_id !== sessionId) return;
+    const { tool_use_id, tool_name, tool_input } = event.payload;
+    const msgId = crypto.randomUUID();
+    const content = JSON.stringify({ tool_name, tool_input, tool_use_id });
+    const msg: Message = {
+      id: msgId,
+      session_id: sessionId,
+      role: 'tool_use',
+      content,
+      model: null,
+      input_tokens: null,
+      output_tokens: null,
+      thinking_tokens: null,
+      cost_cents: null,
+      is_compacted: false,
+      created_at: new Date().toISOString(),
+    };
+    setState('messages', (prev) => [...prev, msg]);
+    invoke('save_message', {
+      session_id: sessionId,
+      id: msgId,
+      role: 'tool_use',
+      content,
+      model: null,
+      input_tokens: null,
+      output_tokens: null,
+      cost_cents: null,
+    }).catch((err) => console.error('[conversationStore] Failed to persist tool_use:', err));
+  });
+
+  unlistenToolResult = await listen<{
+    session_id: string;
+    tool_use_id: string;
+    content: string;
+    is_error: boolean;
+  }>('tool:result', (event) => {
+    if (event.payload.session_id !== sessionId) return;
+    const { tool_use_id, content: resultContent, is_error } = event.payload;
+    const msgId = crypto.randomUUID();
+    const content = JSON.stringify({ tool_use_id, content: resultContent, is_error });
+    const msg: Message = {
+      id: msgId,
+      session_id: sessionId,
+      role: 'tool_result',
+      content,
+      model: null,
+      input_tokens: null,
+      output_tokens: null,
+      thinking_tokens: null,
+      cost_cents: null,
+      is_compacted: false,
+      created_at: new Date().toISOString(),
+    };
+    setState('messages', (prev) => [...prev, msg]);
+    invoke('save_message', {
+      session_id: sessionId,
+      id: msgId,
+      role: 'tool_result',
+      content,
+      model: null,
+      input_tokens: null,
+      output_tokens: null,
+      cost_cents: null,
+    }).catch((err) => console.error('[conversationStore] Failed to persist tool_result:', err));
+  });
+
+  unlistenThinking = await listen<{
+    session_id: string;
+    content: string;
+    is_streaming: boolean;
+  }>('message:thinking', (event) => {
+    if (event.payload.session_id !== sessionId) return;
+    setState('thinkingContent', (prev) => prev + event.payload.content);
+  });
 }
 
 /** Clean up event listeners. */
@@ -155,6 +329,22 @@ export async function cleanupEventListeners(): Promise<void> {
   if (unlistenPermission) {
     unlistenPermission();
     unlistenPermission = null;
+  }
+  if (unlistenInit) {
+    unlistenInit();
+    unlistenInit = null;
+  }
+  if (unlistenToolUse) {
+    unlistenToolUse();
+    unlistenToolUse = null;
+  }
+  if (unlistenToolResult) {
+    unlistenToolResult();
+    unlistenToolResult = null;
+  }
+  if (unlistenThinking) {
+    unlistenThinking();
+    unlistenThinking = null;
   }
 }
 
@@ -211,18 +401,21 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
   const isFollowUp = state.messages.some((m) => m.role === 'assistant');
 
   try {
-    // Spawn CLI process first — this kills any old bridge (which emits cli:exited).
-    // We set up listeners AFTER to avoid catching the old bridge's exit event.
+    // Set up event listeners FIRST to avoid missing fast CLI responses.
+    // The old bridge's cli:exited may fire during setup — we re-assert loading after.
+    await setupEventListeners(sessionId);
+    setState('isLoading', true);
+    setState('error', null);
+
+    // Now spawn CLI process — all events will be caught by the listeners above
     await invoke('send_to_cli', {
       session_id: sessionId,
       project_path: projectPath,
       model,
       message: content,
       is_follow_up: isFollowUp,
+      cli_session_id: session?.cli_session_id ?? null,
     });
-
-    // Now set up event listeners for the new bridge's output
-    await setupEventListeners(sessionId);
   } catch (err) {
     setState('isLoading', false);
     setState('error', `Failed to send message: ${err}`);
@@ -235,6 +428,7 @@ export function clearMessages(): void {
   setState('messages', []);
   setState('isLoading', false);
   setState('streamingContent', '');
+  setState('thinkingContent', '');
   setState('isStreaming', false);
   setState('error', null);
 }

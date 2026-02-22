@@ -62,6 +62,15 @@ export function getActiveSession(): Session | undefined {
   return state.sessions.find((s) => s.id === state.activeSessionId);
 }
 
+/** Update the CLI session ID for a session (from cli:init event). */
+export async function updateSessionCliId(
+  sessionId: string,
+  cliSessionId: string,
+): Promise<void> {
+  await invoke('update_session_cli_id', { session_id: sessionId, cli_session_id: cliSessionId });
+  setState('sessions', (s) => s.id === sessionId, 'cli_session_id', cliSessionId);
+}
+
 /** Change the model for the active session. */
 export async function changeSessionModel(model: string): Promise<void> {
   const sessionId = state.activeSessionId;

@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-22T05:30:00Z",
+  "last_updated": "2026-02-22T08:30:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -804,19 +804,39 @@
     },
     "CHI-66": {
       "title": "Tool Use Visualization & Inline Activity",
-      "status": "todo",
+      "status": "in_progress",
       "priority": "High",
       "linear_id": "2431d2f6-3d5a-4dcb-bc00-1b1adb57693e",
       "tasks": {
         "CHI-89": {
           "title": "ToolUseBlock component (collapsible, color-coded)",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-22T08:30:00Z",
+          "files": [
+            "src-tauri/src/bridge/parser.rs",
+            "src-tauri/src/bridge/event_loop.rs",
+            "src/lib/types.ts",
+            "src/stores/conversationStore.ts",
+            "src/components/conversation/ToolUseBlock.tsx",
+            "src/components/conversation/ToolResultBlock.tsx",
+            "src/components/conversation/ConversationView.tsx",
+            "src/components/conversation/MessageBubble.tsx"
+          ],
+          "notes": "Collapsible ToolUseBlock with color-coded left stripe (file=blue, bash=green, neutral=gray). ToolResultBlock with error state. Structured JSON storage in message content. Legacy markdown fallback parser. tool_use_id extracted from CLI stream for pairing."
         },
         "CHI-90": {
           "title": "ThinkingBlock component (muted reasoning display)",
-          "status": "todo",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "completed_at": "2026-02-22T08:30:00Z",
+          "files": [
+            "src/stores/conversationStore.ts",
+            "src/components/conversation/ThinkingBlock.tsx",
+            "src/components/conversation/StreamingThinkingBlock.tsx",
+            "src/components/conversation/ConversationView.tsx"
+          ],
+          "notes": "ThinkingBlock collapsed by default on restore, expanded during streaming. StreamingThinkingBlock for live display with cursor blink. Thinking now persisted as message with role 'thinking' before assistant message. Preview ~80 chars when collapsed."
         },
         "CHI-91": {
           "title": "Permission inline record (approved/denied after dialog)",
@@ -831,6 +851,24 @@
       }
     }
   },
+  "logging_epic": {
+    "CHI-93": {
+      "title": "Structured Log Collector & Diagnostic Export",
+      "status": "todo",
+      "priority": "High",
+      "linear_id": "d5aa1cb9-e2b0-46bc-bbed-d3faa381aa34",
+      "notes": "New epic designed by Cowork. 3-layer tracing (console+file+ring buffer), privacy redaction, ZIP diagnostic bundles, frontend log forwarding, export UI with consent dialog.",
+      "tasks": {
+        "CHI-94": { "title": "3-Layer Tracing Subscriber Setup", "status": "todo", "priority": "Urgent", "linear_id": "84a2450a" },
+        "CHI-95": { "title": "Log Redaction Engine", "status": "todo", "priority": "High", "linear_id": "eb10835a", "dependencies": ["CHI-94"] },
+        "CHI-96": { "title": "Diagnostic Bundle Export (ZIP)", "status": "todo", "priority": "High", "linear_id": "cb869b15", "dependencies": ["CHI-94", "CHI-95"] },
+        "CHI-97": { "title": "Frontend Log Forwarding via IPC", "status": "todo", "priority": "Medium", "linear_id": "7532e389", "dependencies": ["CHI-94"] },
+        "CHI-98": { "title": "Export Diagnostic Bundle UI (Consent Dialog + Menu)", "status": "todo", "priority": "High", "linear_id": "bdb62095", "dependencies": ["CHI-96"] },
+        "CHI-99": { "title": "Database Query Tracing Instrumentation", "status": "todo", "priority": "Medium", "linear_id": "2ec708f5", "dependencies": ["CHI-94"] },
+        "CHI-100": { "title": "GitHub Issue Template with Diagnostic Bundle Guidance", "status": "todo", "priority": "Low", "linear_id": "e2795830", "dependencies": ["CHI-98"] }
+      }
+    }
+  },
   "recommended_next": [
     "CHI-56",
     "CHI-57",
@@ -838,9 +876,10 @@
     "CHI-59",
     "CHI-68",
     "CHI-80",
-    "CHI-41"
+    "CHI-41",
+    "CHI-94"
   ],
-  "critical_path": "CHI-37 (permission flow) DONE. CHI-60 (shutdown) DONE. CHI-67 (native controls) DONE. CHI-70 (scrollbars) DONE. CHI-71 (message animations) DONE. Next: CHI-39 (session lifecycle — CHI-56/57/58/59), CHI-61 remaining (CHI-68/69), UX polish.",
+  "critical_path": "CHI-37 (permission flow) DONE. CHI-60 (shutdown) DONE. CHI-67 (native controls) DONE. CHI-70 (scrollbars) DONE. CHI-71 (message animations) DONE. CHI-89 (ToolUseBlock) DONE. CHI-90 (ThinkingBlock) DONE. Next: CHI-39 (session lifecycle — CHI-56/57/58/59), CHI-66 remaining (CHI-91/92), CHI-61 remaining (CHI-68/69), UX polish.",
   "ux_quick_wins": [
     "CHI-67 (native window controls — DONE)",
     "CHI-70 (dark scrollbars — DONE)",
@@ -869,8 +908,53 @@
     "linear_issues_updated": 21,
     "notes": "All 21 remaining Phase 2 Linear issues updated with spec references and detailed acceptance criteria"
   },
+  "session_work_log": {
+    "2026-02-22_session": {
+      "description": "CLI session ID tracking, event persistence pipeline, critical bug fixes for session restore",
+      "changes": [
+        {
+          "task": "CLI Session ID Tracking (--resume support)",
+          "files_modified": [
+            "src-tauri/src/db/migrations.rs (v2: cli_session_id column)",
+            "src-tauri/src/db/queries.rs (update_session_cli_id + SELECT cli_session_id)",
+            "src-tauri/src/bridge/parser.rs (BridgeEvent::SystemInit variant, system/init parsing)",
+            "src-tauri/src/bridge/event_loop.rs (CliInitPayload + cli:init emission)",
+            "src-tauri/src/commands/bridge.rs (--resume <id> support in send_to_cli)",
+            "src-tauri/src/commands/session.rs (update_session_cli_id IPC command)",
+            "src-tauri/src/main.rs (register new command)",
+            "src/lib/types.ts (cli_session_id on Session)",
+            "src/stores/sessionStore.ts (updateSessionCliId function)",
+            "src/stores/conversationStore.ts (cli:init listener + pass cli_session_id)"
+          ]
+        },
+        {
+          "task": "Persist tool use, thinking & permission events",
+          "files_modified": [
+            "src-tauri/src/bridge/event_loop.rs (ToolUsePayload, ToolResultPayload, ThinkingPayload + match arms)",
+            "src/stores/conversationStore.ts (tool:use, tool:result, message:thinking listeners + DB persistence)"
+          ]
+        },
+        {
+          "task": "BUG FIX: Session restore missing assistant messages",
+          "root_cause": "Two bugs: (1) Race condition — event listeners set up AFTER send_to_cli, missing fast CLI events. (2) cost_cents type mismatch — f64 from backend failed i64 deserialization in save_message IPC, silently dropping all assistant message saves.",
+          "fix": [
+            "Swapped order: setupEventListeners() BEFORE invoke('send_to_cli')",
+            "Added Math.round() on cost_cents before save_message invocation",
+            "Added cli:exited safety net to save accumulated streamingContent",
+            "Upgraded error logging from devWarn to console.error for persistence failures"
+          ],
+          "files_modified": [
+            "src/stores/conversationStore.ts",
+            "src/components/layout/Sidebar.tsx (auto-select first session on mount)"
+          ]
+        }
+      ],
+      "tests": "74 Rust tests pass (3 new parser tests). Frontend compiles clean.",
+      "verified": "DB confirmed: assistant messages with content (382-1493 chars), token counts, and integer cost_cents now persist correctly. Session restore loads full conversation history."
+    }
+  },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67, CHI-70, CHI-71 DONE. Frontend design overhaul applied (Noir Command Center aesthetic, Sora font, ambient glows, entrance animations). 71 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62).",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: CHI-36 (CLI Connection), CHI-37 (Permission Flow) DONE. CHI-40, CHI-60, CHI-67, CHI-70, CHI-71 DONE. CHI-89 (ToolUseBlock) + CHI-90 (ThinkingBlock) DONE — 4 new components, structured JSON storage, thinking persistence, tool_use_id pairing. 74 Rust tests pass. Next: CHI-39 (session lifecycle), UX polish (CHI-61, CHI-62, CHI-66 remaining).",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -878,6 +962,6 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 71 Rust tests pass (7 new SessionBridgeMap tests). Frontend checks all pass. CI + release workflows on GitHub Actions. tauri-plugin-dialog added for native folder picker."
+    "notes": "Full toolchain ready. 74 Rust tests pass (7 SessionBridgeMap + 3 parser tests). Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v2 (cli_session_id column)."
   }
 }

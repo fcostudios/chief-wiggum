@@ -403,7 +403,8 @@ CREATE TABLE sessions (
     total_output_tokens INTEGER DEFAULT 0,
     total_cost_cents INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    cli_session_id TEXT  -- Claude Code CLI session ID for --resume (migration v2)
 );
 
 CREATE TABLE messages (

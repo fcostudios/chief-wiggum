@@ -81,3 +81,12 @@ pub fn update_session_model(
 ) -> Result<(), AppError> {
     queries::update_session_model(&db, &session_id, &model)
 }
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn update_session_cli_id(
+    db: State<'_, Database>,
+    session_id: String,
+    cli_session_id: String,
+) -> Result<(), AppError> {
+    queries::update_session_cli_id(&db, &session_id, &cli_session_id)
+}

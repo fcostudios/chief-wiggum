@@ -15,7 +15,7 @@ export type AgentRole = 'lead' | 'teammate' | 'background';
 export type ModelId = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
 
 /** Message role per SPEC-001 §9 */
-export type MessageRole = 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result';
+export type MessageRole = 'user' | 'assistant' | 'system' | 'tool_use' | 'tool_result' | 'thinking';
 
 /** Permission request from CLI bridge (mirrors Rust PermissionRequest) */
 export interface PermissionRequest {
@@ -51,6 +51,23 @@ export interface Message {
   created_at: string;
 }
 
+/** Structured data stored in tool_use message content (JSON string). */
+export interface ToolUseData {
+  tool_name: string;
+  tool_input: string;
+  tool_use_id?: string;
+}
+
+/** Structured data stored in tool_result message content (JSON string). */
+export interface ToolResultData {
+  tool_use_id: string;
+  content: string;
+  is_error: boolean;
+}
+
+/** Tool classification category for color-coding. */
+export type ToolCategory = 'file' | 'bash' | 'neutral';
+
 /** Session per SPEC-004 §6 — matches Rust SessionRow */
 export interface Session {
   id: string;
@@ -65,6 +82,7 @@ export interface Session {
   total_cost_cents: number | null;
   created_at: string | null;
   updated_at: string | null;
+  cli_session_id: string | null;
 }
 
 /** CLI location info from backend (mirrors Rust CliLocation) */

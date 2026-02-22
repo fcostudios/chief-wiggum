@@ -49,9 +49,15 @@ function activeProject() {
 }
 
 const Sidebar: Component = () => {
-  onMount(() => {
-    loadSessions();
+  onMount(async () => {
+    await loadSessions();
     loadProjects();
+    // Auto-select the most recent session on app start
+    if (sessionState.sessions.length > 0 && !sessionState.activeSessionId) {
+      const firstSession = sessionState.sessions[0];
+      setActiveSession(firstSession.id);
+      await loadMessages(firstSession.id);
+    }
   });
 
   async function handleNewSession() {

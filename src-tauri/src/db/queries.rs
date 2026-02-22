@@ -89,7 +89,7 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
-                    created_at, updated_at
+                    created_at, updated_at, cli_session_id
              FROM sessions WHERE id = ?1",
         )?;
         let row = stmt.query_row(rusqlite::params![id], |row| {
@@ -106,6 +106,7 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
                 total_cost_cents: row.get(9)?,
                 created_at: row.get(10)?,
                 updated_at: row.get(11)?,
+                cli_session_id: row.get(12)?,
             })
         });
         match row {
@@ -142,7 +143,7 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
-                    created_at, updated_at
+                    created_at, updated_at, cli_session_id
              FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC",
         )?;
         let rows = stmt
@@ -160,6 +161,7 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
                     total_cost_cents: row.get(9)?,
                     created_at: row.get(10)?,
                     updated_at: row.get(11)?,
+                    cli_session_id: row.get(12)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -202,6 +204,20 @@ pub fn update_session_model(db: &Database, id: &str, model: &str) -> Result<(), 
         conn.execute(
             "UPDATE sessions SET model = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
             rusqlite::params![id, model],
+        )?;
+        Ok(())
+    })
+}
+
+pub fn update_session_cli_id(
+    db: &Database,
+    id: &str,
+    cli_session_id: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET cli_session_id = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, cli_session_id],
         )?;
         Ok(())
     })
@@ -309,6 +325,7 @@ pub struct SessionRow {
     pub total_cost_cents: Option<i64>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub cli_session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -491,5 +508,20 @@ mod tests {
         let db = test_db();
         let sessions = list_sessions(&db).unwrap();
         assert!(sessions.is_empty());
+    }
+
+    #[test]
+    fn update_session_cli_id_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert!(session.cli_session_id.is_none());
+
+        update_session_cli_id(&db, "s1", "cli-abc-123").unwrap();
+
+        let session = get_session(&db, "s1").unwrap().unwrap();
+        assert_eq!(session.cli_session_id.as_deref(), Some("cli-abc-123"));
     }
 }

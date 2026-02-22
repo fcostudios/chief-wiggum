@@ -17,10 +17,11 @@ struct Migration {
 }
 
 /// All migrations in order. Forward-only — never remove entries.
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    description: "Initial schema — projects, sessions, messages, agents, cost_events, budgets",
-    sql: r#"
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        description: "Initial schema — projects, sessions, messages, agents, cost_events, budgets",
+        sql: r#"
             CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -104,7 +105,13 @@ const MIGRATIONS: &[Migration] = &[Migration {
             CREATE INDEX IF NOT EXISTS idx_cost_events_session ON cost_events(session_id);
             CREATE INDEX IF NOT EXISTS idx_budgets_project ON budgets(project_id);
         "#,
-}];
+    },
+    Migration {
+        version: 2,
+        description: "Add cli_session_id to sessions for reliable --resume",
+        sql: "ALTER TABLE sessions ADD COLUMN cli_session_id TEXT;",
+    },
+];
 
 impl super::Database {
     /// Run all pending migrations.
@@ -203,7 +210,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
     }
 
     #[test]
@@ -214,7 +221,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 1);
+        assert_eq!(count, 2);
     }
 
     #[test]
@@ -257,9 +264,11 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 1);
+        assert_eq!(rows.len(), 2);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
+        assert_eq!(rows[1].0, 2);
+        assert!(rows[1].1.contains("cli_session_id"));
     }
 
     #[test]

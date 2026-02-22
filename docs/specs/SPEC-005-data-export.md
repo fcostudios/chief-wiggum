@@ -157,7 +157,14 @@ On app startup:
 3. If behind: backup database, then apply pending migrations in a transaction.
 4. If ahead (downgrade scenario): refuse to start, show error directing user to update the app.
 
-### 6.3 Two-Phase Destructive Changes
+### 6.3 Applied Migrations
+
+| Version | Description | Type | Date |
+|---------|-------------|------|------|
+| 1 | Initial schema — projects, sessions, messages, agents, cost_events, budgets | Create tables + indexes | 2026-02-20 |
+| 2 | Add `cli_session_id TEXT` to sessions table for reliable `--resume` | ALTER TABLE ADD COLUMN | 2026-02-22 |
+
+### 6.4 Two-Phase Destructive Changes
 
 **Phase 1 (version N):** Mark column/table as deprecated. Stop writing to it. New code reads from the replacement.
 

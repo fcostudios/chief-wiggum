@@ -53,6 +53,8 @@
 | CHI-52: YOLO Mode IPC | **Done** | Frontend toggle wired to `invoke('toggle_yolo_mode')` |
 | CHI-60: App Shutdown Cleanup | **Done** | Window close handler calls `shutdown_all()` on SessionBridgeMap |
 | CHI-67: Native Window Controls | **Done** | `titleBarStyle: overlay`, platform detection, macOS traffic lights |
+| CHI-89: ToolUseBlock | **Done** | Collapsible, color-coded tool blocks (file=blue, bash=green, neutral=gray), structured JSON storage |
+| CHI-90: ThinkingBlock | **Done** | Collapsible thinking display, streaming + persisted, ~80 char preview when collapsed |
 
 ## Phase 1 Status
 
@@ -184,12 +186,12 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 #### Epic CHI-66: Tool Use Visualization & Inline Activity (High)
 
-| Task | Priority | Description |
-|------|----------|-------------|
-| CHI-89 | High | ToolUseBlock component (collapsible, color-coded) |
-| CHI-90 | Medium | ThinkingBlock component (muted reasoning display) |
-| CHI-91 | Medium | Permission inline record (approved/denied after dialog) |
-| CHI-92 | Low | File diff preview within conversation |
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-89 | High | **Done** | ToolUseBlock component (collapsible, color-coded) |
+| CHI-90 | Medium | **Done** | ThinkingBlock component (muted reasoning display) |
+| CHI-91 | Medium | Todo | Permission inline record (approved/denied after dialog) |
+| CHI-92 | Low | Todo | File diff preview within conversation |
 
 **Quick wins to start immediately:** CHI-67 (native controls), CHI-70 (scrollbars), CHI-80 (empty state)
 
@@ -296,7 +298,11 @@ src/                            # SolidJS frontend
 │   │   ├── ConversationView.tsx # Message list, auto-scroll, empty state
 │   │   ├── MessageBubble.tsx   # Role labels, model badges, markdown content
 │   │   ├── MarkdownContent.tsx # marked + highlight.js rendering, copy buttons
-│   │   └── MessageInput.tsx    # Auto-expanding textarea + send controls
+│   │   ├── MessageInput.tsx    # Auto-expanding textarea + send controls
+│   │   ├── ToolUseBlock.tsx    # Collapsible tool use display, color-coded (CHI-89)
+│   │   ├── ToolResultBlock.tsx # Tool result display with error state (CHI-89)
+│   │   ├── ThinkingBlock.tsx   # Collapsible thinking display (CHI-90)
+│   │   └── StreamingThinkingBlock.tsx # Live thinking with cursor blink (CHI-90)
 │   ├── terminal/               # Terminal Mode (DONE — CHI-21)
 │   │   └── TerminalPane.tsx    # xterm.js v5 + WebGL + FitAddon
 │   └── permissions/            # Permission system UI (DONE — CHI-23, CHI-26)
