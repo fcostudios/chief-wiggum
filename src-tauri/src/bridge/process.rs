@@ -79,8 +79,23 @@ impl Default for BridgeConfig {
 /// Enables MockBridge for testing without the real CLI.
 #[async_trait::async_trait]
 pub trait BridgeInterface: Send + Sync {
+    /// Whether this bridge supports the Agent SDK bidirectional control protocol.
+    fn supports_sdk_protocol(&self) -> bool {
+        false
+    }
+
     /// Send input text to the CLI process (stdin).
     async fn send(&self, input: &str) -> AppResult<()>;
+
+    /// Send a control protocol request to the CLI (SDK mode only).
+    async fn send_control_request(
+        &self,
+        _request: crate::bridge::control::ControlRequest,
+    ) -> AppResult<()> {
+        Err(AppError::Bridge(
+            "Control protocol requests are not supported by this bridge".to_string(),
+        ))
+    }
 
     /// Send a control protocol permission response to the CLI (SDK mode only).
     ///
@@ -464,6 +479,10 @@ impl CliBridge {
 
 #[async_trait::async_trait]
 impl BridgeInterface for CliBridge {
+    fn supports_sdk_protocol(&self) -> bool {
+        false
+    }
+
     async fn send(&self, input: &str) -> AppResult<()> {
         self.input_tx
             .send(input.to_string())
@@ -541,6 +560,10 @@ impl MockBridge {
 
 #[async_trait::async_trait]
 impl BridgeInterface for MockBridge {
+    fn supports_sdk_protocol(&self) -> bool {
+        false
+    }
+
     async fn send(&self, input: &str) -> AppResult<()> {
         self.inputs.lock().await.push(input.to_string());
         Ok(())

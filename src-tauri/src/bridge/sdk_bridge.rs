@@ -193,7 +193,10 @@ impl AgentSdkBridge {
 
     /// Send a control request and await the CLI's response.
     #[allow(dead_code)]
-    pub async fn send_control_request(&self, request: ControlRequest) -> AppResult<serde_json::Value> {
+    pub async fn send_control_request_and_wait(
+        &self,
+        request: ControlRequest,
+    ) -> AppResult<serde_json::Value> {
         let request_id = request.request_id.clone();
 
         let (tx, rx) = oneshot::channel();
@@ -429,8 +432,19 @@ impl AgentSdkBridge {
 
 #[async_trait::async_trait]
 impl BridgeInterface for AgentSdkBridge {
+    fn supports_sdk_protocol(&self) -> bool {
+        true
+    }
+
     async fn send(&self, input: &str) -> AppResult<()> {
         self.send_user_message(input).await
+    }
+
+    async fn send_control_request(&self, request: ControlRequest) -> AppResult<()> {
+        let value = serde_json::to_value(&request).map_err(|e| {
+            AppError::Bridge(format!("Failed to serialize control request: {}", e))
+        })?;
+        self.write_jsonl_value(&value).await
     }
 
     async fn send_control_response(

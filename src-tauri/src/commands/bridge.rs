@@ -7,9 +7,72 @@ use crate::bridge::event_loop;
 use crate::bridge::manager::SessionBridgeMap;
 use crate::bridge::permission::{PermissionAction, PermissionManager, PermissionResponse};
 use crate::bridge::process::{BridgeConfig, ProcessStatus};
+use crate::bridge::{control, ControlRequest};
 use crate::bridge::CliLocation;
 use crate::AppError;
 use tauri::State;
+
+/// Start a persistent CLI session using the Agent SDK control protocol.
+///
+/// Creates an AgentSdkBridge with bidirectional JSONL communication.
+/// The bridge stays alive for the session lifetime — follow-up messages
+/// are sent via `send_to_cli` which writes to stdin.
+#[tauri::command(rename_all = "snake_case")]
+#[allow(clippy::too_many_arguments)]
+pub async fn start_session_cli(
+    app: tauri::AppHandle,
+    bridge_map: State<'_, SessionBridgeMap>,
+    cli: State<'_, CliLocation>,
+    permission_manager: State<'_, PermissionManager>,
+    session_id: String,
+    project_path: String,
+    model: String,
+    cli_session_id: Option<String>,
+) -> Result<(), AppError> {
+    if bridge_map.has(&session_id).await {
+        bridge_map.remove(&session_id).await?;
+    }
+
+    if !bridge_map.can_spawn().await {
+        let active = bridge_map.active_count().await;
+        let max = bridge_map.max_concurrent();
+        return Err(AppError::ResourceLimit { max, active });
+    }
+
+    let cli_path = cli.binary_path()?.to_string();
+    let mut extra_args = Vec::new();
+
+    if let Some(ref id) = cli_session_id {
+        if !id.is_empty() {
+            extra_args.push("--resume".to_string());
+            extra_args.push(id.clone());
+        }
+    }
+
+    let config = BridgeConfig {
+        cli_path,
+        model: Some(model),
+        output_format: "stream-json".to_string(),
+        working_dir: Some(project_path),
+        extra_args,
+        ..BridgeConfig::default()
+    };
+
+    bridge_map.spawn_sdk_for_session(&session_id, config).await?;
+
+    if let Some(bridge) = bridge_map.get(&session_id).await {
+        event_loop::spawn_event_loop(
+            app.clone(),
+            session_id,
+            bridge,
+            bridge_map.mcp_cache(),
+            bridge_map.runtimes(),
+            Some(permission_manager.inner().clone()),
+        );
+    }
+
+    Ok(())
+}
 
 /// Send a message by spawning a CLI process with `-p "prompt"`.
 ///
@@ -36,8 +99,22 @@ pub async fn send_to_cli(
     is_follow_up: bool,
     cli_session_id: Option<String>,
 ) -> Result<(), AppError> {
-    // Stop any existing bridge for this session (previous message's process)
+    // SDK mode: if this session already has a persistent SDK bridge, write the
+    // follow-up message to stdin instead of spawning a new process.
     if bridge_map.has(&session_id).await {
+        if let Some(bridge) = bridge_map.get(&session_id).await {
+            if bridge.supports_sdk_protocol() {
+                bridge.send(&message).await?;
+                tracing::info!(
+                    "send_to_cli [{}]: wrote message to SDK bridge stdin (follow_up: {})",
+                    session_id,
+                    is_follow_up
+                );
+                return Ok(());
+            }
+        }
+
+        // Legacy mode: remove the previous per-message process bridge.
         bridge_map.remove(&session_id).await?;
     }
 
@@ -178,6 +255,43 @@ pub async fn send_to_cli(
         );
     }
 
+    Ok(())
+}
+
+/// Change the model mid-session via the SDK control protocol.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn set_session_model(
+    bridge_map: State<'_, SessionBridgeMap>,
+    session_id: String,
+    model: String,
+) -> Result<(), AppError> {
+    let bridge = bridge_map
+        .get(&session_id)
+        .await
+        .ok_or_else(|| AppError::Bridge(format!("No active bridge for session {}", session_id)))?;
+
+    let req = ControlRequest::set_model(control::next_request_id(), model.clone());
+    bridge.send_control_request(req).await?;
+
+    tracing::info!("set_session_model [{}]: sent set_model({})", session_id, model);
+    Ok(())
+}
+
+/// Interrupt the current CLI execution via the SDK control protocol.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn interrupt_session(
+    bridge_map: State<'_, SessionBridgeMap>,
+    session_id: String,
+) -> Result<(), AppError> {
+    let bridge = bridge_map
+        .get(&session_id)
+        .await
+        .ok_or_else(|| AppError::Bridge(format!("No active bridge for session {}", session_id)))?;
+
+    let req = ControlRequest::interrupt(control::next_request_id());
+    bridge.send_control_request(req).await?;
+
+    tracing::info!("interrupt_session [{}]: sent interrupt control request", session_id);
     Ok(())
 }
 

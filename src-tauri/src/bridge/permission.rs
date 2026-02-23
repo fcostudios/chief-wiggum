@@ -90,6 +90,7 @@ struct AllowRule {
 /// 4. Frontend shows dialog, user responds
 /// 5. Manager resolves the pending request
 /// 6. If "always allow", saves pattern for session
+#[derive(Clone)]
 pub struct PermissionManager {
     /// Pending requests waiting for user response.
     /// Key: request_id, Value: oneshot sender to resolve the request.
