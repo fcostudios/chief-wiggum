@@ -115,6 +115,7 @@ fn main() {
             chief_wiggum_lib::commands::files::read_project_file,
             chief_wiggum_lib::commands::files::search_project_files,
             chief_wiggum_lib::commands::files::get_file_token_estimate,
+            chief_wiggum_lib::commands::files::get_git_file_statuses,
             chief_wiggum_lib::commands::files::open_project_file_in_system,
             chief_wiggum_lib::commands::files::start_project_file_watcher,
             chief_wiggum_lib::commands::files::stop_project_file_watcher,

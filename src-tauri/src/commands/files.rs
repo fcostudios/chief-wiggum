@@ -5,7 +5,14 @@ use crate::db::{queries, Database};
 use crate::files::watcher::FileWatcherManager;
 use crate::files::{scanner, FileContent, FileNode, FileSearchResult};
 use crate::AppError;
+use std::collections::HashMap;
 use tauri::State;
+
+/// Git file status (porcelain v1 format).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct GitFileStatus {
+    pub status: String, // "modified", "untracked", "staged", "deleted", "renamed", "conflict"
+}
 
 /// List files/directories under a project path.
 #[tauri::command(rename_all = "snake_case")]
@@ -65,6 +72,70 @@ pub fn get_file_token_estimate(
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
     let project_root = std::path::Path::new(&project.path);
     scanner::estimate_tokens(project_root, &relative_path)
+}
+
+/// Get git status for all files in a project directory.
+/// Runs `git status --porcelain=v1` and parses the output.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id))]
+pub fn get_git_file_statuses(
+    db: State<'_, Database>,
+    project_id: String,
+) -> Result<HashMap<String, GitFileStatus>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let project_root = std::path::Path::new(&project.path);
+
+    let output = std::process::Command::new("git")
+        .args(["status", "--porcelain=v1"])
+        .current_dir(project_root)
+        .output()
+        .map_err(|e| AppError::Other(format!("Failed to run git status: {}", e)))?;
+
+    if !output.status.success() {
+        // Not a git repo or git not available — return empty map
+        return Ok(HashMap::new());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut statuses = HashMap::new();
+
+    for line in stdout.lines() {
+        if line.len() < 4 {
+            continue;
+        }
+        let index_status = line.as_bytes()[0];
+        let worktree_status = line.as_bytes()[1];
+        let path = line[3..].to_string();
+
+        // Handle renames: "R  old -> new"
+        let file_path = if let Some(arrow_pos) = path.find(" -> ") {
+            path[arrow_pos + 4..].to_string()
+        } else {
+            path
+        }
+        .replace('\\', "/");
+
+        let status = match (index_status, worktree_status) {
+            (b'?', b'?') => "untracked",
+            (b'A', _) => "staged",
+            (b'M', b' ') | (b'M', b'M') => "staged",
+            (_, b'M') => "modified",
+            (b'D', _) | (_, b'D') => "deleted",
+            (b'R', _) => "renamed",
+            (b'U', _) | (_, b'U') => "conflict",
+            _ => "modified",
+        };
+
+        statuses.insert(
+            file_path,
+            GitFileStatus {
+                status: status.to_string(),
+            },
+        );
+    }
+
+    Ok(statuses)
 }
 
 /// Open a project file in the system default app/editor.
