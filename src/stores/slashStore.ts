@@ -30,18 +30,86 @@ export { state as slashState };
 
 let sdkInitUnlisten: UnlistenFn | null = null;
 
+function normalizeFilter(filter: string): string {
+  return filter.trim().replace(/^\//, '').toLowerCase();
+}
+
+function sdkNameMatches(name: string, filter: string): boolean {
+  if (!filter) return true;
+  const lowerName = name.toLowerCase();
+  if (lowerName === filter) return true;
+
+  const tokens = lowerName.split(/[^a-z0-9]+/).filter(Boolean);
+  return tokens.some((token) => token.startsWith(filter));
+}
+
 /** Fuzzy-match a filter string against a command name and description. */
 function fuzzyMatch(command: SlashCommand, filter: string): boolean {
-  if (!filter) return true;
-  const lower = filter.toLowerCase();
-  return (
-    command.name.toLowerCase().includes(lower) || command.description.toLowerCase().includes(lower)
-  );
+  const lower = normalizeFilter(filter);
+  if (!lower) return true;
+
+  const name = command.name.toLowerCase();
+  if (command.category === 'Sdk') {
+    return sdkNameMatches(name, lower);
+  }
+
+  if (name.includes(lower)) return true;
+
+  // SDK/MCP descriptions are often boilerplate and can flood results for short
+  // filters (e.g. "wr" matching "browser"/"playwright" descriptions). For SDK
+  // commands, filter by command name only.
+  return command.description.toLowerCase().includes(lower);
+}
+
+function matchScore(command: SlashCommand, filter: string): number {
+  const lower = normalizeFilter(filter);
+  if (!lower) {
+    // Prefer local/built-in/action commands before SDK noise when no filter.
+    const categoryBias =
+      command.category === 'Builtin'
+        ? 0
+        : command.category === 'Action'
+          ? 1
+          : command.category === 'Project'
+            ? 2
+            : command.category === 'User'
+              ? 3
+              : 4;
+    return categoryBias * 1000 + command.name.localeCompare(command.name);
+  }
+
+  const name = command.name.toLowerCase();
+  const desc = command.description.toLowerCase();
+
+  let score = 1000;
+  if (command.category === 'Sdk') {
+    const tokens = name.split(/[^a-z0-9]+/).filter(Boolean);
+    const exactToken = tokens.find((token) => token === lower);
+    const prefixToken = tokens.find((token) => token.startsWith(lower));
+    if (name === lower || exactToken) score = 5;
+    else if (prefixToken) score = 25;
+  } else if (name === lower) score = 0;
+  else if (name.startsWith(lower)) score = 10;
+  else if (name.includes(lower)) score = 30;
+  else if (desc.startsWith(lower)) score = 60;
+  else if (desc.includes(lower)) score = 80;
+
+  // Keep SDK/MCP entries below built-in/project/user/action matches for similar scores.
+  if (command.category === 'Sdk') score += 200;
+  return score;
 }
 
 /** Get the filtered list of commands based on current filter text. */
 export function filteredCommands(): SlashCommand[] {
-  return state.commands.filter((cmd) => fuzzyMatch(cmd, state.filter));
+  const filter = state.filter;
+  return state.commands
+    .filter((cmd) => fuzzyMatch(cmd, filter))
+    .slice()
+    .sort((a, b) => {
+      const scoreDiff = matchScore(a, filter) - matchScore(b, filter);
+      if (scoreDiff !== 0) return scoreDiff;
+      return a.name.localeCompare(b.name);
+    });
 }
 
 /** Load commands from backend. Called on app mount and project change. */

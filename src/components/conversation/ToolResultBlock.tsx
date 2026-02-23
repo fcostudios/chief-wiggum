@@ -80,7 +80,7 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   const toggleExpanded = () => setExpanded((prev) => !prev);
 
   return (
-    <div class="flex justify-start -mt-1">
+    <div class="flex justify-start">
       <div
         class="max-w-[85%] w-full rounded-md overflow-hidden"
         style={{

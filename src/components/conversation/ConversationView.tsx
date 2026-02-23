@@ -3,7 +3,7 @@
 // Uses @tanstack/solid-virtual for windowed rendering (CHI-132).
 
 import type { Component } from 'solid-js';
-import { createEffect, createSignal, Show, For } from 'solid-js';
+import { createEffect, createSignal, Show, For, onCleanup, onMount } from 'solid-js';
 import { createVirtualizer } from '@tanstack/solid-virtual';
 import { ArrowDown } from 'lucide-solid';
 import {
@@ -69,6 +69,7 @@ function MessageRenderer(props: { message: Message }) {
 
 const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
+  let measureRaf: number | null = null;
   const [isAutoScroll, setIsAutoScroll] = createSignal(true);
   const [showJumpButton, setShowJumpButton] = createSignal(false);
 
@@ -86,6 +87,36 @@ const ConversationView: Component = () => {
     overscan: OVERSCAN,
   });
 
+  function scheduleVirtualMeasure() {
+    if (!scrollRef || !useVirtualization()) return;
+    if (measureRaf !== null) {
+      cancelAnimationFrame(measureRaf);
+      measureRaf = null;
+    }
+    measureRaf = requestAnimationFrame(() => {
+      virtualizer.measure();
+      requestAnimationFrame(() => {
+        virtualizer.measure();
+      });
+    });
+  }
+
+  onMount(() => {
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      scheduleVirtualMeasure();
+    });
+
+    createEffect(() => {
+      const el = scrollRef;
+      if (!el) return;
+      observer.observe(el);
+      onCleanup(() => observer.unobserve(el));
+    });
+
+    onCleanup(() => observer.disconnect());
+  });
+
   // Reset virtualizer measurements when switching sessions / reloading message lists.
   // Without stable re-measurement, cached row heights from a previous session can
   // produce incorrect offsets and make newly rendered messages overlap older rows.
@@ -97,10 +128,18 @@ const ConversationView: Component = () => {
     void firstId;
     void lastId;
 
-    if (!scrollRef || !useVirtualization()) return;
-    requestAnimationFrame(() => {
-      virtualizer.measure();
-    });
+    scheduleVirtualMeasure();
+  });
+
+  // Remeasure when loading state flips or streaming blocks appear/disappear outside
+  // the virtualized list. These affect scroll height and can expose stale row offsets
+  // after app reloads into older conversations.
+  createEffect(() => {
+    void conversationState.isLoading;
+    void conversationState.isStreaming;
+    void conversationState.thinkingContent;
+    void typewriter.rendered();
+    scheduleVirtualMeasure();
   });
 
   // ── Auto-scroll ──
@@ -117,7 +156,7 @@ const ConversationView: Component = () => {
       virtualizer.measure();
       virtualizer.scrollToIndex(lastIndex, {
         align: 'end',
-        behavior: options?.smooth ? 'auto' : 'auto',
+        behavior: options?.smooth ? 'smooth' : 'auto',
       });
       requestAnimationFrame(() => {
         virtualizer.measure();
