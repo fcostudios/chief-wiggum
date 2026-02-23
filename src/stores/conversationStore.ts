@@ -12,6 +12,7 @@ import type {
   ProcessStatus,
   ActiveBridgeInfo,
   BufferedEvent,
+  CliLocation,
 } from '@/lib/types';
 import {
   updateSessionTitle,
@@ -503,6 +504,7 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
   // Only mark as follow-up if there are prior assistant messages (successful responses).
   // Failed CLI attempts leave user-only messages which shouldn't trigger --continue.
   const isFollowUp = state.messages.some((m) => m.role === 'assistant');
+  const sdkSupported = await checkSdkSupport();
 
   try {
     // Set up event listeners FIRST to avoid missing fast CLI responses.
@@ -511,15 +513,37 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     setState('isLoading', true);
     setState('error', null);
 
-    // Now spawn CLI process -- all events will be caught by the listeners above
-    await invoke('send_to_cli', {
-      session_id: sessionId,
-      project_path: projectPath,
-      model,
-      message: content,
-      is_follow_up: isFollowUp,
-      cli_session_id: session?.cli_session_id || null,
-    });
+    if (sdkSupported) {
+      const hasActiveBridge = await checkHasActiveBridge(sessionId);
+
+      if (!hasActiveBridge) {
+        await invoke('start_session_cli', {
+          session_id: sessionId,
+          project_path: projectPath,
+          model,
+          cli_session_id: session?.cli_session_id || null,
+        });
+      }
+
+      await invoke('send_to_cli', {
+        session_id: sessionId,
+        project_path: projectPath,
+        model,
+        message: content,
+        is_follow_up: hasActiveBridge,
+        cli_session_id: session?.cli_session_id || null,
+      });
+    } else {
+      // Legacy fallback (-p mode): spawn per message
+      await invoke('send_to_cli', {
+        session_id: sessionId,
+        project_path: projectPath,
+        model,
+        message: content,
+        is_follow_up: isFollowUp,
+        cli_session_id: session?.cli_session_id || null,
+      });
+    }
     setSessionStatus(sessionId, 'running');
   } catch (err) {
     setState('isLoading', false);
@@ -532,6 +556,30 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     }
     setSessionStatus(sessionId, 'error');
     devWarn('Failed to send message:', err);
+  }
+}
+
+/** Check if a session has an active CLI bridge in the backend. */
+async function checkHasActiveBridge(sessionId: string): Promise<boolean> {
+  try {
+    const bridges = await invoke<ActiveBridgeInfo[]>('list_active_bridges');
+    return bridges.some(
+      (b) =>
+        b.session_id === sessionId &&
+        (b.process_status === 'running' || b.process_status === 'starting'),
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Check if the backend CLI supports the Agent SDK protocol. */
+async function checkSdkSupport(): Promise<boolean> {
+  try {
+    const cliInfo = await invoke<CliLocation>('get_cli_info');
+    return cliInfo.supports_sdk ?? false;
+  } catch {
+    return false;
   }
 }
 
@@ -598,6 +646,24 @@ export async function stopSessionCli(sessionId: string): Promise<void> {
     await invoke('stop_session_cli', { session_id: sessionId });
   } catch {
     // Process may not be running -- that's fine
+  }
+}
+
+/** Interrupt the current CLI execution via the SDK control protocol. */
+export async function interruptSession(sessionId: string): Promise<void> {
+  try {
+    await invoke('interrupt_session', { session_id: sessionId });
+  } catch (err) {
+    devWarn('Failed to interrupt session:', err);
+  }
+}
+
+/** Change the model mid-session via the SDK control protocol. */
+export async function setSessionModel(sessionId: string, model: string): Promise<void> {
+  try {
+    await invoke('set_session_model', { session_id: sessionId, model });
+  } catch (err) {
+    devWarn('Failed to set session model:', err);
   }
 }
 
