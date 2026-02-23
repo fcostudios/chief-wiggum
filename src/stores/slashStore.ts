@@ -7,6 +7,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { CliInitEvent, SlashCommand } from '@/lib/types';
 import { getActiveProject } from '@/stores/projectStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/slash');
 
 interface SlashState {
   /** All discovered commands (built-in + project + user). */
@@ -120,7 +123,7 @@ export async function loadCommands(projectPath?: string): Promise<void> {
     });
     setState('commands', commands);
   } catch (err) {
-    console.error('[slashStore] Failed to load slash commands:', err);
+    log.error('Failed to load slash commands: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -132,7 +135,7 @@ export async function refreshCommands(projectPath?: string): Promise<void> {
     });
     setState('commands', commands);
   } catch (err) {
-    console.error('[slashStore] Failed to refresh slash commands:', err);
+    log.error('Failed to refresh slash commands: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -153,7 +156,7 @@ export async function startSdkCommandListener(): Promise<void> {
       void handleSdkInit(projectPath);
     });
   } catch (err) {
-    console.warn('[slashStore] Failed to listen for cli:init:', err);
+    log.warn('Failed to listen for cli:init: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 

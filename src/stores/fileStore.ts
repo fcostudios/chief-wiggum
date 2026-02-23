@@ -8,6 +8,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, FileContent, FileSearchResult, GitFileStatus } from '@/lib/types';
 import { projectState } from '@/stores/projectStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/files');
 
 interface FileState {
   /** Cached tree nodes per relative path (path -> children). */
@@ -116,7 +119,7 @@ async function loadRootFilesInternal(
     });
     setState('tree', '', nodes);
   } catch (err) {
-    console.error('[fileStore] Failed to load root files:', err);
+    log.error('Failed to load root files: ' + (err instanceof Error ? err.message : String(err)));
   } finally {
     if (showLoading) setState('isLoading', false);
   }
@@ -208,7 +211,7 @@ function queueFilesChangedRefresh(payload: FilesChangedEvent): void {
         ),
       )
       .catch((err) => {
-        console.error('[fileStore] Failed to handle coalesced files:changed event:', err);
+        log.error('Failed to handle coalesced files:changed event: ' + (err instanceof Error ? err.message : String(err)));
       });
   }, 120);
 }
@@ -223,7 +226,7 @@ async function ensureFilesChangedListener(): Promise<void> {
         queueFilesChangedRefresh(event.payload);
       });
     } catch (err) {
-      console.warn('[fileStore] Failed to register files:changed listener:', err);
+      log.warn('Failed to register files:changed listener: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       filesChangedListenerReady = null;
     }
@@ -251,7 +254,7 @@ export async function loadDirectoryChildren(
     });
     setState('tree', relativePath, nodes);
   } catch (err) {
-    console.error('[fileStore] Failed to load directory:', err);
+    log.error('Failed to load directory: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -286,7 +289,7 @@ export async function selectFile(projectId: string, relativePath: string): Promi
     });
     setState('previewContent', content);
   } catch (err) {
-    console.error('[fileStore] Failed to load preview:', err);
+    log.error('Failed to load preview: ' + (err instanceof Error ? err.message : String(err)));
     setState('previewContent', null);
   } finally {
     setState('isPreviewLoading', false);
@@ -316,7 +319,7 @@ export function searchFiles(projectId: string, query: string): void {
       });
       setState('searchResults', results);
     } catch (err) {
-      console.error('[fileStore] Failed to search files:', err);
+      log.error('Failed to search files: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setState('isSearching', false);
     }
@@ -411,7 +414,7 @@ export async function loadGitStatuses(projectId: string): Promise<void> {
     });
     setState('gitStatuses', statuses);
   } catch (err) {
-    console.warn('[fileStore] Failed to load git statuses:', err);
+    log.warn('Failed to load git statuses: ' + (err instanceof Error ? err.message : String(err)));
     setState('gitStatuses', {});
   } finally {
     setState('isGitLoading', false);

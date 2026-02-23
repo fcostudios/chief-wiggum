@@ -5,6 +5,9 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Project } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/projects');
 
 interface ProjectState {
   projects: Project[];
@@ -32,7 +35,7 @@ async function syncProjectFileWatcher(nextProjectId: string | null): Promise<voi
       await invoke('stop_project_file_watcher', { project_id: previousProjectId });
     }
   } catch (err) {
-    console.warn('[projectStore] Failed to stop file watcher:', err);
+    log.warn('Failed to stop file watcher: ' + (err instanceof Error ? err.message : String(err)));
   }
   watchedProjectId = null;
 
@@ -42,7 +45,7 @@ async function syncProjectFileWatcher(nextProjectId: string | null): Promise<voi
     await invoke('start_project_file_watcher', { project_id: nextProjectId });
     watchedProjectId = nextProjectId;
   } catch (err) {
-    console.warn('[projectStore] Failed to start file watcher:', err);
+    log.warn('Failed to start file watcher: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 

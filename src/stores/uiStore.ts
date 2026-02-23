@@ -5,6 +5,9 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { PermissionRequest } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/state');
 
 export type ActiveView = 'conversation' | 'agents' | 'diff' | 'terminal';
 
@@ -119,9 +122,7 @@ export function enableYoloMode() {
   setState('yoloDialogVisible', false);
   persistTier('yolo');
   invoke('toggle_yolo_mode', { enable: true }).catch((err) => {
-    if (import.meta.env.DEV) {
-      console.warn('[uiStore] Failed to enable YOLO mode:', err);
-    }
+    log.warn('Failed to enable YOLO mode: ' + (err instanceof Error ? err.message : String(err)));
   });
 }
 
@@ -130,9 +131,7 @@ export function disableYoloMode() {
   setState('yoloMode', false);
   persistTier(state.developerMode ? 'developer' : 'safe');
   invoke('toggle_yolo_mode', { enable: false }).catch((err) => {
-    if (import.meta.env.DEV) {
-      console.warn('[uiStore] Failed to disable YOLO mode:', err);
-    }
+    log.warn('Failed to disable YOLO mode: ' + (err instanceof Error ? err.message : String(err)));
   });
 }
 
@@ -150,9 +149,7 @@ export function enableDeveloperMode() {
   setState('developerMode', true);
   persistTier('developer');
   invoke('toggle_developer_mode', { enable: true }).catch((err) => {
-    if (import.meta.env.DEV) {
-      console.warn('[uiStore] Failed to enable developer mode:', err);
-    }
+    log.warn('Failed to enable developer mode: ' + (err instanceof Error ? err.message : String(err)));
   });
 }
 
@@ -161,9 +158,7 @@ export function disableDeveloperMode() {
   setState('developerMode', false);
   persistTier(state.yoloMode ? 'yolo' : 'safe');
   invoke('toggle_developer_mode', { enable: false }).catch((err) => {
-    if (import.meta.env.DEV) {
-      console.warn('[uiStore] Failed to disable developer mode:', err);
-    }
+    log.warn('Failed to disable developer mode: ' + (err instanceof Error ? err.message : String(err)));
   });
 }
 
