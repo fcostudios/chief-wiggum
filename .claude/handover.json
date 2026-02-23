@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T15:00:00Z",
-  "last_updated_by": "cowork",
+  "last_updated": "2026-02-23T18:45:19Z",
+  "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
     "linear_project_id": "63e009bd-5e43-4575-a7be-2e3b1cface5f",
@@ -1527,11 +1527,41 @@
       "title": "User Settings & i18n Foundation",
       "status": "in_progress",
       "tasks": {
-        "CHI-122": { "title": "Settings Backend (Rust Module + IPC)", "status": "done", "completed_at": "2026-02-23" },
-        "CHI-124": { "title": "Settings UI (SettingsModal + Controls)", "status": "todo", "priority": "Urgent", "dependencies": ["CHI-122"] },
-        "CHI-126": { "title": "i18n Infrastructure (@solid-primitives/i18n)", "status": "todo", "priority": "High" },
-        "CHI-128": { "title": "Spanish Locale (Phase 1)", "status": "todo", "priority": "High", "dependencies": ["CHI-126"] },
-        "CHI-130": { "title": "Theme System (Light/Dark/System)", "status": "todo", "priority": "Medium", "dependencies": ["CHI-122", "CHI-124"] }
+        "CHI-122": {
+          "title": "Settings Backend (Rust Module + IPC)",
+          "status": "done",
+          "completed_at": "2026-02-23"
+        },
+        "CHI-124": {
+          "title": "Settings UI (SettingsModal + Controls)",
+          "status": "todo",
+          "priority": "Urgent",
+          "dependencies": [
+            "CHI-122"
+          ]
+        },
+        "CHI-126": {
+          "title": "i18n Infrastructure (@solid-primitives/i18n)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-128": {
+          "title": "Spanish Locale (Phase 1)",
+          "status": "todo",
+          "priority": "High",
+          "dependencies": [
+            "CHI-126"
+          ]
+        },
+        "CHI-130": {
+          "title": "Theme System (Light/Dark/System)",
+          "status": "todo",
+          "priority": "Medium",
+          "dependencies": [
+            "CHI-122",
+            "CHI-124"
+          ]
+        }
       }
     }
   },
@@ -1540,11 +1570,31 @@
       "title": "Context Intelligence — File Explorer v2",
       "status": "in_progress",
       "tasks": {
-        "CHI-123": { "title": "File Explorer Quick Wins", "status": "done", "completed_at": "2026-02-23" },
-        "CHI-125": { "title": "Context Quality Scoring", "status": "todo", "priority": "High" },
-        "CHI-127": { "title": "Smart File Suggestions", "status": "todo", "priority": "High" },
-        "CHI-131": { "title": "Token-Optimized Snippets", "status": "todo", "priority": "Medium" },
-        "CHI-134": { "title": "Multi-File Bundles", "status": "todo", "priority": "Medium" }
+        "CHI-123": {
+          "title": "File Explorer Quick Wins",
+          "status": "done",
+          "completed_at": "2026-02-23"
+        },
+        "CHI-125": {
+          "title": "Context Quality Scoring",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-127": {
+          "title": "Smart File Suggestions",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-131": {
+          "title": "Token-Optimized Snippets",
+          "status": "todo",
+          "priority": "Medium"
+        },
+        "CHI-134": {
+          "title": "Multi-File Bundles",
+          "status": "todo",
+          "priority": "Medium"
+        }
       }
     }
   },
@@ -1553,41 +1603,140 @@
       "title": "UX Hardening — Performance, Accessibility & Missing States",
       "status": "in_progress",
       "tasks": {
-        "CHI-132": { "title": "Conversation Virtualization", "status": "done", "completed_at": "2026-02-23" },
-        "CHI-133": { "title": "FilePreview Expansion + Editable Ranges", "status": "todo", "priority": "High" },
-        "CHI-135": { "title": "Missing Error States", "status": "todo", "priority": "High" },
-        "CHI-136": { "title": "Accessibility Pass (WCAG 2.1 AA)", "status": "todo", "priority": "High" },
-        "CHI-137": { "title": "Message Edit & Regenerate", "status": "todo", "priority": "Medium" }
+        "CHI-132": {
+          "title": "Conversation Virtualization",
+          "status": "done",
+          "completed_at": "2026-02-23"
+        },
+        "CHI-133": {
+          "title": "FilePreview Expansion + Editable Ranges",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-135": {
+          "title": "Missing Error States",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-136": {
+          "title": "Accessibility Pass (WCAG 2.1 AA)",
+          "status": "todo",
+          "priority": "High"
+        },
+        "CHI-137": {
+          "title": "Message Edit & Regenerate",
+          "status": "todo",
+          "priority": "Medium"
+        }
       }
     }
   },
   "project_actions_epic": {
     "CHI-138": {
       "title": "Project Actions — AI-Aware Command Runner",
-      "status": "planned",
+      "status": "in_progress",
       "priority": "Urgent",
       "linear_id": "8db84aff-b9e5-42ac-9cdf-3abac8dab2bc",
-      "differentiators": ["Zero-config auto-discovery", "AI-native log pipeline", "Conversation-integrated execution", "Ultralight UX", "Process dashboard"],
+      "differentiators": [
+        "Zero-config auto-discovery",
+        "AI-native log pipeline",
+        "Conversation-integrated execution",
+        "Ultralight UX",
+        "Process dashboard"
+      ],
       "tasks": {
-        "CHI-139": { "title": "Action Discovery Engine (Backend)", "status": "todo", "priority": "Urgent", "linear_id": "dfda7062-bff2-4ad0-9b70-8e076e359e1a" },
-        "CHI-140": { "title": "Action Process Manager (Backend)", "status": "todo", "priority": "Urgent", "linear_id": "33adfec8-06a7-4b8b-a62d-e2dcf97230f0", "dependencies": ["CHI-139"] },
-        "CHI-141": { "title": "Log-to-Agent Pipeline", "status": "todo", "priority": "Urgent", "linear_id": "580ad4a4-1fb4-4a82-a6b7-b2c52a13c309", "dependencies": ["CHI-139", "CHI-140"] },
-        "CHI-142": { "title": "Actions Sidebar Panel", "status": "todo", "priority": "High", "linear_id": "6ddea465-bd1a-48d0-9ab2-cac315fd1a58", "dependencies": ["CHI-139", "CHI-140"] },
-        "CHI-143": { "title": "Action Output View", "status": "todo", "priority": "High", "linear_id": "aa5ae221-ca09-4fb9-822e-2c7f43c3b034", "dependencies": ["CHI-140", "CHI-141"] },
-        "CHI-144": { "title": "StatusBar & Command Palette Integration", "status": "todo", "priority": "Medium", "linear_id": "7d6d4a2d-8bad-45ec-9312-4798493fef15", "dependencies": ["CHI-139", "CHI-140"] },
-        "CHI-145": { "title": "Custom Action Configuration", "status": "todo", "priority": "Medium", "linear_id": "f3cddd94-a924-4c62-950f-480a179ee19f", "dependencies": ["CHI-139", "CHI-142"] }
+        "CHI-139": {
+          "title": "Action Discovery Engine (Backend)",
+          "status": "done",
+          "priority": "Urgent",
+          "linear_id": "dfda7062-bff2-4ad0-9b70-8e076e359e1a",
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T15:53:23Z",
+          "completed_at": "2026-02-23T16:03:56Z"
+        },
+        "CHI-140": {
+          "title": "Action Process Manager (Backend)",
+          "status": "done",
+          "priority": "Urgent",
+          "linear_id": "33adfec8-06a7-4b8b-a62d-e2dcf97230f0",
+          "dependencies": [
+            "CHI-139"
+          ],
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T16:03:56Z",
+          "completed_at": "2026-02-23T16:45:25Z"
+        },
+        "CHI-141": {
+          "title": "Log-to-Agent Pipeline",
+          "status": "done",
+          "priority": "Urgent",
+          "linear_id": "580ad4a4-1fb4-4a82-a6b7-b2c52a13c309",
+          "dependencies": [
+            "CHI-139",
+            "CHI-140"
+          ],
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T18:45:19Z",
+          "completed_at": "2026-02-23T18:45:19Z"
+        },
+        "CHI-142": {
+          "title": "Actions Sidebar Panel",
+          "status": "done",
+          "priority": "High",
+          "linear_id": "6ddea465-bd1a-48d0-9ab2-cac315fd1a58",
+          "dependencies": [
+            "CHI-139",
+            "CHI-140"
+          ],
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T18:27:17Z",
+          "completed_at": "2026-02-23T18:45:19Z"
+        },
+        "CHI-143": {
+          "title": "Action Output View",
+          "status": "done",
+          "priority": "High",
+          "linear_id": "aa5ae221-ca09-4fb9-822e-2c7f43c3b034",
+          "dependencies": [
+            "CHI-140",
+            "CHI-141"
+          ],
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T18:27:17Z",
+          "completed_at": "2026-02-23T18:45:19Z"
+        },
+        "CHI-144": {
+          "title": "StatusBar & Command Palette Integration",
+          "status": "todo",
+          "priority": "Medium",
+          "linear_id": "7d6d4a2d-8bad-45ec-9312-4798493fef15",
+          "dependencies": [
+            "CHI-139",
+            "CHI-140"
+          ]
+        },
+        "CHI-145": {
+          "title": "Custom Action Configuration",
+          "status": "todo",
+          "priority": "Medium",
+          "linear_id": "f3cddd94-a924-4c62-950f-480a179ee19f",
+          "dependencies": [
+            "CHI-139",
+            "CHI-142"
+          ]
+        }
       },
       "critical_path": "CHI-139 → CHI-140 → CHI-141 → CHI-142/CHI-143 → CHI-144/CHI-145"
     }
   },
   "recommended_next": [
-    "CHI-139",
+    "CHI-144",
     "CHI-124",
     "CHI-135",
     "CHI-136",
     "CHI-133"
   ],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-101 (Agent SDK), CHI-108 (SDK slash discovery), CHI-96 (Diagnostic Bundle), CHI-122 (Settings Backend), CHI-123 (File Explorer Quick Wins), CHI-132 (Conversation Virtualization) all DONE. NEW PRIORITY: CHI-138 Project Actions epic (7 tasks, Urgent). Parallel tracks: CHI-124 (Settings UI, unblocked by CHI-122), CHI-135/CHI-136 (error states + a11y). Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81-83), CHI-65 (CHI-87/88).",
+  "critical_path": "All P0/P1 Phase 2 work complete. CHI-101 (Agent SDK), CHI-108 (SDK slash discovery), CHI-96 (Diagnostic Bundle), CHI-122 (Settings Backend), CHI-123 (File Explorer Quick Wins), CHI-132 (Conversation Virtualization) all DONE. CHI-138 Project Actions MVP (CHI-139..CHI-143) is DONE; next in epic: CHI-144/CHI-145. Parallel tracks: CHI-124 (Settings UI, unblocked by CHI-122), CHI-135/CHI-136 (error states + a11y). Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81-83), CHI-65 (CHI-87/88).",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
@@ -1603,8 +1752,8 @@
       "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec, §10.8 Split Pane spec. v2.2: Added §4.15 File Explorer & @-Mention Context Flow, §10.9 File Explorer & @-Mention Context System spec. v2.3: Added §3.5 Settings Screen, §4.16 Settings Flow, §4.17 Context Intelligence Flow, §10.10-10.12 (Settings, Context Intelligence, UX Hardening)"
     },
     "SPEC-004": {
-      "version": "2.5",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC."
+      "version": "2.6",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category)."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1730,10 +1879,52 @@
       ],
       "tests": "Automated verification passed: cargo check, cargo test (186), cargo clippy -D warnings, npx tsc --noEmit, npx eslint src/, npx vite build.",
       "verified": "Manual app checks from the plan were not run in this terminal session; branch is ready for user QA on main."
+    },
+    "2026-02-23_chi139_chi143": {
+      "description": "CHI-139..143 Project Actions MVP (discovery, process manager, sidebar, output panel, /run, Ask AI pipeline)",
+      "changes": [
+        {
+          "task": "CHI-139 Action discovery engine",
+          "files_modified": [
+            "src-tauri/src/actions/mod.rs",
+            "src-tauri/src/actions/scanner.rs",
+            "src-tauri/src/commands/actions.rs",
+            "src-tauri/src/main.rs"
+          ]
+        },
+        {
+          "task": "CHI-140 Action process manager + IPC lifecycle",
+          "files_modified": [
+            "src-tauri/src/actions/bridge.rs",
+            "src-tauri/src/actions/manager.rs",
+            "src-tauri/src/actions/event_loop.rs",
+            "src-tauri/src/commands/actions.rs",
+            "src-tauri/src/main.rs"
+          ]
+        },
+        {
+          "task": "CHI-141/142/143 frontend Actions UI + /run + Ask AI",
+          "files_modified": [
+            "src/stores/actionStore.ts",
+            "src/components/actions/ActionsPanel.tsx",
+            "src/components/actions/ActionRow.tsx",
+            "src/components/actions/ActionOutputPanel.tsx",
+            "src/components/layout/Sidebar.tsx",
+            "src/components/layout/DetailsPanel.tsx",
+            "src/components/conversation/MessageInput.tsx",
+            "src/components/conversation/SlashCommandMenu.tsx",
+            "src/App.tsx",
+            "src/lib/types.ts",
+            "src-tauri/src/slash/mod.rs"
+          ]
+        }
+      ],
+      "tests": "Automated verification passed: cargo check, cargo test (218), cargo clippy -D warnings, npx tsc --noEmit, npx eslint ., npx vite build.",
+      "verified": "Manual app verification pending on main (Actions sidebar, /run slash command, output streaming, Ask AI handoff)."
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. Phase 3 in progress: CHI-101 (Agent SDK) DONE, CHI-108 (SDK slash discovery) DONE, CHI-96 (Diagnostic Bundle) DONE, CHI-122 (Settings Backend) DONE, CHI-123 (File Explorer Quick Wins) DONE, CHI-132 (Conversation Virtualization) DONE. 4 active epics: CHI-120 Settings & i18n (1/5 done), CHI-121 Context Intelligence (1/5 done), CHI-129 UX Hardening (1/5 done), CHI-138 Project Actions (0/7, NEW Urgent). 195 Rust tests pass. DB schema v3 (v4 planned for action tables).",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. Phase 3 in progress: CHI-101 (Agent SDK) DONE, CHI-108 (SDK slash discovery) DONE, CHI-96 (Diagnostic Bundle) DONE, CHI-122 (Settings Backend) DONE, CHI-123 (File Explorer Quick Wins) DONE, CHI-132 (Conversation Virtualization) DONE. 4 active epics: CHI-120 Settings & i18n (1/5 done), CHI-121 Context Intelligence (1/5 done), CHI-129 UX Hardening (1/5 done), CHI-138 Project Actions (5/7 done, MVP shipped). 218 Rust tests pass. DB schema v3 (v4 planned for action tables).",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -1741,7 +1932,7 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 195 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3. Agent SDK bidirectional JSONL protocol live. SDK slash discovery integrated. Settings backend + File explorer quick wins + Conversation virtualization done. 4 active epics with 22 remaining tasks."
+    "notes": "Full toolchain ready. 218 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3. Agent SDK bidirectional JSONL protocol live. SDK slash discovery integrated. Settings backend + File explorer quick wins + Conversation virtualization done. Project Actions MVP (CHI-139..143) shipped. 4 active epics with 17 remaining tasks."
   },
   "metadata": {
     "last_updated": "2026-02-23T00:00:00Z"

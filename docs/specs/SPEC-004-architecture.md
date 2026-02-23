@@ -38,8 +38,15 @@ chief-wiggum/
 │   │   │   ├── context.rs          # Context management commands (future)
 │   │   │   ├── mcp.rs              # MCP server management commands (future)
 │   │   │   ├── settings.rs         # Settings CRUD commands (Phase 3 — CHI-122)
+│   │   │   ├── actions.rs          # Project Actions discovery/lifecycle (Phase 3 — CHI-138)
 │   │   │   ├── git.rs              # Git operations commands (future)
 │   │   │   └── automation.rs       # Automation CRUD commands (future)
+│   │   ├── actions/                # Project Actions backend (Phase 3 — CHI-138)
+│   │   │   ├── mod.rs              # ActionDefinition and shared types
+│   │   │   ├── scanner.rs          # Multi-format action discovery engine
+│   │   │   ├── bridge.rs           # PTY-based action process runner
+│   │   │   ├── manager.rs          # Concurrent action runtime registry
+│   │   │   └── event_loop.rs       # Action event emitter (output/completed/failed)
 │   │   ├── bridge/                 # Claude Code CLI process management
 │   │   │   ├── mod.rs              # BridgeOutput, CliLocation types
 │   │   │   ├── process.rs          # CliBridge, MockBridge, BridgeInterface trait
@@ -133,6 +140,10 @@ chief-wiggum/
 │   │   │   └── EffortSlider.tsx
 │   │   ├── settings/               # Settings screen
 │   │   │   └── SettingsView.tsx
+│   │   ├── actions/                # Project Actions UI (Phase 3 — CHI-138)
+│   │   │   ├── ActionsPanel.tsx    # Sidebar actions list and controls
+│   │   │   ├── ActionRow.tsx       # Action list row
+│   │   │   └── ActionOutputPanel.tsx # DetailsPanel log stream + Ask AI
 │   │   ├── mcp/                    # MCP management
 │   │   │   ├── MCPPanel.tsx
 │   │   │   └── AddServerWizard.tsx
@@ -153,6 +164,7 @@ chief-wiggum/
 │   │   ├── agentStore.ts           # Agent states (future)
 │   │   ├── contextStore.ts         # Context utilization state (future)
 │   │   ├── settingsStore.ts        # App settings (future)
+│   │   ├── actionStore.ts          # Project Actions state (Phase 3 — CHI-138)
 │   │   └── mcpStore.ts             # MCP server states (future)
 │   ├── lib/                        # Shared utilities
 │   │   ├── ipc.ts                  # Typed Tauri IPC wrappers
@@ -186,6 +198,7 @@ chief-wiggum/
 | `commands/cli.rs` | CLI detection: get_cli_info (checks PATH for `claude` binary). | — | Phase 2 |
 | `commands/project.rs` | Folder picker + project CRUD: pick_project_folder, create_project, list_projects. | `db/`, `tauri-plugin-dialog` | Phase 2 |
 | `commands/cost.rs` | Cost tracking IPC: get_session_cost, set_budget. | `cost/`, `db/` | Phase 2 |
+| `commands/actions.rs` | Project Actions IPC: discover/start/stop/restart/list running actions. | `actions/`, `db/`, `tauri` | Phase 3 |
 | `bridge/process.rs` | Spawn Claude Code CLI via PTY. Implements `BridgeInterface` trait. | `portable-pty`, `tokio` | Phase 1 |
 | `bridge/parser.rs` | Parse structured CLI output into `BridgeEvent` variants. | — | Phase 1 |
 | `bridge/adapter.rs` | Versioned parser selection via `AdapterRegistry`. | — | Phase 1 |
@@ -196,6 +209,7 @@ chief-wiggum/
 | `db/` | SQLite CRUD operations, schema migrations, data export/import. | `rusqlite` | Phase 1 |
 | `git/` | Git operations: status, worktree management, commit, branch. | `git2-rs` | Future |
 | `mcp/` | MCP server registration, connection lifecycle, OAuth flows. | `reqwest`, `tokio` | Future |
+| `actions/` | Project action discovery, process lifecycle, concurrent runtime event emission. | `portable-pty`, `tokio`, `tauri` | Phase 3 |
 
 ### 3.2 Frontend Stores
 
@@ -210,6 +224,7 @@ chief-wiggum/
 | `agentStore` | Agent list, states, task assignments | Tauri events from bridge | Future |
 | `contextStore` | Token utilization, zone, compaction state | Tauri events from bridge parser | Future |
 | `settingsStore` | User preferences, model defaults | IPC commands (read/write) | Future |
+| `actionStore` | Discovered actions, running states, output buffers, selected action output | Actions IPC + Tauri `action:*` events | Phase 3 |
 | `mcpStore` | Server list, connection status, tools | IPC commands + events | Future |
 
 ---
@@ -495,6 +510,8 @@ export const listSlashCommands = (project_path?: string) =>
   invoke<SlashCommand[]>('list_slash_commands', { project_path });
 export const refreshSlashCommands = (project_path?: string) =>
   invoke<SlashCommand[]>('refresh_slash_commands', { project_path });
+// `/run <action>` is a built-in slash command (category: Action)
+// intercepted by MessageInput to start a Project Action locally.
 
 // Events (after Agent SDK migration — CHI-108)
 listen<CliInitPayload>('cli:init', (event) => {
@@ -506,7 +523,7 @@ listen<CliInitPayload>('cli:init', (event) => {
 interface SlashCommand {
   name: string;           // e.g., "review", "test"
   description: string;    // Human-readable description
-  category: 'Builtin' | 'Project' | 'User' | 'Sdk';
+  category: 'Builtin' | 'Project' | 'User' | 'Sdk' | 'Action';
   args_hint: string | null;
   source_path: string | null;
   from_sdk: boolean;
@@ -607,6 +624,65 @@ interface RedactionSummary {
   entries_redacted: number;
   total_entries: number;
   fields_redacted: number;
+}
+```
+
+#### 4.4.11 Project Actions IPC (Phase 3 — CHI-138 / CHI-139..CHI-143)
+
+```typescript
+// Commands
+export const discoverActions = (project_id: string) =>
+  invoke<ActionDefinition[]>('discover_actions', { project_id });
+export const startAction = (project_id: string, action_name: string) =>
+  invoke<void>('start_action', { project_id, action_name });
+export const stopAction = (project_id: string, action_id: string) =>
+  invoke<void>('stop_action', { project_id, action_id });
+export const restartAction = (project_id: string, action_id: string) =>
+  invoke<void>('restart_action', { project_id, action_id });
+export const listRunningActions = () =>
+  invoke<RunningActionInfo[]>('list_running_actions');
+
+// Events
+listen<ActionOutputEvent>('action:output', (event) => {
+  // Append stdout/stderr chunks to actionStore output buffer
+});
+listen<ActionCompletedEvent>('action:completed', (event) => {
+  // Mark action completed (exit_code)
+});
+listen<ActionFailedEvent>('action:failed', (event) => {
+  // Mark action failed and surface error state
+});
+
+interface ActionDefinition {
+  id: string;
+  name: string;
+  command: string;
+  source: 'package_json' | 'makefile' | 'cargo_toml' | 'docker_compose' | 'custom';
+  category: 'build' | 'test' | 'dev' | 'lint' | 'deploy' | 'custom';
+  cwd: string | null;
+}
+
+interface RunningActionInfo {
+  action_id: string;
+  project_id: string;
+  name: string;
+  started_at: string;
+}
+
+interface ActionOutputEvent {
+  action_id: string;
+  stream: 'stdout' | 'stderr';
+  chunk: string;
+}
+
+interface ActionCompletedEvent {
+  action_id: string;
+  exit_code: number;
+}
+
+interface ActionFailedEvent {
+  action_id: string;
+  error: string;
 }
 ```
 
