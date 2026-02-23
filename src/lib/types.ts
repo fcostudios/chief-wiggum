@@ -119,6 +119,15 @@ export interface ActiveBridgeInfo {
   has_buffered_events: boolean;
 }
 
+/** Payload from `cli:init` Tauri event (Agent SDK system:init). */
+export interface CliInitEvent {
+  session_id: string;
+  cli_session_id: string;
+  model: string;
+  tools: string[];
+  mcp_servers: string[];
+}
+
 /** Buffered event from backend replay after frontend reconnect. */
 export interface BufferedEvent {
   type:
@@ -184,7 +193,7 @@ export interface Project {
 export interface SlashCommand {
   name: string;
   description: string;
-  category: 'Builtin' | 'Project' | 'User';
+  category: 'Builtin' | 'Project' | 'User' | 'Sdk';
   args_hint: string | null;
   source_path: string | null;
   from_sdk: boolean;

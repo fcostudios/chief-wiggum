@@ -4,7 +4,9 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
-import type { SlashCommand } from '@/lib/types';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { CliInitEvent, SlashCommand } from '@/lib/types';
+import { getActiveProject } from '@/stores/projectStore';
 
 interface SlashState {
   /** All discovered commands (built-in + project + user). */
@@ -25,6 +27,8 @@ const [state, setState] = createStore<SlashState>({
 });
 
 export { state as slashState };
+
+let sdkInitUnlisten: UnlistenFn | null = null;
 
 /** Fuzzy-match a filter string against a command name and description. */
 function fuzzyMatch(command: SlashCommand, filter: string): boolean {
@@ -62,6 +66,34 @@ export async function refreshCommands(projectPath?: string): Promise<void> {
   } catch (err) {
     console.error('[slashStore] Failed to refresh slash commands:', err);
   }
+}
+
+/** Refresh slash commands after SDK `cli:init` data arrives. */
+export async function handleSdkInit(projectPath?: string): Promise<void> {
+  await refreshCommands(projectPath);
+}
+
+/** Listen for CLI init events to refresh slash commands with SDK-discovered tools. */
+export async function startSdkCommandListener(): Promise<void> {
+  if (sdkInitUnlisten) return;
+  try {
+    sdkInitUnlisten = await listen<CliInitEvent>('cli:init', (event) => {
+      if (event.payload.tools.length === 0 && event.payload.mcp_servers.length === 0) {
+        return;
+      }
+      const projectPath = getActiveProject()?.path;
+      void handleSdkInit(projectPath);
+    });
+  } catch (err) {
+    console.warn('[slashStore] Failed to listen for cli:init:', err);
+  }
+}
+
+/** Stop listening for SDK init events (used by tests / teardown paths). */
+export function stopSdkCommandListener(): void {
+  if (!sdkInitUnlisten) return;
+  void sdkInitUnlisten();
+  sdkInitUnlisten = null;
 }
 
 /** Open the slash command menu with an optional initial filter. */
