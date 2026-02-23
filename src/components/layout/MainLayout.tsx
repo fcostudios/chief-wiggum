@@ -205,7 +205,7 @@ const MainLayout: Component = () => {
 
       {/* Command palette (Cmd+K) */}
       <Show when={uiState.commandPaletteVisible}>
-        <CommandPalette />
+        <CommandPalette mode={uiState.commandPaletteMode} />
       </Show>
 
       {/* Session quick-switcher (Cmd+Shift+P) */}

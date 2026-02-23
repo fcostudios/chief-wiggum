@@ -10,6 +10,7 @@ import { createLogger } from '@/lib/logger';
 const log = createLogger('ui/state');
 
 export type ActiveView = 'conversation' | 'agents' | 'diff' | 'terminal';
+export type CommandPaletteMode = 'all' | 'sessions' | 'actions';
 
 /** Sidebar tri-state: expanded (240px) → collapsed (48px icon-rail) → hidden (0px). */
 export type SidebarState = 'expanded' | 'collapsed' | 'hidden';
@@ -30,6 +31,7 @@ interface UIState {
   yoloDialogVisible: boolean;
   developerMode: boolean;
   commandPaletteVisible: boolean;
+  commandPaletteMode: CommandPaletteMode;
   sessionSwitcherVisible: boolean;
 }
 
@@ -65,6 +67,7 @@ const [state, setState] = createStore<UIState>({
   yoloDialogVisible: false,
   developerMode: persisted.developerMode,
   commandPaletteVisible: false,
+  commandPaletteMode: 'all',
   sessionSwitcherVisible: false,
 });
 
@@ -186,18 +189,24 @@ export function getPermissionTier(): PermissionTier {
 }
 
 /** Open the command palette (Cmd+K). */
-export function openCommandPalette() {
+export function openCommandPalette(mode: CommandPaletteMode = 'all') {
+  setState('commandPaletteMode', mode);
   setState('commandPaletteVisible', true);
 }
 
 /** Close the command palette. */
 export function closeCommandPalette() {
   setState('commandPaletteVisible', false);
+  setState('commandPaletteMode', 'all');
 }
 
 /** Toggle the command palette visibility. */
 export function toggleCommandPalette() {
-  setState('commandPaletteVisible', (prev) => !prev);
+  setState((prev) => ({
+    ...prev,
+    commandPaletteVisible: !prev.commandPaletteVisible,
+    commandPaletteMode: prev.commandPaletteVisible ? 'all' : prev.commandPaletteMode,
+  }));
 }
 
 /** Open the session quick-switcher (Cmd+Shift+P). */

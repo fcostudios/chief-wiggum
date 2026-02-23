@@ -46,7 +46,7 @@ interface Command {
 
 interface CommandPaletteProps {
   /** When 'sessions', only show session commands. Default: show all. */
-  mode?: 'all' | 'sessions';
+  mode?: 'all' | 'sessions' | 'actions';
   onClose?: () => void;
 }
 
@@ -293,7 +293,13 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
           <input
             ref={inputRef}
             type="text"
-            placeholder={mode() === 'sessions' ? 'Switch to session...' : 'Type a command...'}
+            placeholder={
+              mode() === 'sessions'
+                ? 'Switch to session...'
+                : mode() === 'actions'
+                  ? 'Run, stop, or restart actions...'
+                  : 'Type a command...'
+            }
             class="flex-1 bg-transparent text-sm outline-none"
             style={{
               color: 'var(--color-text-primary)',
