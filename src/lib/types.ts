@@ -166,6 +166,7 @@ export interface CliLocation {
   path_override: string | null;
   resolved_path: string | null;
   version: string | null;
+  supports_sdk?: boolean;
 }
 
 /** Project row from backend (mirrors Rust ProjectRow) */

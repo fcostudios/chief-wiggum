@@ -31,8 +31,20 @@ fn main() {
 
     // Detect Claude Code CLI — non-fatal if missing
     let cli_location = match chief_wiggum_lib::bridge::CliLocation::detect(None) {
-        Ok(loc) => {
+        Ok(mut loc) => {
             tracing::info!("Claude Code CLI found at: {:?}", loc.resolved_path);
+            let _ = loc.detect_version();
+            if loc.supports_sdk() {
+                tracing::info!(
+                    "CLI supports Agent SDK protocol (version: {:?})",
+                    loc.version
+                );
+            } else {
+                tracing::info!(
+                    "CLI does not support Agent SDK protocol — using legacy -p mode (version: {:?})",
+                    loc.version
+                );
+            }
             loc
         }
         Err(e) => {

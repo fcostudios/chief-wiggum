@@ -29,6 +29,13 @@ pub async fn start_session_cli(
     model: String,
     cli_session_id: Option<String>,
 ) -> Result<(), AppError> {
+    if !cli.supports_sdk() {
+        return Err(AppError::Bridge(
+            "Claude Code CLI version does not support Agent SDK protocol. Upgrade to version 2.1+ or use legacy mode."
+                .to_string(),
+        ));
+    }
+
     if bridge_map.has(&session_id).await {
         bridge_map.remove(&session_id).await?;
     }

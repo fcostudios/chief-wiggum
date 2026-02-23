@@ -107,6 +107,49 @@ impl CliLocation {
             .as_deref()
             .ok_or_else(|| AppError::Bridge("CLI binary path not resolved".to_string()))
     }
+
+    /// Detect CLI version by running `claude --version`.
+    pub fn detect_version(&mut self) -> Option<String> {
+        let path = self.resolved_path.as_ref()?;
+        match std::process::Command::new(path).arg("--version").output() {
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+                let raw = if !stdout.is_empty() { stdout } else { stderr };
+                if raw.is_empty() {
+                    tracing::warn!("CLI version detection returned empty output");
+                    return None;
+                }
+                let version = raw
+                    .split_whitespace()
+                    .last()
+                    .unwrap_or(&raw)
+                    .trim_start_matches('v')
+                    .to_string();
+                tracing::info!("Claude Code CLI version: {}", version);
+                self.version = Some(version.clone());
+                Some(version)
+            }
+            Err(e) => {
+                tracing::warn!("Failed to detect CLI version: {}", e);
+                None
+            }
+        }
+    }
+
+    /// Check if the detected CLI version supports the Agent SDK protocol.
+    /// SDK mode requires CLI version >= 2.1.
+    pub fn supports_sdk(&self) -> bool {
+        self.version
+            .as_deref()
+            .and_then(|v| {
+                let mut parts = v.trim_start_matches('v').split('.');
+                let major: u32 = parts.next()?.parse().ok()?;
+                let minor: u32 = parts.next()?.parse().ok()?;
+                Some(major > 2 || (major == 2 && minor >= 1))
+            })
+            .unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -125,5 +168,35 @@ mod tests {
         let output = BridgeOutput::ProcessExited { exit_code: Some(0) };
         let json = serde_json::to_string(&output).expect("should serialize");
         assert!(json.contains("ProcessExited"));
+    }
+
+    #[test]
+    fn supports_sdk_with_valid_version() {
+        let loc = CliLocation {
+            path_override: None,
+            resolved_path: Some("/usr/bin/claude".to_string()),
+            version: Some("2.1.8".to_string()),
+        };
+        assert!(loc.supports_sdk());
+    }
+
+    #[test]
+    fn supports_sdk_rejects_old_version() {
+        let loc = CliLocation {
+            path_override: None,
+            resolved_path: Some("/usr/bin/claude".to_string()),
+            version: Some("1.0.34".to_string()),
+        };
+        assert!(!loc.supports_sdk());
+    }
+
+    #[test]
+    fn supports_sdk_with_no_version() {
+        let loc = CliLocation {
+            path_override: None,
+            resolved_path: Some("/usr/bin/claude".to_string()),
+            version: None,
+        };
+        assert!(!loc.supports_sdk());
     }
 }
