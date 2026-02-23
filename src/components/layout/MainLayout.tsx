@@ -36,6 +36,7 @@ import {
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 import CommandPalette from '@/components/common/CommandPalette';
+import ExportDialog from '@/components/diagnostics/ExportDialog';
 import ToastContainer from '@/components/common/ToastContainer';
 import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
 
@@ -211,6 +212,9 @@ const MainLayout: Component = () => {
       <Show when={uiState.sessionSwitcherVisible}>
         <CommandPalette mode="sessions" onClose={closeSessionSwitcher} />
       </Show>
+
+      {/* Export diagnostics dialog (CHI-98) */}
+      <ExportDialog />
 
       {/* Toast notifications — fixed bottom-right overlay */}
       <ToastContainer />
