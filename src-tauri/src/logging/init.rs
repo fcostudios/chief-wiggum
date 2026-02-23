@@ -36,7 +36,7 @@ pub fn init_logging() -> RingBufferHandle {
     let console_layer = console_layer.compact();
 
     // Layer 2: Rolling file (JSON format)
-    let log_dir = log_directory();
+    let log_dir = log_directory_path();
     let file_appender = rolling::daily(&log_dir, "chiefwiggum.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
 
@@ -82,7 +82,7 @@ pub fn get_ring_buffer() -> Option<RingBufferHandle> {
 /// - Windows: `%APPDATA%/fcostudios/Chief Wiggum/logs/`
 /// - Linux: `~/.local/share/chief-wiggum/logs/`
 /// - Fallback: `~/.chiefwiggum/logs/`
-fn log_directory() -> PathBuf {
+pub(crate) fn log_directory_path() -> PathBuf {
     #[cfg(target_os = "macos")]
     {
         if let Some(home) = dirs::home_dir() {
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn log_directory_returns_valid_path() {
-        let dir = log_directory();
+        let dir = log_directory_path();
         assert!(!dir.as_os_str().is_empty());
         let dir_str = dir.to_string_lossy();
         assert!(
