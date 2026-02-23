@@ -17,6 +17,8 @@ import {
 } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
 import { cycleModel } from '@/stores/sessionStore';
+import { copyDebugInfo } from '@/stores/diagnosticsStore';
+import { addToast } from '@/stores/toastStore';
 
 const viewMap: Record<string, ActiveView> = {
   Digit1: 'conversation',
@@ -74,8 +76,17 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
     return;
   }
 
-  // Cmd+Shift+D — toggle Developer mode (blocked while agent is responding)
+  // Cmd+Shift+D — copy debug info to clipboard (quick diagnostics)
   if (e.code === 'KeyD' && e.shiftKey) {
+    e.preventDefault();
+    void copyDebugInfo().then((info) => {
+      addToast(`Copied: ${info}`, 'success');
+    });
+    return;
+  }
+
+  // Cmd+Shift+F12 — toggle Developer mode (blocked while agent is responding)
+  if (e.code === 'F12' && e.shiftKey) {
     e.preventDefault();
     if (conversationState.processStatus !== 'running' && !conversationState.isStreaming) {
       if (uiState.developerMode) {
