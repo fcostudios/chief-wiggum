@@ -98,6 +98,10 @@ fn parse_package_json(content: &str, working_dir: &str) -> AppResult<Vec<ActionD
                 category: classify_action(name),
                 description: None,
                 is_long_running: is_long_running(name),
+                before_commands: None,
+                after_commands: None,
+                env_vars: None,
+                args: None,
             });
 
             // Keep explicit use of raw command for future metadata extraction (lint avoids underscore use)
@@ -141,6 +145,10 @@ fn parse_makefile(content: &str, working_dir: &str) -> AppResult<Vec<ActionDefin
                     category: classify_action(target),
                     description: last_comment.take(),
                     is_long_running: is_long_running(target),
+                    before_commands: None,
+                    after_commands: None,
+                    env_vars: None,
+                    args: None,
                 });
                 continue;
             }
@@ -177,6 +185,10 @@ fn parse_cargo_toml(content: &str, working_dir: &str) -> AppResult<Vec<ActionDef
             category: classify_action(name),
             description: None,
             is_long_running: is_long_running(name),
+            before_commands: None,
+            after_commands: None,
+            env_vars: None,
+            args: None,
         });
     }
 
@@ -203,6 +215,10 @@ fn parse_cargo_toml(content: &str, working_dir: &str) -> AppResult<Vec<ActionDef
                     category: classify_action(name),
                     description: Some("Cargo alias".to_string()),
                     is_long_running: is_long_running(name),
+                    before_commands: None,
+                    after_commands: None,
+                    env_vars: None,
+                    args: None,
                 });
             }
         }
@@ -245,6 +261,10 @@ fn parse_docker_compose(content: &str, working_dir: &str) -> AppResult<Vec<Actio
                             category: ActionCategory::Dev,
                             description: Some(format!("Start {} service", service_name)),
                             is_long_running: true,
+                            before_commands: None,
+                            after_commands: None,
+                            env_vars: None,
+                            args: None,
                         });
                     }
                 }
@@ -261,6 +281,10 @@ fn parse_docker_compose(content: &str, working_dir: &str) -> AppResult<Vec<Actio
         category: ActionCategory::Dev,
         description: Some("Start all services".to_string()),
         is_long_running: true,
+        before_commands: None,
+        after_commands: None,
+        env_vars: None,
+        args: None,
     });
     actions.push(ActionDefinition {
         id: "docker_compose:down".to_string(),
@@ -271,6 +295,10 @@ fn parse_docker_compose(content: &str, working_dir: &str) -> AppResult<Vec<Actio
         category: ActionCategory::Custom,
         description: Some("Stop all services".to_string()),
         is_long_running: false,
+        before_commands: None,
+        after_commands: None,
+        env_vars: None,
+        args: None,
     });
 
     Ok(actions)
@@ -293,6 +321,10 @@ fn parse_claude_actions(content: &str, working_dir: &str) -> AppResult<Vec<Actio
             category,
             description: custom.description,
             is_long_running: custom.long_running,
+            before_commands: custom.before_commands,
+            after_commands: custom.after_commands,
+            env_vars: custom.env_vars,
+            args: custom.args,
         });
     }
 
@@ -399,6 +431,10 @@ mod tests {
             category: Some("custom".to_string()),
             long_running: false,
             working_dir: None,
+            before_commands: None,
+            after_commands: None,
+            env_vars: None,
+            args: None,
         }
     }
 
@@ -471,13 +507,31 @@ mod tests {
     fn claude_actions_json() {
         let dir = temp_project(&[(
             ".claude/actions.json",
-            r#"{"actions":[{"name":"migrate","command":"npx prisma migrate dev","description":"Run DB migrations","category":"dev","long_running":false}]}"#,
+            r#"{"actions":[{"name":"migrate","command":"npx prisma migrate dev","description":"Run DB migrations","category":"dev","long_running":false,"before_commands":["echo before"],"after_commands":["echo after"],"env_vars":{"NODE_ENV":"development"},"args":[{"name":"target","type":"enum","options":["dev","prod"],"default":"dev"},{"name":"tag","type":"string","required":true}]}]}"#,
         )]);
         let actions = discover_actions(dir.path()).expect("discover actions");
         assert_eq!(actions.len(), 1);
         assert_eq!(actions[0].name, "migrate");
         assert_eq!(actions[0].command, "npx prisma migrate dev");
         assert_eq!(actions[0].source, ActionSource::ClaudeActions);
+        assert_eq!(
+            actions[0].before_commands.as_ref().expect("before"),
+            &vec!["echo before".to_string()]
+        );
+        assert_eq!(
+            actions[0].after_commands.as_ref().expect("after"),
+            &vec!["echo after".to_string()]
+        );
+        assert_eq!(
+            actions[0]
+                .env_vars
+                .as_ref()
+                .expect("env")
+                .get("NODE_ENV")
+                .map(String::as_str),
+            Some("development")
+        );
+        assert_eq!(actions[0].args.as_ref().expect("args").len(), 2);
     }
 
     #[test]
@@ -568,5 +622,71 @@ mod tests {
         let actions = read_custom_actions_file(dir.path()).expect("read");
         assert_eq!(actions.len(), 1);
         assert_eq!(actions[0].name, "reset-db");
+    }
+
+    #[test]
+    fn save_custom_action_preserves_advanced_fields_roundtrip() {
+        let dir = temp_project(&[]);
+        let mut action = test_custom_action("deploy-web", "npm run deploy:web");
+        action.before_commands = Some(vec!["npm run build".to_string()]);
+        action.after_commands = Some(vec!["echo done".to_string()]);
+        action.env_vars = Some(
+            [("RAILS_ENV".to_string(), "production".to_string())]
+                .into_iter()
+                .collect(),
+        );
+
+        save_custom_action_file(dir.path(), action).expect("save");
+        let actions = read_custom_actions_file(dir.path()).expect("read");
+        assert_eq!(actions.len(), 1);
+        let restored = &actions[0];
+        assert_eq!(
+            restored.before_commands.as_ref().expect("before"),
+            &vec!["npm run build".to_string()]
+        );
+        assert_eq!(
+            restored.after_commands.as_ref().expect("after"),
+            &vec!["echo done".to_string()]
+        );
+        assert_eq!(
+            restored
+                .env_vars
+                .as_ref()
+                .expect("env")
+                .get("RAILS_ENV")
+                .map(String::as_str),
+            Some("production")
+        );
+    }
+
+    #[test]
+    fn save_custom_action_preserves_args_metadata_roundtrip() {
+        let dir = temp_project(&[]);
+        let mut action = test_custom_action("deploy-web", "deploy {{env}} {{tag}}");
+        action.args = Some(vec![
+            super::super::ActionArgTemplate {
+                name: "env".to_string(),
+                kind: super::super::ActionArgKind::Enum,
+                description: Some("Environment".to_string()),
+                required: true,
+                options: Some(vec!["staging".to_string(), "prod".to_string()]),
+                default: Some("staging".to_string()),
+            },
+            super::super::ActionArgTemplate {
+                name: "tag".to_string(),
+                kind: super::super::ActionArgKind::String,
+                description: None,
+                required: false,
+                options: None,
+                default: None,
+            },
+        ]);
+
+        save_custom_action_file(dir.path(), action).expect("save");
+        let actions = read_custom_actions_file(dir.path()).expect("read");
+        let restored_args = actions[0].args.as_ref().expect("args");
+        assert_eq!(restored_args.len(), 2);
+        assert_eq!(restored_args[0].name, "env");
+        assert_eq!(restored_args[1].name, "tag");
     }
 }

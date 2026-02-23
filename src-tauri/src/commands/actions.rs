@@ -142,6 +142,10 @@ pub async fn save_custom_action(project_path: String, action: ActionDefinition) 
         category: Some(category_to_string(&action.category)),
         long_running: action.is_long_running,
         working_dir: Some(action.working_dir),
+        before_commands: action.before_commands,
+        after_commands: action.after_commands,
+        env_vars: action.env_vars,
+        args: action.args,
     };
 
     tokio::task::spawn_blocking(move || scanner::save_custom_action_file(&path, custom))
@@ -191,6 +195,10 @@ fn custom_config_to_definition(cfg: CustomActionConfig, project_path: &str) -> A
         category,
         description: cfg.description,
         is_long_running: cfg.long_running,
+        before_commands: cfg.before_commands,
+        after_commands: cfg.after_commands,
+        env_vars: cfg.env_vars,
+        args: cfg.args,
     }
 }
 

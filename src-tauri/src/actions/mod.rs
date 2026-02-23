@@ -8,6 +8,8 @@ pub mod bridge;
 pub mod event_loop;
 pub mod manager;
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 /// Where an action was discovered from.
@@ -65,6 +67,42 @@ pub struct ActionDefinition {
     pub description: Option<String>,
     /// Whether this is expected to run indefinitely (dev servers, watchers)
     pub is_long_running: bool,
+    /// Optional commands to run before the main action (CHI-145 advanced).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub before_commands: Option<Vec<String>>,
+    /// Optional commands to run after the main action (CHI-145 advanced).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after_commands: Option<Vec<String>>,
+    /// Optional env vars for the action process (CHI-145 advanced).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env_vars: Option<BTreeMap<String, String>>,
+    /// Optional argument templates for inline prompting (CHI-145 Phase 2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<ActionArgTemplate>>,
+}
+
+/// Argument template type for custom actions (CHI-145 Phase 2).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActionArgKind {
+    String,
+    Enum,
+}
+
+/// Argument template metadata persisted in `.claude/actions.json`.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ActionArgTemplate {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub kind: ActionArgKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<String>,
 }
 
 /// Custom action persisted in `.claude/actions.json` (CHI-145).
@@ -77,6 +115,14 @@ pub struct CustomActionConfig {
     #[serde(default)]
     pub long_running: bool,
     pub working_dir: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub before_commands: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub after_commands: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env_vars: Option<BTreeMap<String, String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub args: Option<Vec<ActionArgTemplate>>,
 }
 
 /// Classify an action name into a category by pattern matching.
