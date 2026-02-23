@@ -355,6 +355,15 @@ export interface ActionOutputLine {
   timestamp: number;
 }
 
+/** Recent action lifecycle event (frontend-only CHI-144 helper shape). */
+export interface ActionRecentEvent {
+  action_id: string;
+  name: string;
+  status: 'completed' | 'failed';
+  exit_code: number | null;
+  timestamp: number;
+}
+
 export interface RunningActionInfo {
   action_id: string;
   status: ActionStatus;
