@@ -243,3 +243,56 @@ export interface ContextAttachment {
   content?: string;
   actual_tokens?: number;
 }
+
+// ── Settings (CHI-122) ──────────────────────────────────
+
+/** User settings persisted to JSON (mirrors Rust UserSettings). */
+export interface UserSettings {
+  version: number;
+  appearance: AppearanceSettings;
+  i18n: I18nSettings;
+  cli: CliSettings;
+  sessions: SessionSettings;
+  keybindings: Record<string, string>;
+  privacy: PrivacySettings;
+  advanced: AdvancedSettings;
+}
+
+export interface AppearanceSettings {
+  theme: 'light' | 'dark' | 'system';
+  font_size: number;
+  code_font_size: number;
+  sidebar_default: 'expanded' | 'collapsed' | 'hidden';
+}
+
+export interface I18nSettings {
+  locale: string;
+  date_format: 'relative' | 'iso' | 'locale';
+  number_format: 'standard' | 'compact';
+}
+
+export interface CliSettings {
+  default_model: string;
+  default_effort: 'low' | 'medium' | 'high';
+}
+
+export interface SessionSettings {
+  max_concurrent: number;
+  auto_save_interval_secs: number;
+}
+
+export interface PrivacySettings {
+  log_redaction_level: 'none' | 'standard' | 'aggressive';
+}
+
+export interface AdvancedSettings {
+  cli_path_override: string;
+  debug_mode: boolean;
+  developer_mode: boolean;
+}
+
+/** Payload from `settings:updated` backend event. */
+export interface SettingsChangedPayload {
+  category: string;
+  key: string | null;
+}
