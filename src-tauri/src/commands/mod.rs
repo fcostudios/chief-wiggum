@@ -5,6 +5,7 @@
 pub mod bridge;
 pub mod cli;
 pub mod diagnostic;
+pub mod actions;
 pub mod files;
 pub mod project;
 pub mod session;
