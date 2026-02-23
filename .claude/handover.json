@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T02:57:32Z",
+  "last_updated": "2026-02-23T04:12:53Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1604,10 +1604,51 @@
       ],
       "tests": "75 Rust tests pass (1 new parser test for MCP server extraction). Frontend compiles clean.",
       "verified": "User confirmed: WebSearch works on first message. MCP tools (Context7, Linear, etc.) work on follow-up messages."
+    },
+    "2026-02-23_chi122_chi123_chi132": {
+      "description": "CHI-122 settings persistence backend/types, CHI-123 file explorer usability wins, CHI-132 conversation virtualization",
+      "changes": [
+        {
+          "task": "CHI-122 Settings persistence foundation",
+          "files_modified": [
+            "src-tauri/src/settings/mod.rs",
+            "src-tauri/src/settings/validation.rs",
+            "src-tauri/src/commands/settings.rs",
+            "src-tauri/src/main.rs",
+            "src-tauri/src/commands/mod.rs",
+            "src-tauri/Cargo.toml",
+            "src-tauri/Cargo.lock",
+            "src-tauri/capabilities/default.json",
+            "src/lib/types.ts"
+          ]
+        },
+        {
+          "task": "CHI-123 File explorer quick wins",
+          "files_modified": [
+            "src-tauri/src/commands/files.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/fileStore.ts",
+            "src/lib/types.ts",
+            "src/components/explorer/FileTreeNode.tsx",
+            "src/components/conversation/MessageInput.tsx",
+            "src/components/explorer/FilePreview.tsx"
+          ]
+        },
+        {
+          "task": "CHI-132 Conversation virtualization",
+          "files_modified": [
+            "package.json",
+            "package-lock.json",
+            "src/components/conversation/ConversationView.tsx"
+          ]
+        }
+      ],
+      "tests": "Automated verification passed: cargo check, cargo test (186), cargo clippy -D warnings, npx tsc --noEmit, npx eslint src/, npx vite build.",
+      "verified": "Manual app checks from the plan were not run in this terminal session; branch is ready for user QA on main."
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: All 5 core epics DONE. HMR (CHI-103), parallel sessions v1 (CHI-104) DONE. UX polish nearly complete. CHI-94 (tracing), CHI-106 (slash discovery), CHI-107 (SlashCommandMenu), CHI-95 (log redaction), CHI-111 (session limits) all DONE. CHI-114 (File Explorer & @-Mention) DONE and merged to main — all 5 tasks (CHI-115/116/117/118/119). CHI-69 (vibrancy), CHI-86 (session actions), and CHI-92 (inline diff preview + Diff tab bridge) implemented and verified on branch. 144 Rust tests pass. DB schema v3.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. CHI-101 (Agent SDK migration) DONE and merged to main. CHI-122 (Settings backend/types), CHI-123 (File explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), and CHI-132 (Conversation virtualization) implemented and verified on branch. 186 Rust tests pass. Frontend typecheck/lint/build pass. DB schema v3.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
