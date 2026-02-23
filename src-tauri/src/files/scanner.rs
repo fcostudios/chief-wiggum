@@ -172,7 +172,7 @@ pub fn list_files(
         }
 
         let rel_path = match entry.path().strip_prefix(project_root) {
-            Ok(r) => r.to_string_lossy().to_string(),
+            Ok(r) => r.to_string_lossy().replace('\\', "/"),
             Err(_) => continue,
         };
 

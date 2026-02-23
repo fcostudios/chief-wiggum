@@ -4,7 +4,15 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, onMount, onCleanup, createSignal } from 'solid-js';
-import { Plus, Trash2, MessageSquare, FolderOpen, Pin, FileCode, MoreHorizontal } from 'lucide-solid';
+import {
+  Plus,
+  Trash2,
+  MessageSquare,
+  FolderOpen,
+  Pin,
+  FileCode,
+  MoreHorizontal,
+} from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
   sessionState,

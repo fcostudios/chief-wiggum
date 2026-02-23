@@ -164,7 +164,11 @@ impl UserMessage {
 pub fn next_request_id() -> String {
     format!(
         "cw_{}",
-        uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("0")
+        uuid::Uuid::new_v4()
+            .to_string()
+            .split('-')
+            .next()
+            .unwrap_or("0")
     )
 }
 
@@ -255,7 +259,8 @@ mod tests {
 
     #[test]
     fn peek_message_type_parses_control_request() {
-        let line = r#"{"type":"control_request","request_id":"r1","request":{"subtype":"can_use_tool"}}"#;
+        let line =
+            r#"{"type":"control_request","request_id":"r1","request":{"subtype":"can_use_tool"}}"#;
         assert_eq!(peek_message_type(line), Some("control_request".to_string()));
     }
 

@@ -371,13 +371,18 @@ impl AgentSdkBridge {
                     perm_request.command
                 );
 
-                let _ = output_tx.send(BridgeOutput::PermissionRequired(perm_request)).await;
+                let _ = output_tx
+                    .send(BridgeOutput::PermissionRequired(perm_request))
+                    .await;
             }
             Some(ref subtype) if subtype == "hook_callback" => {
                 tracing::info!("AgentSdkBridge: hook_callback (request_id: {})", request_id);
             }
             Some(ref subtype) => {
-                tracing::warn!("AgentSdkBridge: unknown inbound control subtype: {}", subtype);
+                tracing::warn!(
+                    "AgentSdkBridge: unknown inbound control subtype: {}",
+                    subtype
+                );
             }
             None => {
                 tracing::warn!("AgentSdkBridge: control_request missing subtype");
@@ -448,9 +453,8 @@ impl BridgeInterface for AgentSdkBridge {
     }
 
     async fn send_control_request(&self, request: ControlRequest) -> AppResult<()> {
-        let value = serde_json::to_value(&request).map_err(|e| {
-            AppError::Bridge(format!("Failed to serialize control request: {}", e))
-        })?;
+        let value = serde_json::to_value(&request)
+            .map_err(|e| AppError::Bridge(format!("Failed to serialize control request: {}", e)))?;
         self.write_jsonl_value(&value).await
     }
 

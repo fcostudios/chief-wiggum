@@ -160,7 +160,11 @@ impl SessionBridgeMap {
     }
 
     /// Spawn a new AgentSdkBridge for a session (SDK mode).
-    pub async fn spawn_sdk_for_session(&self, session_id: &str, config: BridgeConfig) -> AppResult<()> {
+    pub async fn spawn_sdk_for_session(
+        &self,
+        session_id: &str,
+        config: BridgeConfig,
+    ) -> AppResult<()> {
         let mut bridges = self.bridges.write().await;
         if bridges.contains_key(session_id) {
             return Err(AppError::Bridge(format!(

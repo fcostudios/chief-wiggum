@@ -55,4 +55,3 @@ const DiffPreviewPane: Component = () => {
 };
 
 export default DiffPreviewPane;
-

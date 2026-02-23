@@ -74,9 +74,7 @@ const MainLayout: Component = () => {
             background: 'var(--color-chrome-bg)',
             'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.05)',
             'border-right':
-              uiState.sidebarState !== 'hidden'
-                ? '1px solid var(--color-chrome-border)'
-                : 'none',
+              uiState.sidebarState !== 'hidden' ? '1px solid var(--color-chrome-border)' : 'none',
           }}
         >
           {/* Inner wrapper maintains full width during transition */}

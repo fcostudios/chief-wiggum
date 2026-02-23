@@ -18,4 +18,3 @@ export function clearActiveInlineDiff(): void {
 }
 
 export { state as diffReviewState };
-

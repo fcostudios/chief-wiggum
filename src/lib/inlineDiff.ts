@@ -83,7 +83,8 @@ export function extractInlineDiffPreview(
   const { addedLines, removedLines } = countChangedLines(diffText);
   if (addedLines === 0 && removedLines === 0 && !/^@@ /m.test(diffText)) return null;
 
-  const filePath = extractPathFromDiffText(diffText) ?? extractPathFromToolInput(toolInput) ?? 'Modified file';
+  const filePath =
+    extractPathFromDiffText(diffText) ?? extractPathFromToolInput(toolInput) ?? 'Modified file';
 
   return {
     filePath,
@@ -92,4 +93,3 @@ export function extractInlineDiffPreview(
     removedLines,
   };
 }
-

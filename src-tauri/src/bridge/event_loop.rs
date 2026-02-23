@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::RwLock;
 
-use super::permission::{PermissionAction, PermissionManager};
 use super::manager::{BufferedEvent, SessionRuntime};
+use super::permission::{PermissionAction, PermissionManager};
 use super::process::BridgeInterface;
 use super::{BridgeEvent, BridgeOutput};
 
@@ -436,7 +436,10 @@ async fn emit_bridge_output(
                     }
                 };
 
-                let allow = matches!(action, PermissionAction::Approve | PermissionAction::AlwaysAllow);
+                let allow = matches!(
+                    action,
+                    PermissionAction::Approve | PermissionAction::AlwaysAllow
+                );
                 let deny_reason = if allow {
                     None
                 } else {

@@ -70,10 +70,7 @@ const InlineDiff: Component<InlineDiffProps> = (props) => {
       try {
         html = hljs.highlight(safeLine, { language: 'diff', ignoreIllegals: true }).value;
       } catch {
-        html = safeLine
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;');
+        html = safeLine.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
       }
       return { html, kind };
     }),
@@ -160,7 +157,10 @@ const InlineDiff: Component<InlineDiffProps> = (props) => {
                 <code class="block p-0">
                   <For each={renderedLines()}>
                     {(line) => (
-                      <div class="px-3 py-[1px] whitespace-pre-wrap break-all" style={lineStyles(line.kind)}>
+                      <div
+                        class="px-3 py-[1px] whitespace-pre-wrap break-all"
+                        style={lineStyles(line.kind)}
+                      >
                         {/* eslint-disable-next-line solid/no-innerhtml -- highlight.js output is escaped */}
                         <span class="hljs bg-transparent p-0" innerHTML={line.html || '&nbsp;'} />
                       </div>
@@ -177,4 +177,3 @@ const InlineDiff: Component<InlineDiffProps> = (props) => {
 };
 
 export default InlineDiff;
-

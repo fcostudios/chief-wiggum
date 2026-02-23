@@ -7,8 +7,8 @@ use crate::bridge::event_loop;
 use crate::bridge::manager::SessionBridgeMap;
 use crate::bridge::permission::{PermissionAction, PermissionManager, PermissionResponse};
 use crate::bridge::process::{BridgeConfig, ProcessStatus};
-use crate::bridge::{control, ControlRequest};
 use crate::bridge::CliLocation;
+use crate::bridge::{control, ControlRequest};
 use crate::AppError;
 use tauri::State;
 
@@ -65,7 +65,9 @@ pub async fn start_session_cli(
         ..BridgeConfig::default()
     };
 
-    bridge_map.spawn_sdk_for_session(&session_id, config).await?;
+    bridge_map
+        .spawn_sdk_for_session(&session_id, config)
+        .await?;
 
     if let Some(bridge) = bridge_map.get(&session_id).await {
         event_loop::spawn_event_loop(
@@ -280,7 +282,11 @@ pub async fn set_session_model(
     let req = ControlRequest::set_model(control::next_request_id(), model.clone());
     bridge.send_control_request(req).await?;
 
-    tracing::info!("set_session_model [{}]: sent set_model({})", session_id, model);
+    tracing::info!(
+        "set_session_model [{}]: sent set_model({})",
+        session_id,
+        model
+    );
     Ok(())
 }
 
@@ -298,7 +304,10 @@ pub async fn interrupt_session(
     let req = ControlRequest::interrupt(control::next_request_id());
     bridge.send_control_request(req).await?;
 
-    tracing::info!("interrupt_session [{}]: sent interrupt control request", session_id);
+    tracing::info!(
+        "interrupt_session [{}]: sent interrupt control request",
+        session_id
+    );
     Ok(())
 }
 
