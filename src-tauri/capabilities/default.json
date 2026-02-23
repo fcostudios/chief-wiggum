@@ -14,6 +14,7 @@
     "shell:default",
     "dialog:default",
     "dialog:allow-open",
-    "os:default"
+    "os:default",
+    "store:default"
   ]
 }

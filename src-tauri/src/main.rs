@@ -70,6 +70,7 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_store::Builder::default().build())
         .manage(db)
         .manage(cli_location)
         .manage(bridge_map)
@@ -89,6 +90,9 @@ fn main() {
             chief_wiggum_lib::commands::session::toggle_session_pinned,
             chief_wiggum_lib::commands::session::duplicate_session,
             chief_wiggum_lib::commands::session::session_has_messages,
+            chief_wiggum_lib::commands::settings::get_settings,
+            chief_wiggum_lib::commands::settings::update_settings,
+            chief_wiggum_lib::commands::settings::reset_settings,
             chief_wiggum_lib::commands::cli::get_cli_info,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,

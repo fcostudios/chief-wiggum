@@ -7,4 +7,5 @@ pub mod cli;
 pub mod files;
 pub mod project;
 pub mod session;
+pub mod settings;
 pub mod slash;
