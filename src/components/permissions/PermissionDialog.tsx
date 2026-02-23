@@ -126,14 +126,14 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
   return (
     // Overlay — does NOT close on click (security-critical modal)
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-label="Permission required"
     >
       <div
         ref={dialogRef}
-        class={`w-full max-w-[560px] bg-bg-elevated rounded-lg shadow-md border-l-4 ${riskBorderColor(props.request.risk_level)}`}
+        class={`w-full max-w-[560px] max-h-[90vh] bg-bg-elevated rounded-lg shadow-md border-l-4 flex flex-col ${riskBorderColor(props.request.risk_level)}`}
       >
         {/* Header */}
         <div class="flex items-center gap-2 px-6 pt-5 pb-3">
@@ -142,7 +142,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
         </div>
 
         {/* Content */}
-        <div class="px-6 pb-4">
+        <div class="px-6 pb-4 overflow-y-auto min-h-0">
           {/* Tool type + risk badges */}
           <div class="flex items-center gap-2 mb-3">
             <span class={`px-2 py-0.5 rounded text-xs font-medium ${tool().bg} ${tool().text}`}>
@@ -154,8 +154,8 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
           </div>
 
           {/* Command display */}
-          <div class="rounded-md bg-bg-inset border border-border-secondary p-3 mb-3">
-            <code class="text-sm font-mono text-text-primary break-all">
+          <div class="rounded-md bg-bg-inset border border-border-secondary p-3 mb-3 max-h-40 overflow-auto">
+            <code class="text-sm font-mono text-text-primary break-all whitespace-pre-wrap">
               {props.request.command}
             </code>
           </div>
@@ -164,7 +164,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
           <Show when={props.request.file_path}>
             <div class="text-xs text-text-secondary mb-3">
               <span class="text-text-tertiary">Path: </span>
-              <span class="font-mono">{props.request.file_path}</span>
+              <span class="font-mono break-all">{props.request.file_path}</span>
             </div>
           </Show>
 

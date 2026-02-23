@@ -32,6 +32,7 @@ function processStatusDisplay(status: ProcessStatus): { label: string; color: st
 const StatusBar: Component = () => {
   const activeSession = () =>
     sessionState.sessions.find((s) => s.id === sessionState.activeSessionId);
+  const activeSessionId = () => sessionState.activeSessionId;
 
   const inputK = () => {
     const t = activeSession()?.total_input_tokens;
@@ -45,9 +46,13 @@ const StatusBar: Component = () => {
     const c = activeSession()?.total_cost_cents;
     return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
   };
-  const runningCount = () => {
+  const backgroundRunningCount = () => {
+    const activeId = activeSessionId();
     const statuses = conversationState.sessionStatuses;
-    return Object.values(statuses).filter((s) => s === 'running' || s === 'starting').length;
+    return Object.entries(statuses).filter(
+      ([sessionId, status]) =>
+        sessionId !== activeId && (status === 'running' || status === 'starting'),
+    ).length;
   };
 
   async function handleExportDiagnostics(): Promise<void> {
@@ -134,7 +139,7 @@ const StatusBar: Component = () => {
             </div>
           </Show>
         </Show>
-        <Show when={runningCount() > 1}>
+        <Show when={backgroundRunningCount() > 0}>
           <span
             class="font-mono px-1 py-0.5 rounded"
             style={{
@@ -143,7 +148,7 @@ const StatusBar: Component = () => {
               background: 'var(--color-bg-elevated)',
             }}
           >
-            {runningCount()} active
+            {backgroundRunningCount()} active
           </span>
         </Show>
       </div>
