@@ -94,6 +94,7 @@ fn main() {
             chief_wiggum_lib::commands::settings::update_settings,
             chief_wiggum_lib::commands::settings::reset_settings,
             chief_wiggum_lib::commands::cli::get_cli_info,
+            chief_wiggum_lib::commands::diagnostic::export_diagnostic_bundle,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
             chief_wiggum_lib::commands::project::list_projects,
