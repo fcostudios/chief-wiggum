@@ -10,6 +10,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CommandCategory {
     Builtin,
+    Action,
     Project,
     User,
     Sdk,
@@ -104,6 +105,14 @@ pub fn builtin_commands() -> Vec<SlashCommand> {
             description: "Code review mode".to_string(),
             category: CommandCategory::Builtin,
             args_hint: None,
+            source_path: None,
+            from_sdk: false,
+        },
+        SlashCommand {
+            name: "run".to_string(),
+            description: "Run a project action".to_string(),
+            category: CommandCategory::Action,
+            args_hint: Some("<action_name>".to_string()),
             source_path: None,
             from_sdk: false,
         },
@@ -221,7 +230,10 @@ mod tests {
     #[test]
     fn builtin_commands_all_have_builtin_category() {
         for cmd in builtin_commands() {
-            assert_eq!(cmd.category, CommandCategory::Builtin);
+            assert!(matches!(
+                cmd.category,
+                CommandCategory::Builtin | CommandCategory::Action
+            ));
             assert!(!cmd.from_sdk);
             assert!(cmd.source_path.is_none());
         }

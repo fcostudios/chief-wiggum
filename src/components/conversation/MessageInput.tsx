@@ -34,6 +34,7 @@ import {
 } from '@/stores/contextStore';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
+import { actionState, startAction } from '@/stores/actionStore';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -295,6 +296,27 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
     const cleanedText = (await resolveInlineRangeMentions(text)).trim();
     const finalText = cleanedText || text;
+
+    const runMatch = finalText.match(/^\/run\s+(.+)$/);
+    if (runMatch) {
+      const requested = runMatch[1].trim();
+      const action = actionState.actions.find(
+        (a) => a.name === requested || a.id === requested,
+      );
+
+      if (action) {
+        void startAction(action);
+        setContent('');
+        clearAttachments();
+        if (textareaRef) {
+          textareaRef.value = '';
+          textareaRef.style.height = '80px';
+        }
+      } else {
+        addToast(`Action not found: ${requested}`, 'warning');
+      }
+      return;
+    }
 
     // Assemble context from attached files
     const contextPrefix = await assembleContext();

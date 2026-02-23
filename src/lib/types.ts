@@ -193,7 +193,7 @@ export interface Project {
 export interface SlashCommand {
   name: string;
   description: string;
-  category: 'Builtin' | 'Project' | 'User' | 'Sdk';
+  category: 'Builtin' | 'Action' | 'Project' | 'User' | 'Sdk';
   args_hint: string | null;
   source_path: string | null;
   from_sdk: boolean;
