@@ -12,9 +12,11 @@ import {
   enableDeveloperMode,
   disableDeveloperMode,
   toggleCommandPalette,
+  openCommandPalette,
   openSessionSwitcher,
   type ActiveView,
 } from '@/stores/uiStore';
+import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore';
 import { conversationState } from '@/stores/conversationStore';
 import { cycleModel } from '@/stores/sessionStore';
 import { copyDebugInfo } from '@/stores/diagnosticsStore';
@@ -43,6 +45,27 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyP' && e.shiftKey) {
     e.preventDefault();
     openSessionSwitcher();
+    return;
+  }
+
+  // Cmd+Shift+R — action runner palette
+  if (e.code === 'KeyR' && e.shiftKey) {
+    e.preventDefault();
+    openCommandPalette('actions');
+    return;
+  }
+
+  // Cmd+Shift+. — stop all running actions
+  if (e.code === 'Period' && e.shiftKey) {
+    e.preventDefault();
+    const running = getRunningActionIds();
+    if (running.length === 0) {
+      addToast('No running actions', 'info');
+      return;
+    }
+    void stopAllRunningActions().then(() => {
+      addToast(`Stopping ${running.length} action${running.length === 1 ? '' : 's'}`, 'warning');
+    });
     return;
   }
 
