@@ -8,6 +8,7 @@
 //! Coding standards: GUIDE-001 §2
 
 pub mod adapter;
+pub mod control;
 pub mod event_loop;
 pub mod manager;
 pub mod parser;
@@ -16,6 +17,7 @@ pub mod process;
 
 // Re-export primary public types
 pub use adapter::{AdapterRegistry, OutputAdapter};
+pub use control::{ControlRequest, ControlResponse, UserMessage};
 pub use manager::SessionBridgeMap;
 pub use parser::{BridgeEvent, MessageChunk, ParsedOutput, StreamParser};
 pub use permission::{PermissionAction, PermissionManager, PermissionRequest, PermissionResponse};
