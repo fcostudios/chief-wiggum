@@ -9,8 +9,10 @@ import { ChevronDown, ChevronRight } from 'lucide-solid';
 import { sessionState } from '@/stores/sessionStore';
 import { projectState } from '@/stores/projectStore';
 import { fileState } from '@/stores/fileStore';
+import { actionState } from '@/stores/actionStore';
 import MarkdownContent from '@/components/conversation/MarkdownContent';
 import FilePreview from '@/components/explorer/FilePreview';
+import ActionOutputPanel from '@/components/actions/ActionOutputPanel';
 
 interface SectionProps {
   title: string;
@@ -80,6 +82,17 @@ const DetailsPanel: Component = () => {
 
   return (
     <aside class="flex flex-col h-full overflow-y-auto" aria-label="Details panel">
+      <Show when={actionState.selectedActionId}>
+        <CollapsibleSection title="Action Output">
+          <div
+            class="h-[300px] -mx-3 -mb-3"
+            style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
+          >
+            <ActionOutputPanel />
+          </div>
+        </CollapsibleSection>
+      </Show>
+
       <Show when={fileState.selectedPath && fileState.previewContent}>
         <CollapsibleSection title="File Preview">
           <FilePreview content={fileState.previewContent!} isLoading={fileState.isPreviewLoading} />
