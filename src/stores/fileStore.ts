@@ -3,6 +3,7 @@
 // Backed by list_project_files / search_project_files / read_project_file IPC.
 
 import { createStore } from 'solid-js/store';
+import { untrack } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, FileContent, FileSearchResult, GitFileStatus } from '@/lib/types';
@@ -62,9 +63,14 @@ interface FilesChangedEvent {
 
 let filesChangedListenerReady: Promise<void> | null = null;
 let filesChangedUnlisten: UnlistenFn | null = null;
+let filesChangedDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let queuedFilesChangedProjectId: string | null = null;
+let queuedFilesChangedPaths = new Set<string>();
+let filesChangedRefreshChain: Promise<void> = Promise.resolve();
 
-function collectAffectedTreeKeys(paths: string[]): Set<string> {
-  const keys = new Set<string>(['']);
+function collectAffectedTreeKeys(paths: string[], includeRoot = true): Set<string> {
+  const keys = new Set<string>();
+  if (includeRoot) keys.add('');
   for (const path of paths) {
     if (!path) continue;
     const parts = path.split('/').filter(Boolean);
@@ -77,14 +83,47 @@ function collectAffectedTreeKeys(paths: string[]): Set<string> {
   return keys;
 }
 
-function invalidateTreeCache(paths: string[]): void {
+function invalidateTreeCache(paths: string[], includeRoot = true): void {
   if (paths.length === 0) return;
-  const keys = collectAffectedTreeKeys(paths);
+  const keys = collectAffectedTreeKeys(paths, includeRoot);
   const nextTree = { ...state.tree };
   for (const key of keys) {
     delete nextTree[key];
   }
   setState('tree', nextTree);
+}
+
+function isRootTreeAffected(paths: string[]): boolean {
+  return paths.some((path) => path.split('/').filter(Boolean).length <= 1);
+}
+
+interface LoadRootFilesOptions {
+  showLoading?: boolean;
+  refreshGitStatuses?: boolean;
+}
+
+async function loadRootFilesInternal(
+  projectId: string,
+  options: LoadRootFilesOptions = {},
+): Promise<void> {
+  const { showLoading = true, refreshGitStatuses = true } = options;
+  if (showLoading) setState('isLoading', true);
+  try {
+    const nodes = await invoke<FileNode[]>('list_project_files', {
+      project_id: projectId,
+      relative_path: null,
+      max_depth: 1,
+    });
+    setState('tree', '', nodes);
+  } catch (err) {
+    console.error('[fileStore] Failed to load root files:', err);
+  } finally {
+    if (showLoading) setState('isLoading', false);
+  }
+
+  if (refreshGitStatuses) {
+    void loadGitStatuses(projectId);
+  }
 }
 
 async function handleFilesChanged(
@@ -98,11 +137,17 @@ async function handleFilesChanged(
   const changedPaths = payload.paths.filter(Boolean);
   if (changedPaths.length === 0) return;
 
-  invalidateTreeCache(changedPaths);
+  const rootAffected = isRootTreeAffected(changedPaths);
+  invalidateTreeCache(changedPaths, rootAffected);
 
   // Refresh root and any visible expanded folders impacted by the change.
-  await loadRootFiles(payload.project_id);
-  const affectedKeys = collectAffectedTreeKeys(changedPaths);
+  if (rootAffected) {
+    await loadRootFilesInternal(payload.project_id, {
+      showLoading: false,
+      refreshGitStatuses: false,
+    });
+  }
+  const affectedKeys = collectAffectedTreeKeys(changedPaths, false);
   const dirsToRefresh = state.expandedPaths.filter((path) => affectedKeys.has(path));
   for (const dir of dirsToRefresh) {
     await loadDirectoryChildren(payload.project_id, dir);
@@ -122,18 +167,60 @@ async function handleFilesChanged(
   void loadGitStatuses(payload.project_id);
 }
 
+function queueFilesChangedRefresh(payload: FilesChangedEvent): void {
+  const activeProjectId = projectState.activeProjectId;
+  if (!activeProjectId || payload.project_id !== activeProjectId) {
+    return;
+  }
+
+  const changedPaths = payload.paths.filter(Boolean);
+  if (changedPaths.length === 0) return;
+
+  if (queuedFilesChangedProjectId && queuedFilesChangedProjectId !== payload.project_id) {
+    queuedFilesChangedPaths.clear();
+  }
+
+  queuedFilesChangedProjectId = payload.project_id;
+  for (const path of changedPaths) {
+    queuedFilesChangedPaths.add(path);
+  }
+
+  if (filesChangedDebounceTimer) clearTimeout(filesChangedDebounceTimer);
+  filesChangedDebounceTimer = setTimeout(() => {
+    filesChangedDebounceTimer = null;
+    const projectId = queuedFilesChangedProjectId;
+    const paths = [...queuedFilesChangedPaths];
+    queuedFilesChangedProjectId = null;
+    queuedFilesChangedPaths.clear();
+
+    if (!projectId || paths.length === 0) return;
+    const activeProjectId = untrack(() => projectState.activeProjectId);
+
+    filesChangedRefreshChain = filesChangedRefreshChain
+      // eslint-disable-next-line solid/reactivity -- queued watcher refresh intentionally snapshots store state outside tracked scope
+      .then(() =>
+        handleFilesChanged(
+          {
+            project_id: projectId,
+            paths,
+          },
+          activeProjectId,
+        ),
+      )
+      .catch((err) => {
+        console.error('[fileStore] Failed to handle coalesced files:changed event:', err);
+      });
+  }, 120);
+}
+
 async function ensureFilesChangedListener(): Promise<void> {
   if (filesChangedUnlisten) return;
   if (filesChangedListenerReady) return filesChangedListenerReady;
 
   filesChangedListenerReady = (async () => {
     try {
-      // eslint-disable-next-line solid/reactivity -- Tauri event callback intentionally snapshots store state on each event
       filesChangedUnlisten = await listen<FilesChangedEvent>('files:changed', (event) => {
-        const activeProjectId = projectState.activeProjectId;
-        void handleFilesChanged(event.payload, activeProjectId).catch((err) => {
-          console.error('[fileStore] Failed to handle files:changed event:', err);
-        });
+        queueFilesChangedRefresh(event.payload);
       });
     } catch (err) {
       console.warn('[fileStore] Failed to register files:changed listener:', err);
@@ -148,22 +235,7 @@ async function ensureFilesChangedListener(): Promise<void> {
 /** Load root-level files for a project. */
 export async function loadRootFiles(projectId: string): Promise<void> {
   void ensureFilesChangedListener();
-  setState('isLoading', true);
-  try {
-    const nodes = await invoke<FileNode[]>('list_project_files', {
-      project_id: projectId,
-      relative_path: null,
-      max_depth: 1,
-    });
-    setState('tree', '', nodes);
-  } catch (err) {
-    console.error('[fileStore] Failed to load root files:', err);
-  } finally {
-    setState('isLoading', false);
-  }
-
-  // Also refresh git statuses
-  void loadGitStatuses(projectId);
+  await loadRootFilesInternal(projectId);
 }
 
 /** Load children for a directory (lazy expand). */
@@ -278,6 +350,12 @@ export function toggleFilesVisible(): void {
 
 /** Clear all file state (e.g., on project switch). */
 export function clearFileState(): void {
+  if (filesChangedDebounceTimer) {
+    clearTimeout(filesChangedDebounceTimer);
+    filesChangedDebounceTimer = null;
+  }
+  queuedFilesChangedProjectId = null;
+  queuedFilesChangedPaths.clear();
   setState({
     tree: {},
     expandedPaths: [],
