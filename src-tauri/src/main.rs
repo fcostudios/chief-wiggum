@@ -103,6 +103,7 @@ fn main() {
             chief_wiggum_lib::commands::actions::list_running_actions,
             chief_wiggum_lib::commands::cli::get_cli_info,
             chief_wiggum_lib::commands::diagnostic::export_diagnostic_bundle,
+            chief_wiggum_lib::commands::logging::log_from_frontend,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
             chief_wiggum_lib::commands::project::list_projects,
