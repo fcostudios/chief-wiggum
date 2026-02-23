@@ -82,6 +82,21 @@ pub trait BridgeInterface: Send + Sync {
     /// Send input text to the CLI process (stdin).
     async fn send(&self, input: &str) -> AppResult<()>;
 
+    /// Send a control protocol permission response to the CLI (SDK mode only).
+    ///
+    /// Legacy PTY bridges do not support the bidirectional SDK control protocol
+    /// and return an error by default.
+    async fn send_control_response(
+        &self,
+        _request_id: &str,
+        _allow: bool,
+        _reason: Option<String>,
+    ) -> AppResult<()> {
+        Err(AppError::Bridge(
+            "Control protocol responses are not supported by this bridge".to_string(),
+        ))
+    }
+
     /// Receive the next output from the CLI process.
     async fn receive(&self) -> AppResult<Option<BridgeOutput>>;
 

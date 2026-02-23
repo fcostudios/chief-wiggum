@@ -174,6 +174,7 @@ pub async fn send_to_cli(
             bridge,
             bridge_map.mcp_cache(),
             bridge_map.runtimes(),
+            None,
         );
     }
 

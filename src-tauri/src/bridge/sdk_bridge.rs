@@ -433,6 +433,16 @@ impl BridgeInterface for AgentSdkBridge {
         self.send_user_message(input).await
     }
 
+    async fn send_control_response(
+        &self,
+        request_id: &str,
+        allow: bool,
+        reason: Option<String>,
+    ) -> AppResult<()> {
+        self.send_control_response_message(request_id, allow, reason)
+            .await
+    }
+
     async fn receive(&self) -> AppResult<Option<BridgeOutput>> {
         let mut rx = self.output_rx.lock().await;
         Ok(rx.recv().await)

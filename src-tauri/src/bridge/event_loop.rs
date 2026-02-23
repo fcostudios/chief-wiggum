@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::RwLock;
 
+use super::permission::{PermissionAction, PermissionManager};
 use super::manager::{BufferedEvent, SessionRuntime};
 use super::process::BridgeInterface;
 use super::{BridgeEvent, BridgeOutput};
@@ -93,6 +94,7 @@ pub fn spawn_event_loop(
     bridge: Arc<dyn BridgeInterface>,
     mcp_cache: Arc<RwLock<HashSet<String>>>,
     runtimes: Arc<RwLock<HashMap<String, SessionRuntime>>>,
+    permission_manager: Option<PermissionManager>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         tracing::info!("Event loop started for session {}", session_id);
@@ -100,7 +102,16 @@ pub fn spawn_event_loop(
         loop {
             match bridge.receive().await {
                 Ok(Some(output)) => {
-                    emit_bridge_output(&app, &session_id, output, &mcp_cache, &runtimes).await;
+                    emit_bridge_output(
+                        &app,
+                        &session_id,
+                        output,
+                        &mcp_cache,
+                        &runtimes,
+                        &bridge,
+                        &permission_manager,
+                    )
+                    .await;
                 }
                 Ok(None) => {
                     tracing::info!(
@@ -149,6 +160,8 @@ async fn emit_bridge_output(
     output: BridgeOutput,
     mcp_cache: &Arc<RwLock<HashSet<String>>>,
     runtimes: &Arc<RwLock<HashMap<String, SessionRuntime>>>,
+    bridge: &Arc<dyn BridgeInterface>,
+    permission_manager: &Option<PermissionManager>,
 ) {
     match output {
         BridgeOutput::Chunk(chunk) => {
@@ -369,28 +382,109 @@ async fn emit_bridge_output(
             }
         },
         BridgeOutput::PermissionRequired(req) => {
-            tracing::info!(
-                "Event loop [{}]: emitting permission:request (tool: {}, command: {})",
-                session_id,
-                req.tool,
-                req.command
-            );
-            let payload = PermissionRequestPayload {
-                session_id: session_id.to_string(),
-                request_id: req.request_id,
-                tool: req.tool,
-                command: req.command,
-                file_path: req.file_path,
-                risk_level: req.risk_level,
-            };
-            if let Err(e) = app.emit("permission:request", &payload) {
-                tracing::warn!("Failed to emit permission:request: {}", e);
-            }
-            // Buffer for HMR reconnection
-            {
-                let mut rts = runtimes.write().await;
-                if let Some(rt) = rts.get_mut(session_id) {
-                    rt.buffer_event(BufferedEvent::PermissionRequest(payload.clone()));
+            // SDK mode: route through PermissionManager and write control_response back to CLI.
+            if let Some(pm) = permission_manager.as_ref() {
+                let request_id = req.request_id.clone();
+                let tool = req.tool.clone();
+                let command = req.command.clone();
+
+                // Skip UI dialog when the permission manager can auto-resolve.
+                let action = if pm.is_yolo_mode().await || pm.is_auto_allowed(&req).await {
+                    tracing::info!(
+                        "Event loop [{}]: auto-resolving SDK permission (tool: {}, command: {})",
+                        session_id,
+                        tool,
+                        command
+                    );
+                    PermissionAction::Approve
+                } else {
+                    tracing::info!(
+                        "Event loop [{}]: emitting permission:request (tool: {}, command: {})",
+                        session_id,
+                        tool,
+                        command
+                    );
+                    let payload = PermissionRequestPayload {
+                        session_id: session_id.to_string(),
+                        request_id: req.request_id.clone(),
+                        tool: req.tool.clone(),
+                        command: req.command.clone(),
+                        file_path: req.file_path.clone(),
+                        risk_level: req.risk_level.clone(),
+                    };
+                    if let Err(e) = app.emit("permission:request", &payload) {
+                        tracing::warn!("Failed to emit permission:request: {}", e);
+                    }
+                    {
+                        let mut rts = runtimes.write().await;
+                        if let Some(rt) = rts.get_mut(session_id) {
+                            rt.buffer_event(BufferedEvent::PermissionRequest(payload.clone()));
+                        }
+                    }
+
+                    match pm.request_permission(req.clone()).await {
+                        Ok(action) => action,
+                        Err(e) => {
+                            tracing::error!(
+                                "Event loop [{}]: permission flow failed (request {}): {}",
+                                session_id,
+                                request_id,
+                                e
+                            );
+                            PermissionAction::Deny
+                        }
+                    }
+                };
+
+                let allow = matches!(action, PermissionAction::Approve | PermissionAction::AlwaysAllow);
+                let deny_reason = if allow {
+                    None
+                } else {
+                    Some("User denied".to_string())
+                };
+
+                if let Err(e) = bridge
+                    .send_control_response(&request_id, allow, deny_reason)
+                    .await
+                {
+                    tracing::error!(
+                        "Event loop [{}]: failed to write control_response for {}: {}",
+                        session_id,
+                        request_id,
+                        e
+                    );
+                } else {
+                    tracing::info!(
+                        "Event loop [{}]: sent control_response (allow: {}) for request {}",
+                        session_id,
+                        allow,
+                        request_id
+                    );
+                }
+            } else {
+                // Legacy mode: preserve existing behavior (emit only).
+                tracing::info!(
+                    "Event loop [{}]: emitting permission:request (tool: {}, command: {})",
+                    session_id,
+                    req.tool,
+                    req.command
+                );
+                let payload = PermissionRequestPayload {
+                    session_id: session_id.to_string(),
+                    request_id: req.request_id,
+                    tool: req.tool,
+                    command: req.command,
+                    file_path: req.file_path,
+                    risk_level: req.risk_level,
+                };
+                if let Err(e) = app.emit("permission:request", &payload) {
+                    tracing::warn!("Failed to emit permission:request: {}", e);
+                }
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.buffer_event(BufferedEvent::PermissionRequest(payload.clone()));
+                    }
                 }
             }
         }
