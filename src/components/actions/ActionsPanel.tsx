@@ -3,10 +3,13 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, createSignal, createMemo } from 'solid-js';
-import { ChevronDown, ChevronRight, Search } from 'lucide-solid';
-import { actionState } from '@/stores/actionStore';
-import type { ActionDefinition, ActionSource } from '@/lib/types';
+import { ChevronDown, ChevronRight, Plus, Search } from 'lucide-solid';
+import { actionState, saveCustomAction } from '@/stores/actionStore';
+import { getActiveProject } from '@/stores/projectStore';
+import { addToast } from '@/stores/toastStore';
+import type { ActionDefinition, ActionSource, CustomActionDraft } from '@/lib/types';
 import ActionRow from './ActionRow';
+import ActionEditor from './ActionEditor';
 
 const SOURCE_ORDER: ActionSource[] = [
   'package_json',
@@ -34,6 +37,8 @@ function sourceLabel(source: ActionSource): string {
 const ActionsPanel: Component = () => {
   const [searchQuery, setSearchQuery] = createSignal('');
   const [collapsedGroups, setCollapsedGroups] = createSignal<Set<ActionSource>>(new Set());
+  const [isAddingAction, setIsAddingAction] = createSignal(false);
+  const [isSavingAction, setIsSavingAction] = createSignal(false);
 
   const groupedActions = createMemo(() => {
     const query = searchQuery().toLowerCase();
@@ -67,6 +72,31 @@ const ActionsPanel: Component = () => {
     });
   }
 
+  async function handleSaveAction(draft: CustomActionDraft) {
+    const activeProject = getActiveProject();
+    if (!activeProject) {
+      addToast('Select a project before creating a custom action', 'warning');
+      return;
+    }
+
+    setIsSavingAction(true);
+    try {
+      await saveCustomAction(activeProject.path, {
+        ...draft,
+        working_dir: draft.working_dir.trim() || activeProject.path,
+      });
+      setIsAddingAction(false);
+      addToast(`Saved custom action: ${draft.name}`, 'success');
+    } catch (err) {
+      addToast(
+        `Failed to save action: ${err instanceof Error ? err.message : String(err)}`,
+        'error',
+      );
+    } finally {
+      setIsSavingAction(false);
+    }
+  }
+
   return (
     <div class="flex flex-col h-full">
       <div class="px-2 py-2" style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
@@ -90,9 +120,31 @@ const ActionsPanel: Component = () => {
             }}
           />
         </div>
+
+        <button
+          class="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-colors"
+          style={{
+            color: 'var(--color-text-secondary)',
+            background: isAddingAction() ? 'var(--color-bg-elevated)' : 'transparent',
+            border: '1px solid var(--color-border-secondary)',
+          }}
+          onClick={() => setIsAddingAction((prev) => !prev)}
+        >
+          <Plus size={11} />
+          <span>{isAddingAction() ? 'Cancel New Action' : 'Add Action'}</span>
+        </button>
       </div>
 
       <div class="flex-1 overflow-y-auto px-1 py-1">
+        <Show when={isAddingAction()}>
+          <ActionEditor
+            isSaving={isSavingAction()}
+            initialDraft={{ working_dir: getActiveProject()?.path ?? '' }}
+            onSave={handleSaveAction}
+            onCancel={() => setIsAddingAction(false)}
+          />
+        </Show>
+
         <Show
           when={actionState.actions.length > 0}
           fallback={
