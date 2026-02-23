@@ -211,7 +211,10 @@ function queueFilesChangedRefresh(payload: FilesChangedEvent): void {
         ),
       )
       .catch((err) => {
-        log.error('Failed to handle coalesced files:changed event: ' + (err instanceof Error ? err.message : String(err)));
+        log.error(
+          'Failed to handle coalesced files:changed event: ' +
+            (err instanceof Error ? err.message : String(err)),
+        );
       });
   }, 120);
 }
@@ -226,7 +229,10 @@ async function ensureFilesChangedListener(): Promise<void> {
         queueFilesChangedRefresh(event.payload);
       });
     } catch (err) {
-      log.warn('Failed to register files:changed listener: ' + (err instanceof Error ? err.message : String(err)));
+      log.warn(
+        'Failed to register files:changed listener: ' +
+          (err instanceof Error ? err.message : String(err)),
+      );
     } finally {
       filesChangedListenerReady = null;
     }

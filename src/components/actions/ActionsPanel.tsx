@@ -48,7 +48,9 @@ const ActionsPanel: Component = () => {
   const [isSavingAction, setIsSavingAction] = createSignal(false);
   const [editingRowActionId, setEditingRowActionId] = createSignal<string | null>(null);
   const [editingRowOriginalName, setEditingRowOriginalName] = createSignal<string | null>(null);
-  const [editingRowDraft, setEditingRowDraft] = createSignal<Partial<CustomActionDraft> | null>(null);
+  const [editingRowDraft, setEditingRowDraft] = createSignal<Partial<CustomActionDraft> | null>(
+    null,
+  );
   const [pendingDeleteActionId, setPendingDeleteActionId] = createSignal<string | null>(null);
   const [argPromptActionId, setArgPromptActionId] = createSignal<string | null>(null);
 
@@ -278,10 +280,10 @@ const ActionsPanel: Component = () => {
           <ActionEditor
             isSaving={isSavingAction()}
             initialDraft={{ working_dir: getActiveProject()?.path ?? '' }}
-          onSave={handleSaveAction}
-          onCancel={() => setIsAddingAction(false)}
-        />
-      </Show>
+            onSave={handleSaveAction}
+            onCancel={() => setIsAddingAction(false)}
+          />
+        </Show>
 
         <Show
           when={actionState.actions.length > 0}
@@ -318,7 +320,9 @@ const ActionsPanel: Component = () => {
                 >
                   <Show
                     when={!collapsedGroups().has(source)}
-                    fallback={<ChevronRight size={10} style={{ color: 'var(--color-text-tertiary)' }} />}
+                    fallback={
+                      <ChevronRight size={10} style={{ color: 'var(--color-text-tertiary)' }} />
+                    }
                   >
                     <ChevronDown size={10} style={{ color: 'var(--color-text-tertiary)' }} />
                   </Show>
@@ -363,7 +367,9 @@ const ActionsPanel: Component = () => {
                           }
                         />
 
-                        <Show when={argPromptActionId() === action.id && (action.args?.length ?? 0) > 0}>
+                        <Show
+                          when={argPromptActionId() === action.id && (action.args?.length ?? 0) > 0}
+                        >
                           <ActionArgPrompt
                             action={action}
                             onCancel={() => setArgPromptActionId(null)}
@@ -379,7 +385,10 @@ const ActionsPanel: Component = () => {
                               border: '1px solid var(--color-border-secondary)',
                             }}
                           >
-                            <span class="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                            <span
+                              class="text-[11px]"
+                              style={{ color: 'var(--color-text-secondary)' }}
+                            >
                               Remove <span class="font-mono">{action.name}</span>?
                             </span>
                             <div class="flex items-center gap-1">
@@ -389,7 +398,7 @@ const ActionsPanel: Component = () => {
                                   color: 'var(--color-text-tertiary)',
                                   border: '1px solid var(--color-border-secondary)',
                                 }}
-                              onClick={() => setPendingDeleteActionId(null)}
+                                onClick={() => setPendingDeleteActionId(null)}
                                 disabled={isSavingAction()}
                               >
                                 No

@@ -104,7 +104,9 @@ const ActionArgPrompt: Component<ActionArgPromptProps> = (props) => {
                     color: 'var(--color-text-primary)',
                   }}
                 >
-                  <For each={arg.options ?? []}>{(option) => <option value={option}>{option}</option>}</For>
+                  <For each={arg.options ?? []}>
+                    {(option) => <option value={option}>{option}</option>}
+                  </For>
                 </select>
               </Show>
             </label>

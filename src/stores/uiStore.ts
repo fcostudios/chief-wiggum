@@ -152,7 +152,9 @@ export function enableDeveloperMode() {
   setState('developerMode', true);
   persistTier('developer');
   invoke('toggle_developer_mode', { enable: true }).catch((err) => {
-    log.warn('Failed to enable developer mode: ' + (err instanceof Error ? err.message : String(err)));
+    log.warn(
+      'Failed to enable developer mode: ' + (err instanceof Error ? err.message : String(err)),
+    );
   });
 }
 
@@ -161,7 +163,9 @@ export function disableDeveloperMode() {
   setState('developerMode', false);
   persistTier(state.yoloMode ? 'yolo' : 'safe');
   invoke('toggle_developer_mode', { enable: false }).catch((err) => {
-    log.warn('Failed to disable developer mode: ' + (err instanceof Error ? err.message : String(err)));
+    log.warn(
+      'Failed to disable developer mode: ' + (err instanceof Error ? err.message : String(err)),
+    );
   });
 }
 

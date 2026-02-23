@@ -177,8 +177,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
           cost_cents: null,
         }).catch((err) =>
           log.error(
-            'Failed to persist thinking: ' +
-              (err instanceof Error ? err.message : String(err)),
+            'Failed to persist thinking: ' + (err instanceof Error ? err.message : String(err)),
           ),
         );
       }
@@ -257,8 +256,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       // Refresh session cost totals after persisting (CHI-53)
       refreshActiveSession().catch((err) =>
         log.error(
-          'Failed to refresh session cost: ' +
-            (err instanceof Error ? err.message : String(err)),
+          'Failed to refresh session cost: ' + (err instanceof Error ? err.message : String(err)),
         ),
       );
     }),
@@ -364,8 +362,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       // Avoid marking the UI as "Running" based solely on bridge liveness.
       updateSessionCliId(sessionId, event.payload.cli_session_id).catch((err) =>
         log.warn(
-          'Failed to update CLI session ID: ' +
-            (err instanceof Error ? err.message : String(err)),
+          'Failed to update CLI session ID: ' + (err instanceof Error ? err.message : String(err)),
         ),
       );
     }),
@@ -708,9 +705,7 @@ export async function interruptSession(sessionId: string): Promise<void> {
   try {
     await invoke('interrupt_session', { session_id: sessionId });
   } catch (err) {
-    log.warn(
-      'Failed to interrupt session: ' + (err instanceof Error ? err.message : String(err)),
-    );
+    log.warn('Failed to interrupt session: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -719,9 +714,7 @@ export async function setSessionModel(sessionId: string, model: string): Promise
   try {
     await invoke('set_session_model', { session_id: sessionId, model });
   } catch (err) {
-    log.warn(
-      'Failed to set session model: ' + (err instanceof Error ? err.message : String(err)),
-    );
+    log.warn('Failed to set session model: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -785,8 +778,7 @@ export function recordPermissionOutcome(
     cost_cents: null,
   }).catch((err) =>
     log.error(
-      'Failed to persist permission record: ' +
-        (err instanceof Error ? err.message : String(err)),
+      'Failed to persist permission record: ' + (err instanceof Error ? err.message : String(err)),
     ),
   );
 }

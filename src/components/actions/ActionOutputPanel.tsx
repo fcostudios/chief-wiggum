@@ -117,9 +117,7 @@ const ActionOutputPanel: Component = () => {
               class="text-[9px] font-mono px-1 py-0.5 rounded"
               style={{
                 background:
-                  status() === 'running'
-                    ? 'rgba(63, 185, 80, 0.15)'
-                    : 'var(--color-bg-elevated)',
+                  status() === 'running' ? 'rgba(63, 185, 80, 0.15)' : 'var(--color-bg-elevated)',
                 color:
                   status() === 'running'
                     ? 'var(--color-success)'

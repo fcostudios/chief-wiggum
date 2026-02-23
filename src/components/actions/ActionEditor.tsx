@@ -29,8 +29,8 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
   const [showAdvanced, setShowAdvanced] = createSignal(
     Boolean(
       props.initialDraft?.before_commands?.length ||
-        props.initialDraft?.after_commands?.length ||
-        (props.initialDraft?.env_vars && Object.keys(props.initialDraft.env_vars).length > 0),
+      props.initialDraft?.after_commands?.length ||
+      (props.initialDraft?.env_vars && Object.keys(props.initialDraft.env_vars).length > 0),
     ),
   );
   const [beforeCommandsText, setBeforeCommandsText] = createSignal(
@@ -84,7 +84,10 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
     >
       <div class="grid grid-cols-2 gap-2">
         <label class="flex flex-col gap-1 col-span-2">
-          <span class="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             Name
           </span>
           <input
@@ -108,7 +111,10 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
         </label>
 
         <label class="flex flex-col gap-1 col-span-2">
-          <span class="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             Command
           </span>
           <input
@@ -132,7 +138,10 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
         </label>
 
         <label class="flex flex-col gap-1">
-          <span class="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             Category
           </span>
           <select
@@ -150,7 +159,10 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
         </label>
 
         <label class="flex flex-col gap-1">
-          <span class="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             Working Dir
           </span>
           <input
@@ -169,7 +181,10 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
         </label>
 
         <label class="flex flex-col gap-1 col-span-2">
-          <span class="text-[10px] font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             Description
           </span>
           <input
@@ -198,10 +213,7 @@ const ActionEditor: Component<ActionEditorProps> = (props) => {
         </span>
       </label>
 
-      <div
-        class="rounded-md"
-        style={{ border: '1px solid var(--color-border-secondary)' }}
-      >
+      <div class="rounded-md" style={{ border: '1px solid var(--color-border-secondary)' }}>
         <button
           class="w-full flex items-center gap-2 px-2 py-1.5 text-left"
           style={{ 'background-color': 'var(--color-bg-elevated)' }}
@@ -331,9 +343,10 @@ function parseCommandLines(text: string): string[] {
     .filter((line) => line.length > 0);
 }
 
-function parseEnvVars(
-  text: string,
-): { envVars: Record<string, string> | undefined; error?: string } {
+function parseEnvVars(text: string): {
+  envVars: Record<string, string> | undefined;
+  error?: string;
+} {
   const lines = text
     .split('\n')
     .map((line) => line.trim())

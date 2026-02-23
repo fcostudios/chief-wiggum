@@ -300,9 +300,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const runMatch = finalText.match(/^\/run\s+(.+)$/);
     if (runMatch) {
       const requested = runMatch[1].trim();
-      const action = actionState.actions.find(
-        (a) => a.name === requested || a.id === requested,
-      );
+      const action = actionState.actions.find((a) => a.name === requested || a.id === requested);
 
       if (action) {
         void startAction(action);

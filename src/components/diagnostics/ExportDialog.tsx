@@ -87,20 +87,14 @@ const ExportDialog: Component = () => {
             >
               Export Diagnostic Bundle
             </h2>
-            <p
-              class="text-xs mt-1"
-              style={{ color: 'var(--color-text-tertiary)' }}
-            >
+            <p class="text-xs mt-1" style={{ color: 'var(--color-text-tertiary)' }}>
               Creates a ZIP file for bug reports and support.
             </p>
           </div>
 
           {/* Content — what's included */}
           <div class="px-5 py-4 space-y-3">
-            <p
-              class="text-sm font-medium"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
+            <p class="text-sm font-medium" style={{ color: 'var(--color-text-secondary)' }}>
               The bundle includes:
             </p>
             <ul class="text-xs space-y-1.5 ml-2" style={{ color: 'var(--color-text-secondary)' }}>
@@ -130,8 +124,8 @@ const ExportDialog: Component = () => {
               <span class="font-medium" style={{ color: 'var(--color-text-primary)' }}>
                 Privacy:
               </span>{' '}
-              API keys, emails, tokens, and local file paths are automatically redacted before export.
-              No conversation content is included.
+              API keys, emails, tokens, and local file paths are automatically redacted before
+              export. No conversation content is included.
             </div>
 
             {/* Error state */}

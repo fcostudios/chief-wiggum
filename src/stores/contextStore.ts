@@ -116,7 +116,12 @@ export async function assembleContext(): Promise<string> {
         parts.push(content.content);
         parts.push('</file>');
       } catch (err) {
-        log.error('Failed to read ' + ref.relative_path + ': ' + (err instanceof Error ? err.message : String(err)));
+        log.error(
+          'Failed to read ' +
+            ref.relative_path +
+            ': ' +
+            (err instanceof Error ? err.message : String(err)),
+        );
         parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
       }
     }

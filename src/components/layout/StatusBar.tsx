@@ -175,7 +175,8 @@ const StatusBar: Component = () => {
               class="font-mono px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
               style={{
                 'font-size': '9px',
-                color: runningActionCount() > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)',
+                color:
+                  runningActionCount() > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)',
                 background: 'var(--color-bg-elevated)',
               }}
               onMouseEnter={(e) => {

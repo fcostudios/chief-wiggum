@@ -194,7 +194,10 @@ export async function stopAllRunningActions(): Promise<void> {
 }
 
 /** Save or update a custom action in `.claude/actions.json`, then refresh discovery. */
-export async function saveCustomAction(projectPath: string, draft: CustomActionDraft): Promise<void> {
+export async function saveCustomAction(
+  projectPath: string,
+  draft: CustomActionDraft,
+): Promise<void> {
   const action: ActionDefinition = {
     id: `claude_actions:${draft.name}`,
     name: draft.name,
@@ -256,26 +259,29 @@ export async function setupActionListeners(): Promise<void> {
   await cleanupActionListeners();
 
   eventListeners.push(
-    await listen<{ action_id: string; line: string; is_error: boolean }>('action:output', (event) => {
-      const { action_id, line, is_error } = event.payload;
-      const entry: ActionOutputLine = {
-        line,
-        is_error,
-        timestamp: Date.now(),
-      };
-      setState('outputs', action_id, (prev) => {
-        const lines = prev ?? [];
-        const updated = [...lines, entry];
-        return updated.length > MAX_OUTPUT_LINES
-          ? updated.slice(updated.length - MAX_OUTPUT_LINES)
-          : updated;
-      });
-      setState('statuses', action_id, 'running');
-      if (!actionRunStartedAt.has(action_id)) {
-        actionRunStartedAt.set(action_id, Date.now());
-      }
-      notifyActionStarted(action_id);
-    }),
+    await listen<{ action_id: string; line: string; is_error: boolean }>(
+      'action:output',
+      (event) => {
+        const { action_id, line, is_error } = event.payload;
+        const entry: ActionOutputLine = {
+          line,
+          is_error,
+          timestamp: Date.now(),
+        };
+        setState('outputs', action_id, (prev) => {
+          const lines = prev ?? [];
+          const updated = [...lines, entry];
+          return updated.length > MAX_OUTPUT_LINES
+            ? updated.slice(updated.length - MAX_OUTPUT_LINES)
+            : updated;
+        });
+        setState('statuses', action_id, 'running');
+        if (!actionRunStartedAt.has(action_id)) {
+          actionRunStartedAt.set(action_id, Date.now());
+        }
+        notifyActionStarted(action_id);
+      },
+    ),
   );
 
   eventListeners.push(

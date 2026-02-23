@@ -123,7 +123,9 @@ export async function loadCommands(projectPath?: string): Promise<void> {
     });
     setState('commands', commands);
   } catch (err) {
-    log.error('Failed to load slash commands: ' + (err instanceof Error ? err.message : String(err)));
+    log.error(
+      'Failed to load slash commands: ' + (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 
@@ -135,7 +137,9 @@ export async function refreshCommands(projectPath?: string): Promise<void> {
     });
     setState('commands', commands);
   } catch (err) {
-    log.error('Failed to refresh slash commands: ' + (err instanceof Error ? err.message : String(err)));
+    log.error(
+      'Failed to refresh slash commands: ' + (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 
@@ -156,7 +160,9 @@ export async function startSdkCommandListener(): Promise<void> {
       void handleSdkInit(projectPath);
     });
   } catch (err) {
-    log.warn('Failed to listen for cli:init: ' + (err instanceof Error ? err.message : String(err)));
+    log.warn(
+      'Failed to listen for cli:init: ' + (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 

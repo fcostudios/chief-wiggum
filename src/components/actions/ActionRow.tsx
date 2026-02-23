@@ -225,7 +225,10 @@ const ActionRow: Component<ActionRowProps> = (props) => {
           fallback={
             <button
               class="p-1 rounded transition-colors"
-              style={{ color: 'var(--color-text-tertiary)', 'transition-duration': 'var(--duration-fast)' }}
+              style={{
+                color: 'var(--color-text-tertiary)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--color-success)';
               }}
@@ -242,7 +245,10 @@ const ActionRow: Component<ActionRowProps> = (props) => {
         >
           <button
             class="p-1 rounded transition-colors"
-            style={{ color: 'var(--color-text-tertiary)', 'transition-duration': 'var(--duration-fast)' }}
+            style={{
+              color: 'var(--color-text-tertiary)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = 'var(--color-error)';
             }}
@@ -257,7 +263,10 @@ const ActionRow: Component<ActionRowProps> = (props) => {
           </button>
           <button
             class="p-1 rounded transition-colors"
-            style={{ color: 'var(--color-text-tertiary)', 'transition-duration': 'var(--duration-fast)' }}
+            style={{
+              color: 'var(--color-text-tertiary)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = 'var(--color-accent)';
             }}
