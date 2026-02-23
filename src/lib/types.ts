@@ -225,6 +225,11 @@ export interface FileSearchResult {
   score: number;
 }
 
+/** Git file status indicator (mirrors Rust GitFileStatus). */
+export interface GitFileStatus {
+  status: 'modified' | 'untracked' | 'staged' | 'deleted' | 'renamed' | 'conflict';
+}
+
 /** Reference to a file attached to a prompt. */
 export interface FileReference {
   relative_path: string;

@@ -5,7 +5,7 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { FileNode, FileContent, FileSearchResult } from '@/lib/types';
+import type { FileNode, FileContent, FileSearchResult, GitFileStatus } from '@/lib/types';
 import { projectState } from '@/stores/projectStore';
 
 interface FileState {
@@ -27,6 +27,10 @@ interface FileState {
   previewContent: FileContent | null;
   /** Whether preview is loading. */
   isPreviewLoading: boolean;
+  /** Git status per relative path. */
+  gitStatuses: Record<string, GitFileStatus>;
+  /** Whether git statuses are loading. */
+  isGitLoading: boolean;
   /** Whether the files section is visible. */
   isVisible: boolean;
   /** Selected line range for code range selection. */
@@ -43,6 +47,8 @@ const [state, setState] = createStore<FileState>({
   isLoading: false,
   previewContent: null,
   isPreviewLoading: false,
+  gitStatuses: {},
+  isGitLoading: false,
   isVisible: true,
   selectedRange: null,
 });
@@ -111,6 +117,9 @@ async function handleFilesChanged(
   if (state.searchQuery.trim()) {
     searchFiles(payload.project_id, state.searchQuery);
   }
+
+  // Refresh git statuses on file changes
+  void loadGitStatuses(payload.project_id);
 }
 
 async function ensureFilesChangedListener(): Promise<void> {
@@ -152,6 +161,9 @@ export async function loadRootFiles(projectId: string): Promise<void> {
   } finally {
     setState('isLoading', false);
   }
+
+  // Also refresh git statuses
+  void loadGitStatuses(projectId);
 }
 
 /** Load children for a directory (lazy expand). */
@@ -261,6 +273,8 @@ export function clearFileState(): void {
     isLoading: false,
     previewContent: null,
     isPreviewLoading: false,
+    gitStatuses: {},
+    isGitLoading: false,
     selectedRange: null,
   });
 }
@@ -293,4 +307,25 @@ export function getSelectedRangeTokens(): number {
   const end = Math.min(state.selectedRange.end, lines.length);
   const selectedText = lines.slice(start, end).join('\n');
   return Math.round(selectedText.length / 4);
+}
+
+/** Load git file statuses for the active project. */
+export async function loadGitStatuses(projectId: string): Promise<void> {
+  setState('isGitLoading', true);
+  try {
+    const statuses = await invoke<Record<string, GitFileStatus>>('get_git_file_statuses', {
+      project_id: projectId,
+    });
+    setState('gitStatuses', statuses);
+  } catch (err) {
+    console.warn('[fileStore] Failed to load git statuses:', err);
+    setState('gitStatuses', {});
+  } finally {
+    setState('isGitLoading', false);
+  }
+}
+
+/** Get git status for a specific file path. */
+export function getGitStatus(relativePath: string): GitFileStatus | null {
+  return state.gitStatuses[relativePath] ?? null;
 }
