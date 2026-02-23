@@ -65,6 +65,8 @@ fn main() {
 
     // Project file watcher manager (CHI-115)
     let file_watcher_manager = chief_wiggum_lib::files::watcher::FileWatcherManager::new();
+    // Project actions process manager (CHI-140)
+    let action_map = chief_wiggum_lib::actions::manager::ActionBridgeMap::new();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -76,6 +78,7 @@ fn main() {
         .manage(bridge_map)
         .manage(permission_manager)
         .manage(file_watcher_manager)
+        .manage(action_map)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -94,6 +97,10 @@ fn main() {
             chief_wiggum_lib::commands::settings::update_settings,
             chief_wiggum_lib::commands::settings::reset_settings,
             chief_wiggum_lib::commands::actions::discover_actions,
+            chief_wiggum_lib::commands::actions::start_action,
+            chief_wiggum_lib::commands::actions::stop_action,
+            chief_wiggum_lib::commands::actions::restart_action,
+            chief_wiggum_lib::commands::actions::list_running_actions,
             chief_wiggum_lib::commands::cli::get_cli_info,
             chief_wiggum_lib::commands::diagnostic::export_diagnostic_bundle,
             chief_wiggum_lib::commands::project::pick_project_folder,
@@ -129,6 +136,10 @@ fn main() {
                 .state::<chief_wiggum_lib::bridge::SessionBridgeMap>()
                 .inner()
                 .clone();
+            let action_map = app
+                .state::<chief_wiggum_lib::actions::manager::ActionBridgeMap>()
+                .inner()
+                .clone();
 
             if let Some(main_window) = app.get_webview_window("main") {
                 apply_platform_window_effects(&main_window);
@@ -136,10 +147,15 @@ fn main() {
                 main_window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { .. } = event {
                         let bridge_map = bridge_map.clone();
+                        let action_map = action_map.clone();
                         tauri::async_runtime::block_on(async move {
                             tracing::info!("App closing — shutting down all CLI processes");
                             if let Err(e) = bridge_map.shutdown_all().await {
                                 tracing::warn!("Error during CLI shutdown: {}", e);
+                            }
+                            tracing::info!("App closing — shutting down all action processes");
+                            if let Err(e) = action_map.shutdown_all().await {
+                                tracing::warn!("Error during action shutdown: {}", e);
                             }
                             tracing::info!("All CLI processes shut down");
                         });
