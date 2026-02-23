@@ -10,6 +10,8 @@
 //! Each object has a `type` field that determines the payload structure.
 //! The parser is chunk-aware — it handles partial JSON across PTY reads.
 
+use std::collections::VecDeque;
+
 use serde::{Deserialize, Serialize};
 
 use super::permission::PermissionRequest;
@@ -133,6 +135,8 @@ pub struct StreamParser {
     line_buffer: String,
     /// Current session ID (set when first message arrives).
     session_id: String,
+    /// Additional outputs parsed from the same JSON line (e.g. assistant/user content arrays).
+    pending_outputs: VecDeque<ParsedOutput>,
 }
 
 impl StreamParser {
@@ -141,6 +145,7 @@ impl StreamParser {
         Self {
             line_buffer: String::new(),
             session_id: String::new(),
+            pending_outputs: VecDeque::new(),
         }
     }
 
@@ -149,6 +154,7 @@ impl StreamParser {
         Self {
             line_buffer: String::new(),
             session_id,
+            pending_outputs: VecDeque::new(),
         }
     }
 
@@ -167,8 +173,16 @@ impl StreamParser {
 
         self.line_buffer.push_str(chunk);
 
-        // Process complete lines (newline-delimited JSON)
-        while let Some(newline_pos) = self.line_buffer.find('\n') {
+        loop {
+            if let Some(output) = self.pending_outputs.pop_front() {
+                outputs.push(output);
+                continue;
+            }
+
+            let Some(newline_pos) = self.line_buffer.find('\n') else {
+                break;
+            };
+
             let line: String = self.line_buffer.drain(..=newline_pos).collect();
             let line = line.trim();
 
@@ -217,7 +231,7 @@ impl StreamParser {
 
             // Streamed assistant message — contains content blocks (text, thinking, tool_use).
             // Claude Code emits one `assistant` event per content block addition.
-            // Structure: { type: "assistant", message: { content: [{type, text/thinking}], ... } }
+            // Structure: { type: "assistant", message: { content: [{type, ...}], ... } }
             "assistant" => {
                 let mut outputs = Vec::new();
 
@@ -252,39 +266,81 @@ impl StreamParser {
                                     }));
                                 }
                             }
-                            _ => {} // tool_use, etc. — handled elsewhere
+                            "tool_use" => {
+                                outputs.push(ParsedOutput::Event(BridgeEvent::ToolUse {
+                                    session_id: self.session_id.clone(),
+                                    tool_use_id: block
+                                        .get("id")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or_default()
+                                        .to_string(),
+                                    tool_name: block
+                                        .get("name")
+                                        .or_else(|| block.get("tool_name"))
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or("unknown")
+                                        .to_string(),
+                                    tool_input: block
+                                        .get("input")
+                                        .or_else(|| block.get("parameters"))
+                                        .cloned()
+                                        .unwrap_or(serde_json::Value::Null),
+                                }));
+                            }
+                            _ => {}
                         }
                     }
                 }
 
-                // Return first output, queue the rest. For simplicity, if there are
-                // multiple blocks in one event, return them all via the vec path.
                 if outputs.is_empty() {
                     Ok(None)
-                } else if outputs.len() == 1 {
-                    Ok(Some(outputs.remove(0)))
                 } else {
-                    // Multiple blocks — return first, push rest back.
-                    // Actually, our feed() collects into a Vec, so we'll handle
-                    // multi-block by returning just the first here and letting the
-                    // outer loop call again. But parse_line is called once per line.
-                    // So we need a different approach: store pending outputs.
-                    // For now, concatenate text chunks into one.
-                    let mut combined_text = String::new();
-                    for output in &outputs {
-                        if let ParsedOutput::Chunk(chunk) = output {
-                            combined_text.push_str(&chunk.content);
+                    let mut iter = outputs.into_iter();
+                    let first = iter.next();
+                    self.pending_outputs.extend(iter);
+                    Ok(first)
+                }
+            }
+
+            // SDK stream-json emits tool results nested inside `user.message.content[]`.
+            // We intentionally ignore plain text user content here because the app
+            // already persists user prompts on send.
+            "user" => {
+                let mut outputs = Vec::new();
+
+                if let Some(content_arr) = event
+                    .data
+                    .get("message")
+                    .and_then(|m| m.get("content"))
+                    .and_then(|c| c.as_array())
+                {
+                    for block in content_arr {
+                        let block_type = block.get("type").and_then(|t| t.as_str()).unwrap_or("");
+                        if block_type == "tool_result" {
+                            outputs.push(ParsedOutput::Event(BridgeEvent::ToolResult {
+                                session_id: self.session_id.clone(),
+                                tool_use_id: block
+                                    .get("tool_use_id")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or_default()
+                                    .to_string(),
+                                content: extract_tool_result_content(block),
+                                is_error: block
+                                    .get("is_error")
+                                    .and_then(|v| v.as_bool())
+                                    .unwrap_or(false),
+                            }));
                         }
                     }
-                    if !combined_text.is_empty() {
-                        Ok(Some(ParsedOutput::Chunk(MessageChunk {
-                            session_id: self.session_id.clone(),
-                            content: combined_text,
-                            token_count: None,
-                        })))
-                    } else {
-                        Ok(outputs.into_iter().next())
-                    }
+                }
+
+                if outputs.is_empty() {
+                    Ok(None)
+                } else {
+                    let mut iter = outputs.into_iter();
+                    let first = iter.next();
+                    self.pending_outputs.extend(iter);
+                    Ok(first)
                 }
             }
 
@@ -377,7 +433,7 @@ impl StreamParser {
             "tool_result" => Ok(Some(ParsedOutput::Event(BridgeEvent::ToolResult {
                 session_id: self.session_id.clone(),
                 tool_use_id: extract_string(&event.data, "tool_use_id").unwrap_or_default(),
-                content: extract_string(&event.data, "content").unwrap_or_default(),
+                content: extract_tool_result_content(&event.data),
                 is_error: event
                     .data
                     .get("is_error")
@@ -568,6 +624,34 @@ fn extract_errors_array(value: &serde_json::Value) -> Option<String> {
         return None;
     }
     Some(messages.join("; "))
+}
+
+fn extract_tool_result_content(value: &serde_json::Value) -> String {
+    match value.get("content") {
+        Some(serde_json::Value::String(s)) => s.clone(),
+        Some(serde_json::Value::Array(items)) => {
+            let parts: Vec<String> = items
+                .iter()
+                .filter_map(|item| match item {
+                    serde_json::Value::String(s) => Some(s.clone()),
+                    serde_json::Value::Object(map) => map
+                        .get("text")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
+                        .or_else(|| serde_json::to_string(item).ok()),
+                    _ => serde_json::to_string(item).ok(),
+                })
+                .collect();
+            parts.join("\n")
+        }
+        Some(serde_json::Value::Object(map)) => map
+            .get("text")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+            .or_else(|| serde_json::to_string(&serde_json::Value::Object(map.clone())).ok())
+            .unwrap_or_default(),
+        _ => String::new(),
+    }
 }
 
 #[cfg(test)]
@@ -818,6 +902,73 @@ mod tests {
                 assert_eq!(*cache_read_tokens, 100);
             }
             _ => panic!("Expected UsageUpdate event"),
+        }
+    }
+
+    #[test]
+    fn parse_assistant_embedded_tool_use_and_text_blocks() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_1","name":"web_search","input":{"query":"chief wiggum"}},{"type":"text","text":"Found results"}]}}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 2);
+
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::ToolUse {
+                tool_use_id,
+                tool_name,
+                tool_input,
+                ..
+            }) => {
+                assert_eq!(tool_use_id, "toolu_1");
+                assert_eq!(tool_name, "web_search");
+                assert_eq!(tool_input["query"], "chief wiggum");
+            }
+            _ => panic!("Expected ToolUse event first"),
+        }
+
+        match &outputs[1] {
+            ParsedOutput::Chunk(chunk) => {
+                assert_eq!(chunk.content, "Found results");
+            }
+            _ => panic!("Expected text chunk second"),
+        }
+    }
+
+    #[test]
+    fn parse_user_embedded_tool_result_block() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_1","content":"{\"status\":\"ok\"}","is_error":false}]}}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 1);
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+                ..
+            }) => {
+                assert_eq!(tool_use_id, "toolu_1");
+                assert_eq!(content, "{\"status\":\"ok\"}");
+                assert!(!is_error);
+            }
+            _ => panic!("Expected ToolResult event"),
+        }
+    }
+
+    #[test]
+    fn parse_user_embedded_tool_result_content_array() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_2","content":[{"type":"text","text":"line 1"},"line 2"]}]}}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 1);
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::ToolResult { content, .. }) => {
+                assert_eq!(content, "line 1\nline 2");
+            }
+            _ => panic!("Expected ToolResult event"),
         }
     }
 
