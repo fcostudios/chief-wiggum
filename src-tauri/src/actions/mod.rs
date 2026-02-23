@@ -5,6 +5,8 @@
 
 pub mod scanner;
 pub mod bridge;
+pub mod event_loop;
+pub mod manager;
 
 use serde::{Deserialize, Serialize};
 
