@@ -89,6 +89,47 @@
 }
 ```
 
+### Schema v2 (Nested Epics — Current Practice)
+
+The example above is the original/legacy shape. The current `handover.json` in this repo
+uses a **hybrid schema** with nested epic sections for active planning work.
+
+#### Canonical status locations (current)
+
+- Top-level summary fields remain canonical:
+  - `last_updated`, `last_updated_by`
+  - `recommended_next`
+  - `critical_path`
+  - `warnings`
+  - `notes`
+  - `environment`
+- Active work is often tracked under nested epic blocks (not only top-level `tasks`), for example:
+  - `settings_i18n_epic.CHI-120.tasks.CHI-124`
+  - `context_intelligence_epic.CHI-121.tasks.CHI-125`
+  - `ux_hardening_epic.CHI-129.tasks.CHI-135`
+  - `project_actions_epic.CHI-138.tasks.CHI-139`
+- Top-level `epics` / `tasks` may still exist for older work and should be treated as
+  **legacy-compatible**, not the only source of task state.
+
+#### Phase semantics
+
+- `phase.name` may continue to reference the primary Linear project anchor (for example
+  `"Phase 2: Make It Real"`) even while `notes` / `critical_path` describe Phase 3 execution.
+- When in doubt, use `notes`, nested epic sections, and `recommended_next` as the current
+  execution picture.
+
+#### session_work_log shape
+
+- `session_work_log` is currently a **keyed object/map** (`Record<string, WorkLogEntry>`),
+  not an array. Tools should not assume array indexing.
+
+#### Claude Code update checklist (Schema v2)
+
+When completing a task, update both:
+
+1. The task entry in its actual location (nested epic section if present)
+2. Top-level summary fields (`last_updated`, `last_updated_by`, `notes`, `critical_path`, `recommended_next`) when execution state changes
+
 ---
 
 ## Workflows
@@ -97,7 +138,7 @@
 
 1. Cowork picks next task from `recommended_next` or Linear
 2. Cowork updates `CLAUDE.md` → "Active Task" section with task details and spec references
-3. Cowork updates `handover.json` → task status to `"in_progress"`, `assigned_to: "claude-code"`
+3. Cowork updates `handover.json` → task status to `"in_progress"` (in the task's actual location; often a nested epic section), `assigned_to: "claude-code"` where applicable
 4. Cowork updates Linear issue → "In Progress" status
 5. User opens Claude Code in the project directory
 6. Claude Code reads `CLAUDE.md` automatically, sees the assigned task
@@ -113,6 +154,7 @@
    - `completed_at` → current timestamp
    - `files` → list of files created/modified
    - `notes` → summary of what was done
+   - Update the task in its actual location (nested epic section if present), not only top-level `tasks`
 4. Claude Code updates `recommended_next` based on the dependency graph
 5. Next time Cowork opens, it reads `handover.json` and:
    - Updates Linear issues to "Done"
@@ -141,6 +183,7 @@
 
 1. **Never overwrite the other's in-progress work.** Check `handover.json` before starting.
 2. **Always update `handover.json` after changing task status.** This is the coordination mechanism.
+   - In Schema v2, this includes nested epic task entries plus top-level summary fields when they change.
 3. **`CLAUDE.md` is the human-readable briefing.** Keep it concise and up-to-date.
 4. **`handover.json` is the machine-readable state.** Keep it structured and complete.
 5. **Linear is the source of truth for requirements.** Both tools defer to Linear issue descriptions.
