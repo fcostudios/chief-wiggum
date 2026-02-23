@@ -61,11 +61,11 @@ Every good project needs a codename that has absolutely nothing to do with what 
 
 Grab the latest release for your platform:
 
-| Platform | Download |
-|----------|----------|
-| macOS (Universal) | [`.dmg`](https://github.com/fcostudios/chief-wiggum/releases/latest) |
-| Windows | [`.msi`](https://github.com/fcostudios/chief-wiggum/releases/latest) |
-| Linux | [`.AppImage`](https://github.com/fcostudios/chief-wiggum/releases/latest) |
+| Platform          | Download                                                                  |
+| ----------------- | ------------------------------------------------------------------------- |
+| macOS (Universal) | [`.dmg`](https://github.com/fcostudios/chief-wiggum/releases/latest)      |
+| Windows           | [`.msi`](https://github.com/fcostudios/chief-wiggum/releases/latest)      |
+| Linux             | [`.AppImage`](https://github.com/fcostudios/chief-wiggum/releases/latest) |
 
 ### Build From Source
 
@@ -123,47 +123,70 @@ npm run tauri build
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+B` | Toggle sidebar |
-| `Cmd+Shift+B` | Toggle details panel |
-| `Cmd+\`` | Toggle terminal / conversation |
-| `Cmd+M` | Cycle model (Sonnet → Opus → Haiku) |
+| Shortcut      | Action                                |
+| ------------- | ------------------------------------- |
+| `Cmd+B`       | Toggle sidebar                        |
+| `Cmd+Shift+B` | Toggle details panel                  |
+| `Cmd+\``      | Toggle terminal / conversation        |
+| `Cmd+M`       | Cycle model (Sonnet → Opus → Haiku)   |
 | `Cmd+Shift+Y` | Toggle YOLO Mode (you've been warned) |
-| `Cmd+1-4` | Switch views |
-| `Enter` | Send message |
-| `Shift+Enter` | New line in message |
+| `Cmd+1-4`     | Switch views                          |
+| `Enter`       | Send message                          |
+| `Shift+Enter` | New line in message                   |
 
 ---
 
 ## Project Status
 
-**Phase 1: Foundation** — Complete.
+**Status snapshot (February 23, 2026):**
+- **Phase 1: Foundation** — Complete
+- **Phase 2: Make It Real (core epics)** — Complete
+- **Phase 3: Agent SDK Integration / Advanced UX** — In progress (partial delivery)
 
-All core scaffolding, CLI bridge, and UI components are built and tested. 64 Rust tests passing, CI/CD pipeline on GitHub Actions, cross-platform release workflow ready.
+Latest verified snapshot:
+- **144 Rust tests passing**
+- Frontend checks pass (`typecheck`, `lint`, `build`)
+- DB schema version: **v3**
+- CI + release workflows are configured
 
-| Epic | Tasks | Status |
-|------|-------|--------|
-| Core Scaffolding | 5/5 | Done |
-| CLI Bridge | 4/4 | Done |
-| Basic UI | 9/9 | Done |
+### Phase Progress
 
-**Next up:** Phase 2 — Advanced Features (multi-agent dashboard, diff viewer, cost budgets, MCP management).
+| Phase                         | Status             | Notes                                                                      |
+| ----------------------------- | ------------------ | -------------------------------------------------------------------------- |
+| Phase 1 — Foundation          | Done               | Core scaffolding, CLI bridge, persistence, and base UI shipped             |
+| Phase 2 — Make It Real        | Done (core epics)  | Core product UX and workflows delivered; polish work continues in follow-up epics |
+| Phase 3 — Agent SDK Integration | In Progress      | `CHI-101` (Agent SDK migration) remains the major pending architecture milestone |
+
+### Recently Shipped (high impact)
+
+- **Slash commands (Phase A)** — command discovery + inline `/` autocomplete (`CHI-106`, `CHI-107`)
+- **File Explorer + `@` mentions** — file tree, preview, code-range selection, prompt context assembly (`CHI-114` / `CHI-115..119`)
+- **Inline tool diff previews** — conversation diff preview + "Open in Diff" bridge (`CHI-92`)
+- **Sidebar polish additions** — session actions menu + inline rename + duplicate (`CHI-86`)
+- **Platform feel improvements** — macOS vibrancy chrome enhancements (`CHI-69`)
+
+### What's Next
+
+- **CHI-101** — Agent SDK control protocol migration (high-priority architectural upgrade)
+- Follow-up Phase 3 epics already defined in Linear/specs:
+  - **CHI-120** Settings & i18n
+  - **CHI-121** Context Intelligence
+  - **CHI-129** UX Hardening
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Desktop framework | Tauri v2 | Native webview, tiny footprint, Rust security |
-| Frontend | SolidJS 2.x | Fine-grained reactivity, ~7 KB, no VDOM |
-| Styling | TailwindCSS v4 | Utility-first, dark mode native |
-| Terminal | xterm.js + WebGL | GPU-accelerated, full PTY support |
-| Backend runtime | Tokio | Async Rust, battle-tested |
-| Database | SQLite (rusqlite) | Embedded, zero-config, WAL mode |
-| Process management | portable-pty | Cross-platform PTY spawning |
-| CI/CD | GitHub Actions | Matrix builds (macOS, Windows, Ubuntu) |
+| Layer              | Technology        | Why                                           |
+| ------------------ | ----------------- | --------------------------------------------- |
+| Desktop framework  | Tauri v2          | Native webview, tiny footprint, Rust security |
+| Frontend           | SolidJS 2.x       | Fine-grained reactivity, ~7 KB, no VDOM       |
+| Styling            | TailwindCSS v4    | Utility-first, dark mode native               |
+| Terminal           | xterm.js + WebGL  | GPU-accelerated, full PTY support             |
+| Backend runtime    | Tokio             | Async Rust, battle-tested                     |
+| Database           | SQLite (rusqlite) | Embedded, zero-config, WAL mode               |
+| Process management | portable-pty      | Cross-platform PTY spawning                   |
+| CI/CD              | GitHub Actions    | Matrix builds (macOS, Windows, Ubuntu)        |
 
 ---
 
@@ -171,7 +194,7 @@ All core scaffolding, CLI bridge, and UI components are built and tested. 64 Rus
 
 We welcome contributions. Whether you're fixing a typo or adding a whole new feature, the process is the same:
 
-1. Check the [Linear project board](https://linear.app/chief-wiggum/project/phase-1-foundation-ba6f471a516b) for open issues
+1. Check the [Linear team board](https://linear.app/chief-wiggum/team/CHI/all) for open issues
 2. Fork the repo and create a branch: `chi-{number}-{slug}`
 3. Read `CLAUDE.md` — it's the auto-briefing for any coding session (human or AI)
 4. Read `docs/guides/GUIDE-001-coding-standards.md` — the non-negotiable rules
@@ -186,15 +209,15 @@ We welcome contributions. Whether you're fixing a typo or adding a whole new fea
 
 All specs and guides live in `docs/`:
 
-| Document | What it covers |
-|----------|---------------|
-| `SPEC-001` | Product requirements — the "what" |
-| `SPEC-002` | Design system tokens — colors, spacing, typography |
-| `SPEC-003` | UX design — screens, flows, interactions |
-| `SPEC-004` | Architecture — modules, IPC contracts, types |
-| `SPEC-005` | Data export and migration |
-| `GUIDE-001` | Coding standards — the law |
-| `GUIDE-002` | Workflow and Linear integration |
+| Document    | What it covers                                     |
+| ----------- | -------------------------------------------------- |
+| `SPEC-001`  | Product requirements — the "what"                  |
+| `SPEC-002`  | Design system tokens — colors, spacing, typography |
+| `SPEC-003`  | UX design — screens, flows, interactions           |
+| `SPEC-004`  | Architecture — modules, IPC contracts, types       |
+| `SPEC-005`  | Data export and migration                          |
+| `GUIDE-001` | Coding standards — the law                         |
+| `GUIDE-002` | Workflow and Linear integration                    |
 
 ---
 
