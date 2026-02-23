@@ -247,7 +247,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
-**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122 (settings persistence backend + TS types), CHI-123 (file explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), CHI-132 (virtualized `ConversationView` with jump-to-latest), and CHI-139..143 (Project Actions MVP: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline). Current validation snapshot: 218 Rust tests pass; frontend format/typecheck/lint/build pass.
+**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122 (settings persistence backend + TS types), CHI-123 (file explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), CHI-132 (virtualized `ConversationView` with jump-to-latest), and CHI-138 (Project Actions epic complete: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline, statusbar/palette integration, custom action configuration). Current validation snapshot: 224 Rust tests pass; frontend format/typecheck/lint/build pass.
 
 ### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
 
@@ -282,7 +282,7 @@ Builds on CHI-104's per-session state and non-destructive switching. See SPEC-00
 
 Five incremental layers: backend scanner → file tree → @-mention → preview → range selection. Token-aware context assembly, gitignore-respecting, reuses CommandPalette fuzzy search. See SPEC-003 §4.15, §10.9 and SPEC-004 §4.4.9, §5.9.
 
-### Epic CHI-138: Project Actions — AI-Aware Command Runner (Phase 3, In Progress)
+### Epic CHI-138: Project Actions — AI-Aware Command Runner (Phase 3) — DONE
 
 | Task    | Priority | Status   | Description                                                        |
 | ------- | -------- | -------- | ------------------------------------------------------------------ |
@@ -291,10 +291,10 @@ Five incremental layers: backend scanner → file tree → @-mention → preview
 | CHI-141 | Urgent   | **Done** | Log-to-Agent Pipeline — `/run` and Ask AI output → conversation     |
 | CHI-142 | High     | **Done** | Actions Sidebar Panel — discovery, start/stop/restart, live status  |
 | CHI-143 | High     | **Done** | Action Output View — streaming logs in DetailsPanel                 |
-| CHI-144 | Medium   | Todo     | StatusBar & Command Palette Integration                             |
-| CHI-145 | Medium   | Todo     | Custom Action Configuration                                         |
+| CHI-144 | Medium   | **Done** | StatusBar & Command Palette Integration                             |
+| CHI-145 | Medium   | **Done** | Custom Action Configuration                                         |
 
-The Project Actions MVP is now usable end-to-end: backend multi-format discovery (`package.json`, `Makefile`, `Cargo.toml`, `docker-compose`, `.claude/actions.json`), concurrent action process management, `/run` slash command integration, sidebar controls, and a DetailsPanel output stream with an `Ask AI` handoff path. Next work extends discoverability and custom configuration (CHI-144/145).
+The Project Actions epic is now usable end-to-end: backend multi-format discovery (`package.json`, `Makefile`, `Cargo.toml`, `docker-compose`, `.claude/actions.json`), concurrent action process management, `/run` slash command integration, sidebar controls, StatusBar + Command Palette quick controls, a DetailsPanel output stream with an `Ask AI` handoff path, and inline custom action configuration (advanced fields + argument prompt support).
 
 ---
 

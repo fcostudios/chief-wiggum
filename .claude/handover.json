@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T19:46:00Z",
+  "last_updated": "2026-02-23T21:08:52Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1673,7 +1673,7 @@
   "project_actions_epic": {
     "CHI-138": {
       "title": "Project Actions — AI-Aware Command Runner",
-      "status": "in_progress",
+      "status": "done",
       "priority": "Urgent",
       "linear_id": "8db84aff-b9e5-42ac-9cdf-3abac8dab2bc",
       "differentiators": [
@@ -1746,23 +1746,29 @@
         },
         "CHI-144": {
           "title": "StatusBar & Command Palette Integration",
-          "status": "todo",
+          "status": "done",
           "priority": "Medium",
           "linear_id": "7d6d4a2d-8bad-45ec-9312-4798493fef15",
           "dependencies": [
             "CHI-139",
             "CHI-140"
-          ]
+          ],
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T20:06:14Z",
+          "completed_at": "2026-02-23T20:23:25Z"
         },
         "CHI-145": {
           "title": "Custom Action Configuration",
-          "status": "todo",
+          "status": "done",
           "priority": "Medium",
           "linear_id": "f3cddd94-a924-4c62-950f-480a179ee19f",
           "dependencies": [
             "CHI-139",
             "CHI-142"
-          ]
+          ],
+          "assigned_to": "claude-code",
+          "started_at": "2026-02-23T20:23:25Z",
+          "completed_at": "2026-02-23T21:08:52Z"
         }
       },
       "critical_path": "CHI-139 → CHI-140 → CHI-141 → CHI-142/CHI-143 → CHI-144/CHI-145"
@@ -1770,15 +1776,13 @@
   },
   "recommended_next": [
     "CHI-98",
-    "CHI-144",
     "CHI-87",
     "CHI-97",
     "CHI-99",
-    "CHI-145",
     "CHI-88",
     "CHI-100"
   ],
-  "critical_path": "Focus: close 3 epics. CHI-138 (Project Actions) needs CHI-144 + CHI-145. CHI-65 (Sidebar Polish) needs CHI-87 + CHI-88. CHI-93 (Log Collector) needs CHI-97 + CHI-98 + CHI-99 + CHI-100. Total: 8 tasks. Parallel tracks: Track A (CHI-98 + CHI-97 + CHI-99 backend/frontend logging), Track B (CHI-144 + CHI-145 actions polish), Track C (CHI-87 + CHI-88 sidebar polish). CHI-100 depends on CHI-98.",
+  "critical_path": "Focus: close 2 epics plus logging foundation. CHI-65 (Sidebar Polish) needs CHI-87 + CHI-88. CHI-93 (Log Collector) needs CHI-97 + CHI-98 + CHI-99 + CHI-100. Parallel tracks: Track A (CHI-98 + CHI-97 + CHI-99 backend/frontend logging), Track B (CHI-87 + CHI-88 sidebar polish). CHI-100 depends on CHI-98.",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
@@ -1794,8 +1798,8 @@
       "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec, §10.8 Split Pane spec. v2.2: Added §4.15 File Explorer & @-Mention Context Flow, §10.9 File Explorer & @-Mention Context System spec. v2.3: Added §3.5 Settings Screen, §4.16 Settings Flow, §4.17 Context Intelligence Flow, §10.10-10.12 (Settings, Context Intelligence, UX Hardening)"
     },
     "SPEC-004": {
-      "version": "2.6",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category)."
+      "version": "2.7",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata)."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1963,10 +1967,43 @@
       ],
       "tests": "Automated verification passed: cargo check, cargo test (218), cargo clippy -D warnings, npx tsc --noEmit, npx eslint ., npx vite build.",
       "verified": "Manual app verification pending on main (Actions sidebar, /run slash command, output streaming, Ask AI handoff)."
+    },
+    "2026-02-23_chi144_chi145": {
+      "description": "CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD, inline editor advanced fields, argument templates + inline run prompt)",
+      "changes": [
+        {
+          "task": "CHI-144 statusbar and command palette action integrations",
+          "files_modified": [
+            "src/stores/actionStore.ts",
+            "src/stores/uiStore.ts",
+            "src/lib/keybindings.ts",
+            "src/components/common/CommandPalette.tsx",
+            "src/components/layout/StatusBar.tsx",
+            "src/App.tsx",
+            "src/lib/types.ts"
+          ]
+        },
+        {
+          "task": "CHI-145 custom action CRUD + inline editor/prompt",
+          "files_modified": [
+            "src-tauri/src/actions/mod.rs",
+            "src-tauri/src/actions/scanner.rs",
+            "src-tauri/src/commands/actions.rs",
+            "src/components/actions/ActionEditor.tsx",
+            "src/components/actions/ActionRow.tsx",
+            "src/components/actions/ActionsPanel.tsx",
+            "src/components/actions/ActionArgPrompt.tsx",
+            "src/stores/actionStore.ts",
+            "src/lib/types.ts"
+          ]
+        }
+      ],
+      "tests": "Automated verification passed: cargo check, cargo test (224), cargo clippy -D warnings, npm run format:check, npm run typecheck, npm run lint, npm run build.",
+      "verified": "Manual app QA checklist for CHI-145 deferred to interactive testing on main (custom action add/edit/delete/customize, advanced fields persistence, arg prompt run flow)."
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. Phase 3 in progress: CHI-101 (Agent SDK) DONE, CHI-108 (SDK slash discovery) DONE, CHI-96 (Diagnostic Bundle) DONE, CHI-122 (Settings Backend) DONE, CHI-123 (File Explorer Quick Wins) DONE, CHI-132 (Conversation Virtualization) DONE. 4 active epics: CHI-120 Settings & i18n (1/5 done), CHI-121 Context Intelligence (1/5 done), CHI-129 UX Hardening (1/5 done), CHI-138 Project Actions (5/7 done, MVP shipped). 218 Rust tests pass. DB schema v3 (v4 planned for action tables).",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. Phase 3 in progress: CHI-101 (Agent SDK) DONE, CHI-108 (SDK slash discovery) DONE, CHI-96 (Diagnostic Bundle) DONE, CHI-122 (Settings Backend) DONE, CHI-123 (File Explorer Quick Wins) DONE, CHI-132 (Conversation Virtualization) DONE, CHI-138 (Project Actions) DONE. 3 active epics: CHI-120 Settings & i18n (1/5 done), CHI-121 Context Intelligence (1/5 done), CHI-129 UX Hardening (1/5 done). 224 Rust tests pass. DB schema v3 (v4 planned for action tables).",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -1974,7 +2011,7 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. 218 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3. Agent SDK bidirectional JSONL protocol live. SDK slash discovery integrated. Settings backend + File explorer quick wins + Conversation virtualization done. Project Actions MVP (CHI-139..143) shipped. 4 active epics with 17 remaining tasks."
+    "notes": "Full toolchain ready. 224 Rust tests pass. Frontend checks all pass (format/typecheck/lint/build). CI + release workflows on GitHub Actions. DB schema v3. Agent SDK bidirectional JSONL protocol live. SDK slash discovery + diagnostic bundle export done. Settings backend + File explorer quick wins + Conversation virtualization done. Project Actions epic (CHI-138) complete with statusbar/palette integration and inline custom action configuration. 3 active epics remain."
   },
   "metadata": {
     "last_updated": "2026-02-23T00:00:00Z"

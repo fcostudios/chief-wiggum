@@ -198,7 +198,7 @@ chief-wiggum/
 | `commands/cli.rs` | CLI detection: get_cli_info (checks PATH for `claude` binary). | — | Phase 2 |
 | `commands/project.rs` | Folder picker + project CRUD: pick_project_folder, create_project, list_projects. | `db/`, `tauri-plugin-dialog` | Phase 2 |
 | `commands/cost.rs` | Cost tracking IPC: get_session_cost, set_budget. | `cost/`, `db/` | Phase 2 |
-| `commands/actions.rs` | Project Actions IPC: discover/start/stop/restart/list running actions. | `actions/`, `db/`, `tauri` | Phase 3 |
+| `commands/actions.rs` | Project Actions IPC: discover/start/stop/restart/list running actions + custom action CRUD (`.claude/actions.json`). | `actions/`, `db/`, `tauri` | Phase 3 |
 | `bridge/process.rs` | Spawn Claude Code CLI via PTY. Implements `BridgeInterface` trait. | `portable-pty`, `tokio` | Phase 1 |
 | `bridge/parser.rs` | Parse structured CLI output into `BridgeEvent` variants. | — | Phase 1 |
 | `bridge/adapter.rs` | Versioned parser selection via `AdapterRegistry`. | — | Phase 1 |
@@ -224,7 +224,7 @@ chief-wiggum/
 | `agentStore` | Agent list, states, task assignments | Tauri events from bridge | Future |
 | `contextStore` | Token utilization, zone, compaction state | Tauri events from bridge parser | Future |
 | `settingsStore` | User preferences, model defaults | IPC commands (read/write) | Future |
-| `actionStore` | Discovered actions, running states, output buffers, selected action output | Actions IPC + Tauri `action:*` events | Phase 3 |
+| `actionStore` | Discovered actions, running states, output buffers, selected action output, custom action CRUD helpers, recent action events | Actions IPC + Tauri `action:*` events | Phase 3 |
 | `mcpStore` | Server list, connection status, tools | IPC commands + events | Future |
 
 ---
@@ -627,20 +627,26 @@ interface RedactionSummary {
 }
 ```
 
-#### 4.4.11 Project Actions IPC (Phase 3 — CHI-138 / CHI-139..CHI-143)
+#### 4.4.11 Project Actions IPC (Phase 3 — CHI-138 / CHI-139..CHI-145)
 
 ```typescript
 // Commands
-export const discoverActions = (project_id: string) =>
-  invoke<ActionDefinition[]>('discover_actions', { project_id });
-export const startAction = (project_id: string, action_name: string) =>
-  invoke<void>('start_action', { project_id, action_name });
-export const stopAction = (project_id: string, action_id: string) =>
-  invoke<void>('stop_action', { project_id, action_id });
-export const restartAction = (project_id: string, action_id: string) =>
-  invoke<void>('restart_action', { project_id, action_id });
+export const discoverActions = (project_path: string) =>
+  invoke<ActionDefinition[]>('discover_actions', { project_path });
+export const startAction = (action_id: string, command: string, working_dir: string) =>
+  invoke<void>('start_action', { action_id, command, working_dir });
+export const stopAction = (action_id: string) =>
+  invoke<void>('stop_action', { action_id });
+export const restartAction = (action_id: string, command: string, working_dir: string) =>
+  invoke<void>('restart_action', { action_id, command, working_dir });
 export const listRunningActions = () =>
   invoke<RunningActionInfo[]>('list_running_actions');
+export const readCustomActions = (project_path: string) =>
+  invoke<ActionDefinition[]>('read_custom_actions', { project_path });
+export const saveCustomAction = (project_path: string, action: ActionDefinition) =>
+  invoke<void>('save_custom_action', { project_path, action });
+export const deleteCustomAction = (project_path: string, action_name: string) =>
+  invoke<void>('delete_custom_action', { project_path, action_name });
 
 // Events
 listen<ActionOutputEvent>('action:output', (event) => {
@@ -657,32 +663,45 @@ interface ActionDefinition {
   id: string;
   name: string;
   command: string;
-  source: 'package_json' | 'makefile' | 'cargo_toml' | 'docker_compose' | 'custom';
+  working_dir: string;
+  source: 'package_json' | 'makefile' | 'cargo_toml' | 'docker_compose' | 'claude_actions';
   category: 'build' | 'test' | 'dev' | 'lint' | 'deploy' | 'custom';
-  cwd: string | null;
+  description: string | null;
+  is_long_running: boolean;
+  before_commands?: string[];
+  after_commands?: string[];
+  env_vars?: Record<string, string>;
+  args?: ActionArgTemplate[];
 }
 
 interface RunningActionInfo {
   action_id: string;
-  project_id: string;
-  name: string;
-  started_at: string;
+  status: 'starting' | 'running' | 'completed' | 'failed' | 'stopped' | 'idle';
 }
 
 interface ActionOutputEvent {
   action_id: string;
-  stream: 'stdout' | 'stderr';
-  chunk: string;
+  line: string;
+  is_error: boolean;
 }
 
 interface ActionCompletedEvent {
   action_id: string;
-  exit_code: number;
+  exit_code: number | null;
 }
 
 interface ActionFailedEvent {
   action_id: string;
-  error: string;
+  exit_code: number | null;
+}
+
+interface ActionArgTemplate {
+  name: string;
+  type: 'string' | 'enum';
+  description?: string;
+  required?: boolean;
+  options?: string[];
+  default?: string;
 }
 ```
 
