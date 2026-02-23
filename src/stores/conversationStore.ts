@@ -68,6 +68,18 @@ export function setSessionStatus(sessionId: string, status: ProcessStatus): void
   }
 }
 
+/** Map backend bridge liveness status to UI execution status (SDK bridges stay alive when idle). */
+function bridgeToUiStatus(bridge: ActiveBridgeInfo): ProcessStatus {
+  if (bridge.process_status === 'running') {
+    // In SDK mode, "running" often means the persistent bridge is alive, not that a turn is active.
+    return bridge.has_buffered_events ? 'running' : 'not_started';
+  }
+  if (bridge.process_status === 'starting') {
+    return bridge.has_buffered_events ? 'starting' : 'not_started';
+  }
+  return bridge.process_status as ProcessStatus;
+}
+
 /** Load messages for a session from the database. */
 export async function loadMessages(sessionId: string): Promise<void> {
   setState('messages', []);
@@ -207,6 +219,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         typewriter.reset();
       }
 
+      // CHI-101 SDK sessions are persistent; mark the turn as complete in the UI even though
+      // the underlying bridge process remains alive for follow-up messages.
+      setSessionStatus(sessionId, 'exited');
+
       // Persist assistant message to DB.
       // cost_cents arrives as f64 from the backend (usd * 100.0) but the DB column
       // and save_message IPC expect i64. Round to avoid serde deserialization failure.
@@ -324,7 +340,8 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       model: string;
     }>('cli:init', (event) => {
       if (event.payload.session_id !== sessionId) return;
-      setSessionStatus(sessionId, 'running');
+      // `cli:init` means the bridge is alive; in SDK mode it remains alive between turns.
+      // Avoid marking the UI as "Running" based solely on bridge liveness.
       updateSessionCliId(sessionId, event.payload.cli_session_id).catch((err) =>
         devWarn('Failed to update CLI session ID:', err),
       );
@@ -741,7 +758,7 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
 
   // Update per-session statuses for all active bridges
   for (const bridge of activeBridges) {
-    setSessionStatus(bridge.session_id, bridge.process_status as ProcessStatus);
+    setSessionStatus(bridge.session_id, bridgeToUiStatus(bridge));
   }
 
   // For the active session, set up listeners and replay buffer
@@ -765,8 +782,8 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
         }
       }
 
-      // Restore UI streaming state if process is still running
-      if (activeBridge.process_status === 'running' || activeBridge.process_status === 'starting') {
+      // Restore UI streaming state only when buffered events suggest work was in progress.
+      if (activeBridge.has_buffered_events) {
         setState('isLoading', true);
       }
     }
@@ -833,6 +850,7 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
       setState('isStreaming', false);
       setState('isLoading', false);
       typewriter.reset();
+      setSessionStatus(sessionId, 'exited');
       break;
     }
 
@@ -928,7 +946,6 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
 
     case 'CliInit':
       if (event.cli_session_id) {
-        setSessionStatus(sessionId, 'running');
         updateSessionCliId(sessionId, event.cli_session_id).catch(() => {});
       }
       break;
