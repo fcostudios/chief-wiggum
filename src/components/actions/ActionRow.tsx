@@ -15,6 +15,10 @@ import {
 
 interface ActionRowProps {
   action: ActionDefinition;
+  onRun?: (action: ActionDefinition) => void;
+  onEdit?: (action: ActionDefinition) => void;
+  onCustomize?: (action: ActionDefinition) => void;
+  onDelete?: (action: ActionDefinition) => void;
 }
 
 /** Category color mapping. */
@@ -72,6 +76,10 @@ const ActionRow: Component<ActionRowProps> = (props) => {
 
   function handlePlay(e: MouseEvent) {
     e.stopPropagation();
+    if (props.onRun) {
+      void props.onRun(props.action);
+      return;
+    }
     void startAction(props.action);
   }
 
@@ -84,6 +92,23 @@ const ActionRow: Component<ActionRowProps> = (props) => {
     e.stopPropagation();
     void restartAction(props.action);
   }
+
+  function handleEdit(e: MouseEvent) {
+    e.stopPropagation();
+    props.onEdit?.(props.action);
+  }
+
+  function handleCustomize(e: MouseEvent) {
+    e.stopPropagation();
+    props.onCustomize?.(props.action);
+  }
+
+  function handleDelete(e: MouseEvent) {
+    e.stopPropagation();
+    props.onDelete?.(props.action);
+  }
+
+  const isCustomAction = () => props.action.source === 'claude_actions';
 
   return (
     <div
@@ -119,11 +144,82 @@ const ActionRow: Component<ActionRowProps> = (props) => {
         </Show>
       </div>
 
-      <div
-        class="flex items-center gap-0.5 shrink-0"
-        classList={{ 'opacity-0 group-hover:opacity-100': !isRunning() }}
-        style={{ 'transition-duration': 'var(--duration-fast)' }}
-      >
+      <div class="flex items-center gap-1 shrink-0">
+        <div
+          class="flex items-center gap-1"
+          classList={{ 'opacity-0 group-hover:opacity-100': !isRunning() }}
+          style={{ 'transition-duration': 'var(--duration-fast)' }}
+        >
+          <Show
+            when={isCustomAction()}
+            fallback={
+              <Show when={props.onCustomize}>
+                <button
+                  class="px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors"
+                  style={{
+                    color: 'var(--color-text-tertiary)',
+                    border: '1px solid var(--color-border-secondary)',
+                    'transition-duration': 'var(--duration-fast)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--color-accent)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--color-text-tertiary)';
+                  }}
+                  onClick={handleCustomize}
+                  aria-label={`Customize ${props.action.name}`}
+                  title="Customize"
+                >
+                  Customize
+                </button>
+              </Show>
+            }
+          >
+            <Show when={props.onEdit}>
+              <button
+                class="px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  border: '1px solid var(--color-border-secondary)',
+                  'transition-duration': 'var(--duration-fast)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-tertiary)';
+                }}
+                onClick={handleEdit}
+                aria-label={`Edit ${props.action.name}`}
+                title="Edit"
+              >
+                Edit
+              </button>
+            </Show>
+            <Show when={props.onDelete}>
+              <button
+                class="px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  border: '1px solid var(--color-border-secondary)',
+                  'transition-duration': 'var(--duration-fast)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-error)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-tertiary)';
+                }}
+                onClick={handleDelete}
+                aria-label={`Remove ${props.action.name}`}
+                title="Remove"
+              >
+                Remove
+              </button>
+            </Show>
+          </Show>
+        </div>
         <Show
           when={isRunning()}
           fallback={

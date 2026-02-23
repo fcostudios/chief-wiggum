@@ -4,7 +4,7 @@
 import type { Component } from 'solid-js';
 import { For, Show, createSignal, createMemo } from 'solid-js';
 import { ChevronDown, ChevronRight, Plus, Search } from 'lucide-solid';
-import { actionState, saveCustomAction } from '@/stores/actionStore';
+import { actionState, deleteCustomAction, saveCustomAction } from '@/stores/actionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import type { ActionDefinition, ActionSource, CustomActionDraft } from '@/lib/types';
@@ -39,6 +39,10 @@ const ActionsPanel: Component = () => {
   const [collapsedGroups, setCollapsedGroups] = createSignal<Set<ActionSource>>(new Set());
   const [isAddingAction, setIsAddingAction] = createSignal(false);
   const [isSavingAction, setIsSavingAction] = createSignal(false);
+  const [editingRowActionId, setEditingRowActionId] = createSignal<string | null>(null);
+  const [editingRowOriginalName, setEditingRowOriginalName] = createSignal<string | null>(null);
+  const [editingRowDraft, setEditingRowDraft] = createSignal<Partial<CustomActionDraft> | null>(null);
+  const [pendingDeleteActionId, setPendingDeleteActionId] = createSignal<string | null>(null);
 
   const groupedActions = createMemo(() => {
     const query = searchQuery().toLowerCase();
@@ -97,6 +101,106 @@ const ActionsPanel: Component = () => {
     }
   }
 
+  async function handleSaveEditedAction(draft: CustomActionDraft) {
+    const activeProject = getActiveProject();
+    if (!activeProject) {
+      addToast('Select a project before editing a custom action', 'warning');
+      return;
+    }
+
+    setIsSavingAction(true);
+    try {
+      const originalName = editingRowOriginalName();
+      const normalizedDraft: CustomActionDraft = {
+        ...draft,
+        working_dir: draft.working_dir.trim() || activeProject.path,
+      };
+
+      await saveCustomAction(activeProject.path, normalizedDraft);
+      if (originalName && originalName !== normalizedDraft.name) {
+        await deleteCustomAction(activeProject.path, originalName);
+      }
+
+      setEditingRowActionId(null);
+      setEditingRowOriginalName(null);
+      setEditingRowDraft(null);
+      setPendingDeleteActionId(null);
+      addToast(`Saved custom action: ${normalizedDraft.name}`, 'success');
+    } catch (err) {
+      addToast(
+        `Failed to save action: ${err instanceof Error ? err.message : String(err)}`,
+        'error',
+      );
+    } finally {
+      setIsSavingAction(false);
+    }
+  }
+
+  function openEditAction(action: ActionDefinition) {
+    setIsAddingAction(false);
+    setPendingDeleteActionId(null);
+    setEditingRowActionId(action.id);
+    setEditingRowOriginalName(action.name);
+    setEditingRowDraft({
+      name: action.name,
+      command: action.command,
+      working_dir: action.working_dir,
+      category: action.category,
+      description: action.description,
+      is_long_running: action.is_long_running,
+      before_commands: action.before_commands,
+      after_commands: action.after_commands,
+      env_vars: action.env_vars,
+      args: action.args,
+    });
+  }
+
+  function openCustomizeAction(action: ActionDefinition) {
+    setIsAddingAction(false);
+    setPendingDeleteActionId(null);
+    setEditingRowActionId(action.id);
+    setEditingRowOriginalName(null);
+    setEditingRowDraft({
+      name: action.name,
+      command: action.command,
+      working_dir: action.working_dir,
+      category: action.category,
+      description: action.description,
+      is_long_running: action.is_long_running,
+      before_commands: action.before_commands,
+      after_commands: action.after_commands,
+      env_vars: action.env_vars,
+      args: action.args,
+    });
+  }
+
+  async function confirmDeleteAction(action: ActionDefinition) {
+    const activeProject = getActiveProject();
+    if (!activeProject) {
+      addToast('Select a project before removing a custom action', 'warning');
+      return;
+    }
+
+    setIsSavingAction(true);
+    try {
+      await deleteCustomAction(activeProject.path, action.name);
+      setPendingDeleteActionId(null);
+      if (editingRowActionId() === action.id) {
+        setEditingRowActionId(null);
+        setEditingRowOriginalName(null);
+        setEditingRowDraft(null);
+      }
+      addToast(`Removed custom action: ${action.name}`, 'success');
+    } catch (err) {
+      addToast(
+        `Failed to remove action: ${err instanceof Error ? err.message : String(err)}`,
+        'error',
+      );
+    } finally {
+      setIsSavingAction(false);
+    }
+  }
+
   return (
     <div class="flex flex-col h-full">
       <div class="px-2 py-2" style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
@@ -140,10 +244,10 @@ const ActionsPanel: Component = () => {
           <ActionEditor
             isSaving={isSavingAction()}
             initialDraft={{ working_dir: getActiveProject()?.path ?? '' }}
-            onSave={handleSaveAction}
-            onCancel={() => setIsAddingAction(false)}
-          />
-        </Show>
+          onSave={handleSaveAction}
+          onCancel={() => setIsAddingAction(false)}
+        />
+      </Show>
 
         <Show
           when={actionState.actions.length > 0}
@@ -199,7 +303,87 @@ const ActionsPanel: Component = () => {
                 </button>
 
                 <Show when={!collapsedGroups().has(source)}>
-                  <For each={actions}>{(action) => <ActionRow action={action} />}</For>
+                  <For each={actions}>
+                    {(action) => (
+                      <>
+                        <ActionRow
+                          action={action}
+                          onEdit={
+                            action.source === 'claude_actions'
+                              ? () => openEditAction(action)
+                              : undefined
+                          }
+                          onCustomize={
+                            action.source !== 'claude_actions'
+                              ? () => openCustomizeAction(action)
+                              : undefined
+                          }
+                          onDelete={
+                            action.source === 'claude_actions'
+                              ? () =>
+                                  setPendingDeleteActionId((prev) =>
+                                    prev === action.id ? null : action.id,
+                                  )
+                              : undefined
+                          }
+                        />
+
+                        <Show when={pendingDeleteActionId() === action.id}>
+                          <div
+                            class="mx-2 mb-2 rounded-md px-2 py-1.5 flex items-center justify-between gap-2"
+                            style={{
+                              background: 'var(--color-bg-secondary)',
+                              border: '1px solid var(--color-border-secondary)',
+                            }}
+                          >
+                            <span class="text-[11px]" style={{ color: 'var(--color-text-secondary)' }}>
+                              Remove <span class="font-mono">{action.name}</span>?
+                            </span>
+                            <div class="flex items-center gap-1">
+                              <button
+                                class="px-2 py-0.5 rounded text-[10px]"
+                                style={{
+                                  color: 'var(--color-text-tertiary)',
+                                  border: '1px solid var(--color-border-secondary)',
+                                }}
+                                onClick={() => setPendingDeleteActionId(null)}
+                                disabled={isSavingAction()}
+                              >
+                                No
+                              </button>
+                              <button
+                                class="px-2 py-0.5 rounded text-[10px] font-medium"
+                                style={{
+                                  color: 'white',
+                                  background: 'var(--color-error)',
+                                  opacity: isSavingAction() ? '0.7' : '1',
+                                }}
+                                onClick={() => void confirmDeleteAction(action)}
+                                disabled={isSavingAction()}
+                              >
+                                Yes
+                              </button>
+                            </div>
+                          </div>
+                        </Show>
+
+                        <Show when={editingRowActionId() === action.id && editingRowDraft()}>
+                          {(draft) => (
+                            <ActionEditor
+                              initialDraft={draft()}
+                              isSaving={isSavingAction()}
+                              onSave={handleSaveEditedAction}
+                              onCancel={() => {
+                                setEditingRowActionId(null);
+                                setEditingRowOriginalName(null);
+                                setEditingRowDraft(null);
+                              }}
+                            />
+                          )}
+                        </Show>
+                      </>
+                    )}
+                  </For>
                 </Show>
               </div>
             )}
