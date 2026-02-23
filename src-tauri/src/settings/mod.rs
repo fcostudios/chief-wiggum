@@ -3,6 +3,8 @@
 //! Settings are stored as a JSON file via `tauri-plugin-store` at platform-specific
 //! `app_config_dir()`. Schema-versioned for forward migration.
 
+pub mod validation;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
