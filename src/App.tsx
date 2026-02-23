@@ -1,10 +1,17 @@
 import type { Component } from 'solid-js';
-import { createEffect, onMount } from 'solid-js';
+import { createEffect, onCleanup, onMount } from 'solid-js';
 import MainLayout from '@/components/layout/MainLayout';
 import { detectCli } from '@/stores/cliStore';
 import { getActiveProject, loadProjects, projectState } from '@/stores/projectStore';
 import { loadCommands, startSdkCommandListener } from '@/stores/slashStore';
 import { reconnectAfterReload } from '@/stores/conversationStore';
+import {
+  setupActionListeners,
+  cleanupActionListeners,
+  syncRunningActions,
+  discoverActions,
+  clearActionCatalog,
+} from '@/stores/actionStore';
 import { sessionState } from '@/stores/sessionStore';
 
 const App: Component = () => {
@@ -14,6 +21,12 @@ const App: Component = () => {
     void projectState.activeProjectId;
     const projectPath = getActiveProject()?.path;
     void loadCommands(projectPath);
+
+    if (projectPath) {
+      void discoverActions(projectPath);
+    } else {
+      clearActionCatalog();
+    }
   });
 
   onMount(() => {
@@ -21,10 +34,23 @@ const App: Component = () => {
     loadProjects();
     void startSdkCommandListener();
 
+    void (async () => {
+      await setupActionListeners();
+      await syncRunningActions();
+      const projectPath = getActiveProject()?.path;
+      if (projectPath) {
+        void discoverActions(projectPath);
+      }
+    })();
+
     // Allow session store to load first, then reconnect to active CLI bridges
     setTimeout(async () => {
       await reconnectAfterReload(sessionState.activeSessionId);
     }, 100);
+  });
+
+  onCleanup(() => {
+    void cleanupActionListeners();
   });
 
   return <MainLayout />;

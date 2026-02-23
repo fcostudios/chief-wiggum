@@ -177,4 +177,11 @@ export async function syncRunningActions(): Promise<void> {
   }
 }
 
+/** Clear project-scoped action catalog (used on project switch/reset). */
+export function clearActionCatalog(): void {
+  setState('actions', []);
+  setState('isDiscovering', false);
+  setState('selectedActionId', null);
+}
+
 export { state as actionState };
