@@ -56,6 +56,8 @@ pub struct CliInitPayload {
     pub session_id: String,
     pub cli_session_id: String,
     pub model: String,
+    pub tools: Vec<String>,
+    pub mcp_servers: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,6 +96,7 @@ pub fn spawn_event_loop(
     bridge: Arc<dyn BridgeInterface>,
     mcp_cache: Arc<RwLock<HashSet<String>>>,
     runtimes: Arc<RwLock<HashMap<String, SessionRuntime>>>,
+    sdk_commands: Arc<RwLock<Vec<crate::slash::SlashCommand>>>,
     permission_manager: Option<PermissionManager>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
@@ -108,6 +111,7 @@ pub fn spawn_event_loop(
                         output,
                         &mcp_cache,
                         &runtimes,
+                        &sdk_commands,
                         &bridge,
                         &permission_manager,
                     )
@@ -138,7 +142,7 @@ pub fn spawn_event_loop(
 /// - "plugin:context7:context7" → "mcp__plugin_context7_context7"
 /// - "claude.ai/Linear" → "mcp__claude_ai_Linear"
 /// - "plugin:claude-mem:mcp-search" → "mcp__plugin_claude-mem_mcp-search"
-fn normalize_mcp_server_name(server_name: &str) -> String {
+pub(crate) fn normalize_mcp_server_name(server_name: &str) -> String {
     let normalized = server_name.replace([':', '.', '/', ' '], "_");
     format!("mcp__{}", normalized)
 }
@@ -154,12 +158,14 @@ fn extract_mcp_prefix(tool_name: &str) -> Option<String> {
 
 /// Map a BridgeOutput to the appropriate Tauri event emission.
 /// Also buffers each event into the session's `SessionRuntime` for HMR replay.
+#[allow(clippy::too_many_arguments)]
 async fn emit_bridge_output(
     app: &AppHandle,
     session_id: &str,
     output: BridgeOutput,
     mcp_cache: &Arc<RwLock<HashSet<String>>>,
     runtimes: &Arc<RwLock<HashMap<String, SessionRuntime>>>,
+    sdk_commands: &Arc<RwLock<Vec<crate::slash::SlashCommand>>>,
     bridge: &Arc<dyn BridgeInterface>,
     permission_manager: &Option<PermissionManager>,
 ) {
@@ -273,10 +279,26 @@ async fn emit_bridge_output(
                     }
                 }
 
+                // Convert SDK tools into slash commands for frontend discovery (CHI-108).
+                {
+                    let sdk_cmds = crate::slash::from_sdk_tools(&tools, &mcp_servers);
+                    if !sdk_cmds.is_empty() {
+                        tracing::info!(
+                            "Event loop [{}]: discovered {} SDK commands from system:init",
+                            session_id,
+                            sdk_cmds.len()
+                        );
+                    }
+                    let mut store = sdk_commands.write().await;
+                    *store = sdk_cmds;
+                }
+
                 let payload = CliInitPayload {
                     session_id: session_id.to_string(),
                     cli_session_id,
                     model,
+                    tools,
+                    mcp_servers,
                 };
                 if let Err(e) = app.emit("cli:init", &payload) {
                     tracing::warn!("Failed to emit cli:init: {}", e);

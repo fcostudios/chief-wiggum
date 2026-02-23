@@ -76,6 +76,7 @@ pub async fn start_session_cli(
             bridge,
             bridge_map.mcp_cache(),
             bridge_map.runtimes(),
+            bridge_map.sdk_commands_handle(),
             Some(permission_manager.inner().clone()),
         );
     }
@@ -260,6 +261,7 @@ pub async fn send_to_cli(
             bridge,
             bridge_map.mcp_cache(),
             bridge_map.runtimes(),
+            bridge_map.sdk_commands_handle(),
             None,
         );
     }

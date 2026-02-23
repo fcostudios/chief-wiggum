@@ -110,6 +110,8 @@ pub struct SessionBridgeMap {
     mcp_server_prefixes: Arc<RwLock<HashSet<String>>>,
     /// Per-session runtime state including event buffers for HMR resilience.
     session_runtimes: Arc<RwLock<HashMap<String, SessionRuntime>>>,
+    /// SDK-discovered slash commands captured from the latest `system:init`.
+    sdk_commands: Arc<RwLock<Vec<crate::slash::SlashCommand>>>,
     /// Maximum number of concurrent CLI sessions allowed.
     max_concurrent: usize,
 }
@@ -121,6 +123,7 @@ impl SessionBridgeMap {
             bridges: Arc::new(RwLock::new(HashMap::new())),
             mcp_server_prefixes: Arc::new(RwLock::new(HashSet::new())),
             session_runtimes: Arc::new(RwLock::new(HashMap::new())),
+            sdk_commands: Arc::new(RwLock::new(Vec::new())),
             max_concurrent: DEFAULT_MAX_CONCURRENT,
         }
     }
@@ -128,6 +131,16 @@ impl SessionBridgeMap {
     /// Get a clone of the MCP server prefix cache for passing to event loops.
     pub fn mcp_cache(&self) -> Arc<RwLock<HashSet<String>>> {
         self.mcp_server_prefixes.clone()
+    }
+
+    /// Get a clone of the SDK command store for event loop updates.
+    pub fn sdk_commands_handle(&self) -> Arc<RwLock<Vec<crate::slash::SlashCommand>>> {
+        self.sdk_commands.clone()
+    }
+
+    /// Get the latest SDK-discovered slash commands.
+    pub async fn get_sdk_commands(&self) -> Vec<crate::slash::SlashCommand> {
+        self.sdk_commands.read().await.clone()
     }
 
     /// Get the current cached MCP server prefixes as --allowedTools entries.
