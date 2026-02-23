@@ -4,13 +4,12 @@
 
 import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
-import { invoke } from '@tauri-apps/api/core';
 import { uiState } from '@/stores/uiStore';
 import { cliState } from '@/stores/cliStore';
 import { conversationState } from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
-import { addToast } from '@/stores/toastStore';
-import type { BundleExportResult, ProcessStatus } from '@/lib/types';
+import { openExportDialog } from '@/stores/diagnosticsStore';
+import type { ProcessStatus } from '@/lib/types';
 
 function processStatusDisplay(status: ProcessStatus): { label: string; color: string } {
   switch (status) {
@@ -54,28 +53,6 @@ const StatusBar: Component = () => {
         sessionId !== activeId && (status === 'running' || status === 'starting'),
     ).length;
   };
-
-  async function handleExportDiagnostics(): Promise<void> {
-    try {
-      const result = await invoke<BundleExportResult>('export_diagnostic_bundle');
-      const sizeMb = (result.size_bytes / 1024 / 1024).toFixed(2);
-      addToast(
-        `Diagnostic bundle exported (${result.log_entry_count} logs, ${sizeMb} MB)\n${result.path}`,
-        'success',
-        {
-          label: 'Copy Path',
-          onClick: () => {
-            navigator.clipboard
-              .writeText(result.path)
-              .then(() => addToast('Copied diagnostic bundle path', 'success'))
-              .catch(() => addToast('Failed to copy diagnostic bundle path', 'error'));
-          },
-        },
-      );
-    } catch (err) {
-      addToast(`Failed to export diagnostics: ${String(err)}`, 'error');
-    }
-  }
 
   return (
     <footer
@@ -185,7 +162,7 @@ const StatusBar: Component = () => {
           onMouseLeave={(e) => {
             e.currentTarget.style.background = 'transparent';
           }}
-          onClick={() => void handleExportDiagnostics()}
+          onClick={openExportDialog}
           title="Export diagnostic bundle for bug reports"
         >
           Export Diagnostics

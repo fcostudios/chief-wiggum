@@ -7,6 +7,9 @@ import { invoke } from '@tauri-apps/api/core';
 import type { ContextAttachment, FileReference, FileContent } from '@/lib/types';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/context');
 
 /** Maximum total estimated tokens before warning. */
 const TOKEN_WARNING_THRESHOLD = 50_000;
@@ -113,7 +116,7 @@ export async function assembleContext(): Promise<string> {
         parts.push(content.content);
         parts.push('</file>');
       } catch (err) {
-        console.error(`[contextStore] Failed to read ${ref.relative_path}:`, err);
+        log.error('Failed to read ' + ref.relative_path + ': ' + (err instanceof Error ? err.message : String(err)));
         parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
       }
     }

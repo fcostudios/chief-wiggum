@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/fcostudios/chief-wiggum/tree/main/docs
+    about: Browse the project documentation

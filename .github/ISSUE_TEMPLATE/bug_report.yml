@@ -1,0 +1,75 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Chief Wiggum
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in the details below.
+
+        **Tip:** Press `Cmd+Shift+D` (macOS) or `Ctrl+Shift+D` (Windows/Linux) in the app to copy your system info to the clipboard.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+      placeholder: Describe what happened and what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to trigger the bug.
+      placeholder: |
+        1. Open a session
+        2. Send a message with...
+        3. Click on...
+        4. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Paste your debug info here (Cmd+Shift+D to copy).
+      placeholder: "Chief Wiggum v0.1.0 | macOS | en-US | 2560x1440"
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic Bundle
+      description: |
+        If possible, export a diagnostic bundle (StatusBar → Export Diagnostics) and attach the ZIP file.
+        The bundle contains redacted logs and system info — no conversation content or API keys.
+      placeholder: Drag and drop the .zip file here, or describe any error during export.
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain the issue.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "Low — cosmetic issue"
+        - "Medium — feature partially broken"
+        - "High — feature completely broken"
+        - "Critical — app crashes or data loss"
+    validations:
+      required: true

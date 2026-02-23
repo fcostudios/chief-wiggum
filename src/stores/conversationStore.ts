@@ -22,6 +22,9 @@ import {
 } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/conversation');
 
 interface ConversationState {
   messages: Message[];
@@ -172,7 +175,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
           input_tokens: null,
           output_tokens: null,
           cost_cents: null,
-        }).catch((err) => console.error('[conversationStore] Failed to persist thinking:', err));
+        }).catch((err) =>
+          log.error(
+            'Failed to persist thinking: ' +
+              (err instanceof Error ? err.message : String(err)),
+          ),
+        );
       }
 
       const finalContent = isActive ? p.content || state.streamingContent : p.content || '';
@@ -191,7 +199,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         }
         // Clear stale CLI session ID so next attempt doesn't use --resume with a dead ID
         updateSessionCliId(sessionId, '').catch((err) =>
-          console.error('[conversationStore] Failed to clear stale cli_session_id:', err),
+          log.error(
+            'Failed to clear stale cli_session_id: ' +
+              (err instanceof Error ? err.message : String(err)),
+          ),
         );
         return;
       }
@@ -237,12 +248,18 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         cost_cents: assistantMsg.cost_cents != null ? Math.round(assistantMsg.cost_cents) : null,
       }).catch((err) => {
         // Log at error level always -- silent save failures cause missing messages on restore
-        console.error('[conversationStore] Failed to persist assistant message:', err);
+        log.error(
+          'Failed to persist assistant message: ' +
+            (err instanceof Error ? err.message : String(err)),
+        );
       });
 
       // Refresh session cost totals after persisting (CHI-53)
       refreshActiveSession().catch((err) =>
-        console.error('[conversationStore] Failed to refresh session cost:', err),
+        log.error(
+          'Failed to refresh session cost: ' +
+            (err instanceof Error ? err.message : String(err)),
+        ),
       );
     }),
   );
@@ -298,7 +315,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
             output_tokens: null,
             cost_cents: null,
           }).catch((err) =>
-            console.error('[conversationStore] Failed to persist fallback assistant message:', err),
+            log.error(
+              'Failed to persist fallback assistant message: ' +
+                (err instanceof Error ? err.message : String(err)),
+            ),
           );
         }
 
@@ -343,7 +363,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       // `cli:init` means the bridge is alive; in SDK mode it remains alive between turns.
       // Avoid marking the UI as "Running" based solely on bridge liveness.
       updateSessionCliId(sessionId, event.payload.cli_session_id).catch((err) =>
-        devWarn('Failed to update CLI session ID:', err),
+        log.warn(
+          'Failed to update CLI session ID: ' +
+            (err instanceof Error ? err.message : String(err)),
+        ),
       );
     }),
   );
@@ -386,7 +409,11 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         input_tokens: null,
         output_tokens: null,
         cost_cents: null,
-      }).catch((err) => console.error('[conversationStore] Failed to persist tool_use:', err));
+      }).catch((err) =>
+        log.error(
+          'Failed to persist tool_use: ' + (err instanceof Error ? err.message : String(err)),
+        ),
+      );
     }),
   );
 
@@ -428,7 +455,11 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         input_tokens: null,
         output_tokens: null,
         cost_cents: null,
-      }).catch((err) => console.error('[conversationStore] Failed to persist tool_result:', err));
+      }).catch((err) =>
+        log.error(
+          'Failed to persist tool_result: ' + (err instanceof Error ? err.message : String(err)),
+        ),
+      );
     }),
   );
 
@@ -502,14 +533,20 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     input_tokens: null,
     output_tokens: null,
     cost_cents: null,
-  }).catch((err) => devWarn('Failed to persist user message:', err));
+  }).catch((err) =>
+    log.warn(
+      'Failed to persist user message: ' + (err instanceof Error ? err.message : String(err)),
+    ),
+  );
 
   // Auto-title session from first message
   const session = getActiveSession();
   if (session && !session.title) {
     const title = content.length > 50 ? content.substring(0, 50) + '...' : content;
     updateSessionTitle(sessionId, title).catch((err) =>
-      devWarn('Failed to update session title:', err),
+      log.warn(
+        'Failed to update session title: ' + (err instanceof Error ? err.message : String(err)),
+      ),
     );
   }
 
@@ -572,7 +609,7 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
       setState('error', `Failed to send message: ${errStr}`);
     }
     setSessionStatus(sessionId, 'error');
-    devWarn('Failed to send message:', err);
+    log.warn('Failed to send message: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -671,7 +708,9 @@ export async function interruptSession(sessionId: string): Promise<void> {
   try {
     await invoke('interrupt_session', { session_id: sessionId });
   } catch (err) {
-    devWarn('Failed to interrupt session:', err);
+    log.warn(
+      'Failed to interrupt session: ' + (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 
@@ -680,7 +719,9 @@ export async function setSessionModel(sessionId: string, model: string): Promise
   try {
     await invoke('set_session_model', { session_id: sessionId, model });
   } catch (err) {
-    devWarn('Failed to set session model:', err);
+    log.warn(
+      'Failed to set session model: ' + (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 
@@ -742,7 +783,12 @@ export function recordPermissionOutcome(
     input_tokens: null,
     output_tokens: null,
     cost_cents: null,
-  }).catch((err) => console.error('[conversationStore] Failed to persist permission record:', err));
+  }).catch((err) =>
+    log.error(
+      'Failed to persist permission record: ' +
+        (err instanceof Error ? err.message : String(err)),
+    ),
+  );
 }
 
 /** Reconnect to active CLI bridges after frontend reload (HMR resilience). */
@@ -778,7 +824,9 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
             replayBufferedEvent(event, activeSessionId);
           }
         } catch (err) {
-          console.error('[conversationStore] Failed to drain buffer:', err);
+          log.error(
+            'Failed to drain buffer: ' + (err instanceof Error ? err.message : String(err)),
+          );
         }
       }
 
@@ -842,7 +890,10 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           output_tokens: assistantMsg.output_tokens,
           cost_cents: assistantMsg.cost_cents != null ? Math.round(assistantMsg.cost_cents) : null,
         }).catch((err) =>
-          console.error('[conversationStore] Failed to persist replayed message:', err),
+          log.error(
+            'Failed to persist replayed message: ' +
+              (err instanceof Error ? err.message : String(err)),
+          ),
         );
       }
       setState('streamingContent', '');
@@ -887,7 +938,10 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           output_tokens: null,
           cost_cents: null,
         }).catch((err) =>
-          console.error('[conversationStore] Failed to persist replayed tool_use:', err),
+          log.error(
+            'Failed to persist replayed tool_use: ' +
+              (err instanceof Error ? err.message : String(err)),
+          ),
         );
       }
       break;
@@ -928,7 +982,10 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           output_tokens: null,
           cost_cents: null,
         }).catch((err) =>
-          console.error('[conversationStore] Failed to persist replayed tool_result:', err),
+          log.error(
+            'Failed to persist replayed tool_result: ' +
+              (err instanceof Error ? err.message : String(err)),
+          ),
         );
       }
       break;
@@ -953,13 +1010,6 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
     case 'PermissionRequest':
       // Permission requests during reload are expired -- don't re-show
       break;
-  }
-}
-
-/** Dev-only warning logger. */
-function devWarn(msg: string, err: unknown): void {
-  if (import.meta.env.DEV) {
-    console.warn(`[conversationStore] ${msg}`, err);
   }
 }
 

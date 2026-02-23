@@ -5,6 +5,9 @@
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Session } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/session');
 
 interface SessionState {
   sessions: Session[];
@@ -100,7 +103,7 @@ export async function refreshActiveSession(): Promise<void> {
     const session = await invoke<Session>('get_session_cost', { session_id: id });
     setState('sessions', (s) => s.id === id, session);
   } catch (err) {
-    if (import.meta.env.DEV) console.warn('[sessionStore] Failed to refresh session:', err);
+    log.warn('Failed to refresh session: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 

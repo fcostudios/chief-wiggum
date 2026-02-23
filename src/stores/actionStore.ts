@@ -11,6 +11,9 @@ import type {
   ActionStatus,
   RunningActionInfo,
 } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ui/actions');
 
 /** Maximum output lines kept per action. */
 const MAX_OUTPUT_LINES = 5000;
@@ -47,7 +50,7 @@ export async function discoverActions(projectPath: string): Promise<void> {
     });
     setState('actions', actions);
   } catch (err) {
-    console.error('[actionStore] Failed to discover actions:', err);
+    log.error('Failed to discover actions: ' + (err instanceof Error ? err.message : String(err)));
     setState('actions', []);
   } finally {
     setState('isDiscovering', false);
@@ -68,7 +71,7 @@ export async function startAction(action: ActionDefinition): Promise<void> {
     });
     setState('statuses', action.id, 'running');
   } catch (err) {
-    console.error('[actionStore] Failed to start action:', err);
+    log.error('Failed to start action: ' + (err instanceof Error ? err.message : String(err)));
     setState('statuses', action.id, 'failed');
   }
 }
@@ -79,7 +82,7 @@ export async function stopAction(actionId: string): Promise<void> {
     await invoke('stop_action', { action_id: actionId });
     setState('statuses', actionId, 'stopped');
   } catch (err) {
-    console.error('[actionStore] Failed to stop action:', err);
+    log.error('Failed to stop action: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 
@@ -96,7 +99,7 @@ export async function restartAction(action: ActionDefinition): Promise<void> {
     });
     setState('statuses', action.id, 'running');
   } catch (err) {
-    console.error('[actionStore] Failed to restart action:', err);
+    log.error('Failed to restart action: ' + (err instanceof Error ? err.message : String(err)));
     setState('statuses', action.id, 'failed');
   }
 }
