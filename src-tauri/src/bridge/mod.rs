@@ -120,12 +120,7 @@ impl CliLocation {
                     tracing::warn!("CLI version detection returned empty output");
                     return None;
                 }
-                let version = raw
-                    .split_whitespace()
-                    .last()
-                    .unwrap_or(&raw)
-                    .trim_start_matches('v')
-                    .to_string();
+                let version = parse_cli_version_token(&raw).unwrap_or_else(|| raw.clone());
                 tracing::info!("Claude Code CLI version: {}", version);
                 self.version = Some(version.clone());
                 Some(version)
@@ -150,6 +145,37 @@ impl CliLocation {
             })
             .unwrap_or(false)
     }
+}
+
+fn parse_cli_version_token(raw: &str) -> Option<String> {
+    raw.split_whitespace().find_map(|token| {
+        let cleaned = token
+            .trim_matches(|c: char| !(c.is_ascii_alphanumeric() || c == '.' || c == '-'))
+            .trim_start_matches('v');
+
+        if cleaned.is_empty() {
+            return None;
+        }
+
+        let mut parts = cleaned.split('.');
+        let major = parts.next()?;
+        let minor = parts.next()?;
+
+        if !major.chars().all(|c| c.is_ascii_digit()) || !minor.chars().all(|c| c.is_ascii_digit())
+        {
+            return None;
+        }
+
+        let mut normalized = format!("{}.{}", major, minor);
+        if let Some(patch) = parts.next() {
+            if patch.chars().all(|c| c.is_ascii_digit()) {
+                normalized.push('.');
+                normalized.push_str(patch);
+            }
+        }
+
+        Some(normalized)
+    })
 }
 
 #[cfg(test)]
@@ -198,5 +224,17 @@ mod tests {
             version: None,
         };
         assert!(!loc.supports_sdk());
+    }
+
+    #[test]
+    fn parse_cli_version_token_handles_claude_code_suffix() {
+        let raw = "2.1.50 (Claude Code)";
+        assert_eq!(parse_cli_version_token(raw), Some("2.1.50".to_string()));
+    }
+
+    #[test]
+    fn parse_cli_version_token_handles_prefixed_version() {
+        let raw = "Claude Code v2.2.1";
+        assert_eq!(parse_cli_version_token(raw), Some("2.2.1".to_string()));
     }
 }
