@@ -326,3 +326,36 @@ export interface BundleExportResult {
   log_entry_count: number;
   redaction: RedactionSummary;
 }
+
+// ── Project Actions (CHI-138) ──────────────────────────────
+
+export type ActionSource =
+  | 'package_json'
+  | 'makefile'
+  | 'cargo_toml'
+  | 'docker_compose'
+  | 'claude_actions';
+export type ActionCategory = 'dev' | 'build' | 'test' | 'lint' | 'deploy' | 'custom';
+export type ActionStatus = 'starting' | 'running' | 'completed' | 'failed' | 'stopped' | 'idle';
+
+export interface ActionDefinition {
+  id: string;
+  name: string;
+  command: string;
+  working_dir: string;
+  source: ActionSource;
+  category: ActionCategory;
+  description: string | null;
+  is_long_running: boolean;
+}
+
+export interface ActionOutputLine {
+  line: string;
+  is_error: boolean;
+  timestamp: number;
+}
+
+export interface RunningActionInfo {
+  action_id: string;
+  status: ActionStatus;
+}
