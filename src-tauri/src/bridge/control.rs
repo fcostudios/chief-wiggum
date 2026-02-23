@@ -46,6 +46,8 @@ pub struct ControlResponseEnvelope {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ControlResponseBody {
     pub behavior: String,
+    #[serde(rename = "updatedInput", skip_serializing_if = "Option::is_none")]
+    pub updated_input: Option<serde_json::Map<String, serde_json::Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
@@ -112,6 +114,7 @@ impl ControlResponse {
                 request_id,
                 response: ControlResponseBody {
                     behavior: "allow".to_string(),
+                    updated_input: Some(serde_json::Map::new()),
                     message: None,
                 },
             },
@@ -127,7 +130,8 @@ impl ControlResponse {
                 request_id,
                 response: ControlResponseBody {
                     behavior: "deny".to_string(),
-                    message: reason,
+                    updated_input: None,
+                    message: Some(reason.unwrap_or_else(|| "Permission denied".to_string())),
                 },
             },
         }
@@ -210,6 +214,7 @@ mod tests {
         assert!(json.contains("\"subtype\":\"success\""));
         assert!(json.contains("\"request_id\":\"req_cli_1\""));
         assert!(json.contains("\"behavior\":\"allow\""));
+        assert!(json.contains("\"updatedInput\":{}"));
         assert!(!json.contains("\"message\""));
     }
 
@@ -218,7 +223,16 @@ mod tests {
         let resp = ControlResponse::deny("req_cli_2".to_string(), Some("User denied".to_string()));
         let json = serde_json::to_string(&resp).unwrap();
         assert!(json.contains("\"behavior\":\"deny\""));
+        assert!(!json.contains("\"updatedInput\""));
         assert!(json.contains("User denied"));
+    }
+
+    #[test]
+    fn deny_response_includes_default_message() {
+        let resp = ControlResponse::deny("req_cli_3".to_string(), None);
+        let json = serde_json::to_string(&resp).unwrap();
+        assert!(json.contains("\"behavior\":\"deny\""));
+        assert!(json.contains("\"message\":\"Permission denied\""));
     }
 
     #[test]
