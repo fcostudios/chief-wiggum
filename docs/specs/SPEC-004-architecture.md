@@ -646,7 +646,7 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
      │                         │                           │
 ```
 
-**Current Limitation:** In `-p` mode, the CLI auto-denies tools not in `--allowedTools`. The permission response path (`respond_permission` → CLI stdin) does NOT work — the CLI doesn't read stdin for permission responses in `-p` mode. This flow only becomes fully functional after CHI-101 (Agent SDK control protocol, §5.6).
+**Legacy Fallback Limitation:** In legacy `-p` mode (used when the installed Claude Code CLI does not support Agent SDK, e.g. < 2.1), the CLI auto-denies tools not in `--allowedTools`. The permission response path (`respond_permission` → CLI stdin) does NOT work in `-p` mode because the CLI does not read stdin for runtime permission responses. Full interactive permissions are available in Agent SDK mode (§5.6, CHI-101).
 
 **Interim (CHI-102):** Developer Mode pre-authorizes common Bash patterns via `--allowedTools`, bypassing the need for runtime permission responses. See §5.6.8.
 
@@ -734,11 +734,11 @@ event_loop.rs              cost/calculator.rs           db/queries.rs
      │   emit('cost:budget_warning')                        │
 ```
 
-### 5.6 Agent SDK Control Protocol (Phase 3 — CHI-101, Planned)
+### 5.6 Agent SDK Control Protocol (Phase 3 — CHI-101, Implemented)
 
 The current `-p` per-message architecture (§5.1) has a fundamental limitation: in non-interactive mode, the CLI auto-denies permission requests for tools not in `--allowedTools`. This means the PermissionDialog (§5.2) cannot actually send responses back to the CLI — interactive permission granting is impossible.
 
-**CHI-101** migrates the bridge from `-p` mode to the Agent SDK bidirectional control protocol, enabling true interactive permissions, persistent sessions, and runtime model switching.
+**CHI-101** migrated the bridge from `-p` mode to the Agent SDK bidirectional control protocol, enabling true interactive permissions, persistent sessions, and runtime model switching. Chief Wiggum keeps a version-gated fallback to legacy `-p` mode when the installed Claude Code CLI does not support SDK mode.
 
 #### 5.6.1 Transport
 
@@ -765,7 +765,7 @@ Key difference: `--input-format stream-json` enables bidirectional JSONL protoco
 
 ```
 CW → CLI (stdin):  {"type":"control_request","request_id":"req_1","request":{"subtype":"initialize"}}
-CLI → CW (stdout): {"type":"control_response","request_id":"req_1","response":{...}}
+CLI → CW (stdout): {"type":"control_response","response":{"subtype":"success","request_id":"req_1","response":{...}}}
 CLI → CW (stdout): {"type":"system","subtype":"init","session_id":"...","model":"...","tools":[...]}
 ```
 
@@ -808,10 +808,31 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
      │                         │ ◄── invoke('respond_permission')
      │                         │                           │
      │ ◄── control_response    │                           │
-     │ {allow: true}           │                           │
+     │ {behavior:"allow",      │                           │
+     │  updatedInput:{...}}    │                           │
      │                         │                           │
      │ (executes tool)         │                           │
 ```
+
+**Permission response envelope (CW → CLI):**
+
+```json
+{
+  "type": "control_response",
+  "response": {
+    "subtype": "success",
+    "request_id": "<cli request id>",
+    "response": {
+      "behavior": "allow",
+      "updatedInput": {
+        "...": "original tool input echoed back unless user/hook modifies it"
+      }
+    }
+  }
+}
+```
+
+For `deny`, `behavior` is `"deny"` and `message` should be included. For `allow`, `updatedInput` must be a record/object and should preserve the original tool input when no changes are intended.
 
 #### 5.6.6 Control Request Subtypes
 

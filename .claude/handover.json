@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-22T23:58:01Z",
+  "last_updated": "2026-02-23T00:20:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -61,7 +61,9 @@
       "epic": "CHI-5",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-8"],
+      "dependencies": [
+        "CHI-8"
+      ],
       "linear_id": "bcd35744-e415-4d35-a0c1-6a7b661c3622",
       "completed_at": "2026-02-21T14:30:00Z",
       "files": [
@@ -85,7 +87,10 @@
       "epic": "CHI-5",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-8", "CHI-9"],
+      "dependencies": [
+        "CHI-8",
+        "CHI-9"
+      ],
       "linear_id": "8771f923-b7ad-4f44-9d64-656135c285fc",
       "completed_at": "2026-02-21T14:37:00Z",
       "files": [
@@ -106,7 +111,9 @@
       "epic": "CHI-5",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-8"],
+      "dependencies": [
+        "CHI-8"
+      ],
       "linear_id": "67cfe4ca-135a-4010-b765-31888db84494",
       "completed_at": "2026-02-21T14:30:00Z",
       "files": [
@@ -135,7 +142,9 @@
       "epic": "CHI-6",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-8"],
+      "dependencies": [
+        "CHI-8"
+      ],
       "linear_id": "9cc08937-a4b2-4548-b8b7-69762f60a78e",
       "completed_at": "2026-02-20T23:17:44Z",
       "files": [
@@ -150,10 +159,14 @@
       "epic": "CHI-6",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-13"],
+      "dependencies": [
+        "CHI-13"
+      ],
       "linear_id": "af94cf34-9108-426e-842d-880613006c98",
       "completed_at": "2026-02-20T23:17:44Z",
-      "files": ["src-tauri/src/bridge/parser.rs"],
+      "files": [
+        "src-tauri/src/bridge/parser.rs"
+      ],
       "notes": "StreamParser with chunk-aware JSON parsing. 9 event types. 11 unit tests."
     },
     "CHI-15": {
@@ -161,10 +174,14 @@
       "epic": "CHI-6",
       "status": "done",
       "priority": "P1",
-      "dependencies": ["CHI-14"],
+      "dependencies": [
+        "CHI-14"
+      ],
       "linear_id": "ecbb0da1-d0f5-4018-83e7-e3a8175f61e8",
       "completed_at": "2026-02-20T23:17:44Z",
-      "files": ["src-tauri/src/bridge/adapter.rs"],
+      "files": [
+        "src-tauri/src/bridge/adapter.rs"
+      ],
       "notes": "AdapterRegistry with version detection and fallback. 7 unit tests."
     },
     "CHI-16": {
@@ -172,10 +189,15 @@
       "epic": "CHI-6",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-13", "CHI-14"],
+      "dependencies": [
+        "CHI-13",
+        "CHI-14"
+      ],
       "linear_id": "1444588c-3339-4dc2-9ab5-212bf0675011",
       "completed_at": "2026-02-20T23:17:44Z",
-      "files": ["src-tauri/src/bridge/permission.rs"],
+      "files": [
+        "src-tauri/src/bridge/permission.rs"
+      ],
       "notes": "PermissionManager with async request/resolve, auto-allow rules, timeout auto-deny. 10 unit tests."
     },
     "CHI-17": {
@@ -183,7 +205,9 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-9"],
+      "dependencies": [
+        "CHI-9"
+      ],
       "linear_id": "CHI-17",
       "completed_at": "2026-02-21T15:15:00Z",
       "files": [
@@ -207,7 +231,10 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-17", "CHI-14"],
+      "dependencies": [
+        "CHI-17",
+        "CHI-14"
+      ],
       "completed_at": "2026-02-21T16:00:00Z",
       "files": [
         "src/components/conversation/ConversationView.tsx",
@@ -226,7 +253,9 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-17"],
+      "dependencies": [
+        "CHI-17"
+      ],
       "linear_id": "CHI-19",
       "completed_at": "2026-02-21T15:20:00Z",
       "files": [
@@ -240,7 +269,10 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P1",
-      "dependencies": ["CHI-17", "CHI-13"],
+      "dependencies": [
+        "CHI-17",
+        "CHI-13"
+      ],
       "completed_at": "2026-02-21T17:15:00Z",
       "files": [
         "src-tauri/src/commands/session.rs",
@@ -258,7 +290,10 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-17", "CHI-13"],
+      "dependencies": [
+        "CHI-17",
+        "CHI-13"
+      ],
       "completed_at": "2026-02-21T16:05:00Z",
       "files": [
         "src/components/terminal/TerminalPane.tsx",
@@ -273,7 +308,11 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-11", "CHI-17", "CHI-18"],
+      "dependencies": [
+        "CHI-11",
+        "CHI-17",
+        "CHI-18"
+      ],
       "completed_at": "2026-02-21T17:00:00Z",
       "files": [
         "src-tauri/src/commands/mod.rs",
@@ -295,7 +334,10 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P0",
-      "dependencies": ["CHI-16", "CHI-17"],
+      "dependencies": [
+        "CHI-16",
+        "CHI-17"
+      ],
       "linear_id": "CHI-23",
       "completed_at": "2026-02-21T15:25:00Z",
       "files": [
@@ -309,9 +351,14 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P1",
-      "dependencies": ["CHI-10"],
+      "dependencies": [
+        "CHI-10"
+      ],
       "completed_at": "2026-02-21T17:20:00Z",
-      "files": ["src-tauri/tauri.conf.json", ".github/workflows/release.yml"],
+      "files": [
+        "src-tauri/tauri.conf.json",
+        ".github/workflows/release.yml"
+      ],
       "notes": "Bundle metadata in tauri.conf.json (category, descriptions, copyright, platform configs). Release workflow: tag-triggered, 3-platform matrix (macOS universal, Ubuntu, Windows), tauri-action@v0, draft releases with install instructions."
     },
     "CHI-25": {
@@ -329,7 +376,11 @@
       "epic": "CHI-7",
       "status": "done",
       "priority": "P1",
-      "dependencies": ["CHI-16", "CHI-17", "CHI-23"],
+      "dependencies": [
+        "CHI-16",
+        "CHI-17",
+        "CHI-23"
+      ],
       "linear_id": "9ebdd2d4-246d-4ae3-a211-0e4fc55c0cb0",
       "completed_at": "2026-02-21T16:08:00Z",
       "files": [
@@ -360,42 +411,59 @@
           "title": "Layout shell e2e tests (5 components, ~25 cases)",
           "status": "todo",
           "priority": "P0",
-          "dependencies": ["CHI-28"],
+          "dependencies": [
+            "CHI-28"
+          ],
           "linear_id": "ad099df4-9c75-4107-92bc-8d9eb7df58dd"
         },
         "CHI-30": {
           "title": "Conversation view e2e tests (4 components, ~25 cases)",
           "status": "todo",
           "priority": "P0",
-          "dependencies": ["CHI-28"],
+          "dependencies": [
+            "CHI-28"
+          ],
           "linear_id": "69de131c-599e-4db0-8598-db98da0236dd"
         },
         "CHI-31": {
           "title": "Permission system e2e tests (2 components, ~17 cases)",
           "status": "todo",
           "priority": "P1",
-          "dependencies": ["CHI-28"],
+          "dependencies": [
+            "CHI-28"
+          ],
           "linear_id": "4641bd36-a0d0-4695-be00-80fb17313984"
         },
         "CHI-32": {
           "title": "Terminal & model selector e2e tests (2 components, ~14 cases)",
           "status": "todo",
           "priority": "P1",
-          "dependencies": ["CHI-28"],
+          "dependencies": [
+            "CHI-28"
+          ],
           "linear_id": "a89c89c1-4dcf-4596-b146-2764b2c54cd8"
         },
         "CHI-33": {
           "title": "Integration & keyboard shortcut e2e tests (~17 cases)",
           "status": "todo",
           "priority": "P1",
-          "dependencies": ["CHI-28"],
+          "dependencies": [
+            "CHI-28"
+          ],
           "linear_id": "aa61cabb-9ee3-41b6-a417-20a6a9c6f265"
         },
         "CHI-34": {
           "title": "CI integration + failure-to-issue pipeline",
           "status": "todo",
           "priority": "P0",
-          "dependencies": ["CHI-28", "CHI-29", "CHI-30", "CHI-31", "CHI-32", "CHI-33"],
+          "dependencies": [
+            "CHI-28",
+            "CHI-29",
+            "CHI-30",
+            "CHI-31",
+            "CHI-32",
+            "CHI-33"
+          ],
           "linear_id": "9b8e3f11-b8f7-4c45-bfbf-19fc185d0bfe"
         }
       }
@@ -432,9 +500,13 @@
           "status": "done",
           "priority": "P1",
           "linear_id": "66caee3e",
-          "dependencies": ["CHI-40"],
+          "dependencies": [
+            "CHI-40"
+          ],
           "completed_at": "2026-02-22T11:30:00Z",
-          "files": ["src/components/layout/Sidebar.tsx"],
+          "files": [
+            "src/components/layout/Sidebar.tsx"
+          ],
           "notes": "Full Projects section in Sidebar: header with folder icon button, recent projects list (max 5) with active highlighting and hover states, empty state fallback with 'Open a project folder' CTA."
         },
         "CHI-42": {
@@ -442,7 +514,9 @@
           "status": "done",
           "priority": "P2",
           "linear_id": "1ba33ad3",
-          "dependencies": ["CHI-40"],
+          "dependencies": [
+            "CHI-40"
+          ],
           "completed_at": "2026-02-22T14:00:00Z"
         },
         "CHI-43": {
@@ -450,7 +524,9 @@
           "status": "done",
           "priority": "P1",
           "linear_id": "517d4eaa",
-          "dependencies": ["CHI-40"],
+          "dependencies": [
+            "CHI-40"
+          ],
           "completed_at": "2026-02-22T14:00:00Z"
         }
       }
@@ -505,7 +581,10 @@
           "priority": "P0",
           "linear_id": "95e95468",
           "completed_at": "2026-02-21T22:10:00Z",
-          "files": ["src/stores/conversationStore.ts", "src/components/layout/MainLayout.tsx"]
+          "files": [
+            "src/stores/conversationStore.ts",
+            "src/components/layout/MainLayout.tsx"
+          ]
         },
         "CHI-48": {
           "title": "Detect Claude Code CLI on startup with error UI",
@@ -530,7 +609,9 @@
           "priority": "P1",
           "linear_id": "78544f61",
           "completed_at": "2026-02-21T22:20:00Z",
-          "files": ["src/components/conversation/ConversationView.tsx"]
+          "files": [
+            "src/components/conversation/ConversationView.tsx"
+          ]
         }
       }
     },
@@ -560,9 +641,14 @@
           "status": "done",
           "priority": "P0",
           "linear_id": "56998407",
-          "dependencies": ["CHI-50"],
+          "dependencies": [
+            "CHI-50"
+          ],
           "completed_at": "2026-02-22T05:15:00Z",
-          "files": ["src/stores/conversationStore.ts", "src/components/layout/MainLayout.tsx"],
+          "files": [
+            "src/stores/conversationStore.ts",
+            "src/components/layout/MainLayout.tsx"
+          ],
           "notes": "Added permission:request listener in conversationStore, wired PermissionDialog onRespond to invoke('respond_permission') IPC."
         },
         "CHI-52": {
@@ -570,9 +656,13 @@
           "status": "done",
           "priority": "P1",
           "linear_id": "e8f2a5e1",
-          "dependencies": ["CHI-50"],
+          "dependencies": [
+            "CHI-50"
+          ],
           "completed_at": "2026-02-22T05:15:00Z",
-          "files": ["src/stores/uiStore.ts"],
+          "files": [
+            "src/stores/uiStore.ts"
+          ],
           "notes": "Replaced TODO placeholders with invoke('toggle_yolo_mode') calls in enableYoloMode/disableYoloMode."
         }
       }
@@ -597,7 +687,9 @@
           "status": "done",
           "priority": "P1",
           "linear_id": "da59f1dd",
-          "dependencies": ["CHI-53"],
+          "dependencies": [
+            "CHI-53"
+          ],
           "completed_at": "2026-02-22T14:00:00Z"
         },
         "CHI-55": {
@@ -605,9 +697,13 @@
           "status": "done",
           "priority": "P2",
           "linear_id": "11756220",
-          "dependencies": ["CHI-53"],
+          "dependencies": [
+            "CHI-53"
+          ],
           "completed_at": "2026-02-22T18:00:00Z",
-          "files": ["src/components/conversation/MessageBubble.tsx"],
+          "files": [
+            "src/components/conversation/MessageBubble.tsx"
+          ],
           "notes": "K-formatted tokens (1.2K), dollar cost ($0.15), copy button with toast feedback."
         }
       }
@@ -638,9 +734,14 @@
           "status": "done",
           "priority": "P0",
           "linear_id": "71096869",
-          "dependencies": ["CHI-56"],
+          "dependencies": [
+            "CHI-56"
+          ],
           "completed_at": "2026-02-22T10:00:00Z",
-          "files": ["src/stores/conversationStore.ts", "src/components/layout/Sidebar.tsx"],
+          "files": [
+            "src/stores/conversationStore.ts",
+            "src/components/layout/Sidebar.tsx"
+          ],
           "notes": "switchSession() orchestrates: stop old CLI → cleanup listeners → clear state → load messages → setup new listeners. handleNewSession stops old CLI before creating new session."
         },
         "CHI-58": {
@@ -648,9 +749,14 @@
           "status": "done",
           "priority": "P1",
           "linear_id": "5f28585c",
-          "dependencies": ["CHI-56"],
+          "dependencies": [
+            "CHI-56"
+          ],
           "completed_at": "2026-02-22T11:00:00Z",
-          "files": ["src/stores/conversationStore.ts", "src/components/layout/Sidebar.tsx"],
+          "files": [
+            "src/stores/conversationStore.ts",
+            "src/components/layout/Sidebar.tsx"
+          ],
           "notes": "stopSessionCli() exported from conversationStore. handleDeleteSession stops CLI, deletes session, auto-switches to next."
         },
         "CHI-59": {
@@ -658,7 +764,9 @@
           "status": "done",
           "priority": "P1",
           "linear_id": "13f8b4c5",
-          "dependencies": ["CHI-56"],
+          "dependencies": [
+            "CHI-56"
+          ],
           "completed_at": "2026-02-22T11:15:00Z",
           "files": [
             "src/stores/conversationStore.ts",
@@ -671,9 +779,14 @@
           "status": "done",
           "priority": "P0",
           "linear_id": "8ba67256",
-          "dependencies": ["CHI-56"],
+          "dependencies": [
+            "CHI-56"
+          ],
           "completed_at": "2026-02-22T04:30:00Z",
-          "files": ["src-tauri/src/main.rs", "src-tauri/src/bridge/manager.rs"],
+          "files": [
+            "src-tauri/src/main.rs",
+            "src-tauri/src/bridge/manager.rs"
+          ],
           "notes": "Added Clone derive to SessionBridgeMap, registered window close event handler that calls shutdown_all() via block_on."
         }
       }
@@ -705,7 +818,9 @@
           "status": "done",
           "priority": "High",
           "completed_at": "2026-02-22T18:00:00Z",
-          "files": ["src/components/layout/TitleBar.tsx"],
+          "files": [
+            "src/components/layout/TitleBar.tsx"
+          ],
           "notes": "Removed sidebar toggle, added Settings gear for details panel, cleaner layout."
         },
         "CHI-69": {
@@ -730,7 +845,9 @@
           "status": "done",
           "priority": "Medium",
           "completed_at": "2026-02-22T06:00:00Z",
-          "files": ["src/styles/tokens.css"],
+          "files": [
+            "src/styles/tokens.css"
+          ],
           "notes": "6px scrollbars, transparent track, rgba thumbs. Applied globally via tokens.css."
         }
       }
@@ -746,7 +863,10 @@
           "status": "done",
           "priority": "Medium",
           "completed_at": "2026-02-22T06:00:00Z",
-          "files": ["src/styles/tokens.css", "src/components/conversation/ConversationView.tsx"],
+          "files": [
+            "src/styles/tokens.css",
+            "src/components/conversation/ConversationView.tsx"
+          ],
           "notes": "fade-in-up keyframe with staggered animation-delay per message. 300ms entrance with ease-out. prefers-reduced-motion compliant."
         },
         "CHI-72": {
@@ -849,7 +969,9 @@
           "status": "done",
           "priority": "High",
           "completed_at": "2026-02-22T11:15:00Z",
-          "files": ["src/components/conversation/ConversationView.tsx"],
+          "files": [
+            "src/components/conversation/ConversationView.tsx"
+          ],
           "notes": "CW branding icon, 'What would you like to work on?' heading, 3 clickable sample prompt cards (Explain codebase, Find bug, Write feature). Cards use sendMessage to populate conversation."
         },
         "CHI-81": {
@@ -880,7 +1002,10 @@
           "status": "done",
           "priority": "High",
           "completed_at": "2026-02-22T16:00:00Z",
-          "files": ["src/components/layout/Sidebar.tsx", "src/stores/uiStore.ts"]
+          "files": [
+            "src/components/layout/Sidebar.tsx",
+            "src/stores/uiStore.ts"
+          ]
         },
         "CHI-85": {
           "title": "Session sections (Pinned, Recent, Older)",
@@ -917,7 +1042,11 @@
           "status": "todo",
           "priority": "Medium"
         },
-        "CHI-88": { "title": "Sidebar search/filter", "status": "todo", "priority": "Low" }
+        "CHI-88": {
+          "title": "Sidebar search/filter",
+          "status": "todo",
+          "priority": "Low"
+        }
       }
     },
     "CHI-66": {
@@ -1023,10 +1152,30 @@
   "agent_sdk_migration": {
     "CHI-101": {
       "title": "Migrate CLI bridge from -p mode to Agent SDK control protocol",
-      "status": "todo",
+      "status": "done",
       "priority": "High",
       "linear_id": "368ab16f-f98f-4020-b491-ca52a2cf36b9",
-      "notes": "Major architecture change: replace -p per-message spawning with bidirectional JSONL control protocol (--input-format stream-json). Enables true interactive permissions (can_use_tool), persistent sessions, runtime model switching, clean interruption. See SPEC-004 §5.6 for full protocol documentation. 5 implementation phases: transport layer, control protocol handler, event loop update, IPC command update, frontend updates."
+      "notes": "CHI-101 implemented and validated in dedicated worktree branch `codex/chi-101-agent-sdk-migration`. Added AgentSdkBridge pipe transport, bidirectional control protocol types, SDK permission response loop, SessionBridgeMap SDK spawning, SDK-aware IPC commands (start/send/model switch/interrupt), frontend persistent session lifecycle, CLI version detection/gating with legacy fallback (<2.1), and parser support for embedded SDK tool_use/tool_result blocks. Follow-up protocol fixes: semver parsing for `claude --version`, nested `control_response` envelope, required `updatedInput`, and preserving original tool input across permission approvals so approved tools keep their arguments.",
+      "started_at": "2026-02-23T00:20:00Z",
+      "assigned_to": "claude-code",
+      "completed_at": "2026-02-23T03:00:00Z",
+      "files": [
+        "src-tauri/src/bridge/control.rs",
+        "src-tauri/src/bridge/sdk_bridge.rs",
+        "src-tauri/src/bridge/event_loop.rs",
+        "src-tauri/src/bridge/manager.rs",
+        "src-tauri/src/bridge/mod.rs",
+        "src-tauri/src/bridge/process.rs",
+        "src-tauri/src/bridge/parser.rs",
+        "src-tauri/src/bridge/permission.rs",
+        "src-tauri/src/commands/bridge.rs",
+        "src-tauri/src/commands/cli.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/conversationStore.ts",
+        "src/lib/types.ts",
+        "docs/specs/SPEC-004-architecture.md",
+        "CLAUDE.md"
+      ]
     },
     "CHI-102": {
       "title": "Add granular Bash allowedTools patterns (Developer Mode)",
@@ -1075,9 +1224,14 @@
           "status": "done",
           "priority": "High",
           "linear_id": "eb10835a",
-          "dependencies": ["CHI-94"],
+          "dependencies": [
+            "CHI-94"
+          ],
           "completed_at": "2026-02-23T04:00:00Z",
-          "files": ["src-tauri/src/logging/redactor.rs", "src-tauri/src/logging/mod.rs"],
+          "files": [
+            "src-tauri/src/logging/redactor.rs",
+            "src-tauri/src/logging/mod.rs"
+          ],
           "notes": "7 regex rules (API keys, bearer tokens, env secrets, emails, home dirs), operates on cloned entries at export time, RedactionSummary tracking, 13 unit tests."
         },
         "CHI-96": {
@@ -1085,35 +1239,46 @@
           "status": "todo",
           "priority": "High",
           "linear_id": "cb869b15",
-          "dependencies": ["CHI-94", "CHI-95"]
+          "dependencies": [
+            "CHI-94",
+            "CHI-95"
+          ]
         },
         "CHI-97": {
           "title": "Frontend Log Forwarding via IPC",
           "status": "todo",
           "priority": "Medium",
           "linear_id": "7532e389",
-          "dependencies": ["CHI-94"]
+          "dependencies": [
+            "CHI-94"
+          ]
         },
         "CHI-98": {
           "title": "Export Diagnostic Bundle UI (Consent Dialog + Menu)",
           "status": "todo",
           "priority": "High",
           "linear_id": "bdb62095",
-          "dependencies": ["CHI-96"]
+          "dependencies": [
+            "CHI-96"
+          ]
         },
         "CHI-99": {
           "title": "Database Query Tracing Instrumentation",
           "status": "todo",
           "priority": "Medium",
           "linear_id": "2ec708f5",
-          "dependencies": ["CHI-94"]
+          "dependencies": [
+            "CHI-94"
+          ]
         },
         "CHI-100": {
           "title": "GitHub Issue Template with Diagnostic Bundle Guidance",
           "status": "todo",
           "priority": "Low",
           "linear_id": "e2795830",
-          "dependencies": ["CHI-98"]
+          "dependencies": [
+            "CHI-98"
+          ]
         }
       }
     }
@@ -1147,7 +1312,9 @@
           "status": "done",
           "priority": "High",
           "linear_id": "a8cf727e",
-          "dependencies": ["CHI-106"],
+          "dependencies": [
+            "CHI-106"
+          ],
           "completed_at": "2026-02-23T04:00:00Z",
           "files": [
             "src/components/conversation/SlashCommandMenu.tsx",
@@ -1163,7 +1330,10 @@
           "status": "todo",
           "priority": "Medium",
           "linear_id": "704f174f",
-          "dependencies": ["CHI-101", "CHI-106"]
+          "dependencies": [
+            "CHI-101",
+            "CHI-106"
+          ]
         }
       }
     }
@@ -1181,14 +1351,18 @@
           "status": "todo",
           "priority": "High",
           "linear_id": "1a9f4d01",
-          "dependencies": ["CHI-104"]
+          "dependencies": [
+            "CHI-104"
+          ]
         },
         "CHI-111": {
           "title": "Concurrent Session Resource Limits",
           "status": "done",
           "priority": "High",
           "linear_id": "e52af42e",
-          "dependencies": ["CHI-104"],
+          "dependencies": [
+            "CHI-104"
+          ],
           "completed_at": "2026-02-23T04:00:00Z",
           "files": [
             "src-tauri/src/bridge/manager.rs",
@@ -1204,14 +1378,19 @@
           "status": "todo",
           "priority": "Medium",
           "linear_id": "d41e2067",
-          "dependencies": ["CHI-53", "CHI-104"]
+          "dependencies": [
+            "CHI-53",
+            "CHI-104"
+          ]
         },
         "CHI-113": {
           "title": "Session Activity Notifications",
           "status": "todo",
           "priority": "Medium",
           "linear_id": "e35d06e0",
-          "dependencies": ["CHI-104"]
+          "dependencies": [
+            "CHI-104"
+          ]
         }
       }
     }
@@ -1250,7 +1429,9 @@
           "status": "done",
           "priority": "High",
           "linear_id": "557ef498",
-          "dependencies": ["CHI-115"],
+          "dependencies": [
+            "CHI-115"
+          ],
           "completed_at": "2026-02-22T21:54:49Z",
           "files": [
             "src/lib/types.ts",
@@ -1266,7 +1447,10 @@
           "status": "done",
           "priority": "High",
           "linear_id": "7c116d04",
-          "dependencies": ["CHI-115", "CHI-107"],
+          "dependencies": [
+            "CHI-115",
+            "CHI-107"
+          ],
           "completed_at": "2026-02-22T21:54:49Z",
           "files": [
             "src/stores/contextStore.ts",
@@ -1282,7 +1466,10 @@
           "status": "done",
           "priority": "Medium",
           "linear_id": "1aa1cdd4",
-          "dependencies": ["CHI-115", "CHI-116"],
+          "dependencies": [
+            "CHI-115",
+            "CHI-116"
+          ],
           "completed_at": "2026-02-23T00:30:00Z",
           "files": [
             "src/components/explorer/FilePreview.tsx",
@@ -1295,7 +1482,10 @@
           "status": "done",
           "priority": "Medium",
           "linear_id": "10966ef7",
-          "dependencies": ["CHI-118", "CHI-117"],
+          "dependencies": [
+            "CHI-118",
+            "CHI-117"
+          ],
           "completed_at": "2026-02-23T00:32:00Z",
           "files": [
             "src/components/explorer/FilePreview.tsx",
@@ -1307,8 +1497,12 @@
       }
     }
   },
-  "recommended_next": ["CHI-101", "CHI-96", "CHI-110"],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-114 (File Explorer & @-Mention) DONE and merged to main (all 5 tasks). CHI-101 (Agent SDK) remains high priority for CHI-108. CHI-96 (Diagnostic Bundle) next in logging epic. CHI-110 (Split Panes) available. Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-87/88). CHI-61 (vibrancy) and CHI-66 (inline diff preview) are now complete.",
+  "recommended_next": [
+    "CHI-108",
+    "CHI-96",
+    "CHI-110"
+  ],
+  "critical_path": "All P0/P1 Phase 2 work complete. CHI-114 (File Explorer & @-Mention) DONE and merged to main (all 5 tasks). CHI-101 (Agent SDK) is now DONE and unblocks CHI-108 (SDK command discovery integration) as the next high-leverage follow-up. CHI-96 (Diagnostic Bundle) next in logging epic. CHI-110 (Split Panes) available. Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-87/88). CHI-61 (vibrancy) and CHI-66 (inline diff preview) are now complete.",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
@@ -1324,8 +1518,8 @@
       "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec, §10.8 Split Pane spec. v2.2: Added §4.15 File Explorer & @-Mention Context Flow, §10.9 File Explorer & @-Mention Context System spec (CHI-114/115/116/117/118/119)"
     },
     "SPEC-004": {
-      "version": "2.3",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow"
+      "version": "2.4",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission `updatedInput` semantics and legacy fallback limitation note."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1392,7 +1586,9 @@
         },
         {
           "task": "Built-in tool pre-authorization in -p mode",
-          "files_modified": ["src-tauri/src/commands/bridge.rs"],
+          "files_modified": [
+            "src-tauri/src/commands/bridge.rs"
+          ],
           "notes": "In -p mode CLI auto-denies all permissions. Added --allowedTools for safe built-in tools (WebSearch, WebFetch, Read, Glob, Grep, Edit, Write, NotebookEdit, Task, TodoRead, TodoWrite). Bash excluded (requires YOLO). YOLO mode uses --dangerously-skip-permissions."
         },
         {

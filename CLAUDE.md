@@ -231,14 +231,14 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 **Quick wins completed:** CHI-72 (typing indicator), CHI-84 (sidebar collapsed), CHI-76 (command palette) — all done
 
-### Phase 3: Agent SDK Integration (Planned)
+### Phase 3: Agent SDK Integration (In Progress)
 
 | Task    | Priority | Status   | Description                                                                     |
 | ------- | -------- | -------- | ------------------------------------------------------------------------------- |
-| CHI-101 | High     | Todo     | Migrate CLI bridge from `-p` mode to Agent SDK control protocol (SPEC-004 §5.6) |
+| CHI-101 | High     | **Done** | Migrate CLI bridge from `-p` mode to Agent SDK control protocol (SPEC-004 §5.6) |
 | CHI-102 | Urgent   | **Done** | Add granular Bash allowedTools patterns (Developer Mode — interim fix)          |
 
-**CHI-101** is a major architecture change: replaces spawn-per-message (`-p`) with persistent sessions using the bidirectional JSONL control protocol (`--input-format stream-json`). Enables true interactive permissions, runtime model switching, and clean interruption. See SPEC-004 §5.6 for full protocol documentation.
+**CHI-101** is now implemented: the bridge supports persistent Agent SDK sessions with bidirectional JSONL control protocol (`--input-format stream-json`), true interactive permissions, runtime model switching, and clean interruption. The app also retains legacy `-p` fallback for older Claude Code CLI versions (< 2.1). See SPEC-004 §5.6 for protocol details.
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
@@ -248,9 +248,9 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | ------- | -------- | -------- | --------------------------------------------------------------------------------- |
 | CHI-106 | Urgent   | **Done** | Command Discovery Backend — file scanning `.claude/commands/` + IPC               |
 | CHI-107 | High     | **Done** | SlashCommandMenu UI Component — inline autocomplete on `/`                        |
-| CHI-108 | Medium   | Todo     | SDK Command Discovery Integration (Phase B) — swap to `system:init` after CHI-101 |
+| CHI-108 | Medium   | Todo     | SDK Command Discovery Integration (Phase B) — swap to `system:init` (unblocked by CHI-101) |
 
-Two-phase architecture: Phase A (CHI-106/107) uses file scanning and works now. Phase B (CHI-108) swaps to SDK discovery after CHI-101 lands. UI carries over 100%. See SPEC-003 §4.13, §10.7 and SPEC-004 §4.4.7, §5.7.
+Two-phase architecture: Phase A (CHI-106/107) uses file scanning and works now. Phase B (CHI-108) swaps to SDK discovery via `system:init` and is now unblocked by CHI-101. UI carries over 100%. See SPEC-003 §4.13, §10.7 and SPEC-004 §4.4.7, §5.7.
 
 ### Epic CHI-109: Parallel Sessions v2 — Split Panes & Resource Management (Phase 3)
 
