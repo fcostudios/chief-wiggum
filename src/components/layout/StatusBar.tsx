@@ -3,13 +3,20 @@
 // Left: agent/model status. Center: token usage. Right: cost pill.
 
 import type { Component } from 'solid-js';
-import { Show } from 'solid-js';
+import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { uiState } from '@/stores/uiStore';
 import { cliState } from '@/stores/cliStore';
 import { conversationState } from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
 import { openExportDialog } from '@/stores/diagnosticsStore';
 import type { ProcessStatus } from '@/lib/types';
+import {
+  getRecentActionEvents,
+  getRunningActions,
+  stopAction,
+  restartAction,
+  selectAction,
+} from '@/stores/actionStore';
 
 function processStatusDisplay(status: ProcessStatus): { label: string; color: string } {
   switch (status) {
@@ -29,6 +36,10 @@ function processStatusDisplay(status: ProcessStatus): { label: string; color: st
 }
 
 const StatusBar: Component = () => {
+  let actionsButtonRef: HTMLButtonElement | undefined;
+  let actionsPopoverRef: HTMLDivElement | undefined;
+  const [actionsPopoverOpen, setActionsPopoverOpen] = createSignal(false);
+
   const activeSession = () =>
     sessionState.sessions.find((s) => s.id === sessionState.activeSessionId);
   const activeSessionId = () => sessionState.activeSessionId;
@@ -53,6 +64,26 @@ const StatusBar: Component = () => {
         sessionId !== activeId && (status === 'running' || status === 'starting'),
     ).length;
   };
+  const runningActions = createMemo(() => getRunningActions());
+  const recentActions = createMemo(() => getRecentActionEvents().slice(0, 3));
+  const runningActionCount = () => runningActions().length;
+
+  function toggleActionsPopover() {
+    setActionsPopoverOpen((prev) => !prev);
+  }
+
+  onMount(() => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      if (!actionsPopoverOpen()) return;
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (actionsButtonRef?.contains(target)) return;
+      if (actionsPopoverRef?.contains(target)) return;
+      setActionsPopoverOpen(false);
+    };
+    document.addEventListener('mousedown', handleDocumentClick);
+    onCleanup(() => document.removeEventListener('mousedown', handleDocumentClick));
+  });
 
   return (
     <footer
@@ -136,6 +167,181 @@ const StatusBar: Component = () => {
           >
             {backgroundRunningCount()} active
           </span>
+        </Show>
+        <Show when={runningActionCount() > 0 || recentActions().length > 0}>
+          <div class="relative">
+            <button
+              ref={actionsButtonRef}
+              class="font-mono px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
+              style={{
+                'font-size': '9px',
+                color: runningActionCount() > 0 ? 'var(--color-success)' : 'var(--color-text-tertiary)',
+                background: 'var(--color-bg-elevated)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(63, 185, 80, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--color-bg-elevated)';
+              }}
+              onClick={toggleActionsPopover}
+              title={
+                runningActionCount() > 0
+                  ? `${runningActionCount()} action(s) running`
+                  : 'Recent action activity'
+              }
+              aria-expanded={actionsPopoverOpen()}
+            >
+              <span>▶</span>
+              <span>
+                {runningActionCount() > 0
+                  ? `${runningActionCount()} running`
+                  : `${recentActions().length} recent`}
+              </span>
+            </button>
+
+            <Show when={actionsPopoverOpen()}>
+              <div
+                ref={actionsPopoverRef}
+                class="absolute left-0 bottom-7 z-40 w-[320px] rounded-lg overflow-hidden animate-fade-in"
+                style={{
+                  background: 'var(--color-bg-primary)',
+                  border: '1px solid var(--color-border-primary)',
+                  'box-shadow': 'var(--shadow-lg)',
+                }}
+              >
+                <div
+                  class="px-3 py-2 text-[10px] uppercase tracking-[0.08em] font-semibold"
+                  style={{
+                    color: 'var(--color-text-tertiary)',
+                    background: 'var(--color-bg-secondary)',
+                    'border-bottom': '1px solid var(--color-border-secondary)',
+                  }}
+                >
+                  Actions
+                </div>
+
+                <div class="max-h-[260px] overflow-y-auto">
+                  <Show when={runningActionCount() > 0}>
+                    <div class="px-2 py-2">
+                      <div
+                        class="px-1 py-1 text-[10px] uppercase tracking-[0.08em]"
+                        style={{ color: 'var(--color-text-tertiary)' }}
+                      >
+                        Running
+                      </div>
+                      <For each={runningActions()}>
+                        {(action) => (
+                          <div
+                            class="flex items-center gap-2 px-1.5 py-1 rounded"
+                            style={{ 'background-color': 'transparent' }}
+                          >
+                            <button
+                              class="min-w-0 flex-1 text-left"
+                              onClick={() => {
+                                selectAction(action.id);
+                                setActionsPopoverOpen(false);
+                              }}
+                              title={action.command}
+                            >
+                              <div
+                                class="text-xs font-mono truncate"
+                                style={{ color: 'var(--color-text-primary)' }}
+                              >
+                                {action.name}
+                              </div>
+                              <div
+                                class="text-[10px] truncate"
+                                style={{ color: 'var(--color-text-tertiary)' }}
+                              >
+                                {action.command}
+                              </div>
+                            </button>
+                            <button
+                              class="px-1.5 py-0.5 rounded text-[10px]"
+                              style={{
+                                color: 'var(--color-error)',
+                                background: 'rgba(248,81,73,0.08)',
+                                border: '1px solid rgba(248,81,73,0.15)',
+                              }}
+                              onClick={() => void stopAction(action.id)}
+                            >
+                              Stop
+                            </button>
+                            <button
+                              class="px-1.5 py-0.5 rounded text-[10px]"
+                              style={{
+                                color: 'var(--color-accent)',
+                                background: 'rgba(232,130,90,0.08)',
+                                border: '1px solid rgba(232,130,90,0.15)',
+                              }}
+                              onClick={() => void restartAction(action)}
+                            >
+                              Restart
+                            </button>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+
+                  <Show when={recentActions().length > 0}>
+                    <div
+                      class="px-2 py-2"
+                      style={{
+                        'border-top':
+                          runningActionCount() > 0
+                            ? '1px solid var(--color-border-secondary)'
+                            : 'none',
+                      }}
+                    >
+                      <div
+                        class="px-1 py-1 text-[10px] uppercase tracking-[0.08em]"
+                        style={{ color: 'var(--color-text-tertiary)' }}
+                      >
+                        Recent
+                      </div>
+                      <For each={recentActions()}>
+                        {(evt) => (
+                          <div class="flex items-center justify-between gap-2 px-1.5 py-1">
+                            <div class="min-w-0">
+                              <div
+                                class="text-xs font-mono truncate"
+                                style={{ color: 'var(--color-text-primary)' }}
+                              >
+                                {evt.name}
+                              </div>
+                              <div
+                                class="text-[10px] truncate"
+                                style={{ color: 'var(--color-text-tertiary)' }}
+                              >
+                                {evt.status}
+                                <Show when={evt.exit_code !== null}> • exit {evt.exit_code}</Show>
+                              </div>
+                            </div>
+                            <button
+                              class="px-1.5 py-0.5 rounded text-[10px]"
+                              style={{
+                                color: 'var(--color-text-tertiary)',
+                                background: 'var(--color-bg-elevated)',
+                                border: '1px solid var(--color-border-secondary)',
+                              }}
+                              onClick={() => {
+                                selectAction(evt.action_id);
+                                setActionsPopoverOpen(false);
+                              }}
+                            >
+                              View
+                            </button>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+                </div>
+              </div>
+            </Show>
+          </div>
         </Show>
       </div>
 
