@@ -310,3 +310,19 @@ export interface SettingsChangedPayload {
   category: string;
   key: string | null;
 }
+
+/** Redaction summary returned by diagnostic bundle export. */
+export interface RedactionSummary {
+  rules_applied: string[];
+  entries_redacted: number;
+  total_entries: number;
+  fields_redacted: number;
+}
+
+/** Result of diagnostic bundle export (CHI-96). */
+export interface BundleExportResult {
+  path: string;
+  size_bytes: number;
+  log_entry_count: number;
+  redaction: RedactionSummary;
+}

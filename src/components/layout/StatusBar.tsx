@@ -4,11 +4,13 @@
 
 import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
+import { invoke } from '@tauri-apps/api/core';
 import { uiState } from '@/stores/uiStore';
 import { cliState } from '@/stores/cliStore';
 import { conversationState } from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
-import type { ProcessStatus } from '@/lib/types';
+import { addToast } from '@/stores/toastStore';
+import type { BundleExportResult, ProcessStatus } from '@/lib/types';
 
 function processStatusDisplay(status: ProcessStatus): { label: string; color: string } {
   switch (status) {
@@ -47,6 +49,19 @@ const StatusBar: Component = () => {
     const statuses = conversationState.sessionStatuses;
     return Object.values(statuses).filter((s) => s === 'running' || s === 'starting').length;
   };
+
+  async function handleExportDiagnostics(): Promise<void> {
+    try {
+      const result = await invoke<BundleExportResult>('export_diagnostic_bundle');
+      const sizeMb = (result.size_bytes / 1024 / 1024).toFixed(2);
+      addToast(
+        `Diagnostic bundle exported (${result.log_entry_count} logs, ${sizeMb} MB)`,
+        'success',
+      );
+    } catch (err) {
+      addToast(`Failed to export diagnostics: ${String(err)}`, 'error');
+    }
+  }
 
   return (
     <footer
@@ -141,17 +156,37 @@ const StatusBar: Component = () => {
         {inputK()} / {outputK()}
       </span>
 
-      {/* Right: cost pill */}
-      <span
-        class="font-mono px-1.5 py-0.5 rounded-full"
-        style={{
-          'font-size': '10px',
-          color: 'var(--color-text-tertiary)',
-          background: 'var(--color-bg-elevated)',
-        }}
-      >
-        {costDisplay()}
-      </span>
+      {/* Right: diagnostics export + cost pill */}
+      <div class="flex items-center gap-2">
+        <button
+          class="px-2 py-0.5 rounded transition-colors"
+          style={{
+            'font-size': '10px',
+            color: 'var(--color-text-secondary)',
+            background: 'transparent',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'var(--color-bg-elevated)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+          }}
+          onClick={() => void handleExportDiagnostics()}
+          title="Export diagnostic bundle for bug reports"
+        >
+          Export Diagnostics
+        </button>
+        <span
+          class="font-mono px-1.5 py-0.5 rounded-full"
+          style={{
+            'font-size': '10px',
+            color: 'var(--color-text-tertiary)',
+            background: 'var(--color-bg-elevated)',
+          }}
+        >
+          {costDisplay()}
+        </span>
+      </div>
     </footer>
   );
 };
