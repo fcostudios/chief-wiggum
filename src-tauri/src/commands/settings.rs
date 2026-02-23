@@ -25,9 +25,9 @@ fn load_settings(app: &AppHandle) -> Result<UserSettings, AppError> {
             if settings.migrate() {
                 let json = serde_json::to_value(&settings)?;
                 store.set(SETTINGS_KEY, json);
-                store
-                    .save()
-                    .map_err(|e| AppError::Other(format!("Failed to save settings store: {}", e)))?;
+                store.save().map_err(|e| {
+                    AppError::Other(format!("Failed to save settings store: {}", e))
+                })?;
                 tracing::info!("Settings migrated to v{}", SETTINGS_VERSION);
             }
             Ok(settings)
@@ -99,10 +99,7 @@ pub fn update_settings(app: AppHandle, patch: serde_json::Value) -> Result<UserS
 
 /// Reset settings to defaults. If `category` is provided, only that category is reset.
 #[tauri::command(rename_all = "snake_case")]
-pub fn reset_settings(
-    app: AppHandle,
-    category: Option<String>,
-) -> Result<UserSettings, AppError> {
+pub fn reset_settings(app: AppHandle, category: Option<String>) -> Result<UserSettings, AppError> {
     let mut settings = load_settings(&app)?;
     let defaults = UserSettings::default();
 

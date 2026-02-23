@@ -1,6 +1,6 @@
 //! IPC commands for diagnostic bundle export (CHI-96).
 
-use crate::logging::bundle::{BundleExportResult, export_bundle};
+use crate::logging::bundle::{export_bundle, BundleExportResult};
 use crate::AppError;
 
 /// Export a diagnostic ZIP bundle containing redacted logs and system metadata.

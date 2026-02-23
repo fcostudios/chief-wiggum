@@ -7,8 +7,8 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use serde::Serialize;
-use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
+use zip::ZipWriter;
 
 use super::init::get_ring_buffer;
 use super::redactor::{LogRedactor, RedactionSummary};
@@ -85,7 +85,8 @@ pub fn export_bundle() -> Result<BundleExportResult, crate::AppError> {
         zip.write_all(b"\n")?;
     }
 
-    zip.start_file("system_info.json", options).map_err(zip_error)?;
+    zip.start_file("system_info.json", options)
+        .map_err(zip_error)?;
     let system_json = serde_json::to_string_pretty(&system_info)?;
     zip.write_all(system_json.as_bytes())?;
 

@@ -245,7 +245,10 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
             class="px-2 py-1.5 flex items-center gap-2 border-b"
             style={{ 'border-color': 'var(--color-border-secondary)' }}
           >
-            <span class="text-[10px] font-mono truncate" style={{ color: 'var(--color-text-primary)' }}>
+            <span
+              class="text-[10px] font-mono truncate"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
               {props.node.name}
             </span>
             <span

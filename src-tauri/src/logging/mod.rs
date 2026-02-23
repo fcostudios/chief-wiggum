@@ -8,7 +8,7 @@ pub mod init;
 pub mod redactor;
 pub mod ring_buffer;
 
-pub use bundle::{BundleExportResult, export_bundle};
+pub use bundle::{export_bundle, BundleExportResult};
 pub use init::{get_ring_buffer, init_logging};
 pub use redactor::{LogRedactor, RedactionSummary};
 pub use ring_buffer::{LogEntry, RingBufferHandle};
