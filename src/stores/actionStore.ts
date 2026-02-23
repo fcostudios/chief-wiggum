@@ -10,6 +10,7 @@ import type {
   ActionOutputLine,
   ActionRecentEvent,
   ActionStatus,
+  CustomActionDraft,
   RunningActionInfo,
 } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
@@ -63,6 +64,13 @@ export async function discoverActions(projectPath: string): Promise<void> {
   } finally {
     setState('isDiscovering', false);
   }
+}
+
+/** Read custom actions from `.claude/actions.json` only. */
+export async function readCustomActions(projectPath: string): Promise<ActionDefinition[]> {
+  return invoke<ActionDefinition[]>('read_custom_actions', {
+    project_path: projectPath,
+  });
 }
 
 /** Start an action. */
@@ -120,6 +128,23 @@ export async function restartAction(action: ActionDefinition): Promise<void> {
   }
 }
 
+/** Start an action after substituting argument placeholders in its command. */
+export async function runActionWithArgs(
+  action: ActionDefinition,
+  resolvedArgs: Record<string, string>,
+): Promise<void> {
+  let resolvedCommand = action.command;
+  for (const [key, value] of Object.entries(resolvedArgs)) {
+    const safeValue = value ?? '';
+    resolvedCommand = resolvedCommand.replaceAll(`{{${key}}}`, safeValue);
+  }
+
+  await startAction({
+    ...action,
+    command: resolvedCommand,
+  });
+}
+
 /** Get status for an action. */
 export function getActionStatus(actionId: string): ActionStatus {
   return state.statuses[actionId] ?? 'idle';
@@ -166,6 +191,64 @@ export function clearActionOutput(actionId: string): void {
 /** Stop all running actions for the active project. */
 export async function stopAllRunningActions(): Promise<void> {
   await Promise.allSettled(getRunningActionIds().map((actionId) => stopAction(actionId)));
+}
+
+/** Save or update a custom action in `.claude/actions.json`, then refresh discovery. */
+export async function saveCustomAction(projectPath: string, draft: CustomActionDraft): Promise<void> {
+  const action: ActionDefinition = {
+    id: `claude_actions:${draft.name}`,
+    name: draft.name,
+    command: draft.command,
+    working_dir: draft.working_dir,
+    source: 'claude_actions',
+    category: draft.category,
+    description: draft.description,
+    is_long_running: draft.is_long_running,
+    before_commands: draft.before_commands,
+    after_commands: draft.after_commands,
+    env_vars: draft.env_vars,
+    args: draft.args,
+  };
+
+  await invoke('save_custom_action', {
+    project_path: projectPath,
+    action,
+  });
+  await discoverActions(projectPath);
+}
+
+/** Delete a custom action from `.claude/actions.json`, then refresh discovery. */
+export async function deleteCustomAction(projectPath: string, actionName: string): Promise<void> {
+  await invoke('delete_custom_action', {
+    project_path: projectPath,
+    action_name: actionName,
+  });
+  if (state.selectedActionId === `claude_actions:${actionName}`) {
+    setState('selectedActionId', null);
+  }
+  await discoverActions(projectPath);
+}
+
+/** Clone a discovered action into custom actions for inline editing/override. */
+export async function customizeDiscoveredAction(
+  projectPath: string,
+  action: ActionDefinition,
+): Promise<void> {
+  const draft: CustomActionDraft = {
+    name: action.name,
+    command: action.command,
+    working_dir: action.working_dir,
+    category: action.category,
+    description: action.description,
+    is_long_running: action.is_long_running,
+    before_commands: action.before_commands,
+    after_commands: action.after_commands,
+    env_vars: action.env_vars,
+    args: action.args,
+  };
+
+  await saveCustomAction(projectPath, draft);
+  addToast(`Customized action: ${action.name}`, 'success');
 }
 
 /** Set up Tauri event listeners for action events. */

@@ -347,6 +347,10 @@ export interface ActionDefinition {
   category: ActionCategory;
   description: string | null;
   is_long_running: boolean;
+  before_commands?: string[];
+  after_commands?: string[];
+  env_vars?: Record<string, string>;
+  args?: ActionArgTemplate[];
 }
 
 export interface ActionOutputLine {
@@ -367,4 +371,28 @@ export interface ActionRecentEvent {
 export interface RunningActionInfo {
   action_id: string;
   status: ActionStatus;
+}
+
+/** CHI-145 inline editor payload for custom actions. */
+export interface CustomActionDraft {
+  name: string;
+  command: string;
+  working_dir: string;
+  category: ActionCategory;
+  description: string | null;
+  is_long_running: boolean;
+  before_commands?: string[];
+  after_commands?: string[];
+  env_vars?: Record<string, string>;
+  args?: ActionArgTemplate[];
+}
+
+/** Minimal argument template metadata (Phase 2, CHI-145). */
+export interface ActionArgTemplate {
+  name: string;
+  type: 'string' | 'enum';
+  description?: string;
+  required?: boolean;
+  options?: string[];
+  default?: string;
 }
