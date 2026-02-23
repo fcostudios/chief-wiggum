@@ -4,6 +4,7 @@
 //! and provides PTY-based execution with streaming output.
 
 pub mod scanner;
+pub mod bridge;
 
 use serde::{Deserialize, Serialize};
 
