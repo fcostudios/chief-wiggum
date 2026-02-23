@@ -105,8 +105,12 @@ impl ControlRequest {
 }
 
 impl ControlResponse {
-    /// Create a permission allow response.
-    pub fn allow(request_id: String) -> Self {
+    /// Create a permission allow response with an explicit updatedInput payload.
+    pub fn allow_with_input(
+        request_id: String,
+        updated_input: Option<serde_json::Map<String, serde_json::Value>>,
+    ) -> Self {
+        let updated_input = updated_input.unwrap_or_default();
         Self {
             msg_type: "control_response".to_string(),
             response: ControlResponseEnvelope {
@@ -114,11 +118,16 @@ impl ControlResponse {
                 request_id,
                 response: ControlResponseBody {
                     behavior: "allow".to_string(),
-                    updated_input: Some(serde_json::Map::new()),
+                    updated_input: Some(updated_input),
                     message: None,
                 },
             },
         }
+    }
+
+    /// Create a permission allow response.
+    pub fn allow(request_id: String) -> Self {
+        Self::allow_with_input(request_id, Some(serde_json::Map::new()))
     }
 
     /// Create a permission deny response.

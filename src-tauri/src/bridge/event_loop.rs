@@ -442,9 +442,21 @@ async fn emit_bridge_output(
                 } else {
                     Some("User denied".to_string())
                 };
+                let updated_input = if allow {
+                    if req.tool_input.is_none() {
+                        tracing::warn!(
+                            "Event loop [{}]: approving SDK permission {} without original tool_input; sending empty updatedInput",
+                            session_id,
+                            request_id
+                        );
+                    }
+                    req.tool_input.clone()
+                } else {
+                    None
+                };
 
                 if let Err(e) = bridge
-                    .send_control_response(&request_id, allow, deny_reason)
+                    .send_control_response(&request_id, allow, deny_reason, updated_input)
                     .await
                 {
                     tracing::error!(

@@ -106,6 +106,7 @@ pub trait BridgeInterface: Send + Sync {
         _request_id: &str,
         _allow: bool,
         _reason: Option<String>,
+        _updated_input: Option<serde_json::Map<String, serde_json::Value>>,
     ) -> AppResult<()> {
         Err(AppError::Bridge(
             "Control protocol responses are not supported by this bridge".to_string(),

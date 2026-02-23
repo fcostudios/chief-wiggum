@@ -44,6 +44,10 @@ pub struct PermissionRequest {
     pub file_path: Option<String>,
     /// Risk level assessment: "low", "medium", "high".
     pub risk_level: String,
+    /// Original SDK tool input (not sent to frontend). Used to round-trip `updatedInput`
+    /// back to Claude Code when approving a permission request.
+    #[serde(skip)]
+    pub tool_input: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 /// User's response to a permission request.
@@ -413,6 +417,7 @@ mod tests {
             command: command.to_string(),
             file_path: None,
             risk_level: "medium".to_string(),
+            tool_input: None,
         }
     }
 
@@ -634,6 +639,7 @@ mod tests {
             command: "ls -la".to_string(),
             file_path: Some("/home/user".to_string()),
             risk_level: "low".to_string(),
+            tool_input: None,
         };
 
         let json = serde_json::to_string(&req).unwrap();

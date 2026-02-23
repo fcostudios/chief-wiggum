@@ -179,9 +179,10 @@ impl AgentSdkBridge {
         request_id: &str,
         allow: bool,
         reason: Option<String>,
+        updated_input: Option<serde_json::Map<String, serde_json::Value>>,
     ) -> AppResult<()> {
         let resp = if allow {
-            ControlResponse::allow(request_id.to_string())
+            ControlResponse::allow_with_input(request_id.to_string(), updated_input)
         } else {
             ControlResponse::deny(request_id.to_string(), reason)
         };
@@ -361,6 +362,7 @@ impl AgentSdkBridge {
                     command,
                     file_path,
                     risk_level,
+                    tool_input: tool_input.as_object().cloned(),
                 };
 
                 tracing::info!(
@@ -457,8 +459,9 @@ impl BridgeInterface for AgentSdkBridge {
         request_id: &str,
         allow: bool,
         reason: Option<String>,
+        updated_input: Option<serde_json::Map<String, serde_json::Value>>,
     ) -> AppResult<()> {
-        self.send_control_response_message(request_id, allow, reason)
+        self.send_control_response_message(request_id, allow, reason, updated_input)
             .await
     }
 

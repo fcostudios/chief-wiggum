@@ -473,6 +473,7 @@ impl StreamParser {
                     command,
                     file_path: extract_string(&event.data, "file_path"),
                     risk_level,
+                    tool_input: None,
                 })))
             }
 
