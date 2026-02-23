@@ -657,9 +657,9 @@ mod tests {
     #[test]
     fn search_files_finds_by_path() {
         let project = create_test_project();
-        let results = search_files(project.path(), "lib/utils", None).unwrap();
+        let results = search_files(project.path(), "src/main", None).unwrap();
         assert!(!results.is_empty());
-        assert!(results.iter().any(|r| r.name == "utils.ts"));
+        assert!(results.iter().any(|r| r.name == "main.rs"));
     }
 
     #[test]
