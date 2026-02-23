@@ -2,7 +2,7 @@
 
 **Version:** 2.3
 **Date:** 2026-02-22
-**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings Backend + Conversation Virtualization
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -37,7 +37,7 @@ chief-wiggum/
 │   │   │   ├── agent.rs            # Agent lifecycle commands (future)
 │   │   │   ├── context.rs          # Context management commands (future)
 │   │   │   ├── mcp.rs              # MCP server management commands (future)
-│   │   │   ├── settings.rs         # Settings CRUD commands (future)
+│   │   │   ├── settings.rs         # Settings CRUD commands (Phase 3 — CHI-122)
 │   │   │   ├── git.rs              # Git operations commands (future)
 │   │   │   └── automation.rs       # Automation CRUD commands (future)
 │   │   ├── bridge/                 # Claude Code CLI process management
@@ -71,6 +71,9 @@ chief-wiggum/
 │   │   │   ├── mod.rs              # FileNode, FileContent, FileSearchResult types
 │   │   │   ├── scanner.rs          # Directory walker (ignore crate, gitignore-aware)
 │   │   │   └── watcher.rs          # FS change watcher (notify crate, debounced)
+│   │   ├── settings/               # User settings persistence + validation (Phase 3 — CHI-122)
+│   │   │   ├── mod.rs              # UserSettings types, defaults, migrations
+│   │   │   └── validation.rs       # Value validation rules (theme, locale, limits)
 │   │   └── mcp/                    # MCP server management
 │   │       ├── mod.rs
 │   │       ├── registry.rs         # Server registration, discovery
@@ -255,10 +258,12 @@ export const setBudget = (scope: string, limit_cents: number) =>
 export const compactContext = (session_id: string, strategy: string) =>
   invoke<void>('compact_context', { session_id, strategy });
 
-// Settings commands
-export const getSettings = () => invoke<Settings>('get_settings');
-export const updateSettings = (settings: Partial<Settings>) =>
-  invoke<void>('update_settings', { settings });
+// Settings commands (CHI-122)
+export const getSettings = () => invoke<UserSettings>('get_settings');
+export const updateSettings = (patch: Partial<UserSettings>) =>
+  invoke<UserSettings>('update_settings', { patch });
+export const resetSettings = (category?: string) =>
+  invoke<UserSettings>('reset_settings', { category });
 
 // MCP commands
 export const addMcpServer = (config: McpServerConfig) =>
@@ -1273,7 +1278,7 @@ fn run_migrations(conn: &Connection) -> Result<()> {
 ### 9.1 Frontend Performance Rules
 
 - **Lazy component loading**: Diff viewer, settings screen, MCP panel load on first access.
-- **Virtualized lists**: Message list and session list use virtual scrolling (only render visible items).
+- **Virtualized lists**: Conversation message list uses virtual scrolling (CHI-132); apply the same pattern to other long lists as they scale.
 - **Debounced updates**: Cost tracker and context meter updates debounced to 100ms to prevent render thrashing.
 - **Web Workers**: Syntax highlighting via tree-sitter WASM runs in a Web Worker, never on the main thread.
 - **Terminal rendering**: xterm.js WebGL addon for GPU-accelerated text. Offscreen terminals suspend rendering.

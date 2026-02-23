@@ -90,6 +90,9 @@
 | CHI-117: @-Mention Autocomplete     | **Done** | `FileMentionMenu.tsx`, `ContextChip.tsx`, `contextStore.ts`, XML context assembly                   |
 | CHI-118: File Content Preview       | **Done** | `FilePreview.tsx` in DetailsPanel, syntax highlighting, paginated expansion, copy path              |
 | CHI-119: Code Range Selection       | **Done** | Click/drag/shift+click line selection, token estimates, `@file:start-end` shorthand                 |
+| CHI-122: Settings Backend & Types   | **Done** | `settings/` module + validation + IPC persistence (`tauri-plugin-store`) + TS settings types        |
+| CHI-123: File Explorer Quick Wins   | **Done** | Git status indicators, drag-drop attach, hover preview tooltip, breadcrumb navigation                |
+| CHI-132: Conversation Virtualization| **Done** | `ConversationView` virtual scrolling with `@tanstack/solid-virtual` + jump-to-latest                |
 
 ## Phase 1 Status
 
@@ -241,6 +244,8 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 **CHI-101** is now implemented: the bridge supports persistent Agent SDK sessions with bidirectional JSONL control protocol (`--input-format stream-json`), true interactive permissions, runtime model switching, and clean interruption. The app also retains legacy `-p` fallback for older Claude Code CLI versions (< 2.1). See SPEC-004 §5.6 for protocol details.
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
+
+**Recent Phase 3 completions:** CHI-122 (settings persistence backend + TS types), CHI-123 (file explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), and CHI-132 (virtualized `ConversationView` with jump-to-latest). Current validation snapshot: 186 Rust tests pass; frontend typecheck/lint/build pass.
 
 ### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
 
