@@ -6,7 +6,14 @@ import type { Component } from 'solid-js';
 import { Show, For } from 'solid-js';
 import { ChevronRight, File, Folder, FolderOpen } from 'lucide-solid';
 import type { FileNode } from '@/lib/types';
-import { fileState, isExpanded, getChildren, toggleFolder, selectFile } from '@/stores/fileStore';
+import {
+  fileState,
+  isExpanded,
+  getChildren,
+  toggleFolder,
+  selectFile,
+  getGitStatus,
+} from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 
 interface FileTreeNodeProps {
@@ -104,6 +111,39 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
 
         {/* Name */}
         <span class="truncate flex-1 font-mono text-[11px]">{props.node.name}</span>
+
+        {/* Git status indicator */}
+        <Show when={getGitStatus(props.node.relative_path)}>
+          {(status) => {
+            const config = () => {
+              switch (status().status) {
+                case 'modified':
+                  return { label: 'M', color: 'var(--color-warning)' };
+                case 'untracked':
+                  return { label: 'U', color: 'var(--color-success)' };
+                case 'staged':
+                  return { label: 'S', color: 'var(--color-success)' };
+                case 'deleted':
+                  return { label: 'D', color: 'var(--color-error)' };
+                case 'renamed':
+                  return { label: 'R', color: 'var(--color-accent)' };
+                case 'conflict':
+                  return { label: '!', color: 'var(--color-error)' };
+                default:
+                  return { label: '?', color: 'var(--color-text-tertiary)' };
+              }
+            };
+            return (
+              <span
+                class="text-[8px] font-mono font-bold shrink-0 leading-none"
+                style={{ color: config().color }}
+                title={`Git: ${status().status}`}
+              >
+                {config().label}
+              </span>
+            );
+          }}
+        </Show>
 
         {/* Size badge for files */}
         <Show when={!isDir() && !props.node.is_binary && props.node.size_bytes != null}>
