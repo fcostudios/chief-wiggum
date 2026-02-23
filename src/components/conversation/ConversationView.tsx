@@ -104,12 +104,42 @@ const ConversationView: Component = () => {
   });
 
   // ── Auto-scroll ──
+  function scrollToLatest(options?: { smooth?: boolean }) {
+    if (!scrollRef) return;
+
+    // In virtualized mode, using scrollHeight directly can produce incorrect
+    // offsets while many row heights are still estimated. Ask the virtualizer
+    // to scroll to the final item, then snap to the true container bottom on
+    // the next frame to include streaming/loading blocks rendered after the
+    // virtualized list.
+    if (useVirtualization() && messages().length > 0) {
+      const lastIndex = messages().length - 1;
+      virtualizer.measure();
+      virtualizer.scrollToIndex(lastIndex, {
+        align: 'end',
+        behavior: options?.smooth ? 'auto' : 'auto',
+      });
+      requestAnimationFrame(() => {
+        virtualizer.measure();
+        if (scrollRef) {
+          scrollRef.scrollTop = scrollRef.scrollHeight;
+        }
+      });
+      return;
+    }
+
+    scrollRef.scrollTo({
+      top: scrollRef.scrollHeight,
+      behavior: options?.smooth ? 'smooth' : 'auto',
+    });
+  }
+
   createEffect(() => {
     void conversationState.messages.length;
     void typewriter.rendered();
     if (isAutoScroll() && scrollRef) {
       requestAnimationFrame(() => {
-        scrollRef!.scrollTop = scrollRef!.scrollHeight;
+        scrollToLatest();
       });
     }
   });
@@ -131,7 +161,7 @@ const ConversationView: Component = () => {
 
   function jumpToLatest() {
     if (!scrollRef) return;
-    scrollRef.scrollTo({ top: scrollRef.scrollHeight, behavior: 'smooth' });
+    scrollToLatest({ smooth: true });
     setIsAutoScroll(true);
     setShowJumpButton(false);
   }
