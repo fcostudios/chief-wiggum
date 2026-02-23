@@ -3,6 +3,7 @@
 //! This crate contains the Rust backend for the Tauri v2 application.
 //! Module layout follows SPEC-004 §2.
 
+pub mod actions;
 pub mod bridge;
 pub mod commands;
 pub mod db;
