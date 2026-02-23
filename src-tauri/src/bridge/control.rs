@@ -31,6 +31,13 @@ pub enum ControlRequestBody {
 pub struct ControlResponse {
     #[serde(rename = "type")]
     pub msg_type: String,
+    pub response: ControlResponseEnvelope,
+}
+
+/// SDK envelope for an outbound control response.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ControlResponseEnvelope {
+    pub subtype: String,
     pub request_id: String,
     pub response: ControlResponseBody,
 }
@@ -38,7 +45,7 @@ pub struct ControlResponse {
 /// Body of an outbound control response (permission decision).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ControlResponseBody {
-    pub allow: bool,
+    pub behavior: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
 }
@@ -100,10 +107,13 @@ impl ControlResponse {
     pub fn allow(request_id: String) -> Self {
         Self {
             msg_type: "control_response".to_string(),
-            request_id,
-            response: ControlResponseBody {
-                allow: true,
-                message: None,
+            response: ControlResponseEnvelope {
+                subtype: "success".to_string(),
+                request_id,
+                response: ControlResponseBody {
+                    behavior: "allow".to_string(),
+                    message: None,
+                },
             },
         }
     }
@@ -112,10 +122,13 @@ impl ControlResponse {
     pub fn deny(request_id: String, reason: Option<String>) -> Self {
         Self {
             msg_type: "control_response".to_string(),
-            request_id,
-            response: ControlResponseBody {
-                allow: false,
-                message: reason,
+            response: ControlResponseEnvelope {
+                subtype: "success".to_string(),
+                request_id,
+                response: ControlResponseBody {
+                    behavior: "deny".to_string(),
+                    message: reason,
+                },
             },
         }
     }
@@ -159,6 +172,15 @@ pub fn extract_control_subtype(json: &serde_json::Value) -> Option<String> {
         .map(ToString::to_string)
 }
 
+/// Extract request_id from an inbound control_response JSON value.
+/// Supports both nested SDK envelope shape and a legacy top-level request_id shape.
+pub fn extract_control_response_request_id(json: &serde_json::Value) -> Option<String> {
+    json.pointer("/response/request_id")
+        .or_else(|| json.get("request_id"))
+        .and_then(|v| v.as_str())
+        .map(ToString::to_string)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -185,7 +207,9 @@ mod tests {
         let resp = ControlResponse::allow("req_cli_1".to_string());
         let json = serde_json::to_string(&resp).unwrap();
         assert!(json.contains("\"type\":\"control_response\""));
-        assert!(json.contains("\"allow\":true"));
+        assert!(json.contains("\"subtype\":\"success\""));
+        assert!(json.contains("\"request_id\":\"req_cli_1\""));
+        assert!(json.contains("\"behavior\":\"allow\""));
         assert!(!json.contains("\"message\""));
     }
 
@@ -193,7 +217,7 @@ mod tests {
     fn deny_response_serializes() {
         let resp = ControlResponse::deny("req_cli_2".to_string(), Some("User denied".to_string()));
         let json = serde_json::to_string(&resp).unwrap();
-        assert!(json.contains("\"allow\":false"));
+        assert!(json.contains("\"behavior\":\"deny\""));
         assert!(json.contains("User denied"));
     }
 
@@ -242,5 +266,27 @@ mod tests {
         let id2 = next_request_id();
         assert_ne!(id1, id2);
         assert!(id1.starts_with("cw_"));
+    }
+
+    #[test]
+    fn extract_control_response_request_id_supports_nested_shape() {
+        let json: serde_json::Value = serde_json::from_str(
+            r#"{"type":"control_response","response":{"subtype":"success","request_id":"cw_123","response":{"behavior":"allow"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            extract_control_response_request_id(&json),
+            Some("cw_123".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_control_response_request_id_supports_legacy_shape() {
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"type":"control_response","request_id":"cw_456"}"#).unwrap();
+        assert_eq!(
+            extract_control_response_request_id(&json),
+            Some("cw_456".to_string())
+        );
     }
 }

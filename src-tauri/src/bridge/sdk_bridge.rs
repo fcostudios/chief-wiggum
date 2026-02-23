@@ -256,10 +256,10 @@ impl AgentSdkBridge {
                         Some(ref t) if t == "control_response" => {
                             if let Ok(json) = serde_json::from_str::<serde_json::Value>(trimmed) {
                                 if let Some(req_id) =
-                                    json.get("request_id").and_then(|v| v.as_str())
+                                    control::extract_control_response_request_id(&json)
                                 {
                                     let mut pending = pending_requests.write().await;
-                                    if let Some(tx) = pending.remove(req_id) {
+                                    if let Some(tx) = pending.remove(&req_id) {
                                         let _ = tx.send(json);
                                     } else {
                                         tracing::warn!(
@@ -267,6 +267,11 @@ impl AgentSdkBridge {
                                             req_id
                                         );
                                     }
+                                } else {
+                                    tracing::warn!(
+                                        "Received control_response without request_id: {}",
+                                        trimmed
+                                    );
                                 }
                             }
                             continue;
@@ -509,8 +514,9 @@ mod tests {
         let json = serde_json::to_string(&bridge_stdin_input).unwrap();
         let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed["type"], "control_response");
-        assert_eq!(parsed["request_id"], "req_1");
-        assert_eq!(parsed["response"]["allow"], true);
+        assert_eq!(parsed["response"]["subtype"], "success");
+        assert_eq!(parsed["response"]["request_id"], "req_1");
+        assert_eq!(parsed["response"]["response"]["behavior"], "allow");
     }
 
     #[tokio::test]
