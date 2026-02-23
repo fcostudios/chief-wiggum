@@ -8,6 +8,7 @@ pub mod commands;
 pub mod db;
 pub mod files;
 pub mod logging;
+pub mod settings;
 pub mod slash;
 
 /// Unified application error type per GUIDE-001 §2.4 and SPEC-004 §7.
