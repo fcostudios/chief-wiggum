@@ -9,7 +9,7 @@ import 'highlight.js/styles/github-dark.css';
 import { Check, Copy, ExternalLink, File, Plus } from 'lucide-solid';
 import type { FileContent } from '@/lib/types';
 import { addFileReference } from '@/stores/contextStore';
-import { fileState, setSelectedRange } from '@/stores/fileStore';
+import { fileState, navigateToFolder, setSelectedRange } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 
@@ -287,12 +287,45 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
         </span>
       </div>
 
+      {/* Breadcrumb path bar */}
       <div
-        class="text-[9px] font-mono truncate"
+        class="flex items-center gap-0.5 text-[9px] font-mono min-w-0 overflow-x-auto"
         style={{ color: 'var(--color-text-tertiary)' }}
-        title={props.content.relative_path}
       >
-        {props.content.relative_path}
+        <For each={props.content.relative_path.split('/')}>
+          {(segment, index) => {
+            const pathSegments = props.content.relative_path.split('/');
+            const isLast = () => index() === pathSegments.length - 1;
+            const folderPath = () => pathSegments.slice(0, index() + 1).join('/');
+
+            return (
+              <>
+                <Show when={index() > 0}>
+                  <span class="opacity-40 shrink-0">/</span>
+                </Show>
+                <Show
+                  when={!isLast()}
+                  fallback={<span style={{ color: 'var(--color-text-primary)' }}>{segment}</span>}
+                >
+                  <button
+                    class="hover:underline transition-colors shrink-0"
+                    style={{
+                      color: 'var(--color-accent)',
+                      'transition-duration': 'var(--duration-fast)',
+                    }}
+                    onClick={() => {
+                      const pid = projectState.activeProjectId;
+                      if (pid) void navigateToFolder(pid, folderPath());
+                    }}
+                    title={`Navigate to ${folderPath()}`}
+                  >
+                    {segment}
+                  </button>
+                </Show>
+              </>
+            );
+          }}
+        </For>
       </div>
 
       <Show when={props.isLoading}>

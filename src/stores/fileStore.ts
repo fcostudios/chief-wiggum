@@ -256,6 +256,21 @@ export function clearSearch(): void {
   setState({ searchQuery: '', searchResults: [], isSearching: false });
 }
 
+/** Navigate to a directory in the file tree by expanding all ancestors. */
+export async function navigateToFolder(projectId: string, folderPath: string): Promise<void> {
+  const parts = folderPath.split('/').filter(Boolean);
+  let current = '';
+  for (const part of parts) {
+    current = current ? `${current}/${part}` : part;
+    if (!state.expandedPaths.includes(current)) {
+      setState('expandedPaths', (prev) => [...prev, current]);
+      if (!state.tree[current]) {
+        await loadDirectoryChildren(projectId, current);
+      }
+    }
+  }
+}
+
 /** Toggle files section visibility. */
 export function toggleFilesVisible(): void {
   setState('isVisible', (v) => !v);
