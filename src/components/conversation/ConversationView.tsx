@@ -67,6 +67,73 @@ function MessageRenderer(props: { message: Message }) {
   );
 }
 
+function VirtualMessageRow(props: {
+  virtualItem: { index: number; start: number };
+  message: Message | undefined;
+  virtualizer: { measureElement: (el: Element) => void };
+}) {
+  let rowRef: HTMLDivElement | undefined;
+  let resizeObserver: ResizeObserver | undefined;
+  let rowMeasureRaf: number | null = null;
+
+  const measureRow = () => {
+    if (!rowRef) return;
+    if (rowMeasureRaf !== null) {
+      cancelAnimationFrame(rowMeasureRaf);
+      rowMeasureRaf = null;
+    }
+    rowMeasureRaf = requestAnimationFrame(() => {
+      if (!rowRef?.isConnected) return;
+      props.virtualizer.measureElement(rowRef);
+      rowMeasureRaf = null;
+    });
+  };
+
+  onMount(() => {
+    measureRow();
+
+    if (typeof ResizeObserver !== 'undefined' && rowRef) {
+      resizeObserver = new ResizeObserver(() => {
+        measureRow();
+      });
+      resizeObserver.observe(rowRef);
+    }
+
+    onCleanup(() => {
+      if (rowMeasureRaf !== null) {
+        cancelAnimationFrame(rowMeasureRaf);
+      }
+      resizeObserver?.disconnect();
+    });
+  });
+
+  createEffect(() => {
+    void props.message?.id;
+    void props.message?.content;
+    measureRow();
+  });
+
+  return (
+    <div
+      data-index={props.virtualItem.index}
+      ref={rowRef}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        transform: `translateY(${props.virtualItem.start}px)`,
+      }}
+    >
+      <div class="pb-4">
+        <Show when={props.message}>
+          <MessageRenderer message={props.message!} />
+        </Show>
+      </div>
+    </div>
+  );
+}
+
 const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
   let measureRaf: number | null = null;
@@ -338,27 +405,11 @@ const ConversationView: Component = () => {
                   {(virtualItem) => {
                     const msg = () => messages()[virtualItem.index];
                     return (
-                      <div
-                        data-index={virtualItem.index}
-                        ref={(el) => {
-                          requestAnimationFrame(() => {
-                            if (el.isConnected) virtualizer.measureElement(el);
-                          });
-                        }}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
-                      >
-                        <div class="pb-4">
-                          <Show when={msg()}>
-                            <MessageRenderer message={msg()!} />
-                          </Show>
-                        </div>
-                      </div>
+                      <VirtualMessageRow
+                        virtualItem={virtualItem}
+                        message={msg()}
+                        virtualizer={virtualizer}
+                      />
                     );
                   }}
                 </For>
