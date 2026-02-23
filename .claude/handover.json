@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T18:45:19Z",
+  "last_updated": "2026-02-23T19:46:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1198,10 +1198,11 @@
   "logging_epic": {
     "CHI-93": {
       "title": "Structured Log Collector & Diagnostic Export",
-      "status": "todo",
+      "status": "done",
       "priority": "High",
       "linear_id": "d5aa1cb9-e2b0-46bc-bbed-d3faa381aa34",
-      "notes": "New epic designed by Cowork. 3-layer tracing (console+file+ring buffer), privacy redaction, ZIP diagnostic bundles, frontend log forwarding, export UI with consent dialog.",
+      "completed_at": "2026-02-23T19:46:00Z",
+      "notes": "All 7 tasks done. 3-layer tracing, privacy redaction, ZIP diagnostic bundles, frontend log forwarding, export consent dialog UI, DB query tracing, GitHub issue templates. Branch: chi-97-chi100-logging-diagnostics.",
       "tasks": {
         "CHI-94": {
           "title": "3-Layer Tracing Subscriber Setup",
@@ -1259,39 +1260,77 @@
         },
         "CHI-97": {
           "title": "Frontend Log Forwarding via IPC",
-          "status": "todo",
+          "status": "done",
           "priority": "Medium",
           "linear_id": "7532e389",
+          "completed_at": "2026-02-23T19:45:47Z",
           "dependencies": [
             "CHI-94"
-          ]
+          ],
+          "files": [
+            "src/lib/logger.ts",
+            "src-tauri/src/commands/logging.rs",
+            "src-tauri/src/commands/mod.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/conversationStore.ts",
+            "src/stores/sessionStore.ts",
+            "src/stores/fileStore.ts",
+            "src/stores/actionStore.ts",
+            "src/stores/projectStore.ts",
+            "src/stores/uiStore.ts",
+            "src/stores/slashStore.ts",
+            "src/stores/contextStore.ts"
+          ],
+          "notes": "Frontend logger module (createLogger factory, fire-and-forget IPC), backend log_from_frontend command, replaced 34 console.* calls across 8 stores with structured logger."
         },
         "CHI-98": {
           "title": "Export Diagnostic Bundle UI (Consent Dialog + Menu)",
-          "status": "todo",
+          "status": "done",
           "priority": "High",
           "linear_id": "bdb62095",
+          "completed_at": "2026-02-23T19:45:48Z",
           "dependencies": [
             "CHI-96"
-          ]
+          ],
+          "files": [
+            "src/stores/diagnosticsStore.ts",
+            "src/components/diagnostics/ExportDialog.tsx",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/StatusBar.tsx",
+            "src/lib/keybindings.ts",
+            "vite.config.ts"
+          ],
+          "notes": "diagnosticsStore with export/copyDebugInfo state, ExportDialog consent component with privacy assurance, StatusBar wired to dialog, Cmd+Shift+D for Copy Debug Info, Developer Mode moved to Cmd+Shift+F12, __APP_VERSION__ via Vite define."
         },
         "CHI-99": {
           "title": "Database Query Tracing Instrumentation",
-          "status": "todo",
+          "status": "done",
           "priority": "Medium",
           "linear_id": "2ec708f5",
+          "completed_at": "2026-02-23T19:45:50Z",
           "dependencies": [
             "CHI-94"
-          ]
+          ],
+          "files": [
+            "src-tauri/src/db/queries.rs"
+          ],
+          "notes": "Added #[tracing::instrument] to all 17 public query functions. Privacy-safe: skips db/conn, no content logged. INFO for writes, DEBUG for reads."
         },
         "CHI-100": {
           "title": "GitHub Issue Template with Diagnostic Bundle Guidance",
-          "status": "todo",
+          "status": "done",
           "priority": "Low",
           "linear_id": "e2795830",
+          "completed_at": "2026-02-23T19:45:51Z",
           "dependencies": [
             "CHI-98"
-          ]
+          ],
+          "files": [
+            ".github/ISSUE_TEMPLATE/bug_report.yml",
+            ".github/ISSUE_TEMPLATE/feature_request.yml",
+            ".github/ISSUE_TEMPLATE/config.yml"
+          ],
+          "notes": "Bug report with environment info (Cmd+Shift+D), diagnostic bundle attachment, severity dropdown. Feature request with problem/solution structure."
         }
       }
     }
@@ -1730,13 +1769,16 @@
     }
   },
   "recommended_next": [
+    "CHI-98",
     "CHI-144",
-    "CHI-124",
-    "CHI-135",
-    "CHI-136",
-    "CHI-133"
+    "CHI-87",
+    "CHI-97",
+    "CHI-99",
+    "CHI-145",
+    "CHI-88",
+    "CHI-100"
   ],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-101 (Agent SDK), CHI-108 (SDK slash discovery), CHI-96 (Diagnostic Bundle), CHI-122 (Settings Backend), CHI-123 (File Explorer Quick Wins), CHI-132 (Conversation Virtualization) all DONE. CHI-138 Project Actions MVP (CHI-139..CHI-143) is DONE; next in epic: CHI-144/CHI-145. Parallel tracks: CHI-124 (Settings UI, unblocked by CHI-122), CHI-135/CHI-136 (error states + a11y). Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81-83), CHI-65 (CHI-87/88).",
+  "critical_path": "Focus: close 3 epics. CHI-138 (Project Actions) needs CHI-144 + CHI-145. CHI-65 (Sidebar Polish) needs CHI-87 + CHI-88. CHI-93 (Log Collector) needs CHI-97 + CHI-98 + CHI-99 + CHI-100. Total: 8 tasks. Parallel tracks: Track A (CHI-98 + CHI-97 + CHI-99 backend/frontend logging), Track B (CHI-144 + CHI-145 actions polish), Track C (CHI-87 + CHI-88 sidebar polish). CHI-100 depends on CHI-98.",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
