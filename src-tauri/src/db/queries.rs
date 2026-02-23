@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 // ── Projects ───────────────────────────────────────────────────
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn insert_project(db: &Database, id: &str, name: &str, path: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
@@ -19,6 +20,7 @@ pub fn insert_project(db: &Database, id: &str, name: &str, path: &str) -> Result
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
 pub fn get_project(db: &Database, id: &str) -> Result<Option<ProjectRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -44,6 +46,7 @@ pub fn get_project(db: &Database, id: &str) -> Result<Option<ProjectRow>, AppErr
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
 pub fn list_projects(db: &Database) -> Result<Vec<ProjectRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -69,6 +72,7 @@ pub fn list_projects(db: &Database) -> Result<Vec<ProjectRow>, AppError> {
 
 // ── Sessions ───────────────────────────────────────────────────
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db, model))]
 pub fn insert_session(
     db: &Database,
     id: &str,
@@ -84,6 +88,7 @@ pub fn insert_session(
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
 pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -118,6 +123,7 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn update_session_cost(
     db: &Database,
     session_id: &str,
@@ -139,6 +145,7 @@ pub fn update_session_cost(
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
 pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -171,6 +178,7 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn delete_session(db: &Database, id: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
         // Delete child records first (no ON DELETE CASCADE in schema)
@@ -191,6 +199,7 @@ pub fn delete_session(db: &Database, id: &str) -> Result<(), AppError> {
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
 pub fn count_session_messages(db: &Database, session_id: &str) -> Result<i64, AppError> {
     db.with_conn(|conn| {
         conn.query_row(
@@ -201,6 +210,7 @@ pub fn count_session_messages(db: &Database, session_id: &str) -> Result<i64, Ap
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn duplicate_session_metadata_only(
     db: &Database,
     source_id: &str,
@@ -234,6 +244,7 @@ pub fn duplicate_session_metadata_only(
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db, title))]
 pub fn update_session_title(db: &Database, id: &str, title: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
@@ -244,6 +255,7 @@ pub fn update_session_title(db: &Database, id: &str, title: &str) -> Result<(), 
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn update_session_model(db: &Database, id: &str, model: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
@@ -254,6 +266,7 @@ pub fn update_session_model(db: &Database, id: &str, model: &str) -> Result<(), 
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn update_session_cli_id(
     db: &Database,
     id: &str,
@@ -268,6 +281,7 @@ pub fn update_session_cli_id(
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(conn))]
 pub fn update_session_pinned(
     conn: &rusqlite::Connection,
     session_id: &str,
@@ -283,6 +297,7 @@ pub fn update_session_pinned(
 // ── Messages ───────────────────────────────────────────────────
 
 #[allow(clippy::too_many_arguments)]
+#[tracing::instrument(target = "db/queries", level = "info", skip(db, content, model))]
 pub fn insert_message(
     db: &Database,
     id: &str,
@@ -304,6 +319,7 @@ pub fn insert_message(
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
 pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -334,6 +350,7 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
 
 // ── Cost Events ────────────────────────────────────────────────
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 #[allow(clippy::too_many_arguments)]
 pub fn insert_cost_event(
     db: &Database,
