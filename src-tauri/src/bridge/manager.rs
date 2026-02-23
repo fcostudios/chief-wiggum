@@ -13,6 +13,7 @@ use super::event_loop::{
     PermissionRequestPayload, ThinkingPayload, ToolResultPayload, ToolUsePayload,
 };
 use super::process::{BridgeConfig, BridgeInterface, CliBridge};
+use super::sdk_bridge::AgentSdkBridge;
 use crate::{AppError, AppResult};
 
 /// Default maximum number of concurrent CLI sessions.
@@ -155,6 +156,24 @@ impl SessionBridgeMap {
         drop(bridges);
         self.create_runtime(session_id).await;
         tracing::info!("Spawned CLI bridge for session {}", session_id);
+        Ok(())
+    }
+
+    /// Spawn a new AgentSdkBridge for a session (SDK mode).
+    pub async fn spawn_sdk_for_session(&self, session_id: &str, config: BridgeConfig) -> AppResult<()> {
+        let mut bridges = self.bridges.write().await;
+        if bridges.contains_key(session_id) {
+            return Err(AppError::Bridge(format!(
+                "Session {} already has an active CLI process",
+                session_id
+            )));
+        }
+
+        let bridge = AgentSdkBridge::spawn(config).await?;
+        bridges.insert(session_id.to_string(), Arc::new(bridge));
+        drop(bridges);
+        self.create_runtime(session_id).await;
+        tracing::info!("Spawned AgentSdkBridge for session {}", session_id);
         Ok(())
     }
 
