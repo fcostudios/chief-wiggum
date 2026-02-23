@@ -92,6 +92,7 @@ function pickBestMentionResult(
 const MessageInput: Component<MessageInputProps> = (props) => {
   const [content, setContent] = createSignal('');
   const [isFocused, setIsFocused] = createSignal(false);
+  const [isDragOver, setIsDragOver] = createSignal(false);
   const [mentionOpen, setMentionOpen] = createSignal(false);
   const [mentionResults, setMentionResults] = createSignal<FileSearchResult[]>([]);
   const [mentionHighlight, setMentionHighlight] = createSignal(0);
@@ -312,6 +313,69 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     props.onCancel?.();
   }
 
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer?.types.includes('application/x-chief-wiggum-file')) {
+      e.dataTransfer.dropEffect = 'copy';
+      setIsDragOver(true);
+    }
+  }
+
+  function handleDragLeave(e: DragEvent) {
+    const related = e.relatedTarget as Node | null;
+    const container = e.currentTarget as HTMLElement;
+    if (related && container.contains(related)) return;
+    setIsDragOver(false);
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+    const data = e.dataTransfer?.getData('application/x-chief-wiggum-file');
+    if (!data) return;
+
+    try {
+      const fileData = JSON.parse(data) as {
+        relative_path: string;
+        name: string;
+        extension: string | null;
+        size_bytes: number | null;
+        node_type: string;
+        is_binary: boolean;
+      };
+
+      if (fileData.is_binary) {
+        addToast('Cannot attach binary files', 'warning');
+        return;
+      }
+
+      const projectId = projectState.activeProjectId;
+      let estimatedTokens = fileData.size_bytes ? Math.round(fileData.size_bytes / 4) : 250;
+
+      if (projectId) {
+        try {
+          estimatedTokens = await invoke<number>('get_file_token_estimate', {
+            project_id: projectId,
+            relative_path: fileData.relative_path,
+          });
+        } catch {
+          // Use rough estimate
+        }
+      }
+
+      addFileReference({
+        relative_path: fileData.relative_path,
+        name: fileData.name,
+        extension: fileData.extension,
+        estimated_tokens: estimatedTokens,
+        is_directory: fileData.node_type === 'Directory',
+      });
+      addToast(`Added ${fileData.name} to prompt`, 'success');
+    } catch {
+      addToast('Failed to attach file', 'error');
+    }
+  }
+
   function handleSlashSelect(cmd: SlashCommand) {
     if (!textareaRef) return;
     const value = textareaRef.value;
@@ -476,8 +540,14 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       style={{
         background:
           'linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
-        'border-top': '1px solid var(--color-border-secondary)',
+        'border-top': isDragOver()
+          ? '2px solid var(--color-accent)'
+          : '1px solid var(--color-border-secondary)',
+        transition: 'border-color 150ms ease',
       }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       {/* Context chips bar */}
       <Show when={getAttachmentCount() > 0}>

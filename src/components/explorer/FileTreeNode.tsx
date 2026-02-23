@@ -46,6 +46,22 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const isSelected = () => fileState.selectedPath === props.node.relative_path;
   const projectId = () => projectState.activeProjectId;
 
+  function handleDragStart(e: DragEvent) {
+    if (!e.dataTransfer) return;
+    e.dataTransfer.setData(
+      'application/x-chief-wiggum-file',
+      JSON.stringify({
+        relative_path: props.node.relative_path,
+        name: props.node.name,
+        extension: props.node.extension,
+        size_bytes: props.node.size_bytes,
+        is_binary: props.node.is_binary,
+        node_type: props.node.node_type,
+      }),
+    );
+    e.dataTransfer.effectAllowed = 'copy';
+  }
+
   function handleClick() {
     const pid = projectId();
     if (!pid) return;
@@ -66,6 +82,8 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           color: isSelected() ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
           'transition-duration': 'var(--duration-fast)',
         }}
+        draggable={!isDir()}
+        onDragStart={handleDragStart}
         onMouseEnter={(e) => {
           if (!isSelected()) {
             e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
