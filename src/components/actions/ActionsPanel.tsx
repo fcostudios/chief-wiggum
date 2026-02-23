@@ -4,12 +4,19 @@
 import type { Component } from 'solid-js';
 import { For, Show, createSignal, createMemo } from 'solid-js';
 import { ChevronDown, ChevronRight, Plus, Search } from 'lucide-solid';
-import { actionState, deleteCustomAction, saveCustomAction } from '@/stores/actionStore';
+import {
+  actionState,
+  deleteCustomAction,
+  runActionWithArgs,
+  saveCustomAction,
+  startAction,
+} from '@/stores/actionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import type { ActionDefinition, ActionSource, CustomActionDraft } from '@/lib/types';
 import ActionRow from './ActionRow';
 import ActionEditor from './ActionEditor';
+import ActionArgPrompt from './ActionArgPrompt';
 
 const SOURCE_ORDER: ActionSource[] = [
   'package_json',
@@ -43,6 +50,7 @@ const ActionsPanel: Component = () => {
   const [editingRowOriginalName, setEditingRowOriginalName] = createSignal<string | null>(null);
   const [editingRowDraft, setEditingRowDraft] = createSignal<Partial<CustomActionDraft> | null>(null);
   const [pendingDeleteActionId, setPendingDeleteActionId] = createSignal<string | null>(null);
+  const [argPromptActionId, setArgPromptActionId] = createSignal<string | null>(null);
 
   const groupedActions = createMemo(() => {
     const query = searchQuery().toLowerCase();
@@ -139,6 +147,7 @@ const ActionsPanel: Component = () => {
   function openEditAction(action: ActionDefinition) {
     setIsAddingAction(false);
     setPendingDeleteActionId(null);
+    setArgPromptActionId(null);
     setEditingRowActionId(action.id);
     setEditingRowOriginalName(action.name);
     setEditingRowDraft({
@@ -158,6 +167,7 @@ const ActionsPanel: Component = () => {
   function openCustomizeAction(action: ActionDefinition) {
     setIsAddingAction(false);
     setPendingDeleteActionId(null);
+    setArgPromptActionId(null);
     setEditingRowActionId(action.id);
     setEditingRowOriginalName(null);
     setEditingRowDraft({
@@ -199,6 +209,30 @@ const ActionsPanel: Component = () => {
     } finally {
       setIsSavingAction(false);
     }
+  }
+
+  async function handleRunAction(action: ActionDefinition) {
+    setPendingDeleteActionId(null);
+
+    if (action.args && action.args.length > 0) {
+      setIsAddingAction(false);
+      setEditingRowActionId(null);
+      setEditingRowOriginalName(null);
+      setEditingRowDraft(null);
+      setArgPromptActionId((prev) => (prev === action.id ? null : action.id));
+      return;
+    }
+
+    setArgPromptActionId(null);
+    await startAction(action);
+  }
+
+  async function handleRunActionWithArgs(
+    action: ActionDefinition,
+    resolvedArgs: Record<string, string>,
+  ) {
+    setArgPromptActionId(null);
+    await runActionWithArgs(action, resolvedArgs);
   }
 
   return (
@@ -308,6 +342,7 @@ const ActionsPanel: Component = () => {
                       <>
                         <ActionRow
                           action={action}
+                          onRun={handleRunAction}
                           onEdit={
                             action.source === 'claude_actions'
                               ? () => openEditAction(action)
@@ -328,6 +363,14 @@ const ActionsPanel: Component = () => {
                           }
                         />
 
+                        <Show when={argPromptActionId() === action.id && (action.args?.length ?? 0) > 0}>
+                          <ActionArgPrompt
+                            action={action}
+                            onCancel={() => setArgPromptActionId(null)}
+                            onRun={(values) => handleRunActionWithArgs(action, values)}
+                          />
+                        </Show>
+
                         <Show when={pendingDeleteActionId() === action.id}>
                           <div
                             class="mx-2 mb-2 rounded-md px-2 py-1.5 flex items-center justify-between gap-2"
@@ -346,7 +389,7 @@ const ActionsPanel: Component = () => {
                                   color: 'var(--color-text-tertiary)',
                                   border: '1px solid var(--color-border-secondary)',
                                 }}
-                                onClick={() => setPendingDeleteActionId(null)}
+                              onClick={() => setPendingDeleteActionId(null)}
                                 disabled={isSavingAction()}
                               >
                                 No
