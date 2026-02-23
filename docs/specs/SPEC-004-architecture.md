@@ -356,7 +356,7 @@ Pattern: `{domain}:{action}` in lowercase snake_case.
 | `message:chunk` | `{ session_id, content, token_count }` | Backend → Frontend | Implemented |
 | `message:complete` | `{ session_id, role, content, model?, input_tokens?, output_tokens?, thinking_tokens?, cost_cents? }` | Backend → Frontend | Implemented |
 | `message:thinking` | `{ session_id, content, is_streaming }` | Backend → Frontend | Implemented |
-| `cli:init` | `{ session_id, cli_session_id, model }` | Backend → Frontend | Implemented |
+| `cli:init` | `{ session_id, cli_session_id, model, tools, mcp_servers }` | Backend → Frontend | Implemented |
 | `cli:exited` | `{ session_id, exit_code }` | Backend → Frontend | Implemented |
 | `tool:use` | `{ session_id, tool_name, tool_input }` | Backend → Frontend | Implemented |
 | `tool:result` | `{ session_id, tool_use_id, content, is_error }` | Backend → Frontend | Implemented |
@@ -491,26 +491,33 @@ listen<BudgetWarning>('cost:budget_warning', (event) => { /* show toast/modal */
 
 ```typescript
 // Commands
-export const getSlashCommands = (project_path?: string) =>
-  invoke<SlashCommand[]>('get_slash_commands', { project_path });
+export const listSlashCommands = (project_path?: string) =>
+  invoke<SlashCommand[]>('list_slash_commands', { project_path });
 export const refreshSlashCommands = (project_path?: string) =>
   invoke<SlashCommand[]>('refresh_slash_commands', { project_path });
 
 // Events (after Agent SDK migration — CHI-108)
-listen<SlashCommand[]>('cli:init', (event) => {
-  // Parse init payload for tools/commands
-  // Merge SDK-discovered with file-scanned commands
-  // Update slashStore
+listen<CliInitPayload>('cli:init', (event) => {
+  // Backend stores SDK-discovered commands from `tools` + `mcp_servers`
+  // Frontend refreshes slash commands so IPC returns merged list (SDK wins conflicts)
 });
 
 // Types
 interface SlashCommand {
   name: string;           // e.g., "review", "test"
   description: string;    // Human-readable description
-  source: 'builtin' | 'project' | 'user' | 'sdk';
-  category: string;       // Grouping category
-  file_path?: string;     // For file-scanned commands
-  mcp_server?: string;    // For MCP-provided tools (Phase B)
+  category: 'Builtin' | 'Project' | 'User' | 'Sdk';
+  args_hint: string | null;
+  source_path: string | null;
+  from_sdk: boolean;
+}
+
+interface CliInitPayload {
+  session_id: string;
+  cli_session_id: string;
+  model: string;
+  tools: string[];
+  mcp_servers: string[];
 }
 ```
 
@@ -581,6 +588,28 @@ interface FileSearchResult {
 }
 ```
 
+#### 4.4.10 Diagnostic Bundle Export IPC (Phase 3 — CHI-96)
+
+```typescript
+// Command
+export const exportDiagnosticBundle = () =>
+  invoke<BundleExportResult>('export_diagnostic_bundle');
+
+interface BundleExportResult {
+  path: string;                // Absolute ZIP path in log-dir exports/
+  size_bytes: number;
+  log_entry_count: number;
+  redaction: RedactionSummary;
+}
+
+interface RedactionSummary {
+  rules_applied: string[];
+  entries_redacted: number;
+  total_entries: number;
+  fields_redacted: number;
+}
+```
+
 ---
 
 ## 5. Data Flow Diagrams
@@ -598,7 +627,7 @@ Frontend                    Rust Backend                    Claude Code CLI
    │                            ├─────────────────────────────→ │
    │                            │                               │
    │                            │ ◄── system init (subtype:init)│
-   │ ◄── emit('cli:init')      │ (cli_session_id, model)       │
+   │ ◄── emit('cli:init')      │ (cli_session_id, model, tools, mcp_servers) │
    │   → store cli_session_id   │                               │
    │                            │                               │
    │                            │ ◄── assistant events ──────── │
@@ -878,7 +907,7 @@ Note: Claude Code prevents shell chaining in patterns, but bypass vectors exist 
 
 ### 5.7 Slash Command Discovery Flow (Phase 3 — CHI-105/CHI-106)
 
-Two-phase architecture: Phase A (file scanning) works immediately, Phase B (SDK discovery via CHI-108) activates after CHI-101.
+Two-phase architecture is now implemented: Phase A (file scanning) remains the base discovery path, and Phase B (SDK discovery via CHI-108) augments commands from Agent SDK `system:init` after CHI-101.
 
 ```
 Phase A — File Scanning (CHI-106):
@@ -898,17 +927,17 @@ Frontend                    slash/scanner.rs            Filesystem
    │ → slashStore.open()          │                          │
    │ → SlashCommandMenu renders   │                          │
 
-Phase B — SDK Discovery (CHI-108, after CHI-101):
+Phase B — SDK Discovery (CHI-108, implemented after CHI-101):
 
-AgentSdkBridge             slash/registry.rs           slashStore.ts
+AgentSdkBridge          event_loop.rs + slash/mod.rs     slashStore.ts
    │                              │                          │
    │ system:init event            │                          │
    │ {tools, mcp_servers, ...}    │                          │
    ├────────────────────────────→ │                          │
-   │                              │ parse into SlashCommand  │
-   │                              │ merge with file-scanned  │
-   │                              │   (SDK wins conflicts)   │
-   │                              │ emit cli:init event      │
+   │                              │ convert/store SDK cmds   │
+   │                              │ commands/slash.rs merges │
+   │                              │ SDK + file-scanned       │
+   │                              │ emit cli:init payload    │
    │                              ├────────────────────────→ │
    │                              │                          │ update filteredCommands
 ```

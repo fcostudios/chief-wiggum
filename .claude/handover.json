@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-23T04:12:53Z",
+  "last_updated": "2026-02-23T05:22:00Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1236,13 +1236,26 @@
         },
         "CHI-96": {
           "title": "Diagnostic Bundle Export (ZIP)",
-          "status": "todo",
+          "status": "done",
           "priority": "High",
           "linear_id": "cb869b15",
           "dependencies": [
             "CHI-94",
             "CHI-95"
-          ]
+          ],
+          "completed_at": "2026-02-23T05:21:00Z",
+          "files": [
+            "src-tauri/Cargo.toml",
+            "src-tauri/src/logging/bundle.rs",
+            "src-tauri/src/logging/init.rs",
+            "src-tauri/src/logging/mod.rs",
+            "src-tauri/src/commands/diagnostic.rs",
+            "src-tauri/src/commands/mod.rs",
+            "src-tauri/src/main.rs",
+            "src/components/layout/StatusBar.tsx",
+            "src/lib/types.ts"
+          ],
+          "notes": "Diagnostic bundle ZIP export implemented (redacted ring-buffer logs + system_info + redaction_summary + README) with export_diagnostic_bundle IPC and StatusBar export action. Added logging bundle tests (22 logging tests total) and validated full Rust/frontend matrix (cargo fmt/test/clippy/check, prettier/typecheck/lint/build)."
         },
         "CHI-97": {
           "title": "Frontend Log Forwarding via IPC",
@@ -1286,7 +1299,7 @@
   "slash_commands_epic": {
     "CHI-105": {
       "title": "Slash Commands & Skill Invocation",
-      "status": "todo",
+      "status": "done",
       "priority": "High",
       "linear_id": "c384d5dc-a0e5-4b14-9520-da04e86d5853",
       "notes": "Two-phase architecture: Phase A (file scanning) works now, Phase B (SDK discovery) activates after CHI-101. Reuses CommandPalette fuzzy search logic.",
@@ -1327,13 +1340,25 @@
         },
         "CHI-108": {
           "title": "SDK Command Discovery Integration (Phase B)",
-          "status": "todo",
+          "status": "done",
           "priority": "Medium",
           "linear_id": "704f174f",
           "dependencies": [
             "CHI-101",
             "CHI-106"
-          ]
+          ],
+          "completed_at": "2026-02-23T05:20:00Z",
+          "files": [
+            "src-tauri/src/slash/mod.rs",
+            "src-tauri/src/bridge/manager.rs",
+            "src-tauri/src/bridge/event_loop.rs",
+            "src-tauri/src/commands/bridge.rs",
+            "src-tauri/src/commands/slash.rs",
+            "src/stores/slashStore.ts",
+            "src/lib/types.ts",
+            "src/App.tsx"
+          ],
+          "notes": "Agent SDK Phase B slash discovery implemented: system:init tools/mcp_servers converted to Sdk SlashCommand entries, stored in SessionBridgeMap, merged into slash IPC (SDK wins conflicts), and frontend slashStore refreshes on cli:init. Includes SDK conversion/integration tests in slash/mod.rs."
         }
       }
     }
@@ -1498,11 +1523,11 @@
     }
   },
   "recommended_next": [
-    "CHI-108",
-    "CHI-96",
-    "CHI-110"
+    "CHI-110",
+    "CHI-97",
+    "CHI-98"
   ],
-  "critical_path": "All P0/P1 Phase 2 work complete. CHI-114 (File Explorer & @-Mention) DONE and merged to main (all 5 tasks). CHI-101 (Agent SDK) is now DONE and unblocks CHI-108 (SDK command discovery integration) as the next high-leverage follow-up. CHI-96 (Diagnostic Bundle) next in logging epic. CHI-110 (Split Panes) available. Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-87/88). CHI-61 (vibrancy) and CHI-66 (inline diff preview) are now complete.",
+  "critical_path": "All P0/P1 Phase 2 work complete. CHI-114 (File Explorer & @-Mention), CHI-101 (Agent SDK), CHI-108 (SDK slash discovery Phase B), and CHI-96 (Diagnostic Bundle ZIP export) are DONE and merged-ready. Next highest-leverage work is CHI-110 (Split Pane Layout System). Logging follow-ups CHI-97 (frontend log forwarding) and CHI-98 (diagnostic export consent/menu UX) remain available. Remaining UX: CHI-63 (CHI-78/79), CHI-64 (CHI-81/82/83), CHI-65 (CHI-87/88).",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
     "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
@@ -1518,8 +1543,8 @@
       "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec, §10.8 Split Pane spec. v2.2: Added §4.15 File Explorer & @-Mention Context Flow, §10.9 File Explorer & @-Mention Context System spec (CHI-114/115/116/117/118/119)"
     },
     "SPEC-004": {
-      "version": "2.4",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission `updatedInput` semantics and legacy fallback limitation note."
+      "version": "2.5",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1657,5 +1682,8 @@
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
     "notes": "Full toolchain ready. 144 Rust tests pass. Frontend checks all pass. CI + release workflows on GitHub Actions. DB schema v3. SlashCommandMenu with keyboard nav. LogRedactor with 7 rules. Concurrent session limits (max 4). CHI-114 (File Explorer & @-Mention) merged to main — scanner, file tree, @-mention, preview, range selection all done."
+  },
+  "metadata": {
+    "last_updated": "2026-02-23T00:00:00Z"
   }
 }

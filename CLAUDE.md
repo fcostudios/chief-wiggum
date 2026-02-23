@@ -81,8 +81,10 @@
 | CHI-103: HMR Resilience             | **Done** | SessionRuntime event buffer (200-event ring), reconnectAfterReload(), dedup replay                  |
 | CHI-104: Parallel Sessions          | **Done** | Per-session processStatus, per-session listeners, non-destructive switching, sidebar indicators     |
 | CHI-94: 3-Layer Tracing             | **Done** | `logging/` module — console + rolling file (JSON) + ring buffer (36K entries), platform-aware paths |
+| CHI-96: Diagnostic Bundle Export    | **Done** | Redacted ZIP export (`logs.jsonl`, system info, redaction summary) + StatusBar export action         |
 | CHI-106: Slash Command Discovery    | **Done** | `slash/` module — 11 built-in + project + user `.md` scanning, IPC commands                         |
 | CHI-107: SlashCommandMenu UI        | **Done** | Inline autocomplete dropdown, categorized, fuzzy search, keyboard nav (Arrow/Enter/Esc/Tab)         |
+| CHI-108: SDK Command Discovery      | **Done** | `system:init` tools/mcp_servers → SDK slash commands merged into slash IPC + auto-refresh listener   |
 | CHI-95: Log Redaction Engine        | **Done** | `logging/redactor.rs` — 7 regex rules, export-time redaction, RedactionSummary, 13 tests            |
 | CHI-111: Concurrent Session Limits  | **Done** | `can_spawn()` guard (default 4), ResourceLimit error, StatusBar running count badge                 |
 | CHI-115: Backend File Scanner       | **Done** | `files/` module — gitignore-aware scanner + notify watcher + 4 IPC commands, 142 tests              |
@@ -245,7 +247,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
-**Recent Phase 3 completions:** CHI-122 (settings persistence backend + TS types), CHI-123 (file explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), and CHI-132 (virtualized `ConversationView` with jump-to-latest). Current validation snapshot: 186 Rust tests pass; frontend typecheck/lint/build pass.
+**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122 (settings persistence backend + TS types), CHI-123 (file explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), and CHI-132 (virtualized `ConversationView` with jump-to-latest). Current validation snapshot: 195 Rust tests pass; frontend format/typecheck/lint/build pass.
 
 ### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
 
@@ -253,9 +255,9 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | ------- | -------- | -------- | --------------------------------------------------------------------------------- |
 | CHI-106 | Urgent   | **Done** | Command Discovery Backend — file scanning `.claude/commands/` + IPC               |
 | CHI-107 | High     | **Done** | SlashCommandMenu UI Component — inline autocomplete on `/`                        |
-| CHI-108 | Medium   | Todo     | SDK Command Discovery Integration (Phase B) — swap to `system:init` (unblocked by CHI-101) |
+| CHI-108 | Medium   | **Done** | SDK Command Discovery Integration (Phase B) — `system:init` tools/MCP merged into slash menu |
 
-Two-phase architecture: Phase A (CHI-106/107) uses file scanning and works now. Phase B (CHI-108) swaps to SDK discovery via `system:init` and is now unblocked by CHI-101. UI carries over 100%. See SPEC-003 §4.13, §10.7 and SPEC-004 §4.4.7, §5.7.
+Two-phase architecture is now fully implemented: Phase A (CHI-106/107) file scanning remains the fallback/base discovery path, and Phase B (CHI-108) augments slash discovery from Agent SDK `system:init` (`tools`, `mcp_servers`) with backend merge + frontend `cli:init` refresh. See SPEC-003 §4.13, §10.7 and SPEC-004 §4.4.7, §5.7.
 
 ### Epic CHI-109: Parallel Sessions v2 — Split Panes & Resource Management (Phase 3)
 
