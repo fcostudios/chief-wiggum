@@ -14,6 +14,7 @@ pub mod manager;
 pub mod parser;
 pub mod permission;
 pub mod process;
+pub mod sdk_bridge;
 
 // Re-export primary public types
 pub use adapter::{AdapterRegistry, OutputAdapter};
@@ -22,6 +23,7 @@ pub use manager::SessionBridgeMap;
 pub use parser::{BridgeEvent, MessageChunk, ParsedOutput, StreamParser};
 pub use permission::{PermissionAction, PermissionManager, PermissionRequest, PermissionResponse};
 pub use process::{BridgeConfig, BridgeInterface, CliBridge, ProcessStatus};
+pub use sdk_bridge::AgentSdkBridge;
 
 use crate::AppError;
 
