@@ -5,11 +5,14 @@
 
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::AppResult;
 
-use super::{classify_action, is_long_running, ActionCategory, ActionDefinition, ActionSource};
+use super::{
+    classify_action, is_long_running, ActionCategory, ActionDefinition, ActionSource,
+    CustomActionConfig,
+};
 
 /// Config files to scan, in priority order.
 const SCANNABLE_FILES: &[(&str, ActionSource)] = &[
@@ -20,6 +23,7 @@ const SCANNABLE_FILES: &[(&str, ActionSource)] = &[
     ("docker-compose.yaml", ActionSource::DockerCompose),
     (".claude/actions.json", ActionSource::ClaudeActions),
 ];
+const CLAUDE_ACTIONS_PATH: &str = ".claude/actions.json";
 
 /// Discover all actions in a project directory.
 pub fn discover_actions(project_path: &Path) -> AppResult<Vec<ActionDefinition>> {
@@ -274,38 +278,11 @@ fn parse_docker_compose(content: &str, working_dir: &str) -> AppResult<Vec<Actio
 
 /// Parse custom actions from .claude/actions.json.
 fn parse_claude_actions(content: &str, working_dir: &str) -> AppResult<Vec<ActionDefinition>> {
-    #[derive(Deserialize)]
-    struct ActionsFile {
-        actions: Vec<CustomAction>,
-    }
-
-    #[derive(Deserialize)]
-    struct CustomAction {
-        name: String,
-        command: String,
-        description: Option<String>,
-        category: Option<String>,
-        #[serde(default)]
-        long_running: bool,
-        working_dir: Option<String>,
-    }
-
-    let file: ActionsFile = serde_json::from_str(content)?;
+    let file = parse_custom_actions_file_content(content)?;
     let mut actions = Vec::new();
 
     for custom in file.actions {
-        let category = custom
-            .category
-            .as_deref()
-            .map(|c| match c.to_lowercase().as_str() {
-                "dev" => ActionCategory::Dev,
-                "build" => ActionCategory::Build,
-                "test" => ActionCategory::Test,
-                "lint" => ActionCategory::Lint,
-                "deploy" => ActionCategory::Deploy,
-                _ => ActionCategory::Custom,
-            })
-            .unwrap_or_else(|| classify_action(&custom.name));
+        let category = parse_custom_category(custom.category.as_deref(), &custom.name);
 
         actions.push(ActionDefinition {
             id: format!("claude_actions:{}", custom.name),
@@ -320,6 +297,80 @@ fn parse_claude_actions(content: &str, working_dir: &str) -> AppResult<Vec<Actio
     }
 
     Ok(actions)
+}
+
+/// Read custom actions from `.claude/actions.json` (returns empty if missing).
+pub fn read_custom_actions_file(project_path: &Path) -> AppResult<Vec<CustomActionConfig>> {
+    let path = project_path.join(CLAUDE_ACTIONS_PATH);
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+
+    let content = std::fs::read_to_string(path)?;
+    let file = parse_custom_actions_file_content(&content)?;
+    Ok(file.actions)
+}
+
+/// Save or update a custom action in `.claude/actions.json`, keyed by action name.
+pub fn save_custom_action_file(project_path: &Path, action: CustomActionConfig) -> AppResult<()> {
+    let mut actions = read_custom_actions_file(project_path)?;
+
+    if let Some(existing) = actions.iter_mut().find(|a| a.name == action.name) {
+        *existing = action;
+    } else {
+        actions.push(action);
+    }
+
+    write_custom_actions_file(project_path, &actions)
+}
+
+/// Delete a custom action by name from `.claude/actions.json`.
+pub fn delete_custom_action_file(project_path: &Path, action_name: &str) -> AppResult<()> {
+    let mut actions = read_custom_actions_file(project_path)?;
+    let original_len = actions.len();
+    actions.retain(|a| a.name != action_name);
+
+    if actions.len() == original_len {
+        return Ok(());
+    }
+
+    write_custom_actions_file(project_path, &actions)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CustomActionsFile {
+    actions: Vec<CustomActionConfig>,
+}
+
+fn parse_custom_actions_file_content(content: &str) -> AppResult<CustomActionsFile> {
+    let file: CustomActionsFile = serde_json::from_str(content)?;
+    Ok(file)
+}
+
+fn write_custom_actions_file(project_path: &Path, actions: &[CustomActionConfig]) -> AppResult<()> {
+    let claude_dir = project_path.join(".claude");
+    std::fs::create_dir_all(&claude_dir)?;
+    let path = claude_dir.join("actions.json");
+    let file = CustomActionsFile {
+        actions: actions.to_vec(),
+    };
+    let mut json = serde_json::to_string_pretty(&file)?;
+    json.push('\n');
+    std::fs::write(path, json)?;
+    Ok(())
+}
+
+fn parse_custom_category(category: Option<&str>, action_name: &str) -> ActionCategory {
+    category
+        .map(|c| match c.to_lowercase().as_str() {
+            "dev" => ActionCategory::Dev,
+            "build" => ActionCategory::Build,
+            "test" => ActionCategory::Test,
+            "lint" => ActionCategory::Lint,
+            "deploy" => ActionCategory::Deploy,
+            _ => ActionCategory::Custom,
+        })
+        .unwrap_or_else(|| classify_action(action_name))
 }
 
 #[cfg(test)]
@@ -338,6 +389,17 @@ mod tests {
             fs::write(&path, content).expect("write fixture");
         }
         dir
+    }
+
+    fn test_custom_action(name: &str, command: &str) -> CustomActionConfig {
+        CustomActionConfig {
+            name: name.to_string(),
+            command: command.to_string(),
+            description: Some(format!("{} description", name)),
+            category: Some("custom".to_string()),
+            long_running: false,
+            working_dir: None,
+        }
     }
 
     #[test]
@@ -458,5 +520,53 @@ mod tests {
         assert!(filenames.contains(&"package.json"));
         assert!(filenames.contains(&"Makefile"));
         assert!(filenames.contains(&"Cargo.toml"));
+    }
+
+    #[test]
+    fn read_custom_actions_file_missing_returns_empty() {
+        let dir = temp_project(&[]);
+        let actions = read_custom_actions_file(dir.path()).expect("read missing actions");
+        assert!(actions.is_empty());
+    }
+
+    #[test]
+    fn save_custom_action_creates_file() {
+        let dir = temp_project(&[]);
+        save_custom_action_file(dir.path(), test_custom_action("seed-db", "npm run seed"))
+            .expect("save");
+
+        let actions = read_custom_actions_file(dir.path()).expect("read");
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].name, "seed-db");
+        assert_eq!(actions[0].command, "npm run seed");
+    }
+
+    #[test]
+    fn save_custom_action_updates_existing_by_name() {
+        let dir = temp_project(&[]);
+        save_custom_action_file(dir.path(), test_custom_action("seed-db", "npm run seed"))
+            .expect("save initial");
+        save_custom_action_file(dir.path(), test_custom_action("seed-db", "pnpm seed"))
+            .expect("save update");
+
+        let actions = read_custom_actions_file(dir.path()).expect("read");
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].name, "seed-db");
+        assert_eq!(actions[0].command, "pnpm seed");
+    }
+
+    #[test]
+    fn delete_custom_action_removes_entry() {
+        let dir = temp_project(&[]);
+        save_custom_action_file(dir.path(), test_custom_action("seed-db", "npm run seed"))
+            .expect("save first");
+        save_custom_action_file(dir.path(), test_custom_action("reset-db", "npm run reset"))
+            .expect("save second");
+
+        delete_custom_action_file(dir.path(), "seed-db").expect("delete");
+
+        let actions = read_custom_actions_file(dir.path()).expect("read");
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0].name, "reset-db");
     }
 }

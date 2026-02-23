@@ -67,6 +67,18 @@ pub struct ActionDefinition {
     pub is_long_running: bool,
 }
 
+/// Custom action persisted in `.claude/actions.json` (CHI-145).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CustomActionConfig {
+    pub name: String,
+    pub command: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    #[serde(default)]
+    pub long_running: bool,
+    pub working_dir: Option<String>,
+}
+
 /// Classify an action name into a category by pattern matching.
 pub fn classify_action(name: &str) -> ActionCategory {
     let lower = name.to_lowercase();
