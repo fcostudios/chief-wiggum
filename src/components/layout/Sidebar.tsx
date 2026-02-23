@@ -12,6 +12,7 @@ import {
   Pin,
   FileCode,
   MoreHorizontal,
+  Zap,
 } from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
@@ -40,8 +41,10 @@ import {
   getActiveProject,
 } from '@/stores/projectStore';
 import { fileState, toggleFilesVisible } from '@/stores/fileStore';
+import { actionState, discoverActions } from '@/stores/actionStore';
 import { uiState } from '@/stores/uiStore';
 import FileTree from '@/components/explorer/FileTree';
+import ActionsPanel from '@/components/actions/ActionsPanel';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -75,6 +78,7 @@ const Sidebar: Component = () => {
   const [pinnedOpen, setPinnedOpen] = createSignal(true);
   const [recentOpen, setRecentOpen] = createSignal(true);
   const [olderOpen, setOlderOpen] = createSignal(true);
+  const [actionsOpen, setActionsOpen] = createSignal(false);
 
   /** Sessions filtered by active project. Shows all if no project selected. */
   const filteredSessions = () => {
@@ -305,6 +309,65 @@ const Sidebar: Component = () => {
                 style={{ 'transition-duration': 'var(--duration-normal)' }}
               >
                 <FileTree />
+              </div>
+            </Show>
+          </Show>
+        </div>
+      </Show>
+
+      {/* Actions section — only when project is active */}
+      <Show when={projectState.activeProjectId}>
+        <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+          <Show
+            when={!isCollapsed()}
+            fallback={
+              <div class="flex flex-col items-center py-2 gap-1">
+                <button
+                  class="flex items-center justify-center w-8 h-8 rounded-md text-text-tertiary hover:text-accent hover:bg-bg-elevated/50 transition-colors"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  onClick={() => setActionsOpen((prev) => !prev)}
+                  aria-label="Toggle actions"
+                  title="Actions"
+                >
+                  <Zap size={16} />
+                </button>
+              </div>
+            }
+          >
+            <button
+              class="flex items-center justify-between w-full px-3 py-2 text-left"
+              onClick={() => {
+                const open = !actionsOpen();
+                setActionsOpen(open);
+                if (open && actionState.actions.length === 0) {
+                  const project = getActiveProject();
+                  if (project?.path) {
+                    void discoverActions(project.path);
+                  }
+                }
+              }}
+            >
+              <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+                Actions
+              </span>
+              <span
+                class="text-[9px] transition-transform"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  transform: actionsOpen() ? 'rotate(90deg)' : 'rotate(0deg)',
+                  'transition-duration': 'var(--duration-fast)',
+                }}
+              >
+                ›
+              </span>
+            </button>
+
+            <Show when={actionsOpen()}>
+              <div
+                class="h-[200px] min-h-0 overflow-hidden"
+                style={{ 'transition-duration': 'var(--duration-normal)' }}
+              >
+                <ActionsPanel />
               </div>
             </Show>
           </Show>
