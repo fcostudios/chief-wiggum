@@ -3,9 +3,10 @@
 // Expands directories on click, selects files for preview.
 
 import type { Component } from 'solid-js';
-import { Show, For } from 'solid-js';
+import { Show, For, createSignal, onCleanup } from 'solid-js';
 import { ChevronRight, File, Folder, FolderOpen } from 'lucide-solid';
-import type { FileNode } from '@/lib/types';
+import { invoke } from '@tauri-apps/api/core';
+import type { FileNode, FileContent } from '@/lib/types';
 import {
   fileState,
   isExpanded,
@@ -45,6 +46,17 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const children = () => getChildren(props.node.relative_path);
   const isSelected = () => fileState.selectedPath === props.node.relative_path;
   const projectId = () => projectState.activeProjectId;
+  const [showTooltip, setShowTooltip] = createSignal(false);
+  const [tooltipContent, setTooltipContent] = createSignal<{
+    lines: string[];
+    size: string;
+    tokens: number;
+  } | null>(null);
+  let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  onCleanup(() => {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+  });
 
   function handleDragStart(e: DragEvent) {
     if (!e.dataTransfer) return;
@@ -72,8 +84,42 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
     }
   }
 
+  async function handleMouseEnterTooltip() {
+    if (isDir() || props.node.is_binary) return;
+    const pid = projectId();
+    if (!pid) return;
+
+    hoverTimeout = setTimeout(async () => {
+      try {
+        const content = await invoke<FileContent>('read_project_file', {
+          project_id: pid,
+          relative_path: props.node.relative_path,
+          start_line: null,
+          end_line: 5,
+        });
+        setTooltipContent({
+          lines: content.content.split('\n').slice(0, 5),
+          size: formatSize(content.size_bytes),
+          tokens: content.estimated_tokens,
+        });
+        setShowTooltip(true);
+      } catch {
+        // Silently fail — tooltip is optional
+      }
+    }, 500);
+  }
+
+  function handleMouseLeaveTooltip() {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      hoverTimeout = null;
+    }
+    setShowTooltip(false);
+    setTooltipContent(null);
+  }
+
   return (
-    <div>
+    <div class="relative">
       <button
         class="flex items-center gap-1 w-full text-left py-0.5 pr-2 rounded-sm transition-colors text-xs"
         style={{
@@ -88,11 +134,13 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           if (!isSelected()) {
             e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
           }
+          void handleMouseEnterTooltip();
         }}
         onMouseLeave={(e) => {
           if (!isSelected()) {
             e.currentTarget.style.background = 'transparent';
           }
+          handleMouseLeaveTooltip();
         }}
         onClick={handleClick}
         title={props.node.relative_path}
@@ -181,6 +229,46 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           </span>
         </Show>
       </button>
+
+      {/* Hover preview tooltip */}
+      <Show when={showTooltip() && tooltipContent()}>
+        <div
+          class="absolute left-full top-0 ml-2 z-50 rounded-md shadow-lg overflow-hidden pointer-events-none"
+          style={{
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-secondary)',
+            'min-width': '200px',
+            'max-width': '320px',
+          }}
+        >
+          <div
+            class="px-2 py-1.5 flex items-center gap-2 border-b"
+            style={{ 'border-color': 'var(--color-border-secondary)' }}
+          >
+            <span class="text-[10px] font-mono truncate" style={{ color: 'var(--color-text-primary)' }}>
+              {props.node.name}
+            </span>
+            <span
+              class="text-[9px] font-mono ml-auto"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            >
+              {tooltipContent()!.size} · ~{tooltipContent()!.tokens} tok
+            </span>
+          </div>
+          <div class="px-2 py-1.5">
+            <For each={tooltipContent()!.lines}>
+              {(line) => (
+                <div
+                  class="text-[9px] font-mono leading-relaxed truncate"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
+                  {line || '\u00A0'}
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </Show>
 
       {/* Recursive children */}
       <Show when={isDir() && expanded()}>
