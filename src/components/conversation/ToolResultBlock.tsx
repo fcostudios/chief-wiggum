@@ -33,6 +33,11 @@ function resultPreview(content: string): string {
   return firstLine.length > 80 ? firstLine.slice(0, 77) + '...' : firstLine;
 }
 
+function extractExitCode(content: string): string | null {
+  const match = content.match(/(?:^|\n)Exit code\s+(\d+)\b/i);
+  return match?.[1] ?? null;
+}
+
 function parseToolUseContent(content: string): ToolUseData | null {
   try {
     const parsed = JSON.parse(content);
@@ -62,6 +67,8 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   const isError = () => data().is_error;
   const preview = () => resultPreview(data().content);
   const relatedToolUse = () => findRelatedToolUse(data().tool_use_id);
+  const relatedToolName = () => relatedToolUse()?.tool_name ?? 'Tool';
+  const exitCode = () => (isError() ? extractExitCode(data().content) : null);
   const inlineDiff = () => {
     if (isError()) return null;
     const toolUse = relatedToolUse();
@@ -99,12 +106,31 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
             <CheckCircle size={12} color="var(--color-tool-bash)" />
           </Show>
           <span
+            class="text-[11px] font-mono shrink-0"
+            style={{
+              color: isError() ? 'var(--color-tool-permission-deny)' : 'var(--color-text-tertiary)',
+            }}
+          >
+            {isError() ? 'Tool Error' : 'Tool Result'}
+          </span>
+          <span class="text-[11px] text-text-tertiary/80 shrink-0">•</span>
+          <span
+            class="text-[11px] font-mono shrink-0"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            {relatedToolName()}
+          </span>
+          <span
             class="text-[11px] font-mono truncate flex-1"
             style={{
               color: isError() ? 'var(--color-tool-permission-deny)' : 'var(--color-text-tertiary)',
             }}
           >
-            {expanded() ? (isError() ? 'Error' : 'Result') : preview()}
+            {expanded()
+              ? isError()
+                ? `Execution output${exitCode() ? ` (exit ${exitCode()})` : ''}`
+                : 'Execution output'
+              : preview()}
           </span>
           <Show
             when={expanded()}
@@ -122,6 +148,21 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
             class="px-3 pb-2 border-t"
             style={{ 'border-color': 'var(--color-border-secondary)' }}
           >
+            <Show when={isError()}>
+              <div
+                class="mt-2 rounded px-2.5 py-1.5 text-[10px] leading-relaxed"
+                style={{
+                  color: 'var(--color-tool-permission-deny)',
+                  background: 'rgba(248, 81, 73, 0.06)',
+                  border: '1px solid rgba(248, 81, 73, 0.2)',
+                }}
+              >
+                Tool execution failed in <span class="font-mono">{relatedToolName()}</span>
+                <Show when={exitCode()}>{(code) => <span> (exit {code()})</span>}</Show>. This is
+                tool output, not a Chief Wiggum UI error.
+              </div>
+            </Show>
+
             <Show when={inlineDiff()}>
               {(diff) => (
                 <InlineDiff

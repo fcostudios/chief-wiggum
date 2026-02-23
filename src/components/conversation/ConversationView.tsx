@@ -80,9 +80,27 @@ const ConversationView: Component = () => {
     get count() {
       return messages().length;
     },
+    getItemKey: (index) => messages()[index]?.id ?? index,
     getScrollElement: () => scrollRef ?? null,
     estimateSize: () => 120,
     overscan: OVERSCAN,
+  });
+
+  // Reset virtualizer measurements when switching sessions / reloading message lists.
+  // Without stable re-measurement, cached row heights from a previous session can
+  // produce incorrect offsets and make newly rendered messages overlap older rows.
+  createEffect(() => {
+    void sessionState.activeSessionId;
+    const count = messages().length;
+    const firstId = messages()[0]?.id ?? null;
+    const lastId = count > 0 ? messages()[count - 1]?.id : null;
+    void firstId;
+    void lastId;
+
+    if (!scrollRef || !useVirtualization()) return;
+    requestAnimationFrame(() => {
+      virtualizer.measure();
+    });
   });
 
   // ── Auto-scroll ──
@@ -254,7 +272,9 @@ const ConversationView: Component = () => {
                       <div
                         data-index={virtualItem.index}
                         ref={(el) => {
-                          queueMicrotask(() => virtualizer.measureElement(el));
+                          requestAnimationFrame(() => {
+                            if (el.isConnected) virtualizer.measureElement(el);
+                          });
                         }}
                         style={{
                           position: 'absolute',

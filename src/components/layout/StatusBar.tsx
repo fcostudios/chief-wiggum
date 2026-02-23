@@ -60,8 +60,17 @@ const StatusBar: Component = () => {
       const result = await invoke<BundleExportResult>('export_diagnostic_bundle');
       const sizeMb = (result.size_bytes / 1024 / 1024).toFixed(2);
       addToast(
-        `Diagnostic bundle exported (${result.log_entry_count} logs, ${sizeMb} MB)`,
+        `Diagnostic bundle exported (${result.log_entry_count} logs, ${sizeMb} MB)\n${result.path}`,
         'success',
+        {
+          label: 'Copy Path',
+          onClick: () => {
+            navigator.clipboard
+              .writeText(result.path)
+              .then(() => addToast('Copied diagnostic bundle path', 'success'))
+              .catch(() => addToast('Failed to copy diagnostic bundle path', 'error'));
+          },
+        },
       );
     } catch (err) {
       addToast(`Failed to export diagnostics: ${String(err)}`, 'error');

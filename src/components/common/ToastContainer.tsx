@@ -64,7 +64,12 @@ const ToastContainer: Component = () => {
                 <VariantIcon variant={toast.variant} />
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-xs leading-relaxed text-text-primary">{toast.message}</p>
+                <p
+                  class="text-xs leading-relaxed text-text-primary"
+                  style={{ 'white-space': 'pre-wrap', 'word-break': 'break-word' }}
+                >
+                  {toast.message}
+                </p>
                 {toast.action && (
                   <button
                     class="mt-1.5 text-[11px] font-medium transition-colors"
