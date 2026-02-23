@@ -7,7 +7,7 @@ use crate::actions::bridge::ActionBridgeConfig;
 use crate::actions::event_loop;
 use crate::actions::manager::{ActionBridgeMap, RunningActionInfo};
 use crate::actions::scanner;
-use crate::actions::ActionDefinition;
+use crate::actions::{ActionCategory, ActionDefinition, ActionSource, CustomActionConfig};
 use crate::AppError;
 
 /// Discover all runnable actions in a project directory.
@@ -94,4 +94,125 @@ pub async fn list_running_actions(
     action_map: tauri::State<'_, ActionBridgeMap>,
 ) -> Result<Vec<RunningActionInfo>, AppError> {
     Ok(action_map.list_running().await)
+}
+
+/// Read custom actions from `.claude/actions.json`.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn read_custom_actions(project_path: String) -> Result<Vec<ActionDefinition>, AppError> {
+    let path = PathBuf::from(&project_path);
+    if !path.exists() {
+        return Err(AppError::Validation(format!(
+            "Project path does not exist: {}",
+            project_path
+        )));
+    }
+
+    let working_dir = project_path.clone();
+    let custom = tokio::task::spawn_blocking(move || scanner::read_custom_actions_file(&path))
+        .await
+        .map_err(|e| AppError::Other(format!("Scanner task failed: {}", e)))??;
+
+    Ok(custom
+        .into_iter()
+        .map(|cfg| custom_config_to_definition(cfg, &working_dir))
+        .collect())
+}
+
+/// Save or update a custom action in `.claude/actions.json`.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn save_custom_action(project_path: String, action: ActionDefinition) -> Result<(), AppError> {
+    let path = PathBuf::from(&project_path);
+    if !path.exists() {
+        return Err(AppError::Validation(format!(
+            "Project path does not exist: {}",
+            project_path
+        )));
+    }
+    if action.name.trim().is_empty() {
+        return Err(AppError::Validation("Action name cannot be empty".to_string()));
+    }
+    if action.command.trim().is_empty() {
+        return Err(AppError::Validation("Action command cannot be empty".to_string()));
+    }
+
+    let custom = CustomActionConfig {
+        name: action.name,
+        command: action.command,
+        description: action.description,
+        category: Some(category_to_string(&action.category)),
+        long_running: action.is_long_running,
+        working_dir: Some(action.working_dir),
+    };
+
+    tokio::task::spawn_blocking(move || scanner::save_custom_action_file(&path, custom))
+        .await
+        .map_err(|e| AppError::Other(format!("Scanner task failed: {}", e)))??;
+
+    Ok(())
+}
+
+/// Delete a custom action by name from `.claude/actions.json`.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn delete_custom_action(project_path: String, action_name: String) -> Result<(), AppError> {
+    let path = PathBuf::from(&project_path);
+    if !path.exists() {
+        return Err(AppError::Validation(format!(
+            "Project path does not exist: {}",
+            project_path
+        )));
+    }
+    if action_name.trim().is_empty() {
+        return Err(AppError::Validation("Action name cannot be empty".to_string()));
+    }
+
+    tokio::task::spawn_blocking(move || scanner::delete_custom_action_file(&path, &action_name))
+        .await
+        .map_err(|e| AppError::Other(format!("Scanner task failed: {}", e)))??;
+
+    Ok(())
+}
+
+fn custom_config_to_definition(cfg: CustomActionConfig, project_path: &str) -> ActionDefinition {
+    let category = cfg
+        .category
+        .as_deref()
+        .map(parse_category)
+        .unwrap_or_else(|| crate::actions::classify_action(&cfg.name));
+
+    let name = cfg.name;
+    ActionDefinition {
+        id: format!("claude_actions:{}", name),
+        name,
+        command: cfg.command,
+        working_dir: cfg
+            .working_dir
+            .unwrap_or_else(|| project_path.to_string()),
+        source: ActionSource::ClaudeActions,
+        category,
+        description: cfg.description,
+        is_long_running: cfg.long_running,
+    }
+}
+
+fn parse_category(value: &str) -> ActionCategory {
+    match value.to_lowercase().as_str() {
+        "dev" => ActionCategory::Dev,
+        "build" => ActionCategory::Build,
+        "test" => ActionCategory::Test,
+        "lint" => ActionCategory::Lint,
+        "deploy" => ActionCategory::Deploy,
+        _ => ActionCategory::Custom,
+    }
+}
+
+fn category_to_string(category: &ActionCategory) -> String {
+    match category {
+        ActionCategory::Dev => "dev",
+        ActionCategory::Build => "build",
+        ActionCategory::Test => "test",
+        ActionCategory::Lint => "lint",
+        ActionCategory::Deploy => "deploy",
+        ActionCategory::Custom => "custom",
+    }
+    .to_string()
 }
