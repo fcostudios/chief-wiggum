@@ -14,6 +14,9 @@ import {
   Sparkles,
   Plus,
   Search,
+  Play,
+  Square,
+  RotateCw,
 } from 'lucide-solid';
 import {
   closeCommandPalette,
@@ -29,6 +32,16 @@ import {
   cycleModel,
 } from '@/stores/sessionStore';
 import { switchSession } from '@/stores/conversationStore';
+import { projectState } from '@/stores/projectStore';
+import {
+  actionState,
+  getActionStatus,
+  selectAction,
+  startAction,
+  stopAction,
+  restartAction,
+} from '@/stores/actionStore';
+import type { ActionDefinition } from '@/lib/types';
 
 // ---------------------------------------------------------------------------
 // Command types
@@ -41,6 +54,7 @@ interface Command {
   shortcut?: string;
   icon?: () => JSX.Element;
   action: () => void;
+  searchText?: string;
   meta?: { model?: string };
 }
 
@@ -142,6 +156,61 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     },
   ];
 
+  function buildActionCommands(actions: ActionDefinition[]): Command[] {
+    const commands: Command[] = [];
+    for (const action of actions) {
+      const status = getActionStatus(action.id);
+      const running = status === 'running' || status === 'starting';
+      const searchText = [
+        action.name,
+        action.command,
+        action.source.replaceAll('_', ' '),
+        action.category,
+        action.description ?? '',
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      commands.push({
+        id: `action-run-${action.id}`,
+        label: `Run: ${action.name}`,
+        category: 'Actions',
+        icon: () => <Play size={16} />,
+        searchText,
+        action: () => {
+          selectAction(action.id);
+          void startAction(action);
+        },
+      });
+
+      if (running) {
+        commands.push({
+          id: `action-stop-${action.id}`,
+          label: `Stop: ${action.name}`,
+          category: 'Actions',
+          icon: () => <Square size={16} />,
+          searchText,
+          action: () => {
+            selectAction(action.id);
+            void stopAction(action.id);
+          },
+        });
+        commands.push({
+          id: `action-restart-${action.id}`,
+          label: `Restart: ${action.name}`,
+          category: 'Actions',
+          icon: () => <RotateCw size={16} />,
+          searchText,
+          action: () => {
+            selectAction(action.id);
+            void restartAction(action);
+          },
+        });
+      }
+    }
+    return commands;
+  }
+
   // Build dynamic commands from sessions list + static commands
   const allCommands = createMemo<Command[]>(() => {
     const sessionCommands: Command[] = sessionState.sessions.map((s) => ({
@@ -158,13 +227,20 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       },
       meta: { model: s.model },
     }));
-    return [...staticCommands, ...sessionCommands];
+    const actionCommands =
+      projectState.activeProjectId && actionState.actions.length > 0
+        ? buildActionCommands(actionState.actions)
+        : [];
+
+    return [...staticCommands, ...sessionCommands, ...actionCommands];
   });
 
   // Filter commands based on mode (sessions-only or all)
   const modeCommands = createMemo<Command[]>(() => {
     const all = allCommands();
-    return mode() === 'sessions' ? all.filter((c) => c.category === 'Sessions') : all;
+    if (mode() === 'sessions') return all.filter((c) => c.category === 'Sessions');
+    if (mode() === 'actions') return all.filter((c) => c.category === 'Actions');
+    return all;
   });
 
   // Filter by query (simple case-insensitive substring match)
@@ -172,7 +248,10 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     const q = query().toLowerCase().trim();
     if (!q) return modeCommands();
     return modeCommands().filter(
-      (cmd) => cmd.label.toLowerCase().includes(q) || cmd.category.toLowerCase().includes(q),
+      (cmd) =>
+        cmd.label.toLowerCase().includes(q) ||
+        cmd.category.toLowerCase().includes(q) ||
+        cmd.searchText?.includes(q),
     );
   });
 
