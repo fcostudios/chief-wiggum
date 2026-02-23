@@ -3,13 +3,18 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, createEffect } from 'solid-js';
-import { Copy, Trash2, ArrowDown } from 'lucide-solid';
+import { Copy, Trash2, ArrowDown, MessageSquare } from 'lucide-solid';
 import {
   actionState,
   getActionOutput,
   getActionStatus,
   clearActionOutput,
 } from '@/stores/actionStore';
+import { sendMessage } from '@/stores/conversationStore';
+import { sessionState, createNewSession } from '@/stores/sessionStore';
+import { setActiveView } from '@/stores/uiStore';
+import { projectState } from '@/stores/projectStore';
+import { addToast } from '@/stores/toastStore';
 
 /** Strip common ANSI escape codes for clean display. */
 function stripAnsi(str: string): string {
@@ -60,6 +65,40 @@ const ActionOutputPanel: Component = () => {
     }
   }
 
+  function handleAskAI() {
+    const lines = output();
+    const selectedAction = actionId();
+    if (!selectedAction || lines.length === 0) {
+      addToast('No action output to analyze', 'warning');
+      return;
+    }
+
+    const tail = lines.slice(-100);
+    const outputText = tail.map((line) => stripAnsi(line.line)).join('\n');
+    const prompt = `The project action \`${selectedAction}\` produced the following output:\n\n\`\`\`\n${outputText}\n\`\`\`\n\nPlease analyze this output and help me understand what happened. If there are errors, suggest fixes.`;
+
+    setActiveView('conversation');
+
+    void (async () => {
+      try {
+        const existingSessionId = sessionState.activeSessionId;
+        if (existingSessionId) {
+          await sendMessage(prompt, existingSessionId);
+          return;
+        }
+
+        const session = await createNewSession(
+          'claude-sonnet-4-6',
+          projectState.activeProjectId ?? undefined,
+        );
+        await sendMessage(prompt, session.id);
+      } catch (err) {
+        console.error('[ActionOutputPanel] Failed to pipe action output to AI:', err);
+        addToast('Failed to send action output to conversation', 'error');
+      }
+    })();
+  }
+
   return (
     <div class="flex flex-col h-full">
       <div
@@ -94,6 +133,15 @@ const ActionOutputPanel: Component = () => {
           </Show>
         </div>
         <div class="flex items-center gap-1">
+          <button
+            class="p-1 rounded text-text-tertiary hover:text-accent transition-colors"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={handleAskAI}
+            aria-label="Ask AI about this output"
+            title="Ask AI"
+          >
+            <MessageSquare size={11} />
+          </button>
           <button
             class="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors"
             style={{ 'transition-duration': 'var(--duration-fast)' }}
