@@ -8,6 +8,7 @@ import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 import { Check, Copy, ExternalLink, File, Plus } from 'lucide-solid';
 import type { FileContent } from '@/lib/types';
+import { createLogger } from '@/lib/logger';
 import { addFileReference } from '@/stores/contextStore';
 import { fileState, navigateToFolder, setSelectedRange } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
@@ -20,6 +21,7 @@ interface FilePreviewProps {
 }
 
 const LOAD_MORE_LINES = 100;
+const log = createLogger('ui/file-preview');
 
 function escapeHtml(text: string): string {
   return text
@@ -47,6 +49,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
   const [copied, setCopied] = createSignal(false);
   const [loadedContent, setLoadedContent] = createSignal<FileContent | null>(null);
   const [isLoadingMore, setIsLoadingMore] = createSignal(false);
+  const [loadError, setLoadError] = createSignal<string | null>(null);
   const [selectionStart, setSelectionStart] = createSignal<number | null>(null);
   const [isDragging, setIsDragging] = createSignal(false);
   let copyTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -75,6 +78,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     if (!props.content.relative_path) return;
     setLoadedContent(null);
     setIsLoadingMore(false);
+    setLoadError(null);
     setCopied(false);
     setSelectionStart(null);
     setIsDragging(false);
@@ -156,6 +160,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     );
 
     setIsLoadingMore(true);
+    setLoadError(null);
     try {
       const content = await invoke<FileContent>('read_project_file', {
         project_id: projectId,
@@ -165,7 +170,9 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
       });
       setLoadedContent(content);
     } catch (err) {
-      console.error('[FilePreview] Failed to load more preview lines:', err);
+      const message = err instanceof Error ? err.message : 'Failed to read file';
+      log.error('Failed to load more preview lines: ' + message);
+      setLoadError(message);
       addToast('Failed to load more preview lines', 'error');
     } finally {
       setIsLoadingMore(false);
@@ -347,6 +354,29 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           style={{ color: 'var(--color-text-tertiary)' }}
         >
           Loading preview...
+        </div>
+      </Show>
+
+      <Show when={loadError()}>
+        <div
+          class="flex flex-col items-center gap-2 px-3 py-3 text-center rounded-md"
+          style={{
+            border: '1px solid var(--color-error)',
+            background: 'var(--color-error-muted)',
+          }}
+          role="alert"
+        >
+          <p class="text-xs text-error font-medium">Could not read file</p>
+          <p class="text-[10px] text-text-tertiary break-all">{loadError()}</p>
+          <button
+            class="text-[10px] text-accent hover:underline"
+            onClick={() => {
+              setLoadError(null);
+              void handleLoadMore();
+            }}
+          >
+            Retry
+          </button>
         </div>
       </Show>
 

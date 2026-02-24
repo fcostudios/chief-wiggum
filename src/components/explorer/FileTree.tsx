@@ -12,6 +12,7 @@ import {
   searchFiles,
   clearSearch,
   selectFile,
+  retryLoadFiles,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import FileTreeNode from './FileTreeNode';
@@ -135,6 +136,26 @@ const FileTree: Component<FileTreeProps> = (props) => {
             when={!fileState.isLoading}
             fallback={<div class="px-2 py-2 text-[10px] text-text-tertiary/50">Loading...</div>}
           >
+            <Show when={fileState.loadError}>
+              <div
+                class="mx-1 mb-2 flex flex-col items-center gap-2 px-3 py-3 text-center rounded-md"
+                style={{
+                  border: '1px solid var(--color-error)',
+                  background: 'var(--color-error-muted)',
+                }}
+                role="alert"
+              >
+                <p class="text-xs font-medium text-error">Could not load files</p>
+                <p class="text-[10px] text-text-tertiary break-all">{fileState.loadError}</p>
+                <button
+                  class="text-[10px] text-accent hover:underline"
+                  onClick={() => void retryLoadFiles()}
+                >
+                  Retry
+                </button>
+              </div>
+            </Show>
+
             <Show
               when={getRootNodes().length > 0}
               fallback={<div class="px-2 py-2 text-[10px] text-text-tertiary/50">No files</div>}
