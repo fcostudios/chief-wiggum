@@ -8,6 +8,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { CliInitEvent, SlashCommand } from '@/lib/types';
 import { getActiveProject } from '@/stores/projectStore';
 import { createLogger } from '@/lib/logger';
+import { addToast } from '@/stores/toastStore';
 
 const log = createLogger('ui/slash');
 
@@ -128,6 +129,7 @@ export async function loadCommands(projectPath?: string): Promise<void> {
     setState('commands', commands);
   } catch (err) {
     setState('loadError', 'Failed to load slash commands');
+    addToast('Could not load slash commands', 'error');
     log.error(
       'Failed to load slash commands: ' + (err instanceof Error ? err.message : String(err)),
     );
