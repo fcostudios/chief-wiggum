@@ -568,8 +568,26 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     );
   }
 
+  await dispatchMessageToCli(content, sessionId);
+}
+
+/** Send an already-persisted user message to the CLI without creating a duplicate DB/UI entry. */
+async function resendExistingUserMessage(content: string, sessionId: string): Promise<void> {
+  setState('streamingContent', '');
+  setState('thinkingContent', '');
+  setState('isStreaming', false);
+  setState('isLoading', true);
+  setState('error', null);
+  setState('lastUserMessage', content);
+  typewriter.reset();
+  await dispatchMessageToCli(content, sessionId);
+}
+
+/** Shared CLI dispatch for a user turn (used by send, edit-resend, regenerate). */
+async function dispatchMessageToCli(content: string, sessionId: string): Promise<void> {
   // Spawn CLI process with `-p "prompt"` for each message.
   // Follow-up messages use `--continue` to resume the conversation.
+  const session = getActiveSession();
   const project = getActiveProject();
   const projectPath = project?.path ?? '.';
   const model = session?.model ?? 'claude-sonnet-4-6';
@@ -628,6 +646,69 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     }
     setSessionStatus(sessionId, 'error');
     log.warn('Failed to send message: ' + (err instanceof Error ? err.message : String(err)));
+  }
+}
+
+/** Edit a user message, truncate the conversation tail, and resend from the edited prompt. */
+export async function editMessage(
+  messageId: string,
+  newContent: string,
+  sessionId: string,
+): Promise<void> {
+  const trimmed = newContent.trim();
+  if (!trimmed) return;
+
+  const original = state.messages.find((m) => m.id === messageId && m.session_id === sessionId);
+  if (!original || original.role !== 'user') return;
+  if (trimmed === original.content) return;
+
+  try {
+    await invoke('update_message_content', { message_id: messageId, new_content: trimmed });
+    await invoke<number>('delete_messages_after', {
+      session_id: sessionId,
+      after_message_id: messageId,
+    });
+    await loadMessages(sessionId);
+    await resendExistingUserMessage(trimmed, sessionId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    setState('error', `Failed to edit message: ${message}`);
+    log.error('Failed to edit message: ' + message);
+  }
+}
+
+/** Regenerate an assistant response by deleting the tail after the preceding user message. */
+export async function regenerateResponse(
+  assistantMessageId: string,
+  sessionId: string,
+): Promise<void> {
+  const msgIndex = state.messages.findIndex(
+    (m) => m.id === assistantMessageId && m.session_id === sessionId,
+  );
+  if (msgIndex < 0 || state.messages[msgIndex]?.role !== 'assistant') return;
+
+  let userMessage: Message | null = null;
+  for (let i = msgIndex - 1; i >= 0; i--) {
+    const candidate = state.messages[i];
+    if (candidate.session_id !== sessionId) continue;
+    if (candidate.role === 'user') {
+      userMessage = candidate;
+      break;
+    }
+  }
+  if (!userMessage) return;
+
+  try {
+    await invoke<number>('delete_messages_after', {
+      session_id: sessionId,
+      after_message_id: userMessage.id,
+    });
+    await loadMessages(sessionId);
+    await resendExistingUserMessage(userMessage.content, sessionId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    setState('error', `Failed to regenerate response: ${message}`);
+    log.error('Failed to regenerate response: ' + message);
   }
 }
 
