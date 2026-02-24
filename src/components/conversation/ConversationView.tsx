@@ -22,22 +22,23 @@ import { ThinkingBlock } from './ThinkingBlock';
 import { StreamingThinkingBlock } from './StreamingThinkingBlock';
 import { PermissionRecordBlock } from './PermissionRecordBlock';
 import type { Message } from '@/lib/types';
+import { t } from '@/stores/i18nStore';
 
 const SAMPLE_PROMPTS = [
   {
-    title: 'Explain this codebase',
-    description: 'Get a high-level overview of the project structure and architecture',
+    titleKey: 'conversation.sampleExplain',
+    descriptionKey: 'conversation.sampleExplainDesc',
     prompt:
       'Give me a high-level overview of this codebase. What does it do, how is it structured, and what are the key files?',
   },
   {
-    title: 'Find and fix a bug',
-    description: 'Describe a bug and let Claude investigate and propose a fix',
+    titleKey: 'conversation.sampleBug',
+    descriptionKey: 'conversation.sampleBugDesc',
     prompt: "Help me debug an issue I'm seeing. Let me describe what's happening...",
   },
   {
-    title: 'Write a new feature',
-    description: 'Describe what you want to build and Claude will plan and implement it',
+    titleKey: 'conversation.sampleFeature',
+    descriptionKey: 'conversation.sampleFeatureDesc',
     prompt: 'I want to add a new feature. Here is what it should do...',
   },
 ];
@@ -324,10 +325,10 @@ const ConversationView: Component = () => {
                       class="text-sm font-medium mb-2"
                       style={{ color: 'var(--color-error)', 'letter-spacing': '-0.01em' }}
                     >
-                      Claude Code CLI Not Found
+                      {t('conversation.cliNotFoundTitle')}
                     </p>
                     <p class="text-xs text-text-tertiary mb-4 tracking-wide">
-                      Install it to start chatting
+                      {t('conversation.cliNotFoundSubtitle')}
                     </p>
                     <code
                       class="px-4 py-2 rounded-lg text-xs font-mono"
@@ -363,10 +364,10 @@ const ConversationView: Component = () => {
                     class="text-sm font-medium text-text-primary mb-1"
                     style={{ 'letter-spacing': '-0.01em' }}
                   >
-                    Chief Wiggum
+                    {t('conversation.emptyTitle')}
                   </p>
                   <p class="text-xs text-text-tertiary/60 mb-6 tracking-wide">
-                    What would you like to work on?
+                    {t('conversation.emptySubtitle')}
                   </p>
                   <div class="space-y-2">
                     <For each={SAMPLE_PROMPTS}>
@@ -388,10 +389,10 @@ const ConversationView: Component = () => {
                           onClick={() => handleSamplePrompt(sample.prompt)}
                         >
                           <p class="text-xs font-medium text-text-primary mb-0.5 group-hover:text-accent transition-colors">
-                            {sample.title}
+                            {t(sample.titleKey)}
                           </p>
                           <p class="text-[11px] text-text-tertiary/70 leading-relaxed">
-                            {sample.description}
+                            {t(sample.descriptionKey)}
                           </p>
                         </button>
                       )}
@@ -461,7 +462,7 @@ const ConversationView: Component = () => {
                 >
                   <div class="flex items-center gap-2 mb-1.5">
                     <span class="text-[11px] font-medium text-text-tertiary tracking-wide">
-                      Assistant
+                      {t('conversation.assistant')}
                     </span>
                   </div>
                   <MarkdownContent content={typewriter.rendered()} />
@@ -506,7 +507,9 @@ const ConversationView: Component = () => {
                         }}
                       />
                     </div>
-                    <span class="text-xs text-text-tertiary tracking-wide">Thinking</span>
+                    <span class="text-xs text-text-tertiary tracking-wide">
+                      {t('conversation.thinking')}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -541,7 +544,7 @@ const ConversationView: Component = () => {
                         if (sid) retryLastMessage(sid);
                       }}
                     >
-                      Retry
+                      {t('common.retry')}
                     </button>
                   </Show>
                 </div>
@@ -573,7 +576,7 @@ const ConversationView: Component = () => {
             onClick={jumpToLatest}
           >
             <ArrowDown size={12} />
-            Jump to latest
+            {t('conversation.jumpToLatest')}
           </button>
         </div>
       </Show>

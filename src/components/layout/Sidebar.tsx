@@ -45,6 +45,7 @@ import {
 import { fileState, toggleFilesVisible } from '@/stores/fileStore';
 import { actionState, discoverActions } from '@/stores/actionStore';
 import { uiState } from '@/stores/uiStore';
+import { t } from '@/stores/i18nStore';
 import FileTree from '@/components/explorer/FileTree';
 import ActionsPanel from '@/components/actions/ActionsPanel';
 
@@ -110,7 +111,7 @@ const Sidebar: Component = () => {
     const query = debouncedQuery();
     if (!query) return projectFilteredSessions();
     return projectFilteredSessions().filter((s) =>
-      (s.title || 'New Session').toLowerCase().includes(query),
+      (s.title || t('sidebar.newSession')).toLowerCase().includes(query),
     );
   };
 
@@ -261,8 +262,8 @@ const Sidebar: Component = () => {
                 class="flex items-center justify-center w-8 h-8 rounded-md text-text-tertiary hover:text-accent hover:bg-bg-elevated/50 transition-colors"
                 style={{ 'transition-duration': 'var(--duration-fast)' }}
                 onClick={() => pickAndCreateProject()}
-                aria-label="Open project folder"
-                title="Projects"
+                aria-label={t('sidebar.openProject')}
+                title={t('sidebar.projects')}
               >
                 <FolderOpen size={16} />
               </button>
@@ -272,14 +273,14 @@ const Sidebar: Component = () => {
           {/* Project header */}
           <div class="flex items-center justify-between px-3 py-2">
             <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-              Projects
+              {t('sidebar.projects')}
             </span>
             <button
               class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors"
               style={{ 'transition-duration': 'var(--duration-fast)' }}
               onClick={() => pickAndCreateProject()}
-              aria-label="Add project folder"
-              title="Open project folder"
+              aria-label={t('sidebar.openProject')}
+              title={t('sidebar.openProject')}
             >
               <FolderOpen size={12} />
             </button>
@@ -296,7 +297,7 @@ const Sidebar: Component = () => {
                   onClick={() => pickAndCreateProject()}
                 >
                   <Plus size={11} />
-                  <span class="tracking-wide">Open a project folder</span>
+                  <span class="tracking-wide">{t('sidebar.openProject')}</span>
                 </button>
               }
             >
@@ -370,7 +371,7 @@ const Sidebar: Component = () => {
                   style={{ 'transition-duration': 'var(--duration-fast)' }}
                   onClick={() => toggleFilesVisible()}
                   aria-label="Toggle files"
-                  title="Files"
+                  title={t('sidebar.files')}
                 >
                   <FileCode size={16} />
                 </button>
@@ -390,7 +391,7 @@ const Sidebar: Component = () => {
               }}
             >
               <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-                Files
+                {t('sidebar.files')}
               </span>
               <span
                 class="text-[9px] transition-transform"
@@ -448,7 +449,7 @@ const Sidebar: Component = () => {
                   style={{ 'transition-duration': 'var(--duration-fast)' }}
                   onClick={() => setActionsOpen((prev) => !prev)}
                   aria-label="Toggle actions"
-                  title="Actions"
+                  title={t('sidebar.actions')}
                 >
                   <Zap size={16} />
                 </button>
@@ -467,7 +468,7 @@ const Sidebar: Component = () => {
               }}
             >
               <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-                Actions
+                {t('sidebar.actions')}
               </span>
               <span
                 class="text-[9px] transition-transform"
@@ -544,7 +545,7 @@ const Sidebar: Component = () => {
                 ›
               </span>
               <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-                Sessions
+                {t('sidebar.sessions')}
               </span>
             </div>
             <span
@@ -569,7 +570,7 @@ const Sidebar: Component = () => {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Filter sessions..."
+                placeholder={t('sidebar.filterSessions')}
                 value={searchQuery()}
                 onInput={(e) => updateSearch(e.currentTarget.value)}
                 class="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-tertiary/40 outline-none min-w-0"
@@ -612,16 +613,20 @@ const Sidebar: Component = () => {
                     when={debouncedQuery().length > 0}
                     fallback={
                       <>
-                        <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
+                        <p class="text-xs text-text-tertiary/60 tracking-wide">
+                          {t('sidebar.noSessions')}
+                        </p>
                         <p class="text-[10px] text-text-tertiary/40 mt-1">
-                          Create one to get started
+                          {t('sidebar.createToStart')}
                         </p>
                       </>
                     }
                   >
-                    <p class="text-xs text-text-tertiary/60 tracking-wide">No matching sessions</p>
+                    <p class="text-xs text-text-tertiary/60 tracking-wide">
+                      {t('sidebar.noMatching')}
+                    </p>
                     <p class="text-[10px] text-text-tertiary/40 mt-1">
-                      Try a different search term
+                      {t('sidebar.tryDifferent')}
                     </p>
                   </Show>
                 </div>
@@ -630,7 +635,7 @@ const Sidebar: Component = () => {
           >
             <div class="space-y-0.5">
               <SidebarSection
-                title="Pinned"
+                title={t('sidebar.pinned')}
                 sessions={pinnedSessions()}
                 open={pinnedOpen()}
                 onToggle={() => setPinnedOpen((p) => !p)}
@@ -639,7 +644,7 @@ const Sidebar: Component = () => {
                 onDelete={handleDeleteSession}
               />
               <SidebarSection
-                title="Recent"
+                title={t('sidebar.recent')}
                 sessions={recentSessions()}
                 open={recentOpen()}
                 onToggle={() => setRecentOpen((p) => !p)}
@@ -648,7 +653,7 @@ const Sidebar: Component = () => {
                 onDelete={handleDeleteSession}
               />
               <SidebarSection
-                title="Older"
+                title={t('sidebar.older')}
                 sessions={olderSessions()}
                 open={olderOpen()}
                 onToggle={() => setOlderOpen((p) => !p)}
@@ -687,8 +692,8 @@ const Sidebar: Component = () => {
                 e.currentTarget.style.background = 'transparent';
               }}
               onClick={handleNewSession}
-              aria-label="New session"
-              title="New Session"
+              aria-label={t('sidebar.newSession')}
+              title={t('sidebar.newSession')}
             >
               <Plus size={14} />
             </button>
@@ -713,10 +718,10 @@ const Sidebar: Component = () => {
               e.currentTarget.style.background = 'transparent';
             }}
             onClick={handleNewSession}
-            aria-label="New session"
+            aria-label={t('sidebar.newSession')}
           >
             <Plus size={13} />
-            <span class="tracking-wide">New Session</span>
+            <span class="tracking-wide">{t('sidebar.newSession')}</span>
           </button>
         </Show>
       </div>
@@ -790,8 +795,8 @@ function SidebarSection(props: {
                     }
                   }}
                   onClick={() => props.onSelect(session.id)}
-                  title={session.title || 'New Session'}
-                  aria-label={session.title || 'New Session'}
+                  title={session.title || t('sidebar.newSession')}
+                  aria-label={session.title || t('sidebar.newSession')}
                 >
                   <MessageSquare size={14} />
                 </button>
@@ -826,7 +831,7 @@ const SessionItem: Component<{
   const [draftTitle, setDraftTitle] = createSignal('');
 
   function currentTitle() {
-    return props.session.title || 'New Session';
+    return props.session.title || t('sidebar.newSession');
   }
 
   function startRenaming() {
@@ -870,7 +875,7 @@ const SessionItem: Component<{
     const hasMessages = await sessionHasMessages(props.session.id);
     if (hasMessages) {
       const confirmed = window.confirm(
-        'Delete this session and all its messages? This cannot be undone.',
+        t('sidebar.deleteConfirm'),
       );
       if (!confirmed) return;
     }
@@ -1020,7 +1025,7 @@ const SessionItem: Component<{
                 onBlur={() => {
                   void commitRename();
                 }}
-                aria-label="Rename session"
+                aria-label={t('sidebar.rename')}
               />
             }
           >
@@ -1056,8 +1061,8 @@ const SessionItem: Component<{
           e.stopPropagation();
           toggleSessionPinned(props.session.id);
         }}
-        aria-label={props.session.pinned ? 'Unpin session' : 'Pin session'}
-        title={props.session.pinned ? 'Unpin' : 'Pin'}
+        aria-label={props.session.pinned ? t('sidebar.unpin') : t('sidebar.pin')}
+        title={props.session.pinned ? t('sidebar.unpin') : t('sidebar.pin')}
       >
         <Pin size={11} class={props.session.pinned ? 'fill-current' : ''} />
       </button>
@@ -1067,7 +1072,7 @@ const SessionItem: Component<{
         onClick={(e) => {
           void handleDeleteRequest(e);
         }}
-        aria-label="Delete session"
+        aria-label={t('common.delete')}
       >
         <Trash2 size={11} />
       </button>
@@ -1104,7 +1109,7 @@ const SessionItem: Component<{
                 startRenaming();
               }}
             >
-              Rename
+              {t('sidebar.rename')}
             </button>
             <button
               class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
@@ -1115,7 +1120,7 @@ const SessionItem: Component<{
                 setMenuOpen(false);
               }}
             >
-              {props.session.pinned ? 'Unpin' : 'Pin'}
+              {props.session.pinned ? t('sidebar.unpin') : t('sidebar.pin')}
             </button>
             <button
               class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
@@ -1124,7 +1129,7 @@ const SessionItem: Component<{
                 void handleDuplicateClick(e);
               }}
             >
-              Duplicate
+              {t('sidebar.duplicate')}
             </button>
             <button
               class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-secondary transition-colors"
@@ -1136,7 +1141,7 @@ const SessionItem: Component<{
                 void handleDeleteRequest(e);
               }}
             >
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         </Show>

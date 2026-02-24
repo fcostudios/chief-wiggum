@@ -9,6 +9,7 @@ import { cliState } from '@/stores/cliStore';
 import { conversationState } from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
 import { openExportDialog } from '@/stores/diagnosticsStore';
+import { t } from '@/stores/i18nStore';
 import type { ProcessStatus } from '@/lib/types';
 import {
   getRecentActionEvents,
@@ -21,17 +22,17 @@ import {
 function processStatusDisplay(status: ProcessStatus): { label: string; color: string } {
   switch (status) {
     case 'running':
-      return { label: 'Running', color: 'var(--color-success)' };
+      return { label: t('statusBar.running'), color: 'var(--color-success)' };
     case 'starting':
-      return { label: 'Starting...', color: 'var(--color-warning)' };
+      return { label: t('statusBar.starting'), color: 'var(--color-warning)' };
     case 'error':
-      return { label: 'Error', color: 'var(--color-error)' };
+      return { label: t('statusBar.error'), color: 'var(--color-error)' };
     case 'shutting_down':
-      return { label: 'Stopping...', color: 'var(--color-warning)' };
+      return { label: t('statusBar.stopping'), color: 'var(--color-warning)' };
     case 'exited':
-      return { label: 'Done', color: 'var(--color-text-tertiary)' };
+      return { label: t('statusBar.done'), color: 'var(--color-text-tertiary)' };
     default:
-      return { label: 'Ready', color: 'var(--color-success)' };
+      return { label: t('statusBar.ready'), color: 'var(--color-success)' };
   }
 }
 
@@ -115,7 +116,7 @@ const StatusBar: Component = () => {
               color: 'var(--color-warning)',
             }}
           >
-            YOLO
+            {t('statusBar.yolo')}
           </span>
         </Show>
         <Show when={!uiState.yoloMode && uiState.developerMode}>
@@ -126,7 +127,7 @@ const StatusBar: Component = () => {
               color: 'var(--color-accent)',
             }}
           >
-            DEV
+            {t('statusBar.dev')}
           </span>
         </Show>
         <Show when={!uiState.yoloMode}>
@@ -134,7 +135,7 @@ const StatusBar: Component = () => {
             when={cliState.isDetected}
             fallback={
               <span class="text-error font-medium tracking-wide" style={{ 'font-size': '10px' }}>
-                CLI not found
+                {t('statusBar.cliNotFound')}
               </span>
             }
           >
@@ -168,7 +169,7 @@ const StatusBar: Component = () => {
               background: 'var(--color-bg-elevated)',
             }}
           >
-            {backgroundRunningCount()} active
+            {t('statusBar.nActive', { n: backgroundRunningCount() })}
           </span>
         </Show>
         <Show when={runningActionCount() > 0 || recentActions().length > 0}>
@@ -373,9 +374,9 @@ const StatusBar: Component = () => {
             e.currentTarget.style.background = 'transparent';
           }}
           onClick={openExportDialog}
-          title="Export diagnostic bundle for bug reports"
+          title={t('statusBar.exportDiagnostics')}
         >
-          Export Diagnostics
+          {t('statusBar.exportDiagnostics')}
         </button>
         <span
           class="font-mono px-1.5 py-0.5 rounded-full"
