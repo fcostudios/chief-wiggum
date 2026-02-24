@@ -8,8 +8,10 @@
 
 import type { Component } from 'solid-js';
 import { onMount, onCleanup, Show } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { platform } from '@tauri-apps/plugin-os';
+import { MessageSquare, Users, GitCompare, Terminal } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -39,6 +41,13 @@ import CommandPalette from '@/components/common/CommandPalette';
 import ExportDialog from '@/components/diagnostics/ExportDialog';
 import ToastContainer from '@/components/common/ToastContainer';
 import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
+
+const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
+  conversation: MessageSquare,
+  agents: Users,
+  diff: GitCompare,
+  terminal: Terminal,
+};
 
 const MainLayout: Component = () => {
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
@@ -224,18 +233,34 @@ const MainLayout: Component = () => {
 };
 
 /** View tab button — refined underline indicator with accent glow */
-const ViewTab: Component<{ label: string; view: string }> = (props) => {
+const ViewTab: Component<{ label: string; view: ActiveView }> = (props) => {
   const isActive = () => uiState.activeView === props.view;
+  const badge = () => uiState.viewBadges[props.view] ?? 0;
 
   return (
     <button
-      class={`relative px-3 py-2 text-xs font-medium tracking-wide transition-colors ${
+      class={`relative flex items-center gap-1.5 px-3 py-2 text-xs font-medium tracking-wide transition-colors ${
         isActive() ? 'text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
       }`}
       style={{ 'transition-duration': 'var(--duration-normal)' }}
-      onClick={() => setActiveView(props.view as ActiveView)}
+      onClick={() => setActiveView(props.view)}
+      title={props.label}
     >
-      {props.label}
+      <Dynamic component={VIEW_ICONS[props.view]} size={13} />
+      <span>{props.label}</span>
+      <Show when={badge() > 0}>
+        <span
+          class="ml-0.5 text-[9px] font-semibold leading-none px-1 py-0.5 rounded-full"
+          style={{
+            background: 'var(--color-accent)',
+            color: 'var(--color-bg-primary)',
+            'min-width': '14px',
+            'text-align': 'center',
+          }}
+        >
+          {badge() > 99 ? '99+' : badge()}
+        </span>
+      </Show>
       {/* Active indicator — warm accent line with subtle glow */}
       <div
         class="absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all"

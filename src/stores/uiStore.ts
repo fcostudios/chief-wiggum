@@ -26,6 +26,7 @@ interface UIState {
   sidebarState: SidebarState;
   detailsPanelVisible: boolean;
   activeView: ActiveView;
+  viewBadges: Record<ActiveView, number>;
   permissionRequest: PermissionRequest | null;
   yoloMode: boolean;
   yoloDialogVisible: boolean;
@@ -62,6 +63,7 @@ const [state, setState] = createStore<UIState>({
   sidebarState: 'expanded',
   detailsPanelVisible: true,
   activeView: 'conversation',
+  viewBadges: { conversation: 0, agents: 0, diff: 0, terminal: 0 },
   permissionRequest: null,
   yoloMode: persisted.yoloMode,
   yoloDialogVisible: false,
@@ -99,6 +101,11 @@ export function toggleDetailsPanel() {
 
 export function setActiveView(view: ActiveView) {
   setState('activeView', view);
+}
+
+/** Set the badge count for a view tab. 0 hides the badge. */
+export function setViewBadge(view: ActiveView, count: number) {
+  setState('viewBadges', view, Math.max(0, count));
 }
 
 export function showPermissionDialog(request: PermissionRequest) {
