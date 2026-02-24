@@ -4,7 +4,7 @@
 // Each section is a collapsible accordion.
 
 import type { Component, JSX } from 'solid-js';
-import { createSignal, Show } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 import { ChevronDown, ChevronRight } from 'lucide-solid';
 import { sessionState } from '@/stores/sessionStore';
 import { projectState } from '@/stores/projectStore';
@@ -15,30 +15,43 @@ import FilePreview from '@/components/explorer/FilePreview';
 import ActionOutputPanel from '@/components/actions/ActionOutputPanel';
 
 interface SectionProps {
+  id: string;
   title: string;
   children: JSX.Element;
-  defaultOpen?: boolean;
+  open: boolean;
+  focused: boolean;
+  onHeaderClick: () => void;
 }
 
 const CollapsibleSection: Component<SectionProps> = (props) => {
-  const [open, setOpen] = createSignal(props.defaultOpen ?? true);
-
   return (
-    <section style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+    <section
+      class="flex flex-col shrink-0"
+      classList={{ 'flex-1': props.open && props.focused, 'min-h-0': props.open && props.focused }}
+      style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+      data-section-id={props.id}
+    >
       <button
         class="flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors"
-        style={{ 'transition-duration': 'var(--duration-fast)' }}
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open()}
+        style={{
+          'transition-duration': 'var(--duration-fast)',
+          background: props.focused ? 'rgba(232, 130, 90, 0.07)' : 'transparent',
+        }}
+        onClick={() => props.onHeaderClick()}
+        aria-expanded={props.open}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+          if (!props.focused) {
+            e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+          }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent';
+          e.currentTarget.style.background = props.focused
+            ? 'rgba(232, 130, 90, 0.07)'
+            : 'transparent';
         }}
       >
         <Show
-          when={open()}
+          when={props.open}
           fallback={<ChevronRight size={11} style={{ color: 'var(--color-text-tertiary)' }} />}
         >
           <ChevronDown size={11} style={{ color: 'var(--color-text-tertiary)' }} />
@@ -54,8 +67,21 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
           {props.title}
         </span>
       </button>
-      <Show when={open()}>
-        <div class="px-3 pb-3 animate-fade-in" style={{ 'animation-duration': '150ms' }}>
+      <Show when={props.open}>
+        <div
+          class="px-3 pb-3 animate-fade-in"
+          classList={{
+            'flex-1': props.focused,
+            'min-h-0': props.focused,
+            'overflow-y-auto': props.focused,
+            'overflow-x-hidden': props.focused,
+          }}
+          style={{
+            'animation-duration': '150ms',
+            'scrollbar-gutter': props.focused ? 'stable' : undefined,
+            'overscroll-behavior': props.focused ? 'contain' : undefined,
+          }}
+        >
           {props.children}
         </div>
       </Show>
@@ -64,6 +90,15 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
 };
 
 const DetailsPanel: Component = () => {
+  const [focusedSectionId, setFocusedSectionId] = createSignal<string | null>(null);
+  const [sectionOpenState, setSectionOpenState] = createSignal<Record<string, boolean>>({
+    actionOutput: true,
+    filePreview: true,
+    projectContext: false,
+    context: true,
+    cost: true,
+  });
+
   const activeSession = () =>
     sessionState.sessions.find((s) => s.id === sessionState.activeSessionId);
 
@@ -80,12 +115,74 @@ const DetailsPanel: Component = () => {
     return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
   };
 
+  const isSectionOpen = (id: string, fallback = true) =>
+    sectionOpenState()[id] ?? fallback;
+  const isFocused = (id: string) => focusedSectionId() === id;
+
+  function handleSectionHeaderClick(id: string, fallback = true) {
+    const currentlyOpen = isSectionOpen(id, fallback);
+    const currentlyFocused = isFocused(id);
+
+    if (!currentlyOpen) {
+      setSectionOpenState((prev) => ({ ...prev, [id]: true }));
+      setFocusedSectionId(id);
+      return;
+    }
+
+    if (!currentlyFocused) {
+      setFocusedSectionId(id);
+      return;
+    }
+
+    setSectionOpenState((prev) => ({ ...prev, [id]: false }));
+    setFocusedSectionId((prev) => (prev === id ? null : prev));
+  }
+
+  createEffect(() => {
+    const hasActionOutput = Boolean(actionState.selectedActionId);
+    const hasFilePreview = Boolean(fileState.selectedPath && fileState.previewContent);
+    const focused = focusedSectionId();
+
+    if (focused === 'actionOutput' && !hasActionOutput) {
+      setFocusedSectionId(null);
+    }
+    if (focused === 'filePreview' && !hasFilePreview && !fileState.isVisible) {
+      setFocusedSectionId(null);
+    }
+
+    if (!focusedSectionId()) {
+      if (hasActionOutput) {
+        setFocusedSectionId('actionOutput');
+      } else if (hasFilePreview) {
+        setFocusedSectionId('filePreview');
+      }
+    }
+  });
+
   return (
-    <aside class="flex flex-col h-full overflow-y-auto" aria-label="Details panel">
+    <aside
+      class="flex flex-col h-full min-h-0"
+      classList={{
+        'overflow-hidden': Boolean(focusedSectionId()),
+        'overflow-y-auto': !focusedSectionId(),
+      }}
+      aria-label="Details panel"
+    >
       <Show when={actionState.selectedActionId}>
-        <CollapsibleSection title="Action Output">
+        <CollapsibleSection
+          id="actionOutput"
+          title="Action Output"
+          open={isSectionOpen('actionOutput')}
+          focused={isFocused('actionOutput')}
+          onHeaderClick={() => handleSectionHeaderClick('actionOutput')}
+        >
           <div
-            class="h-[300px] -mx-3 -mb-3"
+            class="min-h-0"
+            classList={{
+              'h-[380px]': !isFocused('actionOutput'),
+              'h-full': isFocused('actionOutput'),
+              'min-h-0': isFocused('actionOutput'),
+            }}
             style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
           >
             <ActionOutputPanel />
@@ -94,13 +191,31 @@ const DetailsPanel: Component = () => {
       </Show>
 
       <Show when={fileState.selectedPath && fileState.previewContent}>
-        <CollapsibleSection title="File Preview">
-          <FilePreview content={fileState.previewContent!} isLoading={fileState.isPreviewLoading} />
+        <CollapsibleSection
+          id="filePreview"
+          title="File Preview"
+          open={isSectionOpen('filePreview')}
+          focused={isFocused('filePreview')}
+          onHeaderClick={() => handleSectionHeaderClick('filePreview')}
+        >
+          <div classList={{ 'h-full': isFocused('filePreview'), 'min-h-0': isFocused('filePreview') }}>
+            <FilePreview
+              content={fileState.previewContent!}
+              isLoading={fileState.isPreviewLoading}
+              fillHeight={isFocused('filePreview')}
+            />
+          </div>
         </CollapsibleSection>
       </Show>
 
       <Show when={!fileState.selectedPath && fileState.isVisible && projectState.activeProjectId}>
-        <CollapsibleSection title="File Preview" defaultOpen={false}>
+        <CollapsibleSection
+          id="filePreview"
+          title="File Preview"
+          open={isSectionOpen('filePreview', false)}
+          focused={isFocused('filePreview')}
+          onHeaderClick={() => handleSectionHeaderClick('filePreview', false)}
+        >
           <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
             Select a file from the sidebar to preview
           </p>
@@ -108,14 +223,34 @@ const DetailsPanel: Component = () => {
       </Show>
 
       <Show when={projectState.claudeMdContent}>
-        <CollapsibleSection title="Project Context" defaultOpen={false}>
-          <div class="text-xs max-h-48 overflow-y-auto">
+        <CollapsibleSection
+          id="projectContext"
+          title="Project Context"
+          open={isSectionOpen('projectContext', false)}
+          focused={isFocused('projectContext')}
+          onHeaderClick={() => handleSectionHeaderClick('projectContext', false)}
+        >
+          <div
+            class="text-xs"
+            classList={{
+              'h-full': isFocused('projectContext'),
+              'min-h-0': isFocused('projectContext'),
+              'overflow-y-auto': true,
+              'max-h-48': !isFocused('projectContext'),
+            }}
+          >
             <MarkdownContent content={projectState.claudeMdContent!} />
           </div>
         </CollapsibleSection>
       </Show>
 
-      <CollapsibleSection title="Context">
+      <CollapsibleSection
+        id="context"
+        title="Context"
+        open={isSectionOpen('context')}
+        focused={isFocused('context')}
+        onHeaderClick={() => handleSectionHeaderClick('context')}
+      >
         <div
           class="flex items-center justify-between font-mono"
           style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)' }}
@@ -138,7 +273,13 @@ const DetailsPanel: Component = () => {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection title="Cost">
+      <CollapsibleSection
+        id="cost"
+        title="Cost"
+        open={isSectionOpen('cost')}
+        focused={isFocused('cost')}
+        onHeaderClick={() => handleSectionHeaderClick('cost')}
+      >
         <div
           class="flex items-center justify-between font-mono"
           style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)' }}

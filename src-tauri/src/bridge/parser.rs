@@ -377,11 +377,22 @@ impl StreamParser {
 
                 // Log error results at warn level for visibility
                 if is_error {
-                    tracing::warn!(
-                        "CLI returned error result: subtype={:?}, error={:?}",
-                        extract_string(&event.data, "subtype"),
-                        content
-                    );
+                    let subtype = extract_string(&event.data, "subtype");
+                    let is_stale_resume_error =
+                        content.contains("No conversation found with session ID");
+                    if is_stale_resume_error {
+                        tracing::info!(
+                            "CLI returned recoverable stale-resume error: subtype={:?}, error={:?}",
+                            subtype,
+                            content
+                        );
+                    } else {
+                        tracing::warn!(
+                            "CLI returned error result: subtype={:?}, error={:?}",
+                            subtype,
+                            content
+                        );
+                    }
                 }
 
                 // Cost: `result` events use `total_cost_usd` (dollars → cents)

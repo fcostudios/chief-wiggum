@@ -3,7 +3,7 @@
 // Displays real session list from sessionStore, supports create/switch/delete.
 
 import type { Component } from 'solid-js';
-import { For, Show, onMount, onCleanup, createSignal } from 'solid-js';
+import { For, Show, onMount, onCleanup, createSignal, createEffect } from 'solid-js';
 import {
   Plus,
   Trash2,
@@ -79,6 +79,10 @@ const Sidebar: Component = () => {
   const [recentOpen, setRecentOpen] = createSignal(true);
   const [olderOpen, setOlderOpen] = createSignal(true);
   const [actionsOpen, setActionsOpen] = createSignal(false);
+  const [sessionsOpen, setSessionsOpen] = createSignal(true);
+  const [focusedContentSection, setFocusedContentSection] = createSignal<'files' | 'actions' | null>(
+    null,
+  );
 
   /** Sessions filtered by active project. Shows all if no project selected. */
   const filteredSessions = () => {
@@ -101,6 +105,53 @@ const Sidebar: Component = () => {
     );
   };
 
+  const hasFocusedContentSection = () => focusedContentSection() !== null;
+
+  function ensureActionsDiscovered() {
+    if (actionState.actions.length > 0) return;
+    const project = getActiveProject();
+    if (project?.path) {
+      void discoverActions(project.path);
+    }
+  }
+
+  function openActionsSection() {
+    setActionsOpen(true);
+    ensureActionsDiscovered();
+  }
+
+  function handleFilesSectionHeaderClick() {
+    if (!fileState.isVisible) {
+      toggleFilesVisible();
+      setFocusedContentSection('files');
+      return;
+    }
+
+    if (focusedContentSection() !== 'files') {
+      setFocusedContentSection('files');
+      return;
+    }
+
+    toggleFilesVisible();
+    setFocusedContentSection((prev) => (prev === 'files' ? null : prev));
+  }
+
+  function handleActionsSectionHeaderClick() {
+    if (!actionsOpen()) {
+      openActionsSection();
+      setFocusedContentSection('actions');
+      return;
+    }
+
+    if (focusedContentSection() !== 'actions') {
+      setFocusedContentSection('actions');
+      return;
+    }
+
+    setActionsOpen(false);
+    setFocusedContentSection((prev) => (prev === 'actions' ? null : prev));
+  }
+
   onMount(async () => {
     await loadSessions();
     await loadProjects();
@@ -113,6 +164,18 @@ const Sidebar: Component = () => {
         setActiveProject(firstSession.project_id);
       }
       await loadMessages(firstSession.id);
+    }
+  });
+
+  createEffect(() => {
+    if (!projectState.activeProjectId || isCollapsed()) {
+      setFocusedContentSection(null);
+    }
+    if (focusedContentSection() === 'files' && !fileState.isVisible) {
+      setFocusedContentSection(null);
+    }
+    if (focusedContentSection() === 'actions' && !actionsOpen()) {
+      setFocusedContentSection(null);
     }
   });
 
@@ -265,7 +328,14 @@ const Sidebar: Component = () => {
 
       {/* Files section — only when project is active */}
       <Show when={projectState.activeProjectId}>
-        <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+        <div
+          class="flex flex-col shrink-0"
+          classList={{
+            'flex-1': fileState.isVisible && focusedContentSection() === 'files',
+            'min-h-0': fileState.isVisible && focusedContentSection() === 'files',
+          }}
+          style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+        >
           <Show
             when={!isCollapsed()}
             fallback={
@@ -285,7 +355,13 @@ const Sidebar: Component = () => {
             {/* Files header */}
             <button
               class="flex items-center justify-between w-full px-3 py-2 text-left"
-              onClick={() => toggleFilesVisible()}
+              onClick={handleFilesSectionHeaderClick}
+              style={{
+                background:
+                  fileState.isVisible && focusedContentSection() === 'files'
+                    ? 'rgba(232, 130, 90, 0.07)'
+                    : 'transparent',
+              }}
             >
               <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
                 Files
@@ -305,10 +381,22 @@ const Sidebar: Component = () => {
             {/* File tree (collapsible) */}
             <Show when={fileState.isVisible}>
               <div
-                class="h-[250px] min-h-0 overflow-hidden"
-                style={{ 'transition-duration': 'var(--duration-normal)' }}
+                class="min-h-0"
+                classList={{
+                  'h-[250px]': focusedContentSection() !== 'files',
+                  'flex-1': focusedContentSection() === 'files',
+                  'overflow-hidden': focusedContentSection() !== 'files',
+                  'overflow-y-auto': focusedContentSection() === 'files',
+                }}
+                style={{
+                  'transition-duration': 'var(--duration-normal)',
+                  'scrollbar-gutter':
+                    focusedContentSection() === 'files' ? 'stable' : undefined,
+                  'overscroll-behavior':
+                    focusedContentSection() === 'files' ? 'contain' : undefined,
+                }}
               >
-                <FileTree />
+                <FileTree singleScroll={focusedContentSection() === 'files'} />
               </div>
             </Show>
           </Show>
@@ -317,7 +405,14 @@ const Sidebar: Component = () => {
 
       {/* Actions section — only when project is active */}
       <Show when={projectState.activeProjectId}>
-        <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+        <div
+          class="flex flex-col shrink-0"
+          classList={{
+            'flex-1': actionsOpen() && focusedContentSection() === 'actions',
+            'min-h-0': actionsOpen() && focusedContentSection() === 'actions',
+          }}
+          style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+        >
           <Show
             when={!isCollapsed()}
             fallback={
@@ -336,15 +431,12 @@ const Sidebar: Component = () => {
           >
             <button
               class="flex items-center justify-between w-full px-3 py-2 text-left"
-              onClick={() => {
-                const open = !actionsOpen();
-                setActionsOpen(open);
-                if (open && actionState.actions.length === 0) {
-                  const project = getActiveProject();
-                  if (project?.path) {
-                    void discoverActions(project.path);
-                  }
-                }
+              onClick={handleActionsSectionHeaderClick}
+              style={{
+                background:
+                  actionsOpen() && focusedContentSection() === 'actions'
+                    ? 'rgba(232, 130, 90, 0.07)'
+                    : 'transparent',
               }}
             >
               <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
@@ -364,10 +456,22 @@ const Sidebar: Component = () => {
 
             <Show when={actionsOpen()}>
               <div
-                class="h-[200px] min-h-0 overflow-hidden"
-                style={{ 'transition-duration': 'var(--duration-normal)' }}
+                class="min-h-0"
+                classList={{
+                  'h-[220px]': focusedContentSection() !== 'actions',
+                  'flex-1': focusedContentSection() === 'actions',
+                  'overflow-hidden': focusedContentSection() !== 'actions',
+                  'overflow-y-auto': focusedContentSection() === 'actions',
+                }}
+                style={{
+                  'transition-duration': 'var(--duration-normal)',
+                  'scrollbar-gutter':
+                    focusedContentSection() === 'actions' ? 'stable' : undefined,
+                  'overscroll-behavior':
+                    focusedContentSection() === 'actions' ? 'contain' : undefined,
+                }}
               >
-                <ActionsPanel />
+                <ActionsPanel singleScroll={focusedContentSection() === 'actions'} />
               </div>
             </Show>
           </Show>
@@ -396,13 +500,26 @@ const Sidebar: Component = () => {
           </div>
         }
       >
-        <div
-          class="flex items-center justify-between px-3 py-2"
+        <button
+          class="flex items-center justify-between w-full px-3 py-2 text-left"
           style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+          onClick={() => setSessionsOpen((p) => !p)}
         >
-          <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-            Sessions
-          </span>
+          <div class="flex items-center gap-1.5">
+            <span
+              class="text-[9px] transition-transform"
+              style={{
+                color: 'var(--color-text-tertiary)',
+                transform: sessionsOpen() ? 'rotate(90deg)' : 'rotate(0deg)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+            >
+              ›
+            </span>
+            <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+              Sessions
+            </span>
+          </div>
           <span
             class="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
             style={{
@@ -412,55 +529,66 @@ const Sidebar: Component = () => {
           >
             {filteredSessions().length}
           </span>
-        </div>
+        </button>
       </Show>
 
       {/* Session list */}
-      <div class="flex-1 overflow-y-auto px-1 py-2" classList={{ 'px-2': !isCollapsed() }}>
-        <Show
-          when={filteredSessions().length > 0}
-          fallback={
-            <Show when={!isCollapsed()}>
-              <div class="px-2 py-6 text-center animate-fade-in">
-                <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
-                <p class="text-[10px] text-text-tertiary/40 mt-1">Create one to get started</p>
-              </div>
-            </Show>
-          }
+      <Show when={sessionsOpen() || isCollapsed()}>
+        <div
+          class="overflow-y-auto px-1 py-2 min-h-0"
+          classList={{
+            'flex-1': !hasFocusedContentSection(),
+            'h-[170px]': hasFocusedContentSection(),
+            'shrink-0': hasFocusedContentSection(),
+            'px-2': !isCollapsed(),
+          }}
         >
-          <div class="space-y-0.5">
-            <SidebarSection
-              title="Pinned"
-              sessions={pinnedSessions()}
-              open={pinnedOpen()}
-              onToggle={() => setPinnedOpen((p) => !p)}
-              isCollapsed={isCollapsed()}
-              onSelect={handleSelectSession}
-              onDelete={handleDeleteSession}
-            />
-            <SidebarSection
-              title="Recent"
-              sessions={recentSessions()}
-              open={recentOpen()}
-              onToggle={() => setRecentOpen((p) => !p)}
-              isCollapsed={isCollapsed()}
-              onSelect={handleSelectSession}
-              onDelete={handleDeleteSession}
-            />
-            <SidebarSection
-              title="Older"
-              sessions={olderSessions()}
-              open={olderOpen()}
-              onToggle={() => setOlderOpen((p) => !p)}
-              isCollapsed={isCollapsed()}
-              onSelect={handleSelectSession}
-              onDelete={handleDeleteSession}
-            />
-          </div>
-        </Show>
-      </div>
+          <Show
+            when={filteredSessions().length > 0}
+            fallback={
+              <Show when={!isCollapsed()}>
+                <div class="px-2 py-6 text-center animate-fade-in">
+                  <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
+                  <p class="text-[10px] text-text-tertiary/40 mt-1">Create one to get started</p>
+                </div>
+              </Show>
+            }
+          >
+            <div class="space-y-0.5">
+              <SidebarSection
+                title="Pinned"
+                sessions={pinnedSessions()}
+                open={pinnedOpen()}
+                onToggle={() => setPinnedOpen((p) => !p)}
+                isCollapsed={isCollapsed()}
+                onSelect={handleSelectSession}
+                onDelete={handleDeleteSession}
+              />
+              <SidebarSection
+                title="Recent"
+                sessions={recentSessions()}
+                open={recentOpen()}
+                onToggle={() => setRecentOpen((p) => !p)}
+                isCollapsed={isCollapsed()}
+                onSelect={handleSelectSession}
+                onDelete={handleDeleteSession}
+              />
+              <SidebarSection
+                title="Older"
+                sessions={olderSessions()}
+                open={olderOpen()}
+                onToggle={() => setOlderOpen((p) => !p)}
+                isCollapsed={isCollapsed()}
+                onSelect={handleSelectSession}
+                onDelete={handleDeleteSession}
+              />
+            </div>
+          </Show>
+        </div>
+      </Show>
 
-      {/* New session button */}
+      {/* New session button — hidden when sessions section is manually collapsed */}
+      <Show when={sessionsOpen() || isCollapsed()}>
       <div class="p-2" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
         <Show
           when={!isCollapsed()}
@@ -518,6 +646,7 @@ const Sidebar: Component = () => {
           </button>
         </Show>
       </div>
+      </Show>
     </nav>
   );
 };

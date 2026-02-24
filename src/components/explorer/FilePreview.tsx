@@ -16,6 +16,7 @@ import { addToast } from '@/stores/toastStore';
 interface FilePreviewProps {
   content: FileContent;
   isLoading: boolean;
+  fillHeight?: boolean;
 }
 
 const LOAD_MORE_LINES = 100;
@@ -269,7 +270,19 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
   }
 
   return (
-    <div ref={rootRef} class="flex flex-col gap-2">
+    <div
+      ref={rootRef}
+      class="flex flex-col gap-2"
+      classList={{
+        'h-full': props.fillHeight,
+        'min-h-0': props.fillHeight,
+        'overflow-y-auto': props.fillHeight,
+      }}
+      style={{
+        'scrollbar-gutter': props.fillHeight ? 'stable' : undefined,
+        'overscroll-behavior': props.fillHeight ? 'contain' : undefined,
+      }}
+    >
       <div class="flex items-center gap-2 min-w-0">
         <File size={12} style={{ color: 'var(--color-accent)' }} />
         <span
@@ -353,10 +366,13 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
         <div
           ref={codeViewportRef}
           class="overflow-auto rounded focus-ring"
+          classList={{ 'flex-1': props.fillHeight, 'min-h-[180px]': props.fillHeight }}
           style={{
-            'max-height': '240px',
+            'max-height': props.fillHeight ? 'none' : '240px',
             background: 'var(--color-bg-inset)',
             border: '1px solid var(--color-border-secondary)',
+            'scrollbar-gutter': 'stable',
+            'overscroll-behavior': 'contain',
           }}
           tabindex={0}
           onMouseUp={stopDragging}

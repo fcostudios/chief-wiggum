@@ -141,7 +141,18 @@ const ConversationView: Component = () => {
   const [showJumpButton, setShowJumpButton] = createSignal(false);
 
   const messages = () => conversationState.messages;
-  const useVirtualization = () => messages().length >= VIRTUALIZATION_THRESHOLD;
+  const hasActiveTurnLayout = () => conversationState.isLoading || conversationState.isStreaming;
+  const hasComplexMessageLayout = () =>
+    messages().some((m) => {
+      if (m.role !== 'user' && m.role !== 'assistant') return true;
+      if ((m.content?.length ?? 0) > 4000) return true;
+      const newlineCount = (m.content.match(/\n/g) ?? []).length;
+      return newlineCount > 40;
+    });
+  const useVirtualization = () =>
+    messages().length >= VIRTUALIZATION_THRESHOLD &&
+    !hasActiveTurnLayout() &&
+    !hasComplexMessageLayout();
 
   // ── Virtual scroller (active when messages >= threshold) ──
   const virtualizer = createVirtualizer({
@@ -198,9 +209,26 @@ const ConversationView: Component = () => {
     scheduleVirtualMeasure();
   });
 
+  // When we switch between virtualized/non-virtualized modes (e.g. old tool-heavy
+  // chats, long markdown replies), force a scroll-height reflow on the next frame
+  // so offsets and jump-button state are derived from the correct layout tree.
+  createEffect(() => {
+    void useVirtualization();
+    requestAnimationFrame(() => {
+      if (!scrollRef) return;
+      if (isAutoScroll()) {
+        scrollRef.scrollTop = scrollRef.scrollHeight;
+      } else {
+        handleScroll();
+      }
+    });
+  });
+
   // Remeasure when loading state flips or streaming blocks appear/disappear outside
   // the virtualized list. These affect scroll height and can expose stale row offsets
-  // after app reloads into older conversations.
+  // after app reloads into older conversations. We also suspend virtualization while
+  // a turn is active to avoid row-height drift during the "send -> thinking/streaming"
+  // transition for long historical conversations.
   createEffect(() => {
     void conversationState.isLoading;
     void conversationState.isStreaming;

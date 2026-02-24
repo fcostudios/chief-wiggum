@@ -1,7 +1,7 @@
 // src/components/actions/ActionOutputPanel.tsx
 // Streaming output display for a selected action (CHI-143).
 
-import type { Component } from 'solid-js';
+import type { Component, JSX } from 'solid-js';
 import { For, Show, createEffect } from 'solid-js';
 import { Copy, Trash2, ArrowDown, MessageSquare } from 'lucide-solid';
 import {
@@ -20,6 +20,52 @@ import { addToast } from '@/stores/toastStore';
 function stripAnsi(str: string): string {
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
 }
+
+interface IconActionButtonProps {
+  label: string;
+  icon: JSX.Element;
+  onClick: () => void;
+  className?: string;
+  color?: string;
+  hoverColor?: string;
+}
+
+const IconActionButton: Component<IconActionButtonProps> = (props) => (
+  <div class="relative group">
+    <button
+      class={`p-1 rounded transition-colors ${props.className ?? ''}`}
+      style={{
+        'transition-duration': 'var(--duration-fast)',
+        color: props.color ?? 'var(--color-text-tertiary)',
+      }}
+      onClick={() => props.onClick()}
+      aria-label={props.label}
+      title={props.label}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = props.hoverColor ?? 'var(--color-text-primary)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = props.color ?? 'var(--color-text-tertiary)';
+      }}
+    >
+      {props.icon}
+    </button>
+    <div
+      class="pointer-events-none absolute top-full right-0 mt-1 px-1.5 py-1 rounded text-[10px] whitespace-nowrap opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0 transition-all z-20"
+      style={{
+        background: 'rgba(13, 17, 23, 0.95)',
+        border: '1px solid var(--color-border-secondary)',
+        color: 'var(--color-text-primary)',
+        'transition-duration': 'var(--duration-fast)',
+        'backdrop-filter': 'blur(8px)',
+        'box-shadow': '0 8px 24px rgba(0,0,0,0.25)',
+      }}
+      role="tooltip"
+    >
+      {props.label}
+    </div>
+  </div>
+);
 
 const ActionOutputPanel: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
@@ -100,7 +146,7 @@ const ActionOutputPanel: Component = () => {
   }
 
   return (
-    <div class="flex flex-col h-full">
+    <div class="flex flex-col h-full min-h-0 overflow-hidden">
       <div
         class="flex items-center justify-between px-3 py-1.5 shrink-0"
         style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
@@ -131,53 +177,37 @@ const ActionOutputPanel: Component = () => {
           </Show>
         </div>
         <div class="flex items-center gap-1">
-          <button
-            class="p-1 rounded text-text-tertiary hover:text-accent transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
+          <IconActionButton
+            label="Ask AI"
+            icon={<MessageSquare size={11} />}
             onClick={handleAskAI}
-            aria-label="Ask AI about this output"
-            title="Ask AI"
-          >
-            <MessageSquare size={11} />
-          </button>
-          <button
-            class="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            hoverColor="var(--color-accent)"
+          />
+          <IconActionButton
+            label="Scroll to bottom"
+            icon={<ArrowDown size={11} />}
             onClick={scrollToBottom}
-            aria-label="Scroll to bottom"
-            title="Scroll to bottom"
-          >
-            <ArrowDown size={11} />
-          </button>
-          <button
-            class="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
-            onClick={handleCopy}
-            aria-label="Copy output"
-            title="Copy"
-          >
-            <Copy size={11} />
-          </button>
-          <button
-            class="p-1 rounded text-text-tertiary hover:text-error transition-colors"
-            style={{ 'transition-duration': 'var(--duration-fast)' }}
+          />
+          <IconActionButton label="Copy output" icon={<Copy size={11} />} onClick={handleCopy} />
+          <IconActionButton
+            label="Clear output"
+            icon={<Trash2 size={11} />}
             onClick={handleClear}
-            aria-label="Clear output"
-            title="Clear"
-          >
-            <Trash2 size={11} />
-          </button>
+            hoverColor="var(--color-error)"
+          />
         </div>
       </div>
 
       <div
         ref={scrollRef}
-        class="flex-1 overflow-y-auto overflow-x-auto"
+        class="flex-1 min-h-0 overflow-y-auto overflow-x-auto"
         style={{
           background: 'var(--color-bg-inset)',
           'font-family': 'var(--font-mono)',
           'font-size': '11px',
           'line-height': '1.5',
+          'scrollbar-gutter': 'stable both-edges',
+          'overscroll-behavior': 'contain',
         }}
         onScroll={handleScroll}
       >

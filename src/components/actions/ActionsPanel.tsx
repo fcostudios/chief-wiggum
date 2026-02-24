@@ -41,7 +41,11 @@ function sourceLabel(source: ActionSource): string {
   }
 }
 
-const ActionsPanel: Component = () => {
+interface ActionsPanelProps {
+  singleScroll?: boolean;
+}
+
+const ActionsPanel: Component<ActionsPanelProps> = (props) => {
   const [searchQuery, setSearchQuery] = createSignal('');
   const [collapsedGroups, setCollapsedGroups] = createSignal<Set<ActionSource>>(new Set());
   const [isAddingAction, setIsAddingAction] = createSignal(false);
@@ -238,7 +242,14 @@ const ActionsPanel: Component = () => {
   }
 
   return (
-    <div class="flex flex-col h-full">
+    <div
+      class="flex flex-col min-h-0"
+      classList={{
+        'h-full': !props.singleScroll,
+        'h-auto': !!props.singleScroll,
+        'overflow-hidden': !props.singleScroll,
+      }}
+    >
       <div class="px-2 py-2" style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
         <div
           class="flex items-center gap-1.5 px-2 py-1 rounded-md"
@@ -275,7 +286,15 @@ const ActionsPanel: Component = () => {
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-1 py-1">
+      <div
+        data-actions-scroll-region
+        class="min-h-0 px-1 py-1"
+        classList={{ 'flex-1': !props.singleScroll, 'overflow-y-auto': !props.singleScroll }}
+        style={{
+          'scrollbar-gutter': props.singleScroll ? undefined : 'stable',
+          'overscroll-behavior': props.singleScroll ? undefined : 'contain',
+        }}
+      >
         <Show when={isAddingAction()}>
           <ActionEditor
             isSaving={isSavingAction()}

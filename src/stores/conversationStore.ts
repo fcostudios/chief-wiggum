@@ -83,6 +83,11 @@ function bridgeToUiStatus(bridge: ActiveBridgeInfo): ProcessStatus {
   return bridge.process_status as ProcessStatus;
 }
 
+/** Known recoverable CLI resume failure: persisted cli_session_id no longer exists. */
+function isStaleCliResumeError(message: string | null | undefined): boolean {
+  return (message ?? '').includes('No conversation found with session ID');
+}
+
 /** Load messages for a session from the database. */
 export async function loadMessages(sessionId: string): Promise<void> {
   setState('messages', []);
@@ -187,6 +192,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       // Handle error results from the CLI (e.g., stale --resume session, auth failures).
       // Don't create an assistant message -- surface the error to the user.
       if (p.is_error) {
+        const staleResume = isStaleCliResumeError(finalContent);
         setSessionStatus(sessionId, 'error');
         if (isActive) {
           setState('streamingContent', '');
@@ -194,15 +200,30 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
           setState('isStreaming', false);
           setState('isLoading', false);
           typewriter.reset();
-          setState('error', finalContent || 'CLI returned an error -- check logs for details');
+          setState(
+            'error',
+            staleResume
+              ? 'Saved Claude conversation context expired. Retry to continue with a fresh CLI session.'
+              : finalContent || 'CLI returned an error -- check logs for details',
+          );
         }
-        // Clear stale CLI session ID so next attempt doesn't use --resume with a dead ID
+        // Clear stale CLI session ID so next attempt doesn't use --resume with a dead ID.
         updateSessionCliId(sessionId, '').catch((err) =>
           log.error(
             'Failed to clear stale cli_session_id: ' +
               (err instanceof Error ? err.message : String(err)),
           ),
         );
+        // In SDK mode an invalid `--resume` can leave a persistent bridge alive but unusable for
+        // this turn. Remove it so Retry starts a fresh SDK bridge cleanly.
+        if (staleResume) {
+          stopSessionCli(sessionId).catch((err) =>
+            log.warn(
+              'Failed to stop stale CLI bridge after resume error: ' +
+                (err instanceof Error ? err.message : String(err)),
+            ),
+          );
+        }
         return;
       }
 

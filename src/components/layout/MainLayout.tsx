@@ -80,6 +80,7 @@ const MainLayout: Component = () => {
         >
           {/* Inner wrapper maintains full width during transition */}
           <div
+            class="h-full"
             style={{
               width:
                 uiState.sidebarState === 'collapsed'
@@ -158,7 +159,7 @@ const MainLayout: Component = () => {
               : 'none',
           }}
         >
-          <div style={{ width: 'var(--details-panel-width)' }}>
+          <div class="h-full" style={{ width: 'var(--details-panel-width)' }}>
             <DetailsPanel />
           </div>
         </div>

@@ -16,7 +16,11 @@ import {
 import { projectState } from '@/stores/projectStore';
 import FileTreeNode from './FileTreeNode';
 
-const FileTree: Component = () => {
+interface FileTreeProps {
+  singleScroll?: boolean;
+}
+
+const FileTree: Component<FileTreeProps> = (props) => {
   const projectId = () => projectState.activeProjectId;
 
   // Reload root when project changes
@@ -42,7 +46,10 @@ const FileTree: Component = () => {
   }
 
   return (
-    <div class="flex flex-col h-full min-h-0">
+    <div
+      class="flex flex-col min-h-0"
+      classList={{ 'h-full': !props.singleScroll, 'h-auto': !!props.singleScroll }}
+    >
       {/* Search input */}
       <div class="px-2 pb-1.5">
         <div class="relative">
@@ -68,7 +75,15 @@ const FileTree: Component = () => {
       </div>
 
       {/* Search results or tree */}
-      <div class="flex-1 min-h-0 overflow-y-auto">
+      <div
+        data-file-tree-scroll-region
+        class="min-h-0"
+        classList={{ 'flex-1': !props.singleScroll, 'overflow-y-auto': !props.singleScroll }}
+        style={{
+          'scrollbar-gutter': props.singleScroll ? undefined : 'stable',
+          'overscroll-behavior': props.singleScroll ? undefined : 'contain',
+        }}
+      >
         <Show
           when={!fileState.searchQuery}
           fallback={

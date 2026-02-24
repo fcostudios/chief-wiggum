@@ -296,6 +296,8 @@ Five incremental layers: backend scanner → file tree → @-mention → preview
 
 The Project Actions epic is now usable end-to-end: backend multi-format discovery (`package.json`, `Makefile`, `Cargo.toml`, `docker-compose`, `.claude/actions.json`), concurrent action process management, `/run` slash command integration, sidebar controls, StatusBar + Command Palette quick controls, a DetailsPanel output stream with an `Ask AI` handoff path, and inline custom action configuration (advanced fields + argument prompt support).
 
+Post-merge UI stability follow-up (local/main bugfix batch): Chief Wiggum fixed focused-pane scrolling by propagating full-height layout wrappers in `MainLayout.tsx` and switching focused `Files` / `Actions` panes to a single-scroll-container mode (avoids nested scroll traps). Conversation overlap regressions on older tool-heavy chats were reduced by disabling `ConversationView` virtualization for active turns and complex/very long message layouts, plus forcing mode-switch reflow. A stale `--resume` CLI session error (`No conversation found with session ID`) is now treated as a recoverable case (clear stale `cli_session_id`, stop stale bridge, show friendly retry message).
+
 ---
 
 ## Document Map (Read Before Coding)

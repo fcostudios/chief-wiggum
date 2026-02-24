@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 2.3
-**Date:** 2026-02-22
-**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings Backend + Conversation Virtualization
+**Version:** 2.8
+**Date:** 2026-02-24
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings Backend + Conversation Virtualization + Project Actions + UI Stability Follow-ups
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -1402,7 +1402,8 @@ fn run_migrations(conn: &Connection) -> Result<()> {
 ### 9.1 Frontend Performance Rules
 
 - **Lazy component loading**: Diff viewer, settings screen, MCP panel load on first access.
-- **Virtualized lists**: Conversation message list uses virtual scrolling (CHI-132); apply the same pattern to other long lists as they scale.
+- **Virtualized lists**: Conversation message list uses virtual scrolling (CHI-132), but must fall back to non-virtualized rendering for active turns and complex/tool-heavy or very long message layouts to avoid stale height/offset overlap after session reloads.
+- **Single-scroll panes**: Focused sidebar/details sections (Files, Actions, File Preview, Action Output) should prefer one scroll container per pane (with full-height propagation from `MainLayout`) to avoid nested-scroll capture traps in Tauri/macOS.
 - **Debounced updates**: Cost tracker and context meter updates debounced to 100ms to prevent render thrashing.
 - **Web Workers**: Syntax highlighting via tree-sitter WASM runs in a Web Worker, never on the main thread.
 - **Terminal rendering**: xterm.js WebGL addon for GPU-accelerated text. Offscreen terminals suspend rendering.
