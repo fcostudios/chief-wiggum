@@ -1,0 +1,107 @@
+{
+  "common": {
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "retry": "Reintentar",
+    "send": "Enviar",
+    "stop": "Detener",
+    "copy": "Copiar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "noResults": "Sin resultados"
+  },
+  "statusBar": {
+    "cliNotFound": "CLI no encontrado",
+    "running": "Ejecutando",
+    "starting": "Iniciando...",
+    "error": "Error",
+    "stopping": "Deteniendo...",
+    "done": "Listo",
+    "ready": "Listo",
+    "yolo": "YOLO",
+    "dev": "DEV",
+    "nActive": "{{ n }} activas",
+    "exportDiagnostics": "Exportar diagnósticos"
+  },
+  "sidebar": {
+    "projects": "Proyectos",
+    "files": "Archivos",
+    "actions": "Acciones",
+    "sessions": "Sesiones",
+    "openProject": "Abrir una carpeta de proyecto",
+    "newSession": "Nueva sesión",
+    "filterSessions": "Filtrar sesiones...",
+    "noSessions": "Aún no hay sesiones",
+    "createToStart": "Cree una para comenzar",
+    "noMatching": "No se encontraron sesiones",
+    "tryDifferent": "Intente con otro término de búsqueda",
+    "pinned": "Fijadas",
+    "recent": "Recientes",
+    "older": "Anteriores",
+    "rename": "Renombrar",
+    "pin": "Fijar",
+    "unpin": "Desfijar",
+    "duplicate": "Duplicar",
+    "deleteConfirm": "¿Eliminar esta sesión y todos sus mensajes? Esta acción no se puede deshacer."
+  },
+  "conversation": {
+    "emptyTitle": "Chief Wiggum",
+    "emptySubtitle": "¿En qué le gustaría trabajar?",
+    "cliNotFoundTitle": "CLI de Claude Code no encontrado",
+    "cliNotFoundSubtitle": "Instálelo para comenzar a conversar",
+    "sampleExplain": "Explicar este código",
+    "sampleExplainDesc": "Obtenga una visión general de la arquitectura del proyecto y sus componentes principales",
+    "sampleBug": "Encontrar y corregir un error",
+    "sampleBugDesc": "Describa un error y permita que Claude lo investigue, diagnostique y corrija",
+    "sampleFeature": "Escribir una nueva funcionalidad",
+    "sampleFeatureDesc": "Describa lo que desea construir y Claude lo implementará paso a paso",
+    "jumpToLatest": "Ir al último",
+    "assistant": "Asistente",
+    "thinking": "Pensando",
+    "user": "Usted"
+  },
+  "permissions": {
+    "required": "Permiso requerido",
+    "lowRisk": "Riesgo bajo",
+    "mediumRisk": "Riesgo medio",
+    "highRisk": "Riesgo alto",
+    "deny": "Denegar",
+    "alwaysAllow": "Permitir siempre",
+    "allowOnce": "Permitir una vez",
+    "autoDenyIn": "Auto-denegar en",
+    "path": "Ruta:"
+  },
+  "input": {
+    "placeholder": "Escriba a Chief Wiggum... (@ para mencionar archivos)",
+    "noBridge": "Sin conexión al CLI"
+  },
+  "explorer": {
+    "searchFiles": "Buscar archivos...",
+    "noFiles": "Sin archivos",
+    "noFilesFound": "No se encontraron archivos",
+    "loadMore": "Cargar más"
+  },
+  "errors": {
+    "couldNotLoadFiles": "No se pudieron cargar los archivos",
+    "couldNotReadFile": "No se pudo leer el archivo",
+    "slashCommandFailed": "No se pudieron cargar los comandos",
+    "folderNotAccessible": "Carpeta no accesible",
+    "settingsNotSaved": "No se pudieron guardar las configuraciones",
+    "connectionTimeout": "Tiempo de conexión agotado"
+  },
+  "settings": {
+    "title": "Configuración",
+    "appearance": "Apariencia",
+    "language": "Idioma",
+    "cli": "CLI",
+    "sessions": "Sesiones",
+    "keybindings": "Atajos de teclado",
+    "privacy": "Privacidad",
+    "advanced": "Avanzado",
+    "searchSettings": "Buscar configuración...",
+    "resetDefaults": "Restablecer valores predeterminados"
+  }
+}
