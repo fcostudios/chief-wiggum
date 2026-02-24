@@ -5,6 +5,7 @@ import { detectCli } from '@/stores/cliStore';
 import { getActiveProject, loadProjects, projectState } from '@/stores/projectStore';
 import { loadCommands, startSdkCommandListener } from '@/stores/slashStore';
 import { reconnectAfterReload } from '@/stores/conversationStore';
+import { loadSettings, startSettingsListener } from '@/stores/settingsStore';
 import {
   setupActionListeners,
   cleanupActionListeners,
@@ -33,6 +34,7 @@ const App: Component = () => {
     detectCli();
     loadProjects();
     void startSdkCommandListener();
+    void loadSettings().then(() => startSettingsListener());
 
     void (async () => {
       await setupActionListeners();

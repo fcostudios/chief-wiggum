@@ -17,12 +17,10 @@ import {
 } from 'lucide-solid';
 import { closeSettings } from '@/stores/uiStore';
 import {
-  cleanupSettingsListener,
   loadSettings,
   resetCategory,
   retryPendingSettingsSave,
   settingsState,
-  startSettingsListener,
   updateSetting,
 } from '@/stores/settingsStore';
 import type { UserSettings } from '@/lib/types';
@@ -174,14 +172,12 @@ const SettingsModal: Component = () => {
 
   onMount(async () => {
     await loadSettings();
-    await startSettingsListener();
     queueMicrotask(() => searchRef?.focus());
     window.addEventListener('keydown', handleWindowKeyDown);
   });
 
   onCleanup(() => {
     window.removeEventListener('keydown', handleWindowKeyDown);
-    cleanupSettingsListener();
   });
 
   function handleWindowKeyDown(e: KeyboardEvent): void {
