@@ -14,6 +14,8 @@ const log = createLogger('ui/slash');
 interface SlashState {
   /** All discovered commands (built-in + project + user). */
   commands: SlashCommand[];
+  /** Last slash command catalog load error, if any. */
+  loadError: string | null;
   /** Whether the autocomplete menu is open. */
   isOpen: boolean;
   /** Current filter text (everything after the `/`). */
@@ -24,6 +26,7 @@ interface SlashState {
 
 const [state, setState] = createStore<SlashState>({
   commands: [],
+  loadError: null,
   isOpen: false,
   filter: '',
   highlightedIndex: 0,
@@ -117,12 +120,14 @@ export function filteredCommands(): SlashCommand[] {
 
 /** Load commands from backend. Called on app mount and project change. */
 export async function loadCommands(projectPath?: string): Promise<void> {
+  setState('loadError', null);
   try {
     const commands = await invoke<SlashCommand[]>('list_slash_commands', {
       project_path: projectPath ?? null,
     });
     setState('commands', commands);
   } catch (err) {
+    setState('loadError', 'Failed to load slash commands');
     log.error(
       'Failed to load slash commands: ' + (err instanceof Error ? err.message : String(err)),
     );

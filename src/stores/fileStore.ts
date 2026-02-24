@@ -27,6 +27,8 @@ interface FileState {
   isSearching: boolean;
   /** Whether the file tree root is loading. */
   isLoading: boolean;
+  /** Last root file-tree load error, if any. */
+  loadError: string | null;
   /** Preview content for the selected file. */
   previewContent: FileContent | null;
   /** Whether preview is loading. */
@@ -49,6 +51,7 @@ const [state, setState] = createStore<FileState>({
   searchResults: [],
   isSearching: false,
   isLoading: false,
+  loadError: null,
   previewContent: null,
   isPreviewLoading: false,
   gitStatuses: {},
@@ -111,6 +114,7 @@ async function loadRootFilesInternal(
 ): Promise<void> {
   const { showLoading = true, refreshGitStatuses = true } = options;
   if (showLoading) setState('isLoading', true);
+  setState('loadError', null);
   try {
     const nodes = await invoke<FileNode[]>('list_project_files', {
       project_id: projectId,
@@ -119,7 +123,9 @@ async function loadRootFilesInternal(
     });
     setState('tree', '', nodes);
   } catch (err) {
-    log.error('Failed to load root files: ' + (err instanceof Error ? err.message : String(err)));
+    const msg = err instanceof Error ? err.message : 'Failed to load files';
+    log.error('Failed to load root files: ' + msg);
+    setState('loadError', msg);
   } finally {
     if (showLoading) setState('isLoading', false);
   }
@@ -244,6 +250,14 @@ async function ensureFilesChangedListener(): Promise<void> {
 /** Load root-level files for a project. */
 export async function loadRootFiles(projectId: string): Promise<void> {
   void ensureFilesChangedListener();
+  await loadRootFilesInternal(projectId);
+}
+
+/** Retry loading root files after a failure. */
+export async function retryLoadFiles(): Promise<void> {
+  const projectId = projectState.activeProjectId;
+  if (!projectId) return;
+  setState('loadError', null);
   await loadRootFilesInternal(projectId);
 }
 
@@ -373,6 +387,7 @@ export function clearFileState(): void {
     searchResults: [],
     isSearching: false,
     isLoading: false,
+    loadError: null,
     previewContent: null,
     isPreviewLoading: false,
     gitStatuses: {},
