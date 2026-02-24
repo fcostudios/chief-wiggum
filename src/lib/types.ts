@@ -258,6 +258,20 @@ export interface ContextAttachment {
   actual_tokens?: number;
 }
 
+/** Quality score for an attached file in the current conversation context. */
+export interface ContextQualityScore {
+  /** Overall quality 0-100. Green >= 60, Yellow >= 30, Red < 30. */
+  overall: number;
+  /** Keyword overlap between file content/name and conversation history. */
+  relevance: number;
+  /** Inverse token cost factor — smaller files score higher. */
+  tokenEfficiency: number;
+  /** Whether the file has been modified since attachment (stale = true). */
+  isStale: boolean;
+  /** Human-readable quality label. */
+  label: 'high' | 'medium' | 'low';
+}
+
 // ── Settings (CHI-122) ──────────────────────────────────
 
 /** User settings persisted to JSON (mirrors Rust UserSettings). */
