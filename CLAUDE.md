@@ -1,7 +1,7 @@
 # Chief Wiggum — Agent Instructions
 
 > **Read this file first.** It is the auto-briefing for any Claude Code session.
-> Updated: 2026-02-23
+> Updated: 2026-02-24
 
 ---
 
@@ -94,7 +94,17 @@
 | CHI-119: Code Range Selection       | **Done** | Click/drag/shift+click line selection, token estimates, `@file:start-end` shorthand                 |
 | CHI-122: Settings Backend & Types   | **Done** | `settings/` module + validation + IPC persistence (`tauri-plugin-store`) + TS settings types        |
 | CHI-123: File Explorer Quick Wins   | **Done** | Git status indicators, drag-drop attach, hover preview tooltip, breadcrumb navigation                |
+| CHI-124: Settings UI                | **Done** | Settings overlay shell + controls, autosave/retry store, Cmd+, shortcut, TitleBar gear, startup load |
+| CHI-133: FilePreview Editable Ranges| **Done** | Resizable preview, sticky gutter, ContextChip click-to-edit, update attachment ranges                |
+| CHI-135: Missing Error States       | **Done** | File tree/preview error UI + retry, project/slash/settings failure toasts, store error flags         |
+| CHI-136: Accessibility Pass         | **Done** | Skip link, ARIA labels/roles, keyboard tree nav, text alternatives for status indicators             |
 | CHI-132: Conversation Virtualization| **Done** | `ConversationView` virtual scrolling with `@tanstack/solid-virtual` + jump-to-latest                |
+| CHI-97: Frontend Log Forwarding    | **Done** | `src/lib/logger.ts` IPC forwarding, replaced all `console.*` in stores, unified log stream          |
+| CHI-98: Export Diagnostic UI        | **Done** | `ExportDialog.tsx`, consent preview, Cmd+Shift+D copy debug info, toast notifications               |
+| CHI-99: DB Query Tracing           | **Done** | `#[tracing::instrument]` on all `queries.rs` functions, structured spans, no user data logged        |
+| CHI-100: GitHub Issue Templates    | **Done** | `.github/ISSUE_TEMPLATE/` bug report + feature request + config with diagnostic bundle guidance     |
+| CHI-144: StatusBar/Palette Actions | **Done** | Actions in CommandPalette, Cmd+Shift+R runner, StatusBar running count popover, lifecycle toasts    |
+| CHI-145: Custom Action Config      | **Done** | Inline ActionEditor, `.claude/actions.json` CRUD, argument templates, pin/customize discovered      |
 
 ## Phase 1 Status
 
@@ -247,7 +257,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
-**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122 (settings persistence backend + TS types), CHI-123 (file explorer quick wins: git status, drag-drop, hover preview, breadcrumbs), CHI-132 (virtualized `ConversationView` with jump-to-latest), and CHI-138 (Project Actions epic complete: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline, statusbar/palette integration, custom action configuration). Current validation snapshot: 224 Rust tests pass; frontend format/typecheck/lint/build pass.
+**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122/124 (settings backend + UI shell/autosave), CHI-123 (file explorer quick wins), CHI-132/133 (conversation virtualization + FilePreview editable ranges), CHI-135 (missing error states), CHI-136 (accessibility pass), and CHI-138 (Project Actions epic complete: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline, statusbar/palette integration, custom action configuration). **CHI-93 Structured Log Collector epic COMPLETE** (CHI-97 frontend log forwarding, CHI-98 export UI, CHI-99 DB query tracing, CHI-100 GitHub issue templates). **CHI-65 Sidebar Polish epic COMPLETE** (CHI-87 view tab icons, CHI-88 sidebar search). Current validation snapshot: 224+ Rust tests pass; frontend typecheck/lint/build pass.
 
 ### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
 

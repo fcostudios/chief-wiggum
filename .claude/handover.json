@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-24T19:12:33Z",
+  "last_updated": "2026-02-24T21:42:03Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1009,8 +1009,9 @@
     },
     "CHI-65": {
       "title": "Sidebar & Navigation Polish",
-      "status": "in_progress",
+      "status": "done",
       "priority": "Medium",
+      "completed_at": "2026-02-24T19:14:49Z",
       "linear_id": "a4a12e72-eb1f-44c1-ad84-4bba17e5a83a",
       "tasks": {
         "CHI-84": {
@@ -1055,13 +1056,19 @@
         },
         "CHI-87": {
           "title": "View tabs with icons + count badges",
-          "status": "todo",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "completed_at": "2026-02-24T19:14:47Z",
+          "files": ["src/components/layout/MainLayout.tsx"],
+          "notes": "Lucide icons (MessageSquare, Users, GitCompare, TerminalSquare, FolderOpen, Play) + optional count badges on view tabs."
         },
         "CHI-88": {
           "title": "Sidebar search/filter",
-          "status": "todo",
-          "priority": "Low"
+          "status": "done",
+          "priority": "Low",
+          "completed_at": "2026-02-24T19:14:48Z",
+          "files": ["src/components/layout/Sidebar.tsx"],
+          "notes": "Debounced search input in sidebar, filters sessions by title, clear button, no-results state."
         }
       }
     },
@@ -1589,11 +1596,13 @@
         },
         "CHI-124": {
           "title": "Settings UI (SettingsModal + Controls)",
-          "status": "todo",
+          "status": "done",
           "priority": "Urgent",
           "dependencies": [
             "CHI-122"
-          ]
+          ],
+          "completed_at": "2026-02-24T20:58:11Z",
+          "notes": "Implemented CHI-124 in codex worktree across plan Tasks 1-4: settingsStore (IPC sync, debounced autosave, save error/retry, settings:updated listener), settings overlay UI state + Cmd+, full-screen SettingsModal shell with searchable categories and controls aligned to current CHI-122 backend schema (plus About/raw JSON preview), TitleBar gear opens settings, and App startup now loads settings + starts shared listener. Modal listener cleanup was removed so closing the overlay does not unregister the app-level listener."
         },
         "CHI-126": {
           "title": "i18n Infrastructure (@solid-primitives/i18n)",
@@ -1665,18 +1674,24 @@
         },
         "CHI-133": {
           "title": "FilePreview Expansion + Editable Ranges",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-24T21:38:22Z",
+          "notes": "Implemented CHI-133 across plan Tasks 12-13: FilePreview is resizable in non-fillHeight mode via drag handle (200–600px clamp), line number gutter is sticky during horizontal scroll, ContextChip supports click/keyboard edit activation, fileStore supports attachment-aware selectFileForEditing + editingAttachmentId, and FilePreview can update an existing attachment's selected range via contextStore.updateAttachmentRange (with refreshed token estimate)."
         },
         "CHI-135": {
           "title": "Missing Error States",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-24T21:05:00Z",
+          "notes": "Implemented CHI-135 across plan Tasks 5-7: store-level error state fields (file/slash/project), project folder access toast, file tree root retry path, FileTree root error alert UI, FilePreview load-more error alert + retry/logging, and slash command load failure toast. Settings save failure toast/retry was implemented earlier in CHI-124 settingsStore."
         },
         "CHI-136": {
           "title": "Accessibility Pass (WCAG 2.1 AA)",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-24T21:11:06Z",
+          "notes": "Implemented CHI-136 across plan Tasks 8-11: skip-to-content link + main focus target, aria-expanded on collapsible sidebar sections and session groups, file tree roles (`tree`, `treeitem`, `group`) and keyboard expand/open navigation, aria-level metadata, StatusBar process status dot text alternatives, session status dot labels, and full-word git status badge labels."
         },
         "CHI-137": {
           "title": "Message Edit & Regenerate",
@@ -1791,15 +1806,17 @@
     }
   },
   "recommended_next": [
-    "CHI-98",
-    "CHI-97",
-    "CHI-99",
-    "CHI-100"
+    "CHI-125",
+    "CHI-126",
+    "CHI-127",
+    "CHI-131",
+    "CHI-134",
+    "CHI-137"
   ],
-  "critical_path": "Focus: close CHI-93 (Log Collector) and logging foundation. Remaining dependency chain: CHI-98 + CHI-97 + CHI-99 + CHI-100 (CHI-100 depends on CHI-98). CHI-65 (Sidebar & Navigation Polish) is now complete with CHI-87/88 done.",
+  "critical_path": "CHI-138 (Project Actions), CHI-65 (Sidebar Polish), CHI-93 (Log Collector), CHI-124 (Settings UI), CHI-135 (Error States), CHI-136 (Accessibility), and CHI-133 (FilePreview editable ranges) ALL COMPLETE. 22 tasks remain across 7 epics. Priority now: CHI-125 (Context Scoring, High), CHI-126 (i18n infra, Medium), CHI-127 (Smart Suggestions, High), CHI-131 (Token-Optimized Snippets, Medium), CHI-137 (Message Edit/Regenerate, Medium). E2E testing (CHI-27 epic, 7 tasks) can run in parallel.",
   "ux_quick_wins": [
-    "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84)",
-    "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-87 (view tabs)"
+    "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84, 87, 88)",
+    "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-83 (no-project state)"
   ],
   "spec_updates": {
     "completed_at": "2026-02-21T23:45:00Z",
@@ -2061,10 +2078,64 @@
       ],
       "tests": "Frontend checks passed in feature worktree: npm run lint, npm run build, npx tsc --noEmit, npx eslint .; baseline cargo test --lib (224) passed.",
       "verified": "Manual UX verification pending on main for tab icon/badge appearance and session search behavior (expanded/collapsed sidebar states)."
+    },
+    "2026-02-24_chi124_chi133_chi135_chi136": {
+      "description": "Settings UI shell/autosave, missing error states, accessibility pass, and FilePreview editable range follow-ups completed from execution plan",
+      "changes": [
+        {
+          "task": "CHI-124 Settings UI shell + autosave/retry + startup load",
+          "files_modified": [
+            "src/stores/settingsStore.ts",
+            "src/stores/uiStore.ts",
+            "src/lib/keybindings.ts",
+            "src/components/settings/SettingsModal.tsx",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/TitleBar.tsx",
+            "src/App.tsx"
+          ]
+        },
+        {
+          "task": "CHI-135 Missing error states and retry surfaces",
+          "files_modified": [
+            "src/stores/fileStore.ts",
+            "src/stores/slashStore.ts",
+            "src/stores/projectStore.ts",
+            "src/components/explorer/FileTree.tsx",
+            "src/components/explorer/FilePreview.tsx"
+          ]
+        },
+        {
+          "task": "CHI-136 Accessibility improvements (skip link, tree roles/nav, text alternatives)",
+          "files_modified": [
+            "src/styles/tokens.css",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/Sidebar.tsx",
+            "src/components/explorer/FileTree.tsx",
+            "src/components/explorer/FileTreeNode.tsx",
+            "src/components/layout/StatusBar.tsx"
+          ]
+        },
+        {
+          "task": "CHI-133 FilePreview resizing + ContextChip click-to-edit range updates",
+          "files_modified": [
+            "src/components/explorer/FilePreview.tsx",
+            "src/stores/contextStore.ts",
+            "src/components/conversation/ContextChip.tsx",
+            "src/components/conversation/MessageInput.tsx",
+            "src/stores/fileStore.ts"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "Settings listener ownership bug found during CHI-124 startup-load integration: closing SettingsModal was unregistering the app-level settings listener. Fixed by keeping listener lifecycle in App instead of modal close.",
+        "CHI-133 task 13 initial type error (`estimated_tokens` vs `estimatedTokens`) caught by TypeScript verification and corrected before commit."
+      ],
+      "tests": "Per-task checks passed after each step (`npx tsc --noEmit && npx eslint .`). Final closure verification passed in worktree: npm run lint, npm run build, cargo check, cargo test (224 lib tests + 0 bin/doc tests failures).",
+      "verified": "Manual QA from the plan remains pending for interactive desktop behaviors (settings overlay interactions, filesystem failure simulations, keyboard/VoiceOver checks, FilePreview range edit flow). Next recommended implementation tasks: CHI-125, CHI-126, CHI-127, CHI-131, CHI-134, CHI-137."
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. Phase 3 in progress: CHI-101 (Agent SDK) DONE, CHI-108 (SDK slash discovery) DONE, CHI-96 (Diagnostic Bundle) DONE, CHI-122 (Settings Backend) DONE, CHI-123 (File Explorer Quick Wins) DONE, CHI-132 (Conversation Virtualization) DONE, CHI-138 (Project Actions) DONE. 3 active epics: CHI-120 Settings & i18n (1/5 done), CHI-121 Context Intelligence (1/5 done), CHI-129 UX Hardening (1/5 done). 224 Rust tests pass. DB schema v3 (v4 planned for action tables). Post-merge UI stability fixes on main: focused pane scrolling restored via MainLayout full-height propagation + single-scroll focused Files/Actions panes; ConversationView virtualization now falls back for active turns and complex/long chats to reduce old-session overlap; stale CLI resume errors clear cli_session_id and stale bridge for clean retry. CHI-65 (Sidebar & Navigation Polish) is now complete with CHI-87 (view tab icons/badges) and CHI-88 (sidebar session search) done.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2: Core epics COMPLETE. Phase 3 in progress: CHI-101 (Agent SDK) DONE, CHI-108 (SDK slash discovery) DONE, CHI-96 (Diagnostic Bundle) DONE, CHI-122 (Settings Backend) DONE, CHI-123 (File Explorer Quick Wins) DONE, CHI-124 (Settings UI) DONE, CHI-132 (Conversation Virtualization) DONE, CHI-133 (FilePreview editable ranges) DONE, CHI-135 (Missing Error States) DONE, CHI-136 (Accessibility pass) DONE, CHI-138 (Project Actions) DONE. 3 active epics: CHI-120 Settings & i18n (2/5 done), CHI-121 Context Intelligence (1/5 done), CHI-129 UX Hardening (4/5 done). 224 Rust tests pass. DB schema v3 (v4 planned for action tables). Post-merge UI stability fixes on main: focused pane scrolling restored via MainLayout full-height propagation + single-scroll focused Files/Actions panes; ConversationView virtualization now falls back for active turns and complex/long chats to reduce old-session overlap; stale CLI resume errors clear cli_session_id and stale bridge for clean retry. CHI-65 (Sidebar & Navigation Polish) is now complete with CHI-87 (view tab icons/badges) and CHI-88 (sidebar session search) done.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -2075,6 +2146,6 @@
     "notes": "Full toolchain ready. 224 Rust tests pass. Frontend checks all pass (format/typecheck/lint/build). CI + release workflows on GitHub Actions. DB schema v3. Agent SDK bidirectional JSONL protocol live. SDK slash discovery + diagnostic bundle export done. Settings backend + File explorer quick wins + Conversation virtualization done. Project Actions epic (CHI-138) complete with statusbar/palette integration and inline custom action configuration. 3 active epics remain. Post-merge UI stability fixes on main: focused pane scrolling restored via MainLayout full-height propagation + single-scroll focused Files/Actions panes; ConversationView virtualization now falls back for active turns and complex/long chats to reduce old-session overlap; stale CLI resume errors clear cli_session_id and stale bridge for clean retry."
   },
   "metadata": {
-    "last_updated": "2026-02-23T00:00:00Z"
+    "last_updated": "2026-02-24T21:42:03Z"
   }
 }

@@ -1,8 +1,8 @@
 # SPEC-003: UX Design Specification
 
-**Version:** 2.2
-**Date:** 2026-02-22
-**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer
+**Version:** 2.3
+**Date:** 2026-02-24
+**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening follow-through
 **Parent:** SPEC-001 (Section 6, 10), SPEC-002 (Design System)
 **Audience:** Frontend developers, coding agents, UX reviewers
 
@@ -283,6 +283,8 @@ Visible when Agent Teams is active or when multiple background agents are runnin
 ### 3.5 Settings Screen
 
 Opened via Cmd+, or gear icon. Renders as a full-screen overlay (not a modal).
+
+**Implementation status (2026-02-24): DONE (CHI-124)** — Full-screen settings overlay shell shipped with category navigation, searchable settings, debounced autosave, reset actions, Cmd+, shortcut, and TitleBar gear entry. Current UI aligns to the implemented CHI-122 backend settings schema plus an About/raw JSON preview area.
 
 **Left sidebar navigation:**
 - General (theme, startup mode, auto-update)
@@ -955,6 +957,8 @@ Every view must handle the case where there is no content.
 
 The following sections specify UX improvements identified during the Phase 2 CX/UX investigation. These are organized by epic and can be implemented in parallel with Phase 2 core work.
 
+**Implementation status (2026-02-24):** CHI-135 (Missing Error States) and CHI-136 (Accessibility Pass) are now implemented across the current UI shell, including retry/error surfaces for FileTree/FilePreview and keyboard/ARIA/text-alternative improvements for navigation, status indicators, and the file tree.
+
 ### 10.1 Native Window Chrome & Platform Feel (CHI-61)
 
 **Problem:** Custom window controls (`Minus`, `Maximize2`, `X` from Lucide) feel like a web app, not a native desktop application.
@@ -1413,6 +1417,8 @@ Controls:
 - Only fires on `complete` and `permission` events (not streaming chunks)
 
 ### 10.9 File Explorer & @-Mention Context System (CHI-114)
+
+**Implementation status (2026-02-24):** CHI-133 follow-up is done: `FilePreview` supports drag resizing with a sticky line-number gutter, and existing context chips can reopen a file preview for range editing and update the attached range/token estimate in place.
 
 **CHI-115: Backend File Scanner (Urgent)**
 
