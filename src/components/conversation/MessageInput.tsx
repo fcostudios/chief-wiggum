@@ -37,6 +37,7 @@ import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import { actionState, startAction } from '@/stores/actionStore';
 import { selectFileForEditing } from '@/stores/fileStore';
+import { t } from '@/stores/i18nStore';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -634,8 +635,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           }}
           placeholder={
             props.isDisabled
-              ? 'No CLI bridge connected'
-              : 'Message Chief Wiggum... (@ to mention files)'
+              ? t('input.noBridge')
+              : t('input.placeholder')
           }
           disabled={props.isDisabled}
           onInput={handleInput}
@@ -679,7 +680,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
               aria-label="Cancel response"
             >
               <Square size={11} />
-              <span>Stop</span>
+              <span>{t('common.stop')}</span>
             </button>
           </Show>
 
@@ -697,7 +698,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             aria-label="Send message"
           >
             <Send size={11} />
-            <span class="tracking-wide">Send</span>
+            <span class="tracking-wide">{t('common.send')}</span>
           </button>
         </div>
       </div>

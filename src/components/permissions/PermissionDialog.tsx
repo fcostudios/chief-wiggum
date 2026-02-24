@@ -11,6 +11,7 @@ import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, Show } from 'solid-js';
 import { ShieldAlert } from 'lucide-solid';
 import type { PermissionRequest, PermissionAction } from '@/lib/types';
+import { t } from '@/stores/i18nStore';
 
 interface PermissionDialogProps {
   request: PermissionRequest;
@@ -37,11 +38,11 @@ function riskBorderColor(level: string): string {
 function riskBadge(level: string): { bg: string; text: string; label: string } {
   switch (level) {
     case 'low':
-      return { bg: 'bg-success-muted', text: 'text-success', label: 'Low Risk' };
+      return { bg: 'bg-success-muted', text: 'text-success', label: t('permissions.lowRisk') };
     case 'medium':
-      return { bg: 'bg-warning-muted', text: 'text-warning', label: 'Medium Risk' };
+      return { bg: 'bg-warning-muted', text: 'text-warning', label: t('permissions.mediumRisk') };
     case 'high':
-      return { bg: 'bg-error-muted', text: 'text-error', label: 'High Risk' };
+      return { bg: 'bg-error-muted', text: 'text-error', label: t('permissions.highRisk') };
     default:
       return { bg: 'bg-bg-elevated', text: 'text-text-secondary', label: level };
   }
@@ -129,7 +130,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto"
       role="dialog"
       aria-modal="true"
-      aria-label="Permission required"
+      aria-label={t('permissions.required')}
     >
       <div
         ref={dialogRef}
@@ -138,7 +139,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
         {/* Header */}
         <div class="flex items-center gap-2 px-6 pt-5 pb-3">
           <ShieldAlert size={20} class="text-warning" />
-          <h2 class="text-xl font-semibold text-text-primary">Permission Required</h2>
+          <h2 class="text-xl font-semibold text-text-primary">{t('permissions.required')}</h2>
         </div>
 
         {/* Content */}
@@ -163,7 +164,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
           {/* File path (if present) */}
           <Show when={props.request.file_path}>
             <div class="text-xs text-text-secondary mb-3">
-              <span class="text-text-tertiary">Path: </span>
+              <span class="text-text-tertiary">{t('permissions.path')} </span>
               <span class="font-mono break-all">{props.request.file_path}</span>
             </div>
           </Show>
@@ -171,7 +172,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
           {/* Timeout indicator */}
           <div class="mb-4">
             <div class="flex items-center justify-between text-xs text-text-tertiary mb-1">
-              <span>Auto-deny in</span>
+              <span>{t('permissions.autoDenyIn')}</span>
               <span class="font-mono">{timeLeft()}s</span>
             </div>
             <div class="h-1 bg-bg-inset rounded-full overflow-hidden">
@@ -193,7 +194,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
             style={{ 'transition-duration': 'var(--duration-fast)' }}
             onClick={() => props.onRespond('Deny')}
           >
-            Deny
+            {t('permissions.deny')}
             <kbd class="ml-1.5 text-xs text-text-tertiary">N</kbd>
           </button>
           <button
@@ -201,7 +202,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
             style={{ 'transition-duration': 'var(--duration-fast)' }}
             onClick={() => props.onRespond('AlwaysAllow')}
           >
-            Always Allow
+            {t('permissions.alwaysAllow')}
             <kbd class="ml-1.5 text-xs text-text-tertiary">A</kbd>
           </button>
           <button
@@ -209,7 +210,7 @@ const PermissionDialog: Component<PermissionDialogProps> = (props) => {
             style={{ 'transition-duration': 'var(--duration-fast)' }}
             onClick={() => props.onRespond('Approve')}
           >
-            Allow Once
+            {t('permissions.allowOnce')}
             <kbd class="ml-1.5 text-xs text-white/60">Y</kbd>
           </button>
         </div>
