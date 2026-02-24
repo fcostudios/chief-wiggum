@@ -50,11 +50,15 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
   const [loadedContent, setLoadedContent] = createSignal<FileContent | null>(null);
   const [isLoadingMore, setIsLoadingMore] = createSignal(false);
   const [loadError, setLoadError] = createSignal<string | null>(null);
+  const [previewHeight, setPreviewHeight] = createSignal(300);
+  const [isResizing, setIsResizing] = createSignal(false);
   const [selectionStart, setSelectionStart] = createSignal<number | null>(null);
   const [isDragging, setIsDragging] = createSignal(false);
   let copyTimeout: ReturnType<typeof setTimeout> | null = null;
   let rootRef: HTMLDivElement | undefined;
   let codeViewportRef: HTMLDivElement | undefined;
+  let resizeMoveHandler: ((event: MouseEvent) => void) | null = null;
+  let resizeUpHandler: (() => void) | null = null;
 
   const stopDragging = () => setIsDragging(false);
 
@@ -70,6 +74,18 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     if (!fileState.selectedRange) return;
     if (!rootRef.contains(target)) {
       clearSelection();
+    }
+  }
+
+  function cleanupResizeListeners() {
+    if (typeof document === 'undefined') return;
+    if (resizeMoveHandler) {
+      document.removeEventListener('mousemove', resizeMoveHandler);
+      resizeMoveHandler = null;
+    }
+    if (resizeUpHandler) {
+      document.removeEventListener('mouseup', resizeUpHandler);
+      resizeUpHandler = null;
     }
   }
 
@@ -91,6 +107,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
 
   onCleanup(() => {
     if (copyTimeout) clearTimeout(copyTimeout);
+    cleanupResizeListeners();
     if (typeof window !== 'undefined') {
       window.removeEventListener('mouseup', stopDragging);
       window.removeEventListener('mousedown', handleOutsideMouseDown);
@@ -276,6 +293,30 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     clearSelection();
   }
 
+  function handleResizeStart(e: MouseEvent) {
+    if (props.fillHeight || typeof document === 'undefined') return;
+    e.preventDefault();
+
+    setIsResizing(true);
+    const startY = e.clientY;
+    const startHeight = previewHeight();
+
+    cleanupResizeListeners();
+
+    resizeMoveHandler = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientY - startY;
+      setPreviewHeight(Math.max(200, Math.min(startHeight + delta, 600)));
+    };
+
+    resizeUpHandler = () => {
+      setIsResizing(false);
+      cleanupResizeListeners();
+    };
+
+    document.addEventListener('mousemove', resizeMoveHandler);
+    document.addEventListener('mouseup', resizeUpHandler);
+  }
+
   return (
     <div
       ref={rootRef}
@@ -398,7 +439,8 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           class="overflow-auto rounded focus-ring"
           classList={{ 'flex-1': props.fillHeight, 'min-h-[180px]': props.fillHeight }}
           style={{
-            'max-height': props.fillHeight ? 'none' : '240px',
+            height: props.fillHeight ? '100%' : `${previewHeight()}px`,
+            'min-height': props.fillHeight ? undefined : '200px',
             background: 'var(--color-bg-inset)',
             border: '1px solid var(--color-border-secondary)',
             'scrollbar-gutter': 'stable',
@@ -430,9 +472,12 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
                           width: '36px',
                           'min-width': '36px',
                           'user-select': 'none',
+                          position: 'sticky',
+                          left: '0',
+                          'z-index': '1',
                           background: isLineSelected(lineNum())
                             ? 'rgba(232, 130, 90, 0.15)'
-                            : 'transparent',
+                            : 'var(--color-bg-inset)',
                           'border-right': '1px solid rgba(255, 255, 255, 0.04)',
                         }}
                         onMouseDown={(e) => handleLineMouseDown(lineNum(), e)}
@@ -595,6 +640,20 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           Open in system
         </button>
       </div>
+
+      <Show when={!props.fillHeight}>
+        <div
+          class="h-1 rounded cursor-row-resize transition-colors"
+          style={{
+            'transition-duration': 'var(--duration-fast)',
+            background: isResizing() ? 'rgba(232, 130, 90, 0.2)' : 'transparent',
+          }}
+          onMouseDown={handleResizeStart}
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Resize file preview"
+        />
+      </Show>
     </div>
   );
 };
