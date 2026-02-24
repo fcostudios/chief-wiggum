@@ -15,6 +15,7 @@ import {
   Wrench,
   X,
 } from 'lucide-solid';
+import { platform } from '@tauri-apps/plugin-os';
 import { closeSettings } from '@/stores/uiStore';
 import {
   loadSettings,
@@ -155,6 +156,7 @@ const TEXTAREA_CLASS = `${CONTROL_CLASS} w-full resize-y leading-relaxed`;
 const SettingsModal: Component = () => {
   const [activeCategory, setActiveCategory] = createSignal<ModalCategory>('appearance');
   const [searchQuery, setSearchQuery] = createSignal('');
+  const [isMac, setIsMac] = createSignal(false);
   let searchRef: HTMLInputElement | undefined;
 
   const visibleCategories = createMemo(() =>
@@ -171,6 +173,11 @@ const SettingsModal: Component = () => {
   });
 
   onMount(async () => {
+    try {
+      setIsMac(platform() === 'macos');
+    } catch {
+      setIsMac(false);
+    }
     await loadSettings();
     queueMicrotask(() => searchRef?.focus());
     window.addEventListener('keydown', handleWindowKeyDown);
@@ -201,6 +208,9 @@ const SettingsModal: Component = () => {
         style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
       >
         <div class="flex items-center gap-2">
+          <Show when={isMac()}>
+            <div class="w-[70px] shrink-0" />
+          </Show>
           <button
             type="button"
             class="w-8 h-8 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-bg-elevated transition-colors"
@@ -642,7 +652,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'about'}>
-            <SettingCard label="About Settings" description="Current settings schema and quick access guidance">
+            <SettingCard
+              label="About Settings"
+              description="Current settings schema and quick access guidance"
+              layout="stacked"
+            >
               <div class="space-y-3 text-sm text-text-secondary">
                 <div>
                   <span class="text-text-tertiary">Schema version:</span>{' '}
@@ -689,7 +703,11 @@ function noVisibleSettings(category: ModalCategory, query: string): boolean {
   );
 }
 
-const SettingCard: ParentComponent<{ label: string; description: string }> = (props) => (
+const SettingCard: ParentComponent<{
+  label: string;
+  description: string;
+  layout?: 'inline' | 'stacked';
+}> = (props) => (
   <section
     class="rounded-lg p-4"
     style={{
@@ -697,13 +715,26 @@ const SettingCard: ParentComponent<{ label: string; description: string }> = (pr
       background: 'var(--color-bg-secondary)',
     }}
   >
-    <div class="flex items-start justify-between gap-4">
-      <div class="min-w-0">
-        <h3 class="text-sm font-medium text-text-primary">{props.label}</h3>
-        <p class="mt-1 text-xs leading-relaxed text-text-tertiary">{props.description}</p>
+    <Show
+      when={props.layout === 'stacked'}
+      fallback={
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <h3 class="text-sm font-medium text-text-primary">{props.label}</h3>
+            <p class="mt-1 text-xs leading-relaxed text-text-tertiary">{props.description}</p>
+          </div>
+          <div class="shrink-0 max-w-full">{props.children}</div>
+        </div>
+      }
+    >
+      <div class="space-y-3">
+        <div>
+          <h3 class="text-sm font-medium text-text-primary">{props.label}</h3>
+          <p class="mt-1 text-xs leading-relaxed text-text-tertiary">{props.description}</p>
+        </div>
+        <div class="min-w-0">{props.children}</div>
       </div>
-      <div class="shrink-0">{props.children}</div>
-    </div>
+    </Show>
   </section>
 );
 

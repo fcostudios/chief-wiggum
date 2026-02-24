@@ -5,7 +5,17 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal, onMount } from 'solid-js';
-import { Minus, Maximize2, X, Zap, Shield, ShieldCheck, Settings } from 'lucide-solid';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Maximize2,
+  X,
+  Zap,
+  Shield,
+  ShieldCheck,
+  Settings,
+} from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
 import {
@@ -13,6 +23,7 @@ import {
   cyclePermissionTier,
   getPermissionTier,
   openSettings,
+  toggleDetailsPanel,
 } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
 import ModelSelector from '@/components/common/ModelSelector';
@@ -92,8 +103,25 @@ const TitleBar: Component = () => {
         <ModelSelector />
       </div>
 
-      {/* Right: settings + permission tier toggle + window controls */}
+      {/* Right: details panel toggle + settings + permission tier toggle + window controls */}
       <div class="flex items-center">
+        {/* Details panel toggle — restore right panel collapse control */}
+        <button
+          class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
+          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          onClick={toggleDetailsPanel}
+          aria-label={`${uiState.detailsPanelVisible ? 'Hide' : 'Show'} details panel`}
+          aria-pressed={uiState.detailsPanelVisible}
+          title={`${uiState.detailsPanelVisible ? 'Hide' : 'Show'} details panel (Cmd+Shift+B)`}
+        >
+          <Show
+            when={uiState.detailsPanelVisible}
+            fallback={<ChevronLeft size={13} />}
+          >
+            <ChevronRight size={13} />
+          </Show>
+        </button>
+
         {/* Settings gear — opens full-screen settings overlay */}
         <button
           class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
