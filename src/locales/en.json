@@ -1,0 +1,107 @@
+{
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "save": "Save",
+    "retry": "Retry",
+    "send": "Send",
+    "stop": "Stop",
+    "copy": "Copy",
+    "search": "Search",
+    "loading": "Loading...",
+    "noResults": "No results"
+  },
+  "statusBar": {
+    "cliNotFound": "CLI not found",
+    "running": "Running",
+    "starting": "Starting...",
+    "error": "Error",
+    "stopping": "Stopping...",
+    "done": "Done",
+    "ready": "Ready",
+    "yolo": "YOLO",
+    "dev": "DEV",
+    "nActive": "{{ n }} active",
+    "exportDiagnostics": "Export Diagnostics"
+  },
+  "sidebar": {
+    "projects": "Projects",
+    "files": "Files",
+    "actions": "Actions",
+    "sessions": "Sessions",
+    "openProject": "Open a project folder",
+    "newSession": "New Session",
+    "filterSessions": "Filter sessions...",
+    "noSessions": "No sessions yet",
+    "createToStart": "Create one to get started",
+    "noMatching": "No matching sessions",
+    "tryDifferent": "Try a different search term",
+    "pinned": "Pinned",
+    "recent": "Recent",
+    "older": "Older",
+    "rename": "Rename",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "duplicate": "Duplicate",
+    "deleteConfirm": "Delete this session and all its messages? This cannot be undone."
+  },
+  "conversation": {
+    "emptyTitle": "Chief Wiggum",
+    "emptySubtitle": "What would you like to work on?",
+    "cliNotFoundTitle": "Claude Code CLI Not Found",
+    "cliNotFoundSubtitle": "Install it to start chatting",
+    "sampleExplain": "Explain this codebase",
+    "sampleExplainDesc": "Get a high-level overview of the project architecture and key components",
+    "sampleBug": "Find and fix a bug",
+    "sampleBugDesc": "Describe a bug and let Claude investigate, diagnose, and fix it",
+    "sampleFeature": "Write a new feature",
+    "sampleFeatureDesc": "Describe what you want to build and Claude will implement it step by step",
+    "jumpToLatest": "Jump to latest",
+    "assistant": "Assistant",
+    "thinking": "Thinking",
+    "user": "You"
+  },
+  "permissions": {
+    "required": "Permission Required",
+    "lowRisk": "Low Risk",
+    "mediumRisk": "Medium Risk",
+    "highRisk": "High Risk",
+    "deny": "Deny",
+    "alwaysAllow": "Always Allow",
+    "allowOnce": "Allow Once",
+    "autoDenyIn": "Auto-deny in",
+    "path": "Path:"
+  },
+  "input": {
+    "placeholder": "Message Chief Wiggum... (@ to mention files)",
+    "noBridge": "No CLI bridge connected"
+  },
+  "explorer": {
+    "searchFiles": "Search files...",
+    "noFiles": "No files",
+    "noFilesFound": "No files found",
+    "loadMore": "Load more"
+  },
+  "errors": {
+    "couldNotLoadFiles": "Could not load files",
+    "couldNotReadFile": "Could not read file",
+    "slashCommandFailed": "Could not load slash commands",
+    "folderNotAccessible": "Folder not accessible",
+    "settingsNotSaved": "Settings could not be saved",
+    "connectionTimeout": "Connection timed out"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "language": "Language",
+    "cli": "CLI",
+    "sessions": "Sessions",
+    "keybindings": "Keybindings",
+    "privacy": "Privacy",
+    "advanced": "Advanced",
+    "searchSettings": "Search settings...",
+    "resetDefaults": "Reset to defaults"
+  }
+}

@@ -27,6 +27,7 @@
     "vite-plugin-solid": "^2.11.10"
   },
   "dependencies": {
+    "@solid-primitives/i18n": "^2.2.1",
     "@tanstack/solid-virtual": "^3.13.18",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-os": "^2.3.2",

@@ -5,7 +5,7 @@ import { detectCli } from '@/stores/cliStore';
 import { getActiveProject, loadProjects, projectState } from '@/stores/projectStore';
 import { loadCommands, startSdkCommandListener } from '@/stores/slashStore';
 import { reconnectAfterReload } from '@/stores/conversationStore';
-import { loadSettings, startSettingsListener } from '@/stores/settingsStore';
+import { loadSettings, settingsState, startSettingsListener } from '@/stores/settingsStore';
 import {
   setupActionListeners,
   cleanupActionListeners,
@@ -14,8 +14,11 @@ import {
   clearActionCatalog,
 } from '@/stores/actionStore';
 import { sessionState } from '@/stores/sessionStore';
+import { switchLocale } from '@/stores/i18nStore';
 
 const App: Component = () => {
+  let lastAppliedLocale: string | null = null;
+
   // Reload slash commands after project auto-selection or project switches so
   // project-scoped `.claude/commands` are reflected without needing a CLI init.
   createEffect(() => {
@@ -28,6 +31,15 @@ const App: Component = () => {
     } else {
       clearActionCatalog();
     }
+  });
+
+  // Keep UI locale in sync with persisted settings once settings are loaded.
+  createEffect(() => {
+    if (!settingsState.isLoaded) return;
+    const configuredLocale = settingsState.settings.i18n.locale;
+    if (configuredLocale === lastAppliedLocale) return;
+    lastAppliedLocale = configuredLocale;
+    void switchLocale(configuredLocale);
   });
 
   onMount(() => {
