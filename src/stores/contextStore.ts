@@ -4,8 +4,10 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
-import type { ContextAttachment, FileReference, FileContent } from '@/lib/types';
+import type { ContextAttachment, ContextQualityScore, FileReference, FileContent } from '@/lib/types';
+import { scoreAllAttachments } from '@/lib/contextScoring';
 import { projectState } from '@/stores/projectStore';
+import { conversationState } from '@/stores/conversationStore';
 import { addToast } from '@/stores/toastStore';
 import { createLogger } from '@/lib/logger';
 
@@ -18,11 +20,13 @@ const TOKEN_HARD_CAP = 100_000;
 
 interface ContextState {
   attachments: ContextAttachment[];
+  scores: Record<string, ContextQualityScore>;
   isAssembling: boolean;
 }
 
 const [state, setState] = createStore<ContextState>({
   attachments: [],
+  scores: {},
   isAssembling: false,
 });
 
@@ -53,6 +57,7 @@ export function addFileReference(ref: FileReference): void {
     reference: ref,
   };
   setState('attachments', (prev) => [...prev, attachment]);
+  recalculateScores();
 
   if (newTotal > TOKEN_WARNING_THRESHOLD) {
     addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
@@ -65,6 +70,7 @@ export function removeAttachment(id: string): void {
     'attachments',
     state.attachments.filter((a) => a.id !== id),
   );
+  recalculateScores();
 }
 
 /** Update the line range of an existing attachment and recalculate token estimate. */
@@ -95,11 +101,23 @@ export function updateAttachmentRange(
     end_line: normalizedEnd,
     estimated_tokens: estimatedTokens,
   });
+  recalculateScores();
 }
 
 /** Clear all attachments. */
 export function clearAttachments(): void {
   setState('attachments', []);
+  setState('scores', {});
+}
+
+/** Recalculate quality scores for all attachments. */
+export function recalculateScores(): void {
+  const scoresMap = scoreAllAttachments(state.attachments, conversationState.messages);
+  const scoresRecord: Record<string, ContextQualityScore> = {};
+  for (const [id, score] of scoresMap) {
+    scoresRecord[id] = score;
+  }
+  setState('scores', scoresRecord);
 }
 
 /** Get total estimated tokens across all attachments. */

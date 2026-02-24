@@ -6,6 +6,8 @@ import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
 import { X, File } from 'lucide-solid';
 import type { ContextAttachment } from '@/lib/types';
+import { qualityColor } from '@/lib/contextScoring';
+import { contextState } from '@/stores/contextStore';
 
 interface ContextChipProps {
   attachment: ContextAttachment;
@@ -15,6 +17,7 @@ interface ContextChipProps {
 
 const ContextChip: Component<ContextChipProps> = (props) => {
   const ref = () => props.attachment.reference;
+  const score = () => contextState.scores[props.attachment.id];
   const lineRange = () => {
     const r = ref();
     if (r.start_line && r.end_line) return `L${r.start_line}-${r.end_line}`;
@@ -55,6 +58,14 @@ const ContextChip: Component<ContextChipProps> = (props) => {
         <span class="text-[9px] text-text-tertiary/50">{lineRange()}</span>
       </Show>
       <span class="text-[9px] text-text-tertiary/40">{tokenLabel()}</span>
+      <Show when={score()}>
+        <span
+          class="w-1.5 h-1.5 rounded-full shrink-0"
+          style={{ background: qualityColor(score()!.label) }}
+          title={`Quality: ${score()!.label} (${score()!.overall}/100)`}
+          aria-label={`Context quality: ${score()!.label}`}
+        />
+      </Show>
       <button
         class="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-bg-inset"
         style={{ 'transition-duration': 'var(--duration-fast)' }}
