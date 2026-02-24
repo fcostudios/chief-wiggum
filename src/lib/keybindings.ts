@@ -15,6 +15,7 @@ import {
   openCommandPalette,
   openSessionSwitcher,
   openSettings,
+  toggleContextBreakdown,
   type ActiveView,
 } from '@/stores/uiStore';
 import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore';
@@ -60,6 +61,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyR' && e.shiftKey) {
     e.preventDefault();
     openCommandPalette('actions');
+    return;
+  }
+
+  // Cmd+Shift+T — toggle context breakdown modal
+  if (e.code === 'KeyT' && e.shiftKey) {
+    e.preventDefault();
+    toggleContextBreakdown();
     return;
   }
 

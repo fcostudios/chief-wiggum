@@ -42,6 +42,7 @@ import ExportDialog from '@/components/diagnostics/ExportDialog';
 import ToastContainer from '@/components/common/ToastContainer';
 import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
 import SettingsModal from '@/components/settings/SettingsModal';
+import ContextBreakdownModal from '@/components/conversation/ContextBreakdownModal';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -235,6 +236,11 @@ const MainLayout: Component = () => {
       {/* Settings overlay (CHI-124) */}
       <Show when={uiState.settingsVisible}>
         <SettingsModal />
+      </Show>
+
+      {/* Context budget breakdown (CHI-125) */}
+      <Show when={uiState.contextBreakdownVisible}>
+        <ContextBreakdownModal />
       </Show>
 
       {/* Toast notifications — fixed bottom-right overlay */}

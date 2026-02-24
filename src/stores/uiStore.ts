@@ -26,6 +26,7 @@ interface UIState {
   sidebarState: SidebarState;
   detailsPanelVisible: boolean;
   settingsVisible: boolean;
+  contextBreakdownVisible: boolean;
   activeView: ActiveView;
   viewBadges: Record<ActiveView, number>;
   permissionRequest: PermissionRequest | null;
@@ -64,6 +65,7 @@ const [state, setState] = createStore<UIState>({
   sidebarState: 'expanded',
   detailsPanelVisible: true,
   settingsVisible: false,
+  contextBreakdownVisible: false,
   activeView: 'conversation',
   viewBadges: { conversation: 0, agents: 0, diff: 0, terminal: 0 },
   permissionRequest: null,
@@ -109,6 +111,21 @@ export function openSettings() {
 /** Close the full-screen settings overlay. */
 export function closeSettings() {
   setState('settingsVisible', false);
+}
+
+/** Open the context budget breakdown modal (Cmd+Shift+T). */
+export function openContextBreakdown() {
+  setState('contextBreakdownVisible', true);
+}
+
+/** Close the context budget breakdown modal. */
+export function closeContextBreakdown() {
+  setState('contextBreakdownVisible', false);
+}
+
+/** Toggle the context budget breakdown modal. */
+export function toggleContextBreakdown() {
+  setState('contextBreakdownVisible', (prev) => !prev);
 }
 
 export function setActiveView(view: ActiveView) {
