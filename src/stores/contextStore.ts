@@ -4,9 +4,15 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
-import type { ContextAttachment, ContextQualityScore, FileReference, FileContent } from '@/lib/types';
-import { scoreAllAttachments } from '@/lib/contextScoring';
-import { projectState } from '@/stores/projectStore';
+import type {
+  ContextAttachment,
+  ContextQualityScore,
+  FileReference,
+  FileContent,
+  FileSuggestion,
+} from '@/lib/types';
+import { extractConversationKeywords, scoreAllAttachments } from '@/lib/contextScoring';
+import { getActiveProject, projectState } from '@/stores/projectStore';
 import { conversationState } from '@/stores/conversationStore';
 import { addToast } from '@/stores/toastStore';
 import { createLogger } from '@/lib/logger';
@@ -21,12 +27,14 @@ const TOKEN_HARD_CAP = 100_000;
 interface ContextState {
   attachments: ContextAttachment[];
   scores: Record<string, ContextQualityScore>;
+  suggestions: FileSuggestion[];
   isAssembling: boolean;
 }
 
 const [state, setState] = createStore<ContextState>({
   attachments: [],
   scores: {},
+  suggestions: [],
   isAssembling: false,
 });
 
@@ -58,6 +66,7 @@ export function addFileReference(ref: FileReference): void {
   };
   setState('attachments', (prev) => [...prev, attachment]);
   recalculateScores();
+  void refreshSuggestions();
 
   if (newTotal > TOKEN_WARNING_THRESHOLD) {
     addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
@@ -71,6 +80,7 @@ export function removeAttachment(id: string): void {
     state.attachments.filter((a) => a.id !== id),
   );
   recalculateScores();
+  void refreshSuggestions();
 }
 
 /** Update the line range of an existing attachment and recalculate token estimate. */
@@ -108,6 +118,7 @@ export function updateAttachmentRange(
 export function clearAttachments(): void {
   setState('attachments', []);
   setState('scores', {});
+  setState('suggestions', []);
 }
 
 /** Recalculate quality scores for all attachments. */
@@ -118,6 +129,29 @@ export function recalculateScores(): void {
     scoresRecord[id] = score;
   }
   setState('scores', scoresRecord);
+}
+
+/** Fetch smart file suggestions based on currently attached files. */
+export async function refreshSuggestions(): Promise<void> {
+  const project = getActiveProject();
+  if (!project || state.attachments.length === 0) {
+    setState('suggestions', []);
+    return;
+  }
+
+  try {
+    const attachedPaths = state.attachments.map((a) => a.reference.relative_path);
+    const keywords = extractConversationKeywords(conversationState.messages);
+    const suggestions = await invoke<FileSuggestion[]>('get_file_suggestions', {
+      project_id: project.id,
+      attached_paths: attachedPaths,
+      conversation_keywords: keywords,
+      limit: 5,
+    });
+    setState('suggestions', suggestions);
+  } catch {
+    setState('suggestions', []);
+  }
 }
 
 /** Get total estimated tokens across all attachments. */

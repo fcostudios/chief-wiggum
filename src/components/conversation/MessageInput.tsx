@@ -13,6 +13,7 @@ import type { SlashCommand, FileSearchResult, FileReference } from '@/lib/types'
 import SlashCommandMenu from './SlashCommandMenu';
 import FileMentionMenu from './FileMentionMenu';
 import ContextChip from './ContextChip';
+import ContextSuggestions from './ContextSuggestions';
 import {
   slashState,
   filteredCommands,
@@ -595,6 +596,9 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           </Show>
         </div>
       </Show>
+
+      {/* Suggested related files (CHI-127) */}
+      <ContextSuggestions />
 
       {/* Textarea with ambient glow on focus */}
       <div class="relative max-w-4xl mx-auto">

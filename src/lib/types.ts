@@ -272,6 +272,14 @@ export interface ContextQualityScore {
   label: 'high' | 'medium' | 'low';
 }
 
+/** Related file suggestion generated from imports/tests for context attachment. */
+export interface FileSuggestion {
+  path: string;
+  reason: string;
+  confidence: number;
+  estimated_tokens: number;
+}
+
 // ── Settings (CHI-122) ──────────────────────────────────
 
 /** User settings persisted to JSON (mirrors Rust UserSettings). */
