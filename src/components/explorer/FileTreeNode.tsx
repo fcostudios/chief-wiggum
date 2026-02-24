@@ -210,26 +210,27 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
             const config = () => {
               switch (status().status) {
                 case 'modified':
-                  return { label: 'M', color: 'var(--color-warning)' };
+                  return { label: 'M', name: 'Modified', color: 'var(--color-warning)' };
                 case 'untracked':
-                  return { label: 'U', color: 'var(--color-success)' };
+                  return { label: 'U', name: 'Untracked', color: 'var(--color-success)' };
                 case 'staged':
-                  return { label: 'S', color: 'var(--color-success)' };
+                  return { label: 'S', name: 'Staged', color: 'var(--color-success)' };
                 case 'deleted':
-                  return { label: 'D', color: 'var(--color-error)' };
+                  return { label: 'D', name: 'Deleted', color: 'var(--color-error)' };
                 case 'renamed':
-                  return { label: 'R', color: 'var(--color-accent)' };
+                  return { label: 'R', name: 'Renamed', color: 'var(--color-accent)' };
                 case 'conflict':
-                  return { label: '!', color: 'var(--color-error)' };
+                  return { label: '!', name: 'Conflicted', color: 'var(--color-error)' };
                 default:
-                  return { label: '?', color: 'var(--color-text-tertiary)' };
+                  return { label: '?', name: 'Unknown', color: 'var(--color-text-tertiary)' };
               }
             };
             return (
               <span
                 class="text-[8px] font-mono font-bold shrink-0 leading-none"
                 style={{ color: config().color }}
-                title={`Git: ${status().status}`}
+                aria-label={`Git status: ${config().name}`}
+                title={`Git: ${config().name}`}
               >
                 {config().label}
               </span>

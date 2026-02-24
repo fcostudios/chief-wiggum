@@ -977,12 +977,18 @@ const SessionItem: Component<{
               background: 'var(--color-success)',
               animation: 'pulse 2s ease-in-out infinite',
             }}
+            aria-label="Running"
+            title="Running"
+            role="status"
           />
         </Show>
         <Show when={getSessionStatus(props.session.id) === 'error'}>
           <div
             class="absolute -right-0.5 -top-0.5 w-1.5 h-1.5 rounded-full"
             style={{ background: 'var(--color-error)' }}
+            aria-label="Error"
+            title="Error"
+            role="status"
           />
         </Show>
       </div>
