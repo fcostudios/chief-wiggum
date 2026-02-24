@@ -9,7 +9,7 @@ import 'highlight.js/styles/github-dark.css';
 import { Check, Copy, ExternalLink, File, Plus } from 'lucide-solid';
 import type { FileContent } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
-import { addFileReference } from '@/stores/contextStore';
+import { addFileReference, contextState, updateAttachmentRange } from '@/stores/contextStore';
 import { fileState, navigateToFolder, setSelectedRange } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
@@ -150,6 +150,16 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     !isBinaryFile() &&
     activeContent().content.length === 0 &&
     activeContent().size_bytes === 0;
+  const existingAttachment = () => {
+    const editingId = fileState.editingAttachmentId;
+    if (editingId) {
+      const byId = contextState.attachments.find((a) => a.id === editingId);
+      if (byId && byId.reference.relative_path === props.content.relative_path) return byId;
+    }
+    return contextState.attachments.find(
+      (a) => a.reference.relative_path === props.content.relative_path,
+    );
+  };
 
   function selectionTokenEstimate(): number {
     const range = selectedRange();
@@ -581,6 +591,25 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
                 <Plus size={9} />
                 Add selection
               </button>
+              <Show when={existingAttachment() && selectedRange()}>
+                <button
+                  class="px-2 py-0.5 rounded text-[10px] font-medium transition-colors"
+                  style={{
+                    color: 'var(--color-bg-primary)',
+                    background: 'var(--color-accent)',
+                    'transition-duration': 'var(--duration-fast)',
+                  }}
+                  onClick={() => {
+                    const attachment = existingAttachment();
+                    const range = selectedRange();
+                    if (!attachment || !range) return;
+                    updateAttachmentRange(attachment.id, range.start, range.end);
+                    addToast('Range updated', 'info');
+                  }}
+                >
+                  Update range
+                </button>
+              </Show>
               <button
                 class="text-[10px] px-1.5 py-0.5 rounded transition-colors"
                 style={{

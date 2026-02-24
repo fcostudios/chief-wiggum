@@ -41,6 +41,8 @@ interface FileState {
   isVisible: boolean;
   /** Selected line range for code range selection. */
   selectedRange: { start: number; end: number } | null;
+  /** Attachment currently being edited from ContextChip click, if any. */
+  editingAttachmentId: string | null;
 }
 
 const [state, setState] = createStore<FileState>({
@@ -58,6 +60,7 @@ const [state, setState] = createStore<FileState>({
   isGitLoading: false,
   isVisible: true,
   selectedRange: null,
+  editingAttachmentId: null,
 });
 
 export { state as fileState };
@@ -300,6 +303,7 @@ export async function selectFile(projectId: string, relativePath: string): Promi
   setState('selectedPath', relativePath);
   setState('isPreviewLoading', true);
   setState('selectedRange', null);
+  setState('editingAttachmentId', null);
   try {
     const content = await invoke<FileContent>('read_project_file', {
       project_id: projectId,
@@ -314,6 +318,45 @@ export async function selectFile(projectId: string, relativePath: string): Promi
   } finally {
     setState('isPreviewLoading', false);
   }
+}
+
+/** Open a file for range editing (from ContextChip click) and preselect a line range. */
+export async function selectFileForEditing(
+  relativePath: string,
+  startLine?: number,
+  endLine?: number,
+  attachmentId?: string,
+): Promise<void> {
+  const projectId = projectState.activeProjectId;
+  if (!projectId) return;
+
+  await selectFile(projectId, relativePath);
+
+  const normalizedStart = startLine && startLine > 0 ? startLine : undefined;
+  const normalizedEnd =
+    normalizedStart && endLine && endLine >= normalizedStart ? endLine : undefined;
+
+  if (normalizedEnd && normalizedEnd > 50) {
+    try {
+      const content = await invoke<FileContent>('read_project_file', {
+        project_id: projectId,
+        relative_path: relativePath,
+        start_line: null,
+        end_line: normalizedEnd,
+      });
+      setState('previewContent', content);
+    } catch (err) {
+      log.warn(
+        'Failed to preload full edit range preview: ' +
+          (err instanceof Error ? err.message : String(err)),
+      );
+    }
+  }
+
+  if (normalizedStart != null && normalizedEnd != null) {
+    setState('selectedRange', { start: normalizedStart, end: normalizedEnd });
+  }
+  setState('editingAttachmentId', attachmentId ?? null);
 }
 
 /** Search files by name. */
@@ -393,6 +436,7 @@ export function clearFileState(): void {
     gitStatuses: {},
     isGitLoading: false,
     selectedRange: null,
+    editingAttachmentId: null,
   });
 }
 

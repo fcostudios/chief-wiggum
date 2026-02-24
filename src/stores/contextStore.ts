@@ -67,6 +67,36 @@ export function removeAttachment(id: string): void {
   );
 }
 
+/** Update the line range of an existing attachment and recalculate token estimate. */
+export function updateAttachmentRange(
+  attachmentId: string,
+  startLine: number | undefined,
+  endLine: number | undefined,
+): void {
+  const idx = state.attachments.findIndex((a) => a.id === attachmentId);
+  if (idx === -1) return;
+
+  const attachment = state.attachments[idx];
+  const normalizedStart = startLine && startLine > 0 ? startLine : undefined;
+  const normalizedEnd =
+    normalizedStart && endLine && endLine >= normalizedStart ? endLine : undefined;
+
+  const lineCount =
+    normalizedStart != null && normalizedEnd != null ? normalizedEnd - normalizedStart + 1 : 0;
+  // Rough estimate (~40 chars/line, ~4 chars/token). Preserves previous estimate if no range.
+  const estimatedTokens =
+    lineCount > 0
+      ? Math.ceil((lineCount * 40) / 4)
+      : attachment.reference.estimated_tokens;
+
+  setState('attachments', idx, 'reference', {
+    ...attachment.reference,
+    start_line: normalizedStart,
+    end_line: normalizedEnd,
+    estimated_tokens: estimatedTokens,
+  });
+}
+
 /** Clear all attachments. */
 export function clearAttachments(): void {
   setState('attachments', []);

@@ -35,6 +35,7 @@ import {
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import { actionState, startAction } from '@/stores/actionStore';
+import { selectFileForEditing } from '@/stores/fileStore';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -574,7 +575,20 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         <div class="flex flex-wrap items-center gap-1.5 mb-2 max-w-4xl mx-auto">
           <Paperclip size={10} style={{ color: 'var(--color-text-tertiary)' }} />
           <For each={contextState.attachments}>
-            {(attachment) => <ContextChip attachment={attachment} onRemove={removeAttachment} />}
+            {(attachment) => (
+              <ContextChip
+                attachment={attachment}
+                onRemove={removeAttachment}
+                onEdit={(att) => {
+                  void selectFileForEditing(
+                    att.reference.relative_path,
+                    att.reference.start_line,
+                    att.reference.end_line,
+                    att.id,
+                  );
+                }}
+              />
+            )}
           </For>
           <Show when={tokenDisplay()}>
             <span class="text-[9px] font-mono text-text-tertiary/40 ml-1">{tokenDisplay()}</span>

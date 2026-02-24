@@ -10,6 +10,7 @@ import type { ContextAttachment } from '@/lib/types';
 interface ContextChipProps {
   attachment: ContextAttachment;
   onRemove: (id: string) => void;
+  onEdit?: (attachment: ContextAttachment) => void;
 }
 
 const ContextChip: Component<ContextChipProps> = (props) => {
@@ -29,13 +30,24 @@ const ContextChip: Component<ContextChipProps> = (props) => {
   return (
     <span
       class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-mono group transition-colors"
+      classList={{ 'cursor-pointer': !!props.onEdit }}
       style={{
         background: 'var(--color-bg-elevated)',
         border: '1px solid var(--color-border-secondary)',
         color: 'var(--color-text-secondary)',
         'transition-duration': 'var(--duration-fast)',
       }}
-      title={`${ref().relative_path} (~${ref().estimated_tokens} tokens)`}
+      onClick={() => props.onEdit?.(props.attachment)}
+      onKeyDown={(e) => {
+        if (!props.onEdit) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          props.onEdit(props.attachment);
+        }
+      }}
+      tabindex={props.onEdit ? 0 : undefined}
+      role={props.onEdit ? 'button' : undefined}
+      title={`${ref().relative_path} (~${ref().estimated_tokens} tokens)${props.onEdit ? ' — click to edit range' : ''}`}
     >
       <File size={10} class="shrink-0" style={{ color: 'var(--color-accent)' }} />
       <span class="truncate max-w-[120px]">{ref().name}</span>
