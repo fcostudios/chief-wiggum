@@ -13,6 +13,8 @@ import {
   FileCode,
   MoreHorizontal,
   Zap,
+  Search,
+  X,
 } from 'lucide-solid';
 import type { Session } from '@/lib/types';
 import {
@@ -83,12 +85,33 @@ const Sidebar: Component = () => {
   const [focusedContentSection, setFocusedContentSection] = createSignal<'files' | 'actions' | null>(
     null,
   );
+  const [searchQuery, setSearchQuery] = createSignal('');
+  const [debouncedQuery, setDebouncedQuery] = createSignal('');
+  let searchInputRef: HTMLInputElement | undefined;
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function updateSearch(value: string) {
+    setSearchQuery(value);
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      setDebouncedQuery(value.trim().toLowerCase());
+    }, 100);
+  }
 
   /** Sessions filtered by active project. Shows all if no project selected. */
-  const filteredSessions = () => {
+  const projectFilteredSessions = () => {
     const projectId = projectState.activeProjectId;
     if (!projectId) return sessionState.sessions;
     return sessionState.sessions.filter((s) => s.project_id === projectId || !s.project_id);
+  };
+
+  /** Sessions filtered by both project and debounced search query. */
+  const filteredSessions = () => {
+    const query = debouncedQuery();
+    if (!query) return projectFilteredSessions();
+    return projectFilteredSessions().filter((s) =>
+      (s.title || 'New Session').toLowerCase().includes(query),
+    );
   };
 
   const pinnedSessions = () => filteredSessions().filter((s) => s.pinned);
@@ -106,6 +129,8 @@ const Sidebar: Component = () => {
   };
 
   const hasFocusedContentSection = () => focusedContentSection() !== null;
+
+  onCleanup(() => clearTimeout(debounceTimer));
 
   function ensureActionsDiscovered() {
     if (actionState.actions.length > 0) return;
@@ -500,36 +525,69 @@ const Sidebar: Component = () => {
           </div>
         }
       >
-        <button
-          class="flex items-center justify-between w-full px-3 py-2 text-left"
-          style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
-          onClick={() => setSessionsOpen((p) => !p)}
-        >
-          <div class="flex items-center gap-1.5">
+        <div style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+          <button
+            class="flex items-center justify-between w-full px-3 py-2 text-left"
+            onClick={() => setSessionsOpen((p) => !p)}
+          >
+            <div class="flex items-center gap-1.5">
+              <span
+                class="text-[9px] transition-transform"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  transform: sessionsOpen() ? 'rotate(90deg)' : 'rotate(0deg)',
+                  'transition-duration': 'var(--duration-fast)',
+                }}
+              >
+                ›
+              </span>
+              <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+                Sessions
+              </span>
+            </div>
             <span
-              class="text-[9px] transition-transform"
+              class="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
               style={{
+                background: 'var(--color-bg-elevated)',
                 color: 'var(--color-text-tertiary)',
-                transform: sessionsOpen() ? 'rotate(90deg)' : 'rotate(0deg)',
-                'transition-duration': 'var(--duration-fast)',
               }}
             >
-              ›
+              {filteredSessions().length}
             </span>
-            <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-              Sessions
-            </span>
+          </button>
+          <div class="px-2 pb-2">
+            <div
+              class="flex items-center gap-1.5 px-2 py-1 rounded-md"
+              style={{
+                background: 'var(--color-bg-inset)',
+                border: '1px solid var(--color-border-secondary)',
+              }}
+            >
+              <Search size={11} class="shrink-0 text-text-tertiary" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Filter sessions..."
+                value={searchQuery()}
+                onInput={(e) => updateSearch(e.currentTarget.value)}
+                class="flex-1 bg-transparent text-xs text-text-primary placeholder:text-text-tertiary/40 outline-none min-w-0"
+              />
+              <Show when={searchQuery().length > 0}>
+                <button
+                  class="shrink-0 p-0.5 rounded text-text-tertiary hover:text-text-primary transition-colors"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  onClick={() => {
+                    updateSearch('');
+                    searchInputRef?.focus();
+                  }}
+                  aria-label="Clear search"
+                >
+                  <X size={11} />
+                </button>
+              </Show>
+            </div>
           </div>
-          <span
-            class="text-[10px] font-mono px-1.5 py-0.5 rounded-full"
-            style={{
-              background: 'var(--color-bg-elevated)',
-              color: 'var(--color-text-tertiary)',
-            }}
-          >
-            {filteredSessions().length}
-          </span>
-        </button>
+        </div>
       </Show>
 
       {/* Session list */}
@@ -548,8 +606,22 @@ const Sidebar: Component = () => {
             fallback={
               <Show when={!isCollapsed()}>
                 <div class="px-2 py-6 text-center animate-fade-in">
-                  <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
-                  <p class="text-[10px] text-text-tertiary/40 mt-1">Create one to get started</p>
+                  <Show
+                    when={debouncedQuery().length > 0}
+                    fallback={
+                      <>
+                        <p class="text-xs text-text-tertiary/60 tracking-wide">No sessions yet</p>
+                        <p class="text-[10px] text-text-tertiary/40 mt-1">
+                          Create one to get started
+                        </p>
+                      </>
+                    }
+                  >
+                    <p class="text-xs text-text-tertiary/60 tracking-wide">No matching sessions</p>
+                    <p class="text-[10px] text-text-tertiary/40 mt-1">
+                      Try a different search term
+                    </p>
+                  </Show>
                 </div>
               </Show>
             }
