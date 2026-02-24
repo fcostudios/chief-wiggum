@@ -91,6 +91,24 @@ pub fn list_messages(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn delete_messages_after(
+    db: State<'_, Database>,
+    session_id: String,
+    after_message_id: String,
+) -> Result<usize, AppError> {
+    queries::delete_messages_after(&db, &session_id, &after_message_id)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn update_message_content(
+    db: State<'_, Database>,
+    message_id: String,
+    new_content: String,
+) -> Result<(), AppError> {
+    queries::update_message_content(&db, &message_id, &new_content)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn update_session_model(
     db: State<'_, Database>,
     session_id: String,

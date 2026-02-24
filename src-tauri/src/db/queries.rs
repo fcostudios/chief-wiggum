@@ -348,6 +348,45 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn delete_messages_after(
+    db: &Database,
+    session_id: &str,
+    after_message_id: &str,
+) -> Result<usize, AppError> {
+    db.with_conn(|conn| {
+        let anchor_rowid: i64 = conn.query_row(
+            "SELECT rowid FROM messages WHERE id = ?1 AND session_id = ?2",
+            rusqlite::params![after_message_id, session_id],
+            |row| row.get(0),
+        )?;
+
+        let deleted = conn.execute(
+            "DELETE FROM messages WHERE session_id = ?1 AND rowid > ?2",
+            rusqlite::params![session_id, anchor_rowid],
+        )?;
+        Ok(deleted)
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db, new_content))]
+pub fn update_message_content(
+    db: &Database,
+    message_id: &str,
+    new_content: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        let updated = conn.execute(
+            "UPDATE messages SET content = ?1 WHERE id = ?2",
+            rusqlite::params![new_content, message_id],
+        )?;
+        if updated == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows.into());
+        }
+        Ok(())
+    })
+}
+
 // ── Cost Events ────────────────────────────────────────────────
 
 #[tracing::instrument(target = "db/queries", level = "info", skip(db))]

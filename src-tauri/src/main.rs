@@ -87,6 +87,8 @@ fn main() {
             chief_wiggum_lib::commands::session::update_session_title,
             chief_wiggum_lib::commands::session::save_message,
             chief_wiggum_lib::commands::session::list_messages,
+            chief_wiggum_lib::commands::session::delete_messages_after,
+            chief_wiggum_lib::commands::session::update_message_content,
             chief_wiggum_lib::commands::session::update_session_model,
             chief_wiggum_lib::commands::session::update_session_cli_id,
             chief_wiggum_lib::commands::session::get_session_cost,
