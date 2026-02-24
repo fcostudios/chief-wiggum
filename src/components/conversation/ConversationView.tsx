@@ -8,6 +8,8 @@ import { createVirtualizer } from '@tanstack/solid-virtual';
 import { ArrowDown } from 'lucide-solid';
 import {
   conversationState,
+  editMessage,
+  regenerateResponse,
   retryLastMessage,
   sendMessage,
   typewriter,
@@ -62,7 +64,19 @@ function MessageRenderer(props: { message: Message }) {
       ) : props.message.role === 'permission' ? (
         <PermissionRecordBlock message={props.message} />
       ) : (
-        <MessageBubble message={props.message} />
+        <MessageBubble
+          message={props.message}
+          onEdit={(id, content) => {
+            const sid = sessionState.activeSessionId;
+            if (!sid) return;
+            void editMessage(id, content, sid);
+          }}
+          onRegenerate={(id) => {
+            const sid = sessionState.activeSessionId;
+            if (!sid) return;
+            void regenerateResponse(id, sid);
+          }}
+        />
       )}
     </>
   );

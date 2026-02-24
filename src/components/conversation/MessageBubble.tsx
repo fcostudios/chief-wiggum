@@ -4,13 +4,15 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal } from 'solid-js';
-import { Copy, Check } from 'lucide-solid';
+import { Copy, Check, Pencil, RefreshCw } from 'lucide-solid';
 import type { Message } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
 import MarkdownContent from './MarkdownContent';
 
 interface MessageBubbleProps {
   message: Message;
+  onEdit?: (messageId: string, newContent: string) => void | Promise<void>;
+  onRegenerate?: (messageId: string) => void | Promise<void>;
 }
 
 /** Map role to display label */
@@ -116,6 +118,30 @@ const CopyButton: Component<{ content: string }> = (props) => {
 const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isUser = () => props.message.role === 'user';
   const isSystem = () => props.message.role === 'system';
+  const isAssistant = () => props.message.role === 'assistant';
+  const [isEditing, setIsEditing] = createSignal(false);
+  const [editContent, setEditContent] = createSignal('');
+
+  function startEditing(): void {
+    setEditContent(props.message.content);
+    setIsEditing(true);
+  }
+
+  function cancelEditing(): void {
+    setEditContent(props.message.content);
+    setIsEditing(false);
+  }
+
+  function saveAndResend(): void {
+    const trimmed = editContent().trim();
+    if (!trimmed) {
+      addToast('Message cannot be empty', 'warning');
+      return;
+    }
+    setIsEditing(false);
+    if (trimmed === props.message.content) return;
+    void props.onEdit?.(props.message.id, trimmed);
+  }
 
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>
@@ -176,13 +202,55 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
         </div>
 
         {/* Content: user messages as plain text, others as markdown */}
-        <Show
-          when={!isUser()}
-          fallback={
+        <Show when={isUser()} fallback={<MarkdownContent content={props.message.content} />}>
+          <Show
+            when={!isEditing()}
+            fallback={
+              <div class="space-y-2">
+                <textarea
+                  class="w-full text-sm rounded-md px-3 py-2 outline-none resize-y min-h-[60px]"
+                  style={{
+                    background: 'var(--color-bg-inset)',
+                    color: 'var(--color-text-primary)',
+                    border: '1px solid var(--color-border-focus)',
+                  }}
+                  value={editContent()}
+                  onInput={(e) => setEditContent(e.currentTarget.value)}
+                  onKeyDown={(e) => {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      saveAndResend();
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      cancelEditing();
+                    }
+                  }}
+                />
+                <div class="flex gap-2">
+                  <button
+                    class="px-3 py-1 rounded text-xs font-medium transition-colors"
+                    style={{
+                      background: 'var(--color-accent)',
+                      color: 'var(--color-bg-primary)',
+                      'transition-duration': 'var(--duration-fast)',
+                    }}
+                    onClick={saveAndResend}
+                  >
+                    Save & Resend
+                  </button>
+                  <button
+                    class="px-3 py-1 rounded text-xs font-medium text-text-secondary hover:text-text-primary transition-colors"
+                    style={{ 'transition-duration': 'var(--duration-fast)' }}
+                    onClick={cancelEditing}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            }
+          >
             <p class="text-text-primary text-base whitespace-pre-wrap">{props.message.content}</p>
-          }
-        >
-          <MarkdownContent content={props.message.content} />
+          </Show>
         </Show>
 
         {/* Footer: timestamp + tokens + cost + hover actions */}
@@ -214,12 +282,44 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
             </Show>
           </div>
 
-          {/* Hover actions — Copy (assistant messages only) */}
-          <Show when={!isUser() && !isSystem() && props.message.role === 'assistant'}>
+          {/* Hover actions */}
+          <Show when={isUser() && !isEditing()}>
             <div
               class="flex items-center gap-1 opacity-0 group-hover/footer:opacity-100 transition-opacity"
               style={{ 'transition-duration': 'var(--duration-fast)' }}
             >
+              <button
+                class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors press-feedback"
+                style={{ 'transition-duration': 'var(--duration-fast)' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  startEditing();
+                }}
+                aria-label="Edit message"
+                title="Edit and resend"
+              >
+                <Pencil size={11} />
+              </button>
+            </div>
+          </Show>
+
+          <Show when={!isUser() && !isSystem() && isAssistant()}>
+            <div
+              class="flex items-center gap-1 opacity-0 group-hover/footer:opacity-100 transition-opacity"
+              style={{ 'transition-duration': 'var(--duration-fast)' }}
+            >
+              <button
+                class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors press-feedback"
+                style={{ 'transition-duration': 'var(--duration-fast)' }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void props.onRegenerate?.(props.message.id);
+                }}
+                aria-label="Regenerate response"
+                title="Regenerate"
+              >
+                <RefreshCw size={11} />
+              </button>
               <CopyButton content={props.message.content} />
             </div>
           </Show>
