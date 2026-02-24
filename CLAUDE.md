@@ -98,6 +98,11 @@
 | CHI-133: FilePreview Editable Ranges| **Done** | Resizable preview, sticky gutter, ContextChip click-to-edit, update attachment ranges                |
 | CHI-135: Missing Error States       | **Done** | File tree/preview error UI + retry, project/slash/settings failure toasts, store error flags         |
 | CHI-136: Accessibility Pass         | **Done** | Skip link, ARIA labels/roles, keyboard tree nav, text alternatives for status indicators             |
+| CHI-125: Context Quality Scoring    | **Done** | Context scoring engine, chip quality badges, breakdown modal (Cmd+Shift+T)                           |
+| CHI-127: Smart File Suggestions     | **Done** | Rust import/test suggestion engine + `get_file_suggestions` IPC + inline suggestion chips            |
+| CHI-126: i18n Infrastructure        | **Done** | `i18nStore` with lazy locale loading, extracted UI strings, locale sync from settings                |
+| CHI-128: Spanish Locale             | **Done** | `src/locales/es.json` translations for current UI chrome and common interaction strings               |
+| CHI-137: Message Edit/Regenerate    | **Done** | Backend edit/delete-after IPC + frontend edit/regenerate UX without duplicate resend                  |
 | CHI-132: Conversation Virtualization| **Done** | `ConversationView` virtual scrolling with `@tanstack/solid-virtual` + jump-to-latest                |
 | CHI-97: Frontend Log Forwarding    | **Done** | `src/lib/logger.ts` IPC forwarding, replaced all `console.*` in stores, unified log stream          |
 | CHI-98: Export Diagnostic UI        | **Done** | `ExportDialog.tsx`, consent preview, Cmd+Shift+D copy debug info, toast notifications               |

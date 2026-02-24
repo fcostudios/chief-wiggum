@@ -61,8 +61,8 @@ fn parse_rust_imports(content: &str) -> Vec<String> {
             }
         }
 
-        if trimmed.starts_with("use crate::") {
-            let path_part = trimmed[11..].split(';').next().unwrap_or("");
+        if let Some(stripped) = trimmed.strip_prefix("use crate::") {
+            let path_part = stripped.split(';').next().unwrap_or("");
             let segments: Vec<&str> = path_part.split("::").collect();
             if let Some(first) = segments.first() {
                 if !first.is_empty() {
@@ -71,8 +71,8 @@ fn parse_rust_imports(content: &str) -> Vec<String> {
             }
         }
 
-        if trimmed.starts_with("use super::") {
-            let path_part = trimmed[11..].split(';').next().unwrap_or("");
+        if let Some(stripped) = trimmed.strip_prefix("use super::") {
+            let path_part = stripped.split(';').next().unwrap_or("");
             let segments: Vec<&str> = path_part.split("::").collect();
             if let Some(first) = segments.first() {
                 if !first.is_empty() {
@@ -88,8 +88,7 @@ fn parse_python_imports(content: &str) -> Vec<String> {
     let mut imports = Vec::new();
     for line in content.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("from .") {
-            let rest = &trimmed[6..];
+        if let Some(rest) = trimmed.strip_prefix("from .") {
             if let Some(space_idx) = rest.find(' ') {
                 let module = &rest[..space_idx];
                 if !module.is_empty() {
@@ -142,8 +141,8 @@ pub fn resolve_import(import_path: &str, importing_file: &str, extension: &str) 
     let importing = Path::new(importing_file);
     let parent = importing.parent()?;
 
-    if import_path.starts_with("@/") {
-        let resolved = format!("src/{}", &import_path[2..]);
+    if let Some(stripped) = import_path.strip_prefix("@/") {
+        let resolved = format!("src/{}", stripped);
         return Some(add_extension_if_needed(&resolved, extension));
     }
 

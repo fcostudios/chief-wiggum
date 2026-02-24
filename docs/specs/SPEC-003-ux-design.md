@@ -1,8 +1,8 @@
 # SPEC-003: UX Design Specification
 
-**Version:** 2.3
+**Version:** 2.4
 **Date:** 2026-02-24
-**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening follow-through
+**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening + Context/i18n/Message Editing follow-through
 **Parent:** SPEC-001 (Section 6, 10), SPEC-002 (Design System)
 **Audience:** Frontend developers, coding agents, UX reviewers
 
@@ -286,6 +286,8 @@ Opened via Cmd+, or gear icon. Renders as a full-screen overlay (not a modal).
 
 **Implementation status (2026-02-24): DONE (CHI-124)** — Full-screen settings overlay shell shipped with category navigation, searchable settings, debounced autosave, reset actions, Cmd+, shortcut, and TitleBar gear entry. Current UI aligns to the implemented CHI-122 backend settings schema plus an About/raw JSON preview area.
 
+**Implementation status (2026-02-24): DONE (CHI-126, CHI-128)** — UI i18n infrastructure is now live with lazy locale loading and settings-driven locale sync. Current locale coverage includes English (`en`) and Spanish (`es`) for the shipped chrome and interaction strings (StatusBar, Sidebar, ConversationView, PermissionDialog, MessageInput, FileTree, and related surfaces).
+
 **Left sidebar navigation:**
 - General (theme, startup mode, auto-update)
 - Models (default model, effort, fast mode, 1M context toggle)
@@ -366,6 +368,8 @@ Triggered when Claude Code requests approval for an operation.
 ## 4. Interaction Flows
 
 ### 4.1 Send Message Flow
+
+**Implementation status (2026-02-24): DONE (CHI-137)** — Existing user messages can now be edited in place and assistant responses can be regenerated from a message via hover actions in the conversation UI. Regenerate trims subsequent messages and resends the updated user prompt without duplicating the user bubble.
 
 ```
 User types in input area
@@ -696,6 +700,8 @@ Resource limits (CHI-111):
 ```
 
 ### 4.15 File Explorer & @-Mention Context Flow (Phase 3 — CHI-114)
+
+**Implementation status (2026-02-24): DONE (CHI-125, CHI-127)** — Context intelligence now includes quality scoring (relevance + token efficiency badges on `ContextChip`s, plus a Context Breakdown modal on `Cmd+Shift+T`) and smart file suggestions sourced from parsed imports/test-path heuristics (`get_file_suggestions`) shown inline near the message input.
 
 ```
 File Tree browsing (CHI-116):

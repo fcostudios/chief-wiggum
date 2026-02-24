@@ -381,7 +381,7 @@ pub fn update_message_content(
             rusqlite::params![new_content, message_id],
         )?;
         if updated == 0 {
-            return Err(rusqlite::Error::QueryReturnedNoRows.into());
+            return Err(rusqlite::Error::QueryReturnedNoRows);
         }
         Ok(())
     })

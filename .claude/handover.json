@@ -1,7 +1,7 @@
 {
-  "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-24T21:42:03Z",
-  "last_updated_by": "claude-code",
+  "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
+  "last_updated": "2026-02-24T23:39:16Z",
+  "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
     "linear_project_id": "63e009bd-5e43-4575-a7be-2e3b1cface5f",
@@ -556,7 +556,7 @@
       "notes": "ALL 6 tasks complete. App now talks to real Claude Code CLI via PTY.",
       "tasks": {
         "CHI-44": {
-          "title": "SessionBridgeMap — session→process manager",
+          "title": "SessionBridgeMap \u2014 session\u2192process manager",
           "status": "done",
           "priority": "P0",
           "linear_id": "b315f4c2",
@@ -580,7 +580,7 @@
           ]
         },
         "CHI-46": {
-          "title": "Streaming event loop (bridge output → Tauri events)",
+          "title": "Streaming event loop (bridge output \u2192 Tauri events)",
           "status": "done",
           "priority": "P0",
           "linear_id": "202107e7",
@@ -758,7 +758,7 @@
             "src/stores/conversationStore.ts",
             "src/components/layout/Sidebar.tsx"
           ],
-          "notes": "switchSession() orchestrates: stop old CLI → cleanup listeners → clear state → load messages → setup new listeners. handleNewSession stops old CLI before creating new session."
+          "notes": "switchSession() orchestrates: stop old CLI \u2192 cleanup listeners \u2192 clear state \u2192 load messages \u2192 setup new listeners. handleNewSession stops old CLI before creating new session."
         },
         "CHI-58": {
           "title": "Graceful shutdown on session delete/close",
@@ -1059,7 +1059,9 @@
           "status": "done",
           "priority": "Medium",
           "completed_at": "2026-02-24T19:14:47Z",
-          "files": ["src/components/layout/MainLayout.tsx"],
+          "files": [
+            "src/components/layout/MainLayout.tsx"
+          ],
           "notes": "Lucide icons (MessageSquare, Users, GitCompare, TerminalSquare, FolderOpen, Play) + optional count badges on view tabs."
         },
         "CHI-88": {
@@ -1067,7 +1069,9 @@
           "status": "done",
           "priority": "Low",
           "completed_at": "2026-02-24T19:14:48Z",
-          "files": ["src/components/layout/Sidebar.tsx"],
+          "files": [
+            "src/components/layout/Sidebar.tsx"
+          ],
           "notes": "Debounced search input in sidebar, filters sessions by title, clear button, no-results state."
         }
       }
@@ -1142,7 +1146,7 @@
   },
   "resilience_epic": {
     "CHI-103": {
-      "title": "HMR Resilience — Event Buffering & Frontend Reconnection",
+      "title": "HMR Resilience \u2014 Event Buffering & Frontend Reconnection",
       "status": "done",
       "priority": "Urgent",
       "linear_id": "CHI-103",
@@ -1156,10 +1160,10 @@
         "src/stores/conversationStore.ts (reconnectAfterReload, replayBufferedEvent)",
         "src/App.tsx (onMount reconnect call)"
       ],
-      "notes": "Backend survives HMR — only webview reloads. 200-event ring buffer per session with chunk coalescing. Frontend queries active bridges on mount, replays buffered events with deduplication. 84 Rust tests pass."
+      "notes": "Backend survives HMR \u2014 only webview reloads. 200-event ring buffer per session with chunk coalescing. Frontend queries active bridges on mount, replays buffered events with deduplication. 84 Rust tests pass."
     },
     "CHI-104": {
-      "title": "Parallel Sessions — Per-Session State & Non-Destructive Switching",
+      "title": "Parallel Sessions \u2014 Per-Session State & Non-Destructive Switching",
       "status": "done",
       "priority": "High",
       "linear_id": "CHI-104",
@@ -1215,7 +1219,7 @@
         "src/components/layout/TitleBar.tsx",
         "src/lib/keybindings.ts"
       ],
-      "notes": "Three-tier permission model: Safe → Developer → YOLO. Developer mode adds 20 Bash(pattern) allowedTools for common dev commands (git, gh, npm, cargo, etc.). TitleBar shows cycling Shield/ShieldCheck/Zap icons. StatusBar shows DEV/YOLO indicators. Cmd+Shift+D keyboard shortcut. 3 new tests (78 total)."
+      "notes": "Three-tier permission model: Safe \u2192 Developer \u2192 YOLO. Developer mode adds 20 Bash(pattern) allowedTools for common dev commands (git, gh, npm, cargo, etc.). TitleBar shows cycling Shield/ShieldCheck/Zap icons. StatusBar shows DEV/YOLO indicators. Cmd+Shift+D keyboard shortcut. 3 new tests (78 total)."
     }
   },
   "logging_epic": {
@@ -1427,7 +1431,7 @@
   },
   "parallel_sessions_v2_epic": {
     "CHI-109": {
-      "title": "Parallel Sessions v2 — Split Panes & Resource Management",
+      "title": "Parallel Sessions v2 \u2014 Split Panes & Resource Management",
       "status": "todo",
       "priority": "High",
       "linear_id": "2ef13626-852d-4e3e-a4ab-a1d78ba309b3",
@@ -1606,16 +1610,20 @@
         },
         "CHI-126": {
           "title": "i18n Infrastructure (@solid-primitives/i18n)",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-24T23:10:53Z",
+          "notes": "Completed in codex worktree across plan Tasks 6-8: installed `@solid-primitives/i18n`, added `src/locales/en.json`, created `src/stores/i18nStore.ts` using the actual package API (`flatten` + `translator` + lazy `import.meta.glob` locale loading), wired App locale sync from persisted settings with duplicate-apply guard, and extracted hardcoded strings in Batch 1 (`StatusBar`, `Sidebar`, `ConversationView`) plus Batch 2 (`PermissionDialog`, `MessageInput`, `FileTree`). Verification passed on each batch (`npx tsc --noEmit && npx eslint .`) and locale build verification passed via `npx tsc --noEmit && npx vite build`. Commits: `49fa82a`, `7c916b7`, `b97bc2a`."
         },
         "CHI-128": {
           "title": "Spanish Locale (Phase 1)",
-          "status": "todo",
+          "status": "done",
           "priority": "High",
           "dependencies": [
             "CHI-126"
-          ]
+          ],
+          "completed_at": "2026-02-24T23:10:53Z",
+          "notes": "Completed in codex worktree (plan Task 9): added `src/locales/es.json` mirroring the English locale structure for UI chrome translations. Verified with `npx tsc --noEmit && npx vite build` (Vite emitted `dist/assets/es-*.js` locale chunk). Commit: `cefe835`."
         },
         "CHI-130": {
           "title": "Theme System (Light/Dark/System)",
@@ -1631,7 +1639,7 @@
   },
   "context_intelligence_epic": {
     "CHI-121": {
-      "title": "Context Intelligence — File Explorer v2",
+      "title": "Context Intelligence \u2014 File Explorer v2",
       "status": "in_progress",
       "tasks": {
         "CHI-123": {
@@ -1641,13 +1649,17 @@
         },
         "CHI-125": {
           "title": "Context Quality Scoring",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-24T22:10:25Z",
+          "notes": "Completed in codex worktree across plan Tasks 1-3: added `ContextQualityScore` types and `src/lib/contextScoring.ts`, integrated score state + chip quality badges into `contextStore`/`ContextChip`, and shipped Context Breakdown Modal with `Cmd+Shift+T` plus UI state/keybinding/layout wiring. Quality fixes included removing a local modal `Cmd+Shift+T` handler to avoid double-toggle and recalculating scores on attachment range updates/clears for CHI-133 compatibility. Commits: `c2c6262`, `b732e23`, `73e3084`."
         },
         "CHI-127": {
           "title": "Smart File Suggestions",
-          "status": "todo",
-          "priority": "High"
+          "status": "done",
+          "priority": "High",
+          "completed_at": "2026-02-24T22:10:25Z",
+          "notes": "Completed in codex worktree across plan Tasks 4-5: added Rust import/test suggestion engine (`src-tauri/src/files/suggestions.rs` + tests), new `get_file_suggestions` IPC command, frontend `FileSuggestion` types/store suggestion state and refresh flow, and `ContextSuggestions` UI in `MessageInput`. Verified with `cargo test` (230 passed after +6 tests) and frontend `npx tsc --noEmit && npx eslint .`. Commits: `5529ed1`, `7d1c21c`."
         },
         "CHI-131": {
           "title": "Token-Optimized Snippets",
@@ -1664,7 +1676,7 @@
   },
   "ux_hardening_epic": {
     "CHI-129": {
-      "title": "UX Hardening — Performance, Accessibility & Missing States",
+      "title": "UX Hardening \u2014 Performance, Accessibility & Missing States",
       "status": "in_progress",
       "tasks": {
         "CHI-132": {
@@ -1677,7 +1689,7 @@
           "status": "done",
           "priority": "High",
           "completed_at": "2026-02-24T21:38:22Z",
-          "notes": "Implemented CHI-133 across plan Tasks 12-13: FilePreview is resizable in non-fillHeight mode via drag handle (200–600px clamp), line number gutter is sticky during horizontal scroll, ContextChip supports click/keyboard edit activation, fileStore supports attachment-aware selectFileForEditing + editingAttachmentId, and FilePreview can update an existing attachment's selected range via contextStore.updateAttachmentRange (with refreshed token estimate)."
+          "notes": "Implemented CHI-133 across plan Tasks 12-13: FilePreview is resizable in non-fillHeight mode via drag handle (200\u2013600px clamp), line number gutter is sticky during horizontal scroll, ContextChip supports click/keyboard edit activation, fileStore supports attachment-aware selectFileForEditing + editingAttachmentId, and FilePreview can update an existing attachment's selected range via contextStore.updateAttachmentRange (with refreshed token estimate)."
         },
         "CHI-135": {
           "title": "Missing Error States",
@@ -1695,15 +1707,17 @@
         },
         "CHI-137": {
           "title": "Message Edit & Regenerate",
-          "status": "todo",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "completed_at": "2026-02-24T23:18:52Z",
+          "notes": "Completed in codex worktree across plan Tasks 10-12: added backend DB queries + Tauri IPC (`delete_messages_after`, `update_message_content`), wired invoke registration, implemented `editMessage` / `regenerateResponse` store functions, and added MessageBubble hover actions for edit/regenerate with inline user message edit UI. Integrity adjustments: `delete_messages_after` uses SQLite `rowid` ordering (not timestamp-only) to avoid same-second message tie bugs, and conversationStore now uses a shared CLI dispatch helper so edit/regenerate resends an existing user message without duplicating it in local state/DB. Commits: `3a9e53d`, `7b8f603`, `2cc7d71`."
         }
       }
     }
   },
   "project_actions_epic": {
     "CHI-138": {
-      "title": "Project Actions — AI-Aware Command Runner",
+      "title": "Project Actions \u2014 AI-Aware Command Runner",
       "status": "done",
       "priority": "Urgent",
       "linear_id": "8db84aff-b9e5-42ac-9cdf-3abac8dab2bc",
@@ -1802,35 +1816,34 @@
           "completed_at": "2026-02-23T21:08:52Z"
         }
       },
-      "critical_path": "CHI-139 → CHI-140 → CHI-141 → CHI-142/CHI-143 → CHI-144/CHI-145"
+      "critical_path": "CHI-139 \u2192 CHI-140 \u2192 CHI-141 \u2192 CHI-142/CHI-143 \u2192 CHI-144/CHI-145"
     }
   },
   "recommended_next": [
-    "CHI-125",
-    "CHI-126",
-    "CHI-127",
     "CHI-131",
     "CHI-134",
-    "CHI-137"
+    "CHI-78",
+    "CHI-82",
+    "CHI-83"
   ],
-  "critical_path": "CHI-138 (Project Actions), CHI-65 (Sidebar Polish), CHI-93 (Log Collector), CHI-124 (Settings UI), CHI-135 (Error States), CHI-136 (Accessibility), and CHI-133 (FilePreview editable ranges) ALL COMPLETE. 22 tasks remain across 7 epics. Priority now: CHI-125 (Context Scoring, High), CHI-126 (i18n infra, Medium), CHI-127 (Smart Suggestions, High), CHI-131 (Token-Optimized Snippets, Medium), CHI-137 (Message Edit/Regenerate, Medium). E2E testing (CHI-27 epic, 7 tasks) can run in parallel.",
+  "critical_path": "CHI-138 (Project Actions), CHI-65 (Sidebar Polish), CHI-93 (Log Collector), CHI-124 (Settings UI), CHI-125 (Context Scoring), CHI-126 (i18n infra), CHI-127 (Smart Suggestions), CHI-128 (Spanish locale), CHI-133 (FilePreview editable ranges), CHI-135 (Error States), CHI-136 (Accessibility), and CHI-137 (Message Edit/Regenerate) are COMPLETE. Remaining priority work centers on CHI-131 (Token-Optimized Snippets), CHI-134 (ContextPanel integration polish), and E2E/manual QA coverage (CHI-27 epic) across newly shipped Phase 3 UX flows.",
   "ux_quick_wins": [
     "All high-priority quick wins DONE (CHI-67, 70, 71, 72, 80, 84, 87, 88)",
     "Remaining UX: CHI-78 (context menus), CHI-82 (placeholder views), CHI-83 (no-project state)"
   ],
   "spec_updates": {
-    "completed_at": "2026-02-21T23:45:00Z",
+    "completed_at": "2026-02-24T23:39:16Z",
     "SPEC-002": {
       "version": "2.0",
-      "changes": "Added tool use colors (§3.5), toast colors (§3.6), 7 new component specs (§10.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
+      "changes": "Added tool use colors (\u00a73.5), toast colors (\u00a73.6), 7 new component specs (\u00a710.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
     },
     "SPEC-003": {
-      "version": "2.3",
-      "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec, §10.8 Split Pane spec. v2.2: Added §4.15 File Explorer & @-Mention Context Flow, §10.9 File Explorer & @-Mention Context System spec. v2.3: Added §3.5 Settings Screen, §4.16 Settings Flow, §4.17 Context Intelligence Flow, §10.10-10.12 (Settings, Context Intelligence, UX Hardening)"
+      "version": "2.4",
+      "changes": "v2.0: Added 6 Phase 2 interaction flows (\u00a74.7-4.12). v2.1: Added \u00a74.13 Slash Command Interaction Flow, \u00a74.14 Split Pane Layout Flow, \u00a710.7 Slash Commands spec, \u00a710.8 Split Pane spec. v2.2: Added \u00a74.15 File Explorer & @-Mention Context Flow, \u00a710.9 File Explorer & @-Mention Context System spec. v2.3: Added \u00a73.5 Settings Screen, \u00a74.16 Settings Flow, \u00a74.17 Context Intelligence Flow, \u00a710.10-10.12 (Settings, Context Intelligence, UX Hardening) v2.4: Implementation status follow-through notes for CHI-125/126/127/128/137 (context scoring + smart suggestions, i18n locale coverage, message edit/regenerate UX)."
     },
     "SPEC-004": {
-      "version": "2.8",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up — MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note."
+      "version": "2.9",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol \u00a75.6. v2.2: slash/ module, \u00a74.4.7-4.4.8 IPC, \u00a75.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, \u00a74.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), \u00a75.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up \u2014 MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1868,7 +1881,7 @@
         },
         {
           "task": "BUG FIX: Session restore missing assistant messages",
-          "root_cause": "Two bugs: (1) Race condition — event listeners set up AFTER send_to_cli, missing fast CLI events. (2) cost_cents type mismatch — f64 from backend failed i64 deserialization in save_message IPC, silently dropping all assistant message saves.",
+          "root_cause": "Two bugs: (1) Race condition \u2014 event listeners set up AFTER send_to_cli, missing fast CLI events. (2) cost_cents type mismatch \u2014 f64 from backend failed i64 deserialization in save_message IPC, silently dropping all assistant message saves.",
           "fix": [
             "Swapped order: setupEventListeners() BEFORE invoke('send_to_cli')",
             "Added Math.round() on cost_cents before save_message invocation",
@@ -1910,7 +1923,7 @@
             "src-tauri/src/bridge/event_loop.rs (normalize server names, populate cache from init event)",
             "src-tauri/src/commands/bridge.rs (pass cached server prefixes as --allowedTools)"
           ],
-          "notes": "mcp__* wildcard broken (GitHub #13077, #14730). Per docs, mcp__servername (no wildcard) matches all tools. Discovery: parse mcp_servers from CLI system:init event, normalize (: . / → _), cache as mcp__<prefix>. First message has no MCP; subsequent messages have all MCP tools authorized."
+          "notes": "mcp__* wildcard broken (GitHub #13077, #14730). Per docs, mcp__servername (no wildcard) matches all tools. Discovery: parse mcp_servers from CLI system:init event, normalize (: . / \u2192 _), cache as mcp__<prefix>. First message has no MCP; subsequent messages have all MCP tools authorized."
         }
       ],
       "tests": "75 Rust tests pass (1 new parser test for MCP server extraction). Frontend compiles clean.",
@@ -2131,7 +2144,82 @@
         "CHI-133 task 13 initial type error (`estimated_tokens` vs `estimatedTokens`) caught by TypeScript verification and corrected before commit."
       ],
       "tests": "Per-task checks passed after each step (`npx tsc --noEmit && npx eslint .`). Final closure verification passed in worktree: npm run lint, npm run build, cargo check, cargo test (224 lib tests + 0 bin/doc tests failures).",
-      "verified": "Manual QA from the plan remains pending for interactive desktop behaviors (settings overlay interactions, filesystem failure simulations, keyboard/VoiceOver checks, FilePreview range edit flow). Next recommended implementation tasks: CHI-125, CHI-126, CHI-127, CHI-131, CHI-134, CHI-137."
+      "verified": "Manual QA from the plan remains pending for interactive desktop behaviors (settings overlay interactions, filesystem failure simulations, keyboard/VoiceOver checks, FilePreview range edit flow)."
+    },
+    "2026-02-24_chi125_chi126_chi127_chi128_chi137": {
+      "description": "CHI-125/126/127/128/137 context intelligence, i18n/localization, smart file suggestions, and message edit/regenerate completed from execution plan; closure included handover metadata hardening and clippy-clean backend fixes",
+      "changes": [
+        {
+          "task": "CHI-125 Context quality scoring and breakdown UX",
+          "files_modified": [
+            "src/lib/contextScoring.ts",
+            "src/lib/types.ts",
+            "src/stores/contextStore.ts",
+            "src/components/conversation/ContextChip.tsx",
+            "src/components/conversation/ContextBreakdownModal.tsx",
+            "src/stores/uiStore.ts",
+            "src/lib/keybindings.ts",
+            "src/components/layout/MainLayout.tsx"
+          ]
+        },
+        {
+          "task": "CHI-127 Smart file suggestions (Rust + IPC + frontend)",
+          "files_modified": [
+            "src-tauri/src/files/suggestions.rs",
+            "src-tauri/src/files/mod.rs",
+            "src-tauri/src/commands/files.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/contextStore.ts",
+            "src/components/conversation/ContextSuggestions.tsx",
+            "src/components/conversation/MessageInput.tsx"
+          ]
+        },
+        {
+          "task": "CHI-126/128 i18n runtime + locale extraction + Spanish locale",
+          "files_modified": [
+            "src/stores/i18nStore.ts",
+            "src/locales/en.json",
+            "src/locales/es.json",
+            "src/App.tsx",
+            "src/components/layout/StatusBar.tsx",
+            "src/components/layout/Sidebar.tsx",
+            "src/components/conversation/ConversationView.tsx",
+            "src/components/permissions/PermissionDialog.tsx",
+            "src/components/conversation/MessageInput.tsx",
+            "src/components/explorer/FileTree.tsx"
+          ]
+        },
+        {
+          "task": "CHI-137 message edit/regenerate backend + frontend",
+          "files_modified": [
+            "src-tauri/src/db/queries.rs",
+            "src-tauri/src/commands/session.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/conversationStore.ts",
+            "src/components/conversation/MessageBubble.tsx",
+            "src/components/conversation/ConversationView.tsx"
+          ]
+        },
+        {
+          "task": "Regression fixes + closure hardening",
+          "files_modified": [
+            "src/components/layout/TitleBar.tsx",
+            "src/components/settings/SettingsModal.tsx",
+            "docs/specs/SPEC-003-ux-design.md",
+            "docs/specs/SPEC-004-architecture.md",
+            "CLAUDE.md",
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "Settings gear replaced the existing details-panel toggle in TitleBar, removing the ability to collapse the right panel. Fixed by restoring a dedicated details-panel toggle and keeping settings on a separate control.",
+        "Settings overlay About card/header text overlapped on macOS window chrome. Fixed by adding traffic-light spacing and changing the About card content to a stacked layout.",
+        "cargo clippy -D warnings failed during closure on a useless conversion and manual string-prefix stripping in CHI-137/CHI-127 code; fixed in queries.rs and files/suggestions.rs so closure stays clippy-clean.",
+        "Handover summary metadata contained stale next-task references after task-level statuses were marked done. Closure updates now refresh recommended_next/critical_path and add a dedicated session log entry."
+      ],
+      "tests": "Automated verification passed in feature worktree: npm run lint, npm run build (non-blocking chunk-size + en.json static/dynamic import warnings), cargo check, cargo test (230 lib tests), cargo clippy -- -D warnings.",
+      "verified": "Manual desktop QA is still recommended on main for message edit/regenerate interaction polish, smart suggestion relevance quality, and locale switching/translation coverage in less-frequent UI paths."
     }
   },
   "warnings": [],
@@ -2146,6 +2234,6 @@
     "notes": "Full toolchain ready. 224 Rust tests pass. Frontend checks all pass (format/typecheck/lint/build). CI + release workflows on GitHub Actions. DB schema v3. Agent SDK bidirectional JSONL protocol live. SDK slash discovery + diagnostic bundle export done. Settings backend + File explorer quick wins + Conversation virtualization done. Project Actions epic (CHI-138) complete with statusbar/palette integration and inline custom action configuration. 3 active epics remain. Post-merge UI stability fixes on main: focused pane scrolling restored via MainLayout full-height propagation + single-scroll focused Files/Actions panes; ConversationView virtualization now falls back for active turns and complex/long chats to reduce old-session overlap; stale CLI resume errors clear cli_session_id and stale bridge for clean retry."
   },
   "metadata": {
-    "last_updated": "2026-02-24T21:42:03Z"
+    "last_updated": "2026-02-24T23:39:16Z"
   }
 }

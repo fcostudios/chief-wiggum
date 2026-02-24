@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 2.8
+**Version:** 2.9
 **Date:** 2026-02-24
-**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings Backend + Conversation Virtualization + Project Actions + UI Stability Follow-ups
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -162,8 +162,9 @@ chief-wiggum/
 │   │   ├── slashStore.ts           # Slash command state (Phase 3 — CHI-107)
 │   │   ├── viewStore.ts            # Split pane layout state (Phase 3 — CHI-110)
 │   │   ├── agentStore.ts           # Agent states (future)
-│   │   ├── contextStore.ts         # Context utilization state (future)
-│   │   ├── settingsStore.ts        # App settings (future)
+│   │   ├── contextStore.ts         # File attachments, token estimates, quality scoring + smart suggestions (Phase 3 — CHI-117/CHI-125/CHI-127)
+│   │   ├── settingsStore.ts        # App settings (load/save/reset, autosave/retry) (Phase 3 — CHI-124)
+│   │   ├── i18nStore.ts            # Locale dictionaries + translation runtime (Phase 3 — CHI-126/CHI-128)
 │   │   ├── actionStore.ts          # Project Actions state (Phase 3 — CHI-138)
 │   │   └── mcpStore.ts             # MCP server states (future)
 │   ├── lib/                        # Shared utilities
@@ -193,11 +194,13 @@ chief-wiggum/
 
 | Module | Responsibility | Key Dependencies | Phase |
 |---|---|---|---|
-| `commands/session.rs` | Session/message CRUD IPC handlers. | `db/` | Phase 1 |
+| `commands/session.rs` | Session/message CRUD IPC handlers (including message edit + delete-after for regenerate flows). | `db/` | Phase 1 / Phase 3 follow-up |
 | `commands/bridge.rs` | CLI lifecycle IPC: start_session_cli, send_to_cli, stop_session_cli, get_cli_status. | `bridge/` | Phase 2 |
 | `commands/cli.rs` | CLI detection: get_cli_info (checks PATH for `claude` binary). | — | Phase 2 |
 | `commands/project.rs` | Folder picker + project CRUD: pick_project_folder, create_project, list_projects. | `db/`, `tauri-plugin-dialog` | Phase 2 |
 | `commands/cost.rs` | Cost tracking IPC: get_session_cost, set_budget. | `cost/`, `db/` | Phase 2 |
+| `commands/files.rs` | File explorer IPC (list/read/search/token estimate) + context smart suggestions (`get_file_suggestions`). | `files/`, `db/` | Phase 3 |
+| `commands/settings.rs` | Settings CRUD/reset IPC with validation. | `settings/`, `tauri-plugin-store` | Phase 3 |
 | `commands/actions.rs` | Project Actions IPC: discover/start/stop/restart/list running actions + custom action CRUD (`.claude/actions.json`). | `actions/`, `db/`, `tauri` | Phase 3 |
 | `bridge/process.rs` | Spawn Claude Code CLI via PTY. Implements `BridgeInterface` trait. | `portable-pty`, `tokio` | Phase 1 |
 | `bridge/parser.rs` | Parse structured CLI output into `BridgeEvent` variants. | — | Phase 1 |
@@ -222,8 +225,9 @@ chief-wiggum/
 | `projectStore` | Project list, active project | IPC commands (pick/create/list projects) | Phase 2 |
 | `costStore` | Running cost totals, budget status | Tauri events from cost engine | Phase 2 |
 | `agentStore` | Agent list, states, task assignments | Tauri events from bridge | Future |
-| `contextStore` | Token utilization, zone, compaction state | Tauri events from bridge parser | Future |
-| `settingsStore` | User preferences, model defaults | IPC commands (read/write) | Future |
+| `contextStore` | Attached files/ranges, token estimates, quality scores, smart suggestions | File explorer IPC + local scoring engine | Phase 3 |
+| `settingsStore` | User preferences, autosave/retry/save status, settings IPC sync | Settings IPC (`get/update/reset`) + settings events | Phase 3 |
+| `i18nStore` | Active locale, lazy-loaded dictionaries, translation lookup/fallback | Settings-driven locale sync + dynamic locale loaders | Phase 3 |
 | `actionStore` | Discovered actions, running states, output buffers, selected action output, custom action CRUD helpers, recent action events | Actions IPC + Tauri `action:*` events | Phase 3 |
 | `mcpStore` | Server list, connection status, tools | IPC commands + events | Future |
 
@@ -559,6 +563,8 @@ listen<{ session_id: string; event_type: string }>('session:activity', (event) =
 
 #### 4.4.9 File Explorer & @-Mention IPC (Phase 3 — CHI-114/CHI-115)
 
+**Implementation status (2026-02-24):** CHI-127 extends this area with `get_file_suggestions` (Rust import parsing + test-file heuristics) so the frontend can suggest related files after attachments are added.
+
 ```typescript
 // Commands
 export const listProjectFiles = (project_id: string, relative_path?: string, max_depth?: number) =>
@@ -703,6 +709,21 @@ interface ActionArgTemplate {
   options?: string[];
   default?: string;
 }
+```
+
+#### 4.4.12 Message Editing & Regenerate IPC (Phase 3 — CHI-137)
+
+```typescript
+// Commands
+export const updateMessageContent = (message_id: string, new_content: string) =>
+  invoke<void>('update_message_content', { message_id, new_content });
+
+export const deleteMessagesAfter = (session_id: string, after_message_id: string) =>
+  invoke<void>('delete_messages_after', { session_id, after_message_id });
+
+// Notes
+// - Frontend uses deleteMessagesAfter + resend to implement regenerate flows.
+// - Backend delete ordering is rowid-based to avoid same-timestamp tie issues.
 ```
 
 ---
