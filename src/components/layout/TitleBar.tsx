@@ -12,7 +12,7 @@ import {
   uiState,
   cyclePermissionTier,
   getPermissionTier,
-  toggleDetailsPanel,
+  openSettings,
 } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
 import ModelSelector from '@/components/common/ModelSelector';
@@ -94,13 +94,13 @@ const TitleBar: Component = () => {
 
       {/* Right: settings + permission tier toggle + window controls */}
       <div class="flex items-center">
-        {/* Settings gear — toggles details panel */}
+        {/* Settings gear — opens full-screen settings overlay */}
         <button
           class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
           style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={toggleDetailsPanel}
-          aria-label="Toggle settings panel"
-          title="Toggle details panel (Cmd+Shift+B)"
+          onClick={openSettings}
+          aria-label="Open settings"
+          title="Open settings (Cmd+,)"
         >
           <Settings size={13} />
         </button>

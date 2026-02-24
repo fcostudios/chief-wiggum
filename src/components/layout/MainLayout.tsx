@@ -41,6 +41,7 @@ import CommandPalette from '@/components/common/CommandPalette';
 import ExportDialog from '@/components/diagnostics/ExportDialog';
 import ToastContainer from '@/components/common/ToastContainer';
 import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
+import SettingsModal from '@/components/settings/SettingsModal';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -225,6 +226,11 @@ const MainLayout: Component = () => {
 
       {/* Export diagnostics dialog (CHI-98) */}
       <ExportDialog />
+
+      {/* Settings overlay (CHI-124) */}
+      <Show when={uiState.settingsVisible}>
+        <SettingsModal />
+      </Show>
 
       {/* Toast notifications — fixed bottom-right overlay */}
       <ToastContainer />
