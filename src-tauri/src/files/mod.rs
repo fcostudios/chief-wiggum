@@ -2,6 +2,7 @@
 //! Per CHI-115: foundation for the File Explorer & @-Mention system.
 
 pub mod scanner;
+pub mod suggestions;
 pub mod watcher;
 
 use serde::{Deserialize, Serialize};
