@@ -149,6 +149,9 @@ const StatusBar: Component = () => {
                       ? '0 0 4px rgba(63, 185, 80, 0.4)'
                       : 'none',
                 }}
+                role="img"
+                aria-label={`Process status: ${conversationState.processStatus}`}
+                title={processStatusDisplay(conversationState.processStatus).label}
               />
               <span class="text-text-tertiary font-mono" style={{ 'font-size': '10px' }}>
                 {processStatusDisplay(conversationState.processStatus).label}

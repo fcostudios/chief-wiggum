@@ -381,6 +381,7 @@ const Sidebar: Component = () => {
             <button
               class="flex items-center justify-between w-full px-3 py-2 text-left"
               onClick={handleFilesSectionHeaderClick}
+              aria-expanded={fileState.isVisible}
               style={{
                 background:
                   fileState.isVisible && focusedContentSection() === 'files'
@@ -457,6 +458,7 @@ const Sidebar: Component = () => {
             <button
               class="flex items-center justify-between w-full px-3 py-2 text-left"
               onClick={handleActionsSectionHeaderClick}
+              aria-expanded={actionsOpen()}
               style={{
                 background:
                   actionsOpen() && focusedContentSection() === 'actions'
@@ -740,6 +742,7 @@ function SidebarSection(props: {
           class="flex items-center gap-1.5 w-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-tertiary hover:text-text-secondary transition-colors"
           style={{ 'transition-duration': 'var(--duration-fast)' }}
           onClick={() => props.onToggle()}
+          aria-expanded={props.open}
         >
           <span
             class="transition-transform"

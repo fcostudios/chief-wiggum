@@ -143,6 +143,9 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           handleMouseLeaveTooltip();
         }}
         onClick={handleClick}
+        role="treeitem"
+        aria-level={props.depth + 1}
+        aria-expanded={isDir() ? expanded() : undefined}
         title={props.node.relative_path}
       >
         {/* Expand chevron for directories */}
