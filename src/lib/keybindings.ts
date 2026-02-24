@@ -14,6 +14,7 @@ import {
   toggleCommandPalette,
   openCommandPalette,
   openSessionSwitcher,
+  openSettings,
   type ActiveView,
 } from '@/stores/uiStore';
 import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore';
@@ -38,6 +39,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyK' && !e.shiftKey) {
     e.preventDefault();
     toggleCommandPalette();
+    return;
+  }
+
+  // Cmd+, — open settings
+  if (e.code === 'Comma' && !e.shiftKey) {
+    e.preventDefault();
+    openSettings();
     return;
   }
 

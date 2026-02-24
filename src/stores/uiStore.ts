@@ -25,6 +25,7 @@ export type PermissionTier = 'safe' | 'developer' | 'yolo';
 interface UIState {
   sidebarState: SidebarState;
   detailsPanelVisible: boolean;
+  settingsVisible: boolean;
   activeView: ActiveView;
   viewBadges: Record<ActiveView, number>;
   permissionRequest: PermissionRequest | null;
@@ -62,6 +63,7 @@ const persisted = loadPersistedTier();
 const [state, setState] = createStore<UIState>({
   sidebarState: 'expanded',
   detailsPanelVisible: true,
+  settingsVisible: false,
   activeView: 'conversation',
   viewBadges: { conversation: 0, agents: 0, diff: 0, terminal: 0 },
   permissionRequest: null,
@@ -97,6 +99,16 @@ export function isSidebarVisible(): boolean {
 
 export function toggleDetailsPanel() {
   setState('detailsPanelVisible', (prev) => !prev);
+}
+
+/** Open the full-screen settings overlay (Cmd+,). */
+export function openSettings() {
+  setState('settingsVisible', true);
+}
+
+/** Close the full-screen settings overlay. */
+export function closeSettings() {
+  setState('settingsVisible', false);
 }
 
 export function setActiveView(view: ActiveView) {
