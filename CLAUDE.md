@@ -222,8 +222,8 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | CHI-84 | High     | **Done**                                     | Sidebar collapsed icon-rail mode (48px with tooltips) |
 | CHI-85 | Medium   | **Done**                                     | Session sections (Pinned, Recent, Older)              |
 | CHI-86 | Medium   | **Done** | Session rename inline + session actions menu                    |
-| CHI-87 | Medium   | View tabs with icons + count badges          |
-| CHI-88 | Low      | Sidebar search/filter                        |
+| CHI-87 | Medium   | **Done**                                     | View tabs with icons + count badges          |
+| CHI-88 | Low      | **Done**                                     | Sidebar search/filter                        |
 
 #### Epic CHI-66: Tool Use Visualization & Inline Activity (High)
 
