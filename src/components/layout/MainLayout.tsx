@@ -67,6 +67,11 @@ const MainLayout: Component = () => {
 
   return (
     <div class="grain-overlay h-screen flex flex-col bg-bg-primary text-text-primary font-ui overflow-hidden">
+      {/* Skip navigation link — visible on keyboard focus */}
+      <a href="#main-content" class="skip-to-content">
+        Skip to content
+      </a>
+
       <TitleBar />
 
       <div class="flex-1 flex overflow-hidden">
@@ -103,7 +108,7 @@ const MainLayout: Component = () => {
         </div>
 
         {/* Z3: Main Content */}
-        <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden" tabindex={-1}>
           {/* View tabs — refined with subtle bottom border */}
           <div
             class="flex items-center gap-0.5 px-3 bg-bg-primary"
