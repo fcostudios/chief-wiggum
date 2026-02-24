@@ -78,9 +78,31 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
     const pid = projectId();
     if (!pid) return;
     if (isDir()) {
-      toggleFolder(pid, props.node.relative_path);
+      void toggleFolder(pid, props.node.relative_path);
     } else {
-      selectFile(pid, props.node.relative_path);
+      void selectFile(pid, props.node.relative_path);
+    }
+  }
+
+  function handleKeyDown(e: KeyboardEvent) {
+    const pid = projectId();
+    if (!pid) return;
+
+    if (e.key === 'ArrowRight' && isDir() && !expanded()) {
+      e.preventDefault();
+      void toggleFolder(pid, props.node.relative_path);
+      return;
+    }
+
+    if (e.key === 'ArrowLeft' && isDir() && expanded()) {
+      e.preventDefault();
+      void toggleFolder(pid, props.node.relative_path);
+      return;
+    }
+
+    if (e.key === 'Enter' && !isDir()) {
+      e.preventDefault();
+      void selectFile(pid, props.node.relative_path);
     }
   }
 
@@ -143,6 +165,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           handleMouseLeaveTooltip();
         }}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
         role="treeitem"
         aria-level={props.depth + 1}
         aria-expanded={isDir() ? expanded() : undefined}
@@ -278,9 +301,11 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
 
       {/* Recursive children */}
       <Show when={isDir() && expanded()}>
-        <For each={children()}>
-          {(child) => <FileTreeNode node={child} depth={props.depth + 1} />}
-        </For>
+        <div role="group">
+          <For each={children()}>
+            {(child) => <FileTreeNode node={child} depth={props.depth + 1} />}
+          </For>
+        </div>
       </Show>
     </div>
   );
