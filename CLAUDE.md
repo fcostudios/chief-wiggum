@@ -121,6 +121,11 @@
 | CHI-150: Actions System Tests      | **Done** | `actions/manager.rs` lifecycle/error-safe path tests (4 new Rust unit tests; 7 total in module)     |
 | CHI-151: Remaining IPC Command Tests | **Done** | `commands/session.rs` + `files/scanner.rs` test coverage additions (17 Rust unit tests total)      |
 | CHI-152: Permission Security Tests | **Done** | `bridge/permission.rs` security-edge tests (timeouts, YOLO toggles, resolution safety; 7 Rust tests) |
+| CHI-153: Store Tests (Session + Conversation) | **Done** | `sessionStore` + `conversationStore` frontend unit coverage (13 tests, includes listener lifecycle) |
+| CHI-154: Store Tests (File + Context + Action) | **Done** | `context/project/slash/action/file` store frontend unit coverage (65 tests)                        |
+| CHI-155: Store Tests (UI + Settings + i18n + Toast) | **Done** | `ui/settings/i18n/toast` plus view/diagnostics/diffReview store unit coverage (50 tests)        |
+| CHI-156: Critical Component Tests | **Done** | `ContextChip`, `CommandPalette`, and `MessageInput` helper coverage (29 frontend unit tests)         |
+| CHI-157: Utility Tests            | **Done** | `typewriterBuffer`, `contextScoring`, `keybindings`, and `logger` unit coverage (44 frontend tests) |
 
 ## Phase 1 Status
 

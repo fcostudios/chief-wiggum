@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-25T19:28:17Z",
+  "last_updated": "2026-02-25T21:12:32Z",
   "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -2006,38 +2006,124 @@
         },
         "CHI-153": {
           "title": "Store Tests: session + conversation",
-          "status": "todo",
+          "status": "done",
           "priority": "high",
           "track": "C1",
-          "blocked_by": "CHI-147"
+          "blocked_by": "CHI-147",
+          "notes": "Completed refined CHI-153 coverage with existing CHI-147 sessionStore smoke tests (2 tests) plus this batch conversationStore unit tests (11 tests). Conversation tests cover core state, message loading/clearing, unread markers, permission records, and listener setup/cleanup.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 13,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src/stores/sessionStore.test.ts",
+              "src/stores/conversationStore.test.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-154": {
           "title": "Store Tests: file + context + action",
-          "status": "todo",
+          "status": "done",
           "priority": "high",
           "track": "C2",
-          "blocked_by": "CHI-147"
+          "blocked_by": "CHI-147",
+          "notes": "Completed frontend unit tests for contextStore, projectStore, slashStore, actionStore, and fileStore (65 tests total). Note: plan Task 2 scope includes project/slash stores in addition to the refined handover title.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 65,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src/stores/contextStore.test.ts",
+              "src/stores/projectStore.test.ts",
+              "src/stores/slashStore.test.ts",
+              "src/stores/actionStore.test.ts",
+              "src/stores/fileStore.test.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-155": {
           "title": "Store Tests: ui + settings + i18n + toast",
-          "status": "todo",
+          "status": "done",
           "priority": "medium",
           "track": "C3",
-          "blocked_by": "CHI-147"
+          "blocked_by": "CHI-147",
+          "notes": "Completed refined CHI-155 coverage using existing CHI-147 baseline uiStore/toastStore tests plus this batch settingsStore/i18nStore tests; batch also added viewStore, diagnosticsStore, and diffReviewStore tests from the stale plan Task 1 simple-store scope.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 50,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src/stores/uiStore.test.ts",
+              "src/stores/toastStore.test.ts",
+              "src/stores/settingsStore.test.ts",
+              "src/stores/i18nStore.test.ts",
+              "src/stores/viewStore.test.ts",
+              "src/stores/diagnosticsStore.test.ts",
+              "src/stores/diffReviewStore.test.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-156": {
           "title": "Component Tests: critical UI",
-          "status": "todo",
+          "status": "done",
           "priority": "medium",
           "track": "C4",
-          "blocked_by": "CHI-147"
+          "blocked_by": "CHI-147",
+          "notes": "Completed critical UI/component test coverage for ContextChip and CommandPalette render flows plus MessageInput mention parsing/selection helper tests (exported from source for direct coverage and to avoid duplicated test logic).",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 29,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src/components/conversation/ContextChip.test.tsx",
+              "src/components/conversation/MessageInput.test.ts",
+              "src/components/common/CommandPalette.test.tsx"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-157": {
           "title": "Utility Tests: typewriter, scoring, keys, logger",
-          "status": "todo",
+          "status": "done",
           "priority": "medium",
           "track": "C5",
-          "blocked_by": "CHI-147"
+          "blocked_by": "CHI-147",
+          "notes": "Completed utility unit test coverage for typewriterBuffer, contextScoring, keybindings, and logger (44 frontend unit tests total). Logger tests were added in the final verification batch to fully satisfy the refined CHI-157 utility scope before closure.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 44,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src/lib/typewriterBuffer.test.ts",
+              "src/lib/contextScoring.test.ts",
+              "src/lib/keybindings.test.ts",
+              "src/lib/logger.test.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-158": {
           "title": "E2E: File Explorer + @-Mention",
@@ -2076,26 +2162,27 @@
           "track": "E"
         }
       },
-      "critical_path": "CHI-153/154 -> CHI-156/160/161 -> CHI-163",
+      "critical_path": "CHI-158/159/160/161/162 -> CHI-163",
       "estimated_total_tests": "~200 new tests (75 Rust, 85 frontend unit, 40 E2E)"
     }
   },
   "recommended_next": [
-    "CHI-153",
-    "CHI-154",
-    "CHI-155",
+    "CHI-158",
+    "CHI-159",
     "CHI-160",
+    "CHI-161",
+    "CHI-162",
     "CHI-163",
     "CHI-131",
     "CHI-134"
   ],
-  "critical_path": "CHI-146 (Test Coverage 90%+ epic) remains the primary work track, but Track A/B foundation (CHI-147..CHI-152) is now complete. Critical path shifts to CHI-153/154 (core store tests) -> CHI-156/160/161 (critical UI + settings/permissions coverage) -> CHI-163 (CI coverage gates). CHI-121 context intelligence follow-up (CHI-131, CHI-134) remains secondary work.",
+  "critical_path": "CHI-146 (Test Coverage 90%+ epic) remains the primary work track, and Tracks A-C (CHI-147..CHI-157) are now complete. Critical path shifts to CHI-158/159/160/161/162 (remaining E2E coverage tracks) -> CHI-163 (CI coverage gates/reporting). CHI-121 context intelligence follow-up (CHI-131, CHI-134) remains secondary work.",
   "ux_quick_wins": [
-    "All originally scoped UX quick wins remain complete (CHI-78, CHI-82, CHI-83, CHI-130 follow-through) and are now partially protected by Playwright + new frontend unit infrastructure.",
-    "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage work should continue with store/component test tracks (CHI-153..157) and settings/permissions E2E coverage (CHI-160/161)."
+    "All originally scoped UX quick wins remain complete (CHI-78, CHI-82, CHI-83, CHI-130 follow-through) and are now protected by Playwright E2E plus Track C frontend unit-test coverage for key stores/components/utilities.",
+    "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage work should continue with remaining E2E tracks (CHI-158..CHI-162) and CI coverage gates/reporting (CHI-163)."
   ],
   "spec_updates": {
-    "completed_at": "2026-02-25T19:26:26Z",
+    "completed_at": "2026-02-25T21:12:32Z",
     "SPEC-002": {
       "version": "2.0",
       "changes": "Added tool use colors (\u00a73.5), toast colors (\u00a73.6), 7 new component specs (\u00a710.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
@@ -2105,8 +2192,8 @@
       "changes": "v2.0: Added 6 Phase 2 interaction flows (\u00a74.7-4.12). v2.1: Added \u00a74.13 Slash Command Interaction Flow, \u00a74.14 Split Pane Layout Flow, \u00a710.7 Slash Commands spec, \u00a710.8 Split Pane spec. v2.2: Added \u00a74.15 File Explorer & @-Mention Context Flow, \u00a710.9 File Explorer & @-Mention Context System spec. v2.3: Added \u00a73.5 Settings Screen, \u00a74.16 Settings Flow, \u00a74.17 Context Intelligence Flow, \u00a710.10-10.12 (Settings, Context Intelligence, UX Hardening) v2.4: Implementation status follow-through notes for CHI-125/126/127/128/137 (context scoring + smart suggestions, i18n locale coverage, message edit/regenerate UX). v2.5: Implementation status follow-through notes for CHI-63/64/109/130/27 (context menus + keyboard help, onboarding/empty states, split panes aggregate/activity, theme system, Playwright E2E + CI integration)."
     },
     "SPEC-004": {
-      "version": "3.1",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol \u00a75.6. v2.2: slash/ module, \u00a74.4.7-4.4.8 IPC, \u00a75.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, \u00a74.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), \u00a75.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up \u2014 MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands. v3.0: CHI-81 onboarding settings-schema persistence, CHI-130 theme propagation note, and CHI-27 Playwright/CI E2E architecture follow-through (browser-safe TitleBar + failure artifact reporter). v3.1: CHI-146 Track A/B test-infrastructure foundation (Vitest + IPC mocks + CI frontend unit step, Rust coverage expansion), and GUIDE-003 / TESTING-MATRIX documentation references."
+      "version": "3.2",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol \u00a75.6. v2.2: slash/ module, \u00a74.4.7-4.4.8 IPC, \u00a75.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, \u00a74.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), \u00a75.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up \u2014 MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands. v3.0: CHI-81 onboarding settings-schema persistence, CHI-130 theme propagation note, and CHI-27 Playwright/CI E2E architecture follow-through (browser-safe TitleBar + failure artifact reporter). v3.1: CHI-146 Track A/B test-infrastructure foundation (Vitest + IPC mocks + CI frontend unit step, Rust coverage expansion), and GUIDE-003 / TESTING-MATRIX documentation references. v3.2: CHI-146 Track C frontend unit-test coverage follow-through (stores/components/utilities), plus architecture implementation-status note for test-driven fixes (contextStore score-map replacement + MessageInput mention range parsing)."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -2670,6 +2757,139 @@
       ],
       "tests": "Plan verification sweep completed in feature worktree: cargo test --lib (282 passed), cargo fmt --all -- --check, cargo clippy -- -D warnings, npx vitest run --coverage, npx tsc --noEmit && npx eslint ., npm run format:check. Closure will additionally run final verification and a post-merge coverage run on main per user request.",
       "verified": "All implemented plan tasks (CHI-147..CHI-152) are complete. CHI-146 epic remains in progress with Tracks C-E pending; TESTING-MATRIX rows are updated and ready to be used as the completion verification artifact."
+    },
+    "2026-02-25_chi153_chi157_batch1": {
+      "description": "Batch 1 for the CHI-153..157 frontend-unit-tests plan: completed plan Tasks 1-3 (simple stores, IPC stores, and utility libraries) with refined handover mapping note because the plan labels are stale vs current CHI-146 task titles.",
+      "changes": [
+        {
+          "task": "Task 1 simple store tests + nested-worktree Vitest fix",
+          "files_modified": [
+            "vitest.config.ts",
+            "src/stores/viewStore.test.ts",
+            "src/stores/diagnosticsStore.test.ts",
+            "src/stores/diffReviewStore.test.ts",
+            "src/stores/i18nStore.test.ts",
+            "src/stores/settingsStore.test.ts"
+          ]
+        },
+        {
+          "task": "Task 2 IPC store tests + contextStore score reset fix",
+          "files_modified": [
+            "src/stores/contextStore.ts",
+            "src/stores/contextStore.test.ts",
+            "src/stores/projectStore.test.ts",
+            "src/stores/slashStore.test.ts",
+            "src/stores/actionStore.test.ts",
+            "src/stores/fileStore.test.ts"
+          ]
+        },
+        {
+          "task": "Task 3 utility library tests",
+          "files_modified": [
+            "src/lib/typewriterBuffer.test.ts",
+            "src/lib/contextScoring.test.ts",
+            "src/lib/keybindings.test.ts"
+          ]
+        },
+        {
+          "task": "Refined handover checkpoint sync (CHI mapping note + testing metadata)",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "Vitest failed in the nested worktree with Cannot find module /@fs/.../node_modules/@testing-library/jest-dom/dist/vitest.mjs because Vite resolved dependencies via the parent repo workspace root; fixed by adding server.fs.allow entries for the worktree root and parent repo root in vitest.config.ts.",
+        "New contextStore tests exposed stale context quality scores accumulating across attachment changes because Solid store object updates merged score maps instead of replacing them; fixed by using reconcile(..., { merge: false }) for score updates and clear operations.",
+        "npm run format:check flagged src/stores/settingsStore.test.ts, and npx tsc --noEmit flagged a clipboard mock cast in src/stores/diagnosticsStore.test.ts; both were corrected before final batch verification."
+      ],
+      "tests": "Batch 1 verification passed in feature worktree: npx vitest run (17 files / 158 tests), npx tsc --noEmit && npx eslint ., and npm run format:check. Baseline checks also passed (npm install, cargo test --lib with 282 passed, npm run typecheck).",
+      "verified": "Plan Tasks 1-3 are complete. Refined handover mapping after this batch: CHI-154 done, CHI-155 done, CHI-157 in progress (logger utility tests pending if still required by current issue scope); CHI-153 (conversationStore) and CHI-156 (component tests) remain for next batches."
+    },
+    "2026-02-25_chi153_chi157_batch2": {
+      "description": "Batch 2 for the CHI-153..157 frontend-unit-tests plan: completed plan Tasks 4-5 (conversationStore tests and critical component tests) and updated refined handover task mapping/statuses for CHI-153 and CHI-156.",
+      "changes": [
+        {
+          "task": "Task 4 conversationStore unit tests",
+          "files_modified": [
+            "src/stores/conversationStore.test.ts"
+          ]
+        },
+        {
+          "task": "Task 5 critical component tests (ContextChip, CommandPalette, MessageInput helpers)",
+          "files_modified": [
+            "src/components/conversation/ContextChip.test.tsx",
+            "src/components/conversation/MessageInput.test.ts",
+            "src/components/common/CommandPalette.test.tsx",
+            "src/components/conversation/MessageInput.tsx",
+            "src/test/setup.ts"
+          ]
+        },
+        {
+          "task": "Refined handover checkpoint sync for CHI-153/156/157",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "CommandPalette render tests failed in jsdom because HTMLElement.scrollIntoView is not implemented; added a shared no-op scrollIntoView shim in src/test/setup.ts for component tests.",
+        "MessageInput mention range parsing tests exposed a real bug: parseMentionQuery used /\\\\d/ in a regex literal, which prevented @file.ts:10-20 ranges from parsing. Fixed the regex to /\\d/ and exported the helper functions for direct unit coverage.",
+        "npm run format:check initially failed on src/components/conversation/ContextChip.test.tsx; fixed with a targeted Prettier write and reran formatting verification."
+      ],
+      "tests": "Batch 2 verification passed in feature worktree: targeted npx vitest run on 4 new suites (40 tests), then full npx vitest run (21 files / 198 tests), npx tsc --noEmit && npx eslint ., and npm run format:check.",
+      "verified": "Plan Tasks 4-5 are complete. Refined CHI-146 mapping after Batch 2: CHI-153 done, CHI-154 done, CHI-155 done, CHI-156 done, CHI-157 still in progress pending logger utility tests (if required by refined issue scope)."
+    },
+    "2026-02-25_chi153_chi157_batch3": {
+      "description": "Batch 3 for the CHI-153..157 frontend-unit-tests plan: completed Task 6 verification and coverage reporting, added the missing logger utility tests to finish refined CHI-157, and updated TESTING-MATRIX for CHI-153..157 rows.",
+      "changes": [
+        {
+          "task": "Extra logger utility tests to complete refined CHI-157",
+          "files_modified": [
+            "src/lib/logger.test.ts"
+          ]
+        },
+        {
+          "task": "Task 6 coverage verification and matrix sync",
+          "files_modified": [
+            "docs/TESTING-MATRIX.md"
+          ]
+        },
+        {
+          "task": "Refined handover status/testing metadata sync for CHI-157 and plan completion",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "No new blockers in this batch. coverage/ was generated by Vitest coverage run and will be removed before commit to keep the worktree clean and avoid future lint noise."
+      ],
+      "tests": "Task 6 verification passed in feature worktree: npx vitest run --coverage (22 files / 203 tests), npx tsc --noEmit, npx eslint \"src/**/*.test.{ts,tsx}\", and npm run format:check. Coverage summary (V8): Stmts 13.70%, Branch 13.25%, Funcs 10.71%, Lines 15.92%.",
+      "verified": "All plan tasks 1-6 are complete. Refined CHI-146 mapping is now complete for Track C: CHI-153, CHI-154, CHI-155, CHI-156, and CHI-157 are all done. CHI-146 epic remains in progress because later tracks (D/E) are still pending."
+    },
+    "2026-02-25_chi153_chi157_closure": {
+      "description": "Closure batch for CHI-153/154/155/156/157: finalized docs/spec/handover updates, recorded Track C completion in refined CHI-146 mapping, and prepared the branch for merge plus post-closure coverage verification on main.",
+      "changes": [
+        {
+          "task": "Closure docs/spec updates for frontend unit-test Track C completion",
+          "files_modified": [
+            "CLAUDE.md",
+            "docs/specs/SPEC-004-architecture.md"
+          ]
+        },
+        {
+          "task": "Refined handover closure checkpoint + CHI-146 next-path summary sync",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "No new blockers in closure. Final verification remained green after the earlier nested-worktree Vitest fs.allow fix, MessageInput mention regex fix, and contextStore score-map replacement fix introduced during test development."
+      ],
+      "tests": "Closure verification sweep passed in feature worktree: npm run format:check, npm run typecheck, npm run lint, npm run build, npm run test:unit (Vitest 22 files / 203 tests), cargo fmt --all -- --check, cargo check, cargo test (282 passed), cargo clippy -- -D warnings. Post-closure coverage run on main is planned per user request.",
+      "verified": "All plan tasks 1-6 are complete and refined CHI-146 Track C is fully done (CHI-153..CHI-157). CHI-146 epic remains in progress with Tracks D/E (CHI-158..CHI-163) pending; TESTING-MATRIX is updated and ready for post-closure coverage/result verification."
     }
   },
   "warnings": [],
@@ -2680,7 +2900,7 @@
     "version": "1.0",
     "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2 core epics COMPLETE. Phase 3 remains active with CHI-121 Context Intelligence follow-up (CHI-131 token-optimized snippets, CHI-134 multi-file bundles) and the active CHI-146 Test Coverage epic (Track A/B foundations CHI-147..CHI-152 now complete). GUIDE-003 development protocol now governs all new feature work. Current verification snapshot: frontend unit tests pass (Vitest 4 files/12 tests + coverage run), frontend typecheck/lint/build/format pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), and cargo clippy -- -D warnings pass.",
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2 core epics COMPLETE. Phase 3 remains active with CHI-121 Context Intelligence follow-up (CHI-131 token-optimized snippets, CHI-134 multi-file bundles) and the active CHI-146 Test Coverage epic (Tracks A-C CHI-147..CHI-157 now complete). GUIDE-003 development protocol now governs all new feature work. Current verification snapshot: frontend unit tests pass (Vitest 22 files/203 tests + coverage run: Stmts 13.70%, Branch 13.25%, Funcs 10.71%, Lines 15.92%), frontend typecheck/lint/build/format pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), and cargo clippy -- -D warnings pass.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -2688,9 +2908,9 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. Current closure snapshot: frontend unit tests pass (Vitest 4 files/12 tests + coverage run), frontend format/typecheck/lint/build pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), cargo clippy -- -D warnings pass. GUIDE-003 protocol and docs/TESTING-MATRIX.md are now part of the repo and active for feature verification. Primary remaining tracked follow-ups are CHI-146 coverage tracks C-E (CHI-153..163) and CHI-121 (CHI-131, CHI-134)."
+    "notes": "Full toolchain ready. Current closure snapshot: frontend unit tests pass (Vitest 22 files/203 tests + coverage run: Stmts 13.70%, Branch 13.25%, Funcs 10.71%, Lines 15.92%), frontend format/typecheck/lint/build pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), cargo clippy -- -D warnings pass. GUIDE-003 protocol and docs/TESTING-MATRIX.md are active for feature verification. Primary remaining tracked follow-ups are CHI-146 coverage tracks D/E (CHI-158..CHI-163) and CHI-121 (CHI-131, CHI-134)."
   },
   "metadata": {
-    "last_updated": "2026-02-25T19:28:17Z"
+    "last_updated": "2026-02-25T21:12:32Z"
   }
 }
