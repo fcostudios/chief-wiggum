@@ -197,6 +197,11 @@
 | 155 | Store Tests: ui + settings + i18n + toast | — | ✅ 24 | — | — | COVERED |
 | 156 | Component Tests: critical UI | — | ✅ 29 | — | — | COVERED |
 | 157 | Utility Tests: typewriter, scoring, keys, logger | — | ✅ 44 | — | — | COVERED |
+| 158 | E2E: File Explorer + @-Mention | — | — | — | ✅ 10 | COVERED |
+| 159 | E2E: Actions Discovery + Run | — | — | — | ✅ 9 | COVERED |
+| 160 | E2E: Settings + Theme + i18n | — | — | — | ✅ 8 | COVERED |
+| 161 | E2E: Permission + YOLO + Developer | — | — | — | ✅ 8 | COVERED |
+| 162 | E2E: Split Panes + Sessions + Onboarding | — | — | — | ✅ 11 | COVERED |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -238,7 +243,7 @@
 |----------|---------------|---------|---------|-----|-----|
 | Phase 1 | 18 | 4 | 10 | 1 | 3 |
 | Phase 2 | 21 | 0 | 6 | 15 | 0 |
-| Phase 3 | 56 | 9 | 19 | 24 | 4 |
-| **Total** | **95** | **13 (14%)** | **35 (37%)** | **40 (42%)** | **7 (7%)** |
+| Phase 3 | 61 | 14 | 19 | 24 | 4 |
+| **Total** | **100** | **18 (18%)** | **35 (35%)** | **40 (40%)** | **7 (7%)** |
 
 **Target:** Move all GAP → PARTIAL within next sprint, all PARTIAL → COVERED within 2 sprints.
