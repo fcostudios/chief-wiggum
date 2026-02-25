@@ -34,6 +34,8 @@ import {
   switchSession,
   stopSessionCli,
   getSessionStatus,
+  isSessionUnread,
+  clearSessionUnread,
 } from '@/stores/conversationStore';
 import {
   projectState,
@@ -185,6 +187,7 @@ const Sidebar: Component = () => {
     if (sessionState.sessions.length > 0 && !sessionState.activeSessionId) {
       const firstSession = sessionState.sessions[0];
       setActiveSession(firstSession.id);
+      clearSessionUnread(firstSession.id);
       // Restore the project context for this session
       if (firstSession.project_id) {
         setActiveProject(firstSession.project_id);
@@ -234,6 +237,7 @@ const Sidebar: Component = () => {
     if (sessionState.activeSessionId === sessionId) return;
     const oldId = sessionState.activeSessionId;
     setActiveSession(sessionId);
+    clearSessionUnread(sessionId);
     // Switch active project to match the session's project
     const session = sessionState.sessions.find((s) => s.id === sessionId);
     if (session?.project_id) {
@@ -996,6 +1000,18 @@ const SessionItem: Component<{
             role="status"
           />
         </Show>
+        <Show when={isSessionUnread(props.session.id) && !props.isActive}>
+          <div
+            class="absolute -left-0.5 -bottom-0.5 w-1.5 h-1.5 rounded-full"
+            style={{
+              background: 'var(--color-accent)',
+              'box-shadow': '0 0 4px rgba(232, 130, 90, 0.35)',
+            }}
+            aria-label="Unread background activity"
+            title="Unread background activity"
+            role="status"
+          />
+        </Show>
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-1.5">
@@ -1049,6 +1065,19 @@ const SessionItem: Component<{
           >
             {modelLabel(props.session.model)}
           </span>
+          <Show when={(props.session.total_cost_cents ?? 0) > 0}>
+            <span
+              class="text-[9px] font-mono shrink-0 px-1 py-0.5 rounded"
+              style={{
+                color: 'var(--color-text-tertiary)',
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-secondary)',
+              }}
+              title="Session cost"
+            >
+              {`$${((props.session.total_cost_cents ?? 0) / 100).toFixed(2)}`}
+            </span>
+          </Show>
         </div>
         <span class="text-[10px] text-text-tertiary/60">
           {formatRelativeTime(props.session.updated_at)}

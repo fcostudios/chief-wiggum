@@ -65,6 +65,22 @@ const StatusBar: Component = () => {
         sessionId !== activeId && (status === 'running' || status === 'starting'),
     ).length;
   };
+  const totalRunningSessionCount = () => {
+    const activeId = activeSessionId();
+    const activeStatus = activeId ? conversationState.sessionStatuses[activeId] : null;
+    const activeRunning =
+      activeStatus === 'running' || activeStatus === 'starting' ? 1 : 0;
+    return activeRunning + backgroundRunningCount();
+  };
+  const aggregateRunningCostDisplay = () => {
+    const statuses = conversationState.sessionStatuses;
+    const totalCents = sessionState.sessions.reduce((sum, session) => {
+      const status = statuses[session.id];
+      const isRunning = status === 'running' || status === 'starting';
+      return isRunning ? sum + (session.total_cost_cents ?? 0) : sum;
+    }, 0);
+    return `$${(totalCents / 100).toFixed(2)}`;
+  };
   const runningActions = createMemo(() => getRunningActions());
   const recentActions = createMemo(() => getRecentActionEvents().slice(0, 3));
   const runningActionCount = () => runningActions().length;
@@ -388,6 +404,20 @@ const StatusBar: Component = () => {
         >
           {costDisplay()}
         </span>
+        <Show when={totalRunningSessionCount() > 1}>
+          <span
+            class="font-mono px-1.5 py-0.5 rounded-full"
+            style={{
+              'font-size': '10px',
+              color: 'var(--color-accent)',
+              background: 'rgba(232, 130, 90, 0.08)',
+              border: '1px solid rgba(232, 130, 90, 0.15)',
+            }}
+            title="Aggregate cost across running sessions"
+          >
+            ∑ {aggregateRunningCostDisplay()}
+          </span>
+        </Show>
       </div>
     </footer>
   );

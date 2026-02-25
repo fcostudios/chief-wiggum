@@ -18,11 +18,12 @@ import {
   updateSessionTitle,
   updateSessionCliId,
   getActiveSession,
-  refreshActiveSession,
+  refreshSessionById,
 } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
 import { createLogger } from '@/lib/logger';
+import { addToast } from '@/stores/toastStore';
 
 const log = createLogger('ui/conversation');
 
@@ -35,6 +36,7 @@ interface ConversationState {
   error: string | null;
   processStatus: ProcessStatus;
   sessionStatuses: Record<string, ProcessStatus>;
+  sessionUnread: Record<string, boolean>;
   lastUserMessage: string | null;
 }
 
@@ -47,6 +49,7 @@ const [state, setState] = createStore<ConversationState>({
   error: null,
   processStatus: 'not_started',
   sessionStatuses: {},
+  sessionUnread: {},
   lastUserMessage: null,
 });
 
@@ -59,6 +62,21 @@ const sessionListeners = new Map<string, UnlistenFn[]>();
 /** Get status for a specific session. */
 export function getSessionStatus(sessionId: string): ProcessStatus {
   return state.sessionStatuses[sessionId] ?? 'not_started';
+}
+
+/** Whether a session has unread background activity. */
+export function isSessionUnread(sessionId: string): boolean {
+  return state.sessionUnread[sessionId] === true;
+}
+
+/** Mark a session as having unread background activity. */
+export function markSessionUnread(sessionId: string): void {
+  setState('sessionUnread', sessionId, true);
+}
+
+/** Clear unread activity marker for a session. */
+export function clearSessionUnread(sessionId: string): void {
+  setState('sessionUnread', sessionId, false);
 }
 
 /** Update status for a specific session, also update global if it's the active session. */
@@ -147,6 +165,9 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
 
       const activeId = getActiveSession()?.id;
       const isActive = sessionId === activeId;
+      if (!isActive) {
+        markSessionUnread(sessionId);
+      }
 
       if (isActive) {
         // Flush any remaining typewriter buffer so rendered() matches streamingContent
@@ -275,11 +296,15 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       });
 
       // Refresh session cost totals after persisting (CHI-53)
-      refreshActiveSession().catch((err) =>
+      refreshSessionById(sessionId).catch((err) =>
         log.error(
           'Failed to refresh session cost: ' + (err instanceof Error ? err.message : String(err)),
         ),
       );
+
+      if (!isActive) {
+        addToast('Background session completed', 'info');
+      }
     }),
   );
 
@@ -368,6 +393,11 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         file_path: event.payload.file_path,
         risk_level: event.payload.risk_level as PermissionRequest['risk_level'],
       };
+      const activeId = getActiveSession()?.id;
+      if (sessionId !== activeId) {
+        markSessionUnread(sessionId);
+        addToast('Background session requires permission', 'warning');
+      }
       showPermissionDialog(req);
     }),
   );
@@ -520,6 +550,7 @@ export const cleanupEventListeners = cleanupAllListeners;
 
 /** Send a user message: persist to DB, start CLI if needed, send via PTY. */
 export async function sendMessage(content: string, sessionId: string): Promise<void> {
+  clearSessionUnread(sessionId);
   const msgId = crypto.randomUUID();
   const userMsg: Message = {
     id: msgId,
@@ -755,6 +786,7 @@ export async function switchSession(
   newSessionId: string,
   _oldSessionId: string | null,
 ): Promise<void> {
+  clearSessionUnread(newSessionId);
   // DO NOT stop the old CLI process -- it continues running in background
 
   // Clear UI-only state (streaming content, thinking, etc.)
