@@ -4,10 +4,11 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal } from 'solid-js';
-import { Copy, Check, Pencil, RefreshCw } from 'lucide-solid';
+import { Copy, Check, Pencil, RefreshCw, Trash2 } from 'lucide-solid';
 import type { Message } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
 import MarkdownContent from './MarkdownContent';
+import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 
 interface MessageBubbleProps {
   message: Message;
@@ -121,6 +122,7 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isAssistant = () => props.message.role === 'assistant';
   const [isEditing, setIsEditing] = createSignal(false);
   const [editContent, setEditContent] = createSignal('');
+  const [contextMenuPos, setContextMenuPos] = createSignal<{ x: number; y: number } | null>(null);
 
   function startEditing(): void {
     setEditContent(props.message.content);
@@ -143,6 +145,51 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
     void props.onEdit?.(props.message.id, trimmed);
   }
 
+  function copyMessage(): void {
+    navigator.clipboard.writeText(props.message.content);
+    addToast('Copied to clipboard', 'success');
+  }
+
+  function handleContextMenu(e: MouseEvent): void {
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+  }
+
+  const menuItems = (): ContextMenuItem[] => [
+    {
+      label: 'Copy message',
+      icon: Copy,
+      onClick: copyMessage,
+    },
+    ...(isUser()
+      ? [
+          {
+            label: 'Edit and resend',
+            icon: Pencil,
+            onClick: startEditing,
+          } satisfies ContextMenuItem,
+        ]
+      : []),
+    ...(isAssistant()
+      ? [
+          {
+            label: 'Regenerate',
+            icon: RefreshCw,
+            onClick: () => {
+              void props.onRegenerate?.(props.message.id);
+            },
+          } satisfies ContextMenuItem,
+        ]
+      : []),
+    { separator: true, label: 'separator' },
+    {
+      label: 'Delete (coming soon)',
+      icon: Trash2,
+      danger: true,
+      disabled: true,
+    },
+  ];
+
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>
       <div
@@ -159,6 +206,7 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
               ? '1px solid var(--color-border-secondary)'
               : '1px solid var(--color-border-secondary)',
         }}
+        onContextMenu={handleContextMenu}
       >
         {/* Left accent stripe for assistant messages */}
         <Show when={!isUser() && !isSystem()}>
@@ -325,6 +373,17 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
           </Show>
         </div>
       </div>
+
+      <Show when={contextMenuPos()}>
+        {(pos) => (
+          <ContextMenu
+            items={menuItems()}
+            x={pos().x}
+            y={pos().y}
+            onClose={() => setContextMenuPos(null)}
+          />
+        )}
+      </Show>
     </div>
   );
 };

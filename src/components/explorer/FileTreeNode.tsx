@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { Show, For, createSignal, onCleanup } from 'solid-js';
-import { ChevronRight, File, Folder, FolderOpen } from 'lucide-solid';
+import { ChevronRight, File, Folder, FolderOpen, Copy, Plus } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type { FileNode, FileContent } from '@/lib/types';
 import {
@@ -16,6 +16,9 @@ import {
   getGitStatus,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
+import { addFileReference } from '@/stores/contextStore';
+import { addToast } from '@/stores/toastStore';
+import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 
 interface FileTreeNodeProps {
   node: FileNode;
@@ -47,6 +50,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const isSelected = () => fileState.selectedPath === props.node.relative_path;
   const projectId = () => projectState.activeProjectId;
   const [showTooltip, setShowTooltip] = createSignal(false);
+  const [contextMenuPos, setContextMenuPos] = createSignal<{ x: number; y: number } | null>(null);
   const [tooltipContent, setTooltipContent] = createSignal<{
     lines: string[];
     size: string;
@@ -83,6 +87,55 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
       void selectFile(pid, props.node.relative_path);
     }
   }
+
+  async function handleAddToPrompt(): Promise<void> {
+    const pid = projectId();
+    if (!pid || isDir()) return;
+
+    let estimatedTokens = Math.round((props.node.size_bytes ?? 0) / 4);
+    try {
+      estimatedTokens = await invoke<number>('get_file_token_estimate', {
+        project_id: pid,
+        relative_path: props.node.relative_path,
+      });
+    } catch {
+      // Fallback estimate from file size.
+    }
+
+    addFileReference({
+      relative_path: props.node.relative_path,
+      name: props.node.name,
+      extension: props.node.extension,
+      estimated_tokens: Math.max(1, estimatedTokens),
+      is_directory: false,
+    });
+    addToast(`Added ${props.node.name} to prompt`, 'success');
+  }
+
+  const contextMenuItems = (): ContextMenuItem[] => [
+    {
+      label: 'Copy path',
+      icon: Copy,
+      onClick: () => {
+        navigator.clipboard.writeText(props.node.relative_path);
+        addToast('Path copied', 'success');
+      },
+    },
+    {
+      label: isDir() ? (expanded() ? 'Collapse folder' : 'Expand folder') : 'Preview file',
+      icon: isDir() ? FolderOpen : File,
+      onClick: handleClick,
+    },
+    { separator: true, label: 'separator' },
+    {
+      label: 'Add to prompt',
+      icon: Plus,
+      onClick: () => {
+        void handleAddToPrompt();
+      },
+      disabled: isDir() || props.node.is_binary,
+    },
+  ];
 
   function handleKeyDown(e: KeyboardEvent) {
     const pid = projectId();
@@ -165,6 +218,12 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           handleMouseLeaveTooltip();
         }}
         onClick={handleClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleMouseLeaveTooltip();
+          setContextMenuPos({ x: e.clientX, y: e.clientY });
+        }}
         onKeyDown={handleKeyDown}
         role="treeitem"
         aria-level={props.depth + 1}
@@ -298,6 +357,17 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
             </For>
           </div>
         </div>
+      </Show>
+
+      <Show when={contextMenuPos()}>
+        {(pos) => (
+          <ContextMenu
+            items={contextMenuItems()}
+            x={pos().x}
+            y={pos().y}
+            onClose={() => setContextMenuPos(null)}
+          />
+        )}
       </Show>
 
       {/* Recursive children */}
