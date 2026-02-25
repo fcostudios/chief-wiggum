@@ -2,7 +2,7 @@
 // Manages file references attached to the current prompt.
 // Files are loaded on send (not on attach) to minimize IPC calls.
 
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type {
   ContextAttachment,
@@ -115,7 +115,7 @@ export function updateAttachmentRange(
 /** Clear all attachments. */
 export function clearAttachments(): void {
   setState('attachments', []);
-  setState('scores', {});
+  setState('scores', reconcile({}, { merge: false }));
   setState('suggestions', []);
 }
 
@@ -126,7 +126,7 @@ export function recalculateScores(): void {
   for (const [id, score] of scoresMap) {
     scoresRecord[id] = score;
   }
-  setState('scores', scoresRecord);
+  setState('scores', reconcile(scoresRecord, { merge: false }));
 }
 
 /** Fetch smart file suggestions based on currently attached files. */
