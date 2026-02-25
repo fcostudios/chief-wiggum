@@ -6,6 +6,7 @@ import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Session } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
+import { bindActiveSessionToFocusedPane, ensureMainPaneSession } from '@/stores/viewStore';
 
 const log = createLogger('ui/session');
 
@@ -27,6 +28,7 @@ export async function loadSessions(): Promise<void> {
   try {
     const sessions = await invoke<Session[]>('list_all_sessions');
     setState('sessions', sessions);
+    ensureMainPaneSession(sessions[0]?.id ?? null);
   } finally {
     setState('isLoading', false);
   }
@@ -40,12 +42,14 @@ export async function createNewSession(model: string, projectId?: string): Promi
   });
   setState('sessions', (prev) => [session, ...prev]);
   setState('activeSessionId', session.id);
+  bindActiveSessionToFocusedPane(session.id);
   return session;
 }
 
 /** Switch to an existing session. Does NOT load messages — caller must do that. */
 export function setActiveSession(sessionId: string): void {
   setState('activeSessionId', sessionId);
+  bindActiveSessionToFocusedPane(sessionId);
 }
 
 /** Delete a session and switch to the next one. */
@@ -99,11 +103,18 @@ export function cycleModel(): void {
 export async function refreshActiveSession(): Promise<void> {
   const id = state.activeSessionId;
   if (!id) return;
+  await refreshSessionById(id);
+}
+
+/** Refresh a specific session's accumulated cost/token totals from DB. */
+export async function refreshSessionById(sessionId: string): Promise<void> {
   try {
-    const session = await invoke<Session>('get_session_cost', { session_id: id });
-    setState('sessions', (s) => s.id === id, session);
+    const session = await invoke<Session>('get_session_cost', { session_id: sessionId });
+    setState('sessions', (s) => s.id === sessionId, session);
   } catch (err) {
-    log.warn('Failed to refresh session: ' + (err instanceof Error ? err.message : String(err)));
+    log.warn(
+      'Failed to refresh session: ' + (err instanceof Error ? err.message : String(err)),
+    );
   }
 }
 

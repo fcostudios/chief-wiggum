@@ -23,6 +23,7 @@ import { conversationState } from '@/stores/conversationStore';
 import { cycleModel } from '@/stores/sessionStore';
 import { copyDebugInfo } from '@/stores/diagnosticsStore';
 import { addToast } from '@/stores/toastStore';
+import { closePane, splitView, unsplit, viewState } from '@/stores/viewStore';
 
 const viewMap: Record<string, ActiveView> = {
   Digit1: 'conversation',
@@ -96,6 +97,24 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyB' && e.shiftKey) {
     e.preventDefault();
     toggleDetailsPanel();
+    return;
+  }
+
+  // Cmd+\ — split/unsplit conversation view (CHI-110)
+  if (e.code === 'Backslash' && !e.shiftKey) {
+    e.preventDefault();
+    if (viewState.layoutMode === 'single') {
+      splitView('horizontal');
+    } else {
+      unsplit();
+    }
+    return;
+  }
+
+  // Cmd+W — close active split pane (when split layout is active)
+  if (e.code === 'KeyW' && !e.shiftKey && viewState.layoutMode !== 'single') {
+    e.preventDefault();
+    closePane(viewState.activePaneId);
     return;
   }
 
