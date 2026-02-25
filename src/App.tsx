@@ -1,11 +1,17 @@
 import type { Component } from 'solid-js';
-import { createEffect, onCleanup, onMount } from 'solid-js';
+import { Show, createEffect, onCleanup, onMount } from 'solid-js';
 import MainLayout from '@/components/layout/MainLayout';
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import { detectCli } from '@/stores/cliStore';
 import { getActiveProject, loadProjects, projectState } from '@/stores/projectStore';
 import { loadCommands, startSdkCommandListener } from '@/stores/slashStore';
 import { reconnectAfterReload } from '@/stores/conversationStore';
-import { loadSettings, settingsState, startSettingsListener } from '@/stores/settingsStore';
+import {
+  isOnboardingCompleted,
+  loadSettings,
+  settingsState,
+  startSettingsListener,
+} from '@/stores/settingsStore';
 import {
   setupActionListeners,
   cleanupActionListeners,
@@ -67,7 +73,14 @@ const App: Component = () => {
     void cleanupActionListeners();
   });
 
-  return <MainLayout />;
+  return (
+    <>
+      <MainLayout />
+      <Show when={settingsState.isLoaded && !isOnboardingCompleted()}>
+        <OnboardingFlow />
+      </Show>
+    </>
+  );
 };
 
 export default App;

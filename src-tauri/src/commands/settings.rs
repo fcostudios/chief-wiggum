@@ -108,6 +108,7 @@ pub fn reset_settings(app: AppHandle, category: Option<String>) -> Result<UserSe
         Some("i18n") => settings.i18n = defaults.i18n,
         Some("cli") => settings.cli = defaults.cli,
         Some("sessions") => settings.sessions = defaults.sessions,
+        Some("onboarding") => settings.onboarding = defaults.onboarding,
         Some("keybindings") => settings.keybindings = defaults.keybindings,
         Some("privacy") => settings.privacy = defaults.privacy,
         Some("advanced") => settings.advanced = defaults.advanced,

@@ -11,7 +11,8 @@ import { addToast } from '@/stores/toastStore';
 
 const log = createLogger('ui/settings');
 
-type SettingsCategory = Exclude<keyof UserSettings, 'version'>;
+type SettingsCategory = Exclude<keyof UserSettings, 'version' | 'onboarding'>;
+type WritableSettingsCategory = Exclude<keyof UserSettings, 'version'>;
 
 interface SettingsStoreState {
   settings: UserSettings;
@@ -41,6 +42,9 @@ const DEFAULTS: UserSettings = {
   sessions: {
     max_concurrent: 4,
     auto_save_interval_secs: 0,
+  },
+  onboarding: {
+    completed: false,
   },
   keybindings: {},
   privacy: {
@@ -87,7 +91,7 @@ function mergePatch(target: Record<string, unknown>, patch: Record<string, unkno
   }
 }
 
-function queuePatch(category: SettingsCategory, key: string, value: unknown): void {
+function queuePatch(category: WritableSettingsCategory, key: string, value: unknown): void {
   const nextPatch = { [category]: { [key]: value } };
   mergePatch(pendingPatch, nextPatch);
 }
@@ -128,7 +132,7 @@ export async function loadSettings(): Promise<void> {
 }
 
 /** Update a single field and debounce persistence. */
-export function updateSetting<C extends SettingsCategory, K extends keyof UserSettings[C]>(
+export function updateSetting<C extends WritableSettingsCategory, K extends keyof UserSettings[C]>(
   category: C,
   key: K,
   value: UserSettings[C][K],
@@ -143,6 +147,16 @@ export function updateSetting<C extends SettingsCategory, K extends keyof UserSe
 export function retryPendingSettingsSave(): void {
   if (!hasPendingPatch() && !state.saveError) return;
   void persistSettings();
+}
+
+/** Whether the first-launch onboarding flow has been completed. */
+export function isOnboardingCompleted(): boolean {
+  return state.settings.onboarding?.completed ?? false;
+}
+
+/** Mark onboarding as completed (persisted via normal debounced settings save). */
+export function markOnboardingCompleted(): void {
+  updateSetting('onboarding', 'completed', true);
 }
 
 async function persistSettings(): Promise<void> {

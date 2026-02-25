@@ -289,6 +289,7 @@ export interface UserSettings {
   i18n: I18nSettings;
   cli: CliSettings;
   sessions: SessionSettings;
+  onboarding: OnboardingSettings;
   keybindings: Record<string, string>;
   privacy: PrivacySettings;
   advanced: AdvancedSettings;
@@ -315,6 +316,10 @@ export interface CliSettings {
 export interface SessionSettings {
   max_concurrent: number;
   auto_save_interval_secs: number;
+}
+
+export interface OnboardingSettings {
+  completed: boolean;
 }
 
 export interface PrivacySettings {

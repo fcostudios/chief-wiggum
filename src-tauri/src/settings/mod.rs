@@ -19,6 +19,8 @@ pub struct UserSettings {
     pub i18n: I18nSettings,
     pub cli: CliSettings,
     pub sessions: SessionSettings,
+    #[serde(default)]
+    pub onboarding: OnboardingSettings,
     pub keybindings: HashMap<String, String>,
     pub privacy: PrivacySettings,
     pub advanced: AdvancedSettings,
@@ -63,6 +65,12 @@ pub struct SessionSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct OnboardingSettings {
+    /// Whether the first-launch onboarding flow has been completed.
+    pub completed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PrivacySettings {
     /// Log redaction level: `"none"`, `"standard"`, `"aggressive"`.
     pub log_redaction_level: String,
@@ -101,6 +109,7 @@ impl Default for UserSettings {
                 max_concurrent: 4,
                 auto_save_interval_secs: 0,
             },
+            onboarding: OnboardingSettings::default(),
             keybindings: HashMap::new(),
             privacy: PrivacySettings {
                 log_redaction_level: "standard".to_string(),
@@ -111,6 +120,12 @@ impl Default for UserSettings {
                 developer_mode: false,
             },
         }
+    }
+}
+
+impl Default for OnboardingSettings {
+    fn default() -> Self {
+        Self { completed: false }
     }
 }
 

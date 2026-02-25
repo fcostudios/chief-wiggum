@@ -26,7 +26,7 @@ import {
 } from '@/stores/settingsStore';
 import type { UserSettings } from '@/lib/types';
 
-type SettingsCategory = Exclude<keyof UserSettings, 'version'>;
+type SettingsCategory = Exclude<keyof UserSettings, 'version' | 'onboarding'>;
 type ModalCategory = SettingsCategory | 'about';
 
 interface CategoryDef {
