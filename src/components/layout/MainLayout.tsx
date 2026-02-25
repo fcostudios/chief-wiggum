@@ -11,7 +11,7 @@ import { onMount, onCleanup, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { platform } from '@tauri-apps/plugin-os';
-import { MessageSquare, Users, GitCompare, Terminal } from 'lucide-solid';
+import { MessageSquare, Users, GitCompare, Terminal, Zap } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -137,10 +137,43 @@ const MainLayout: Component = () => {
               </Show>
             </Show>
             <Show when={uiState.activeView === 'agents'}>
-              <div class="flex items-center justify-center h-full">
-                <div class="text-center animate-fade-in">
-                  <p class="text-text-tertiary text-sm tracking-wide">Agent dashboard</p>
-                  <p class="text-text-tertiary/50 text-xs mt-1">Coming soon</p>
+              <div class="flex items-center justify-center h-full px-6">
+                <div class="text-center animate-fade-in space-y-4 max-w-sm">
+                  <div
+                    class="mx-auto w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: 'var(--color-accent-muted)' }}
+                  >
+                    <Users size={24} style={{ color: 'var(--color-accent)' }} />
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-text-primary tracking-wide">Agent Teams</h3>
+                    <p class="text-xs text-text-tertiary mt-1">
+                      Orchestrate multiple AI agents working together in parallel.
+                    </p>
+                  </div>
+                  <div
+                    class="space-y-2 text-left rounded-lg p-3"
+                    style={{
+                      background: 'rgba(28, 33, 40, 0.35)',
+                      border: '1px solid var(--color-border-secondary)',
+                    }}
+                  >
+                    <div class="flex items-center gap-2 text-[11px] text-text-tertiary/80">
+                      <Zap size={11} style={{ color: 'var(--color-accent)' }} />
+                      <span>Parallel task execution</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-text-tertiary/80">
+                      <GitCompare size={11} style={{ color: 'var(--color-accent)' }} />
+                      <span>Agent coordination and handoffs</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-text-tertiary/80">
+                      <Terminal size={11} style={{ color: 'var(--color-accent)' }} />
+                      <span>Live agent progress monitoring</span>
+                    </div>
+                  </div>
+                  <p class="text-[10px] text-text-tertiary/40 tracking-wide uppercase">
+                    Coming in a future release
+                  </p>
                 </div>
               </div>
             </Show>
