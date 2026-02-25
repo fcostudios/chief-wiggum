@@ -56,8 +56,8 @@ interface ParsedMentionQuery {
   range: MentionRange | null;
 }
 
-function parseMentionQuery(rawQuery: string): ParsedMentionQuery {
-  const match = rawQuery.match(/^(.*?):(\\d+)-(\\d+)$/);
+export function parseMentionQuery(rawQuery: string): ParsedMentionQuery {
+  const match = rawQuery.match(/^(.*?):(\d+)-(\d+)$/);
   if (!match) {
     return { fileQuery: rawQuery, range: null };
   }
@@ -74,7 +74,7 @@ function parseMentionQuery(rawQuery: string): ParsedMentionQuery {
   };
 }
 
-function pickBestMentionResult(
+export function pickBestMentionResult(
   query: string,
   results: FileSearchResult[],
 ): FileSearchResult | null {

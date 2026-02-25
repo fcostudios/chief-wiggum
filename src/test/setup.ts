@@ -47,6 +47,13 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
+if (!HTMLElement.prototype.scrollIntoView) {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: () => {},
+  });
+}
+
 if (!globalThis.crypto?.randomUUID) {
   const cryptoObj = globalThis.crypto ?? {};
   Object.defineProperty(globalThis, 'crypto', {
