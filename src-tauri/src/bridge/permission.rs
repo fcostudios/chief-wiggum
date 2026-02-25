@@ -542,6 +542,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn timeout_waits_and_cleans_up_pending_request() {
+        let manager = PermissionManager::with_timeout(1);
+        let req = make_request("Bash", "slow-command");
+
+        let start = Instant::now();
+        let result = manager.request_permission(req).await.unwrap();
+        let elapsed = start.elapsed();
+
+        assert_eq!(result, PermissionAction::Deny);
+        assert!(
+            elapsed.as_millis() >= 900,
+            "Timeout should wait ~1s, got {}ms",
+            elapsed.as_millis()
+        );
+        assert_eq!(manager.pending_count().await, 0);
+    }
+
+    #[tokio::test]
     async fn clear_rules_removes_all() {
         let manager = Arc::new(PermissionManager::with_timeout(5));
 
@@ -586,6 +604,68 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[tokio::test]
+    async fn cannot_resolve_same_request_twice() {
+        let manager = Arc::new(PermissionManager::with_timeout(5));
+        let req = make_request("Read", "cat /tmp/test.txt");
+        let request_id = req.request_id.clone();
+        let manager_clone = Arc::clone(&manager);
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        manager
+            .resolve_permission(PermissionResponse {
+                request_id: request_id.clone(),
+                action: PermissionAction::Approve,
+                pattern: None,
+            })
+            .await
+            .unwrap();
+
+        let result = handle.await.unwrap().unwrap();
+        assert_eq!(result, PermissionAction::Approve);
+
+        let second = manager
+            .resolve_permission(PermissionResponse {
+                request_id,
+                action: PermissionAction::Deny,
+                pattern: None,
+            })
+            .await;
+        assert!(second.is_err());
+    }
+
+    #[tokio::test]
+    async fn always_allow_without_pattern_defaults_to_exact_command() {
+        let manager = Arc::new(PermissionManager::with_timeout(5));
+        let req = make_request("Read", "cat /tmp/test.txt");
+        let request_id = req.request_id.clone();
+
+        let manager_clone = Arc::clone(&manager);
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        manager
+            .resolve_permission(PermissionResponse {
+                request_id,
+                action: PermissionAction::AlwaysAllow,
+                pattern: None,
+            })
+            .await
+            .unwrap();
+
+        let result = handle.await.unwrap().unwrap();
+        assert_eq!(result, PermissionAction::Approve);
+
+        let exact = make_request("Read", "cat /tmp/test.txt");
+        assert!(manager.is_auto_allowed(&exact).await);
+
+        let different = make_request("Read", "cat /tmp/other.txt");
+        assert!(!manager.is_auto_allowed(&different).await);
+    }
+
     // --- Pattern matching tests ---
 
     #[test]
@@ -597,6 +677,13 @@ mod tests {
     #[test]
     fn pattern_wildcard_all() {
         assert!(PermissionManager::matches_pattern("*", "anything at all"));
+    }
+
+    #[test]
+    fn pattern_empty_value_behavior() {
+        assert!(!PermissionManager::matches_pattern("git *", ""));
+        assert!(PermissionManager::matches_pattern("*", ""));
+        assert!(PermissionManager::matches_pattern("", ""));
     }
 
     #[test]
@@ -691,6 +778,24 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn yolo_mode_auto_approves_without_blocking() {
+        let manager = PermissionManager::new();
+        manager.enable_yolo_mode().await;
+
+        let start = Instant::now();
+        let req = make_request("Bash", "rm -rf /tmp/example");
+        let result = manager.request_permission(req).await.unwrap();
+        let elapsed = start.elapsed();
+
+        assert_eq!(result, PermissionAction::Approve);
+        assert!(
+            elapsed.as_millis() < 100,
+            "YOLO auto-approval should be immediate, got {}ms",
+            elapsed.as_millis()
+        );
+    }
+
+    #[tokio::test]
     async fn yolo_mode_does_not_affect_rules() {
         let manager = PermissionManager::new();
         manager.enable_yolo_mode().await;
@@ -699,6 +804,18 @@ mod tests {
         let req = make_request("Bash", "ls");
         let _ = manager.request_permission(req).await.unwrap();
         assert!(manager.rules().await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn disabling_yolo_restores_normal_flow_with_timeout() {
+        let manager = PermissionManager::with_timeout(1);
+
+        manager.enable_yolo_mode().await;
+        manager.disable_yolo_mode().await;
+
+        let req = make_request("Bash", "dangerous-after-yolo");
+        let result = manager.request_permission(req).await.unwrap();
+        assert_eq!(result, PermissionAction::Deny);
     }
 
     // --- Developer mode tests (CHI-102) ---
@@ -739,5 +856,33 @@ mod tests {
         manager.disable_yolo_mode().await;
         assert!(manager.is_developer_mode().await);
         assert!(!manager.is_yolo_mode().await);
+    }
+
+    #[tokio::test]
+    async fn pending_requests_returns_queued_item_before_resolution() {
+        let manager = Arc::new(PermissionManager::with_timeout(5));
+        let req = make_request("Read", "cat Cargo.toml");
+        let request_id = req.request_id.clone();
+
+        let manager_clone = Arc::clone(&manager);
+        let handle = tokio::spawn(async move { manager_clone.request_permission(req).await });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        let pending = manager.pending_requests().await;
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].request_id, request_id);
+
+        manager
+            .resolve_permission(PermissionResponse {
+                request_id,
+                action: PermissionAction::Approve,
+                pattern: None,
+            })
+            .await
+            .unwrap();
+
+        let result = handle.await.unwrap().unwrap();
+        assert_eq!(result, PermissionAction::Approve);
     }
 }
