@@ -168,6 +168,19 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_running_returns_empty_when_none() {
+        let map = ActionBridgeMap::new();
+        let running = map.list_running().await;
+        assert!(running.is_empty());
+    }
+
+    #[tokio::test]
+    async fn active_count_tracks_spawned_actions() {
+        let map = ActionBridgeMap::new();
+        assert_eq!(map.active_count().await, 0);
+    }
+
+    #[tokio::test]
     async fn stop_removes_from_map() {
         let map = ActionBridgeMap::new();
         let config = ActionBridgeConfig {
@@ -180,6 +193,13 @@ mod tests {
             .expect("spawn action");
         map.stop_action("test:1").await.expect("stop action");
         assert!(!map.has("test:1").await);
+    }
+
+    #[tokio::test]
+    async fn stop_nonexistent_action_is_safe() {
+        let map = ActionBridgeMap::new();
+        let result = map.stop_action("nonexistent-action").await;
+        assert!(result.is_ok());
     }
 
     #[tokio::test]
@@ -197,6 +217,13 @@ mod tests {
         }
         assert_eq!(map.active_count().await, 3);
         map.shutdown_all().await.expect("shutdown actions");
+        assert_eq!(map.active_count().await, 0);
+    }
+
+    #[tokio::test]
+    async fn shutdown_all_clears_everything_when_empty() {
+        let map = ActionBridgeMap::new();
+        map.shutdown_all().await.expect("shutdown empty action map");
         assert_eq!(map.active_count().await, 0);
     }
 }
