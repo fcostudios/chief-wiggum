@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        check: [typecheck, lint, format]
+        check: [typecheck, lint, format, test]
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +39,10 @@ jobs:
       - name: Prettier check
         if: matrix.check == 'format'
         run: npm run format:check
+
+      - name: Unit tests
+        if: matrix.check == 'test'
+        run: npm run test:unit
 
   # ── Rust checks ──────────────────────────────────────────────
   rust:
