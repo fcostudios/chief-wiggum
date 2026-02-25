@@ -29,13 +29,33 @@ import { conversationState } from '@/stores/conversationStore';
 import ModelSelector from '@/components/common/ModelSelector';
 
 const TitleBar: Component = () => {
-  const appWindow = getCurrentWindow();
   const [isMac, setIsMac] = createSignal(false);
   const isAgentBusy = () =>
     conversationState.processStatus === 'running' || conversationState.isStreaming;
 
+  function withCurrentWindow(
+    action: (appWindow: ReturnType<typeof getCurrentWindow>) => void,
+  ): void {
+    try {
+      action(getCurrentWindow());
+    } catch {
+      // Browser-mode preview / Playwright E2E (no Tauri window API available).
+    }
+  }
+
   onMount(() => {
-    setIsMac(platform() === 'macos');
+    try {
+      const result = platform();
+      if (typeof result === 'string') {
+        setIsMac(result === 'macos');
+        return;
+      }
+      void Promise.resolve(result)
+        .then((value) => setIsMac(value === 'macos'))
+        .catch(() => setIsMac(false));
+    } catch {
+      setIsMac(false);
+    }
   });
 
   return (
@@ -114,10 +134,7 @@ const TitleBar: Component = () => {
           aria-pressed={uiState.detailsPanelVisible}
           title={`${uiState.detailsPanelVisible ? 'Hide' : 'Show'} details panel (Cmd+Shift+B)`}
         >
-          <Show
-            when={uiState.detailsPanelVisible}
-            fallback={<ChevronLeft size={13} />}
-          >
+          <Show when={uiState.detailsPanelVisible} fallback={<ChevronLeft size={13} />}>
             <ChevronRight size={13} />
           </Show>
         </button>
@@ -186,7 +203,7 @@ const TitleBar: Component = () => {
                 height: 'var(--title-bar-height)',
                 'transition-duration': 'var(--duration-fast)',
               }}
-              onClick={() => appWindow.minimize()}
+              onClick={() => withCurrentWindow((appWindow) => void appWindow.minimize())}
               aria-label="Minimize"
             >
               <Minus size={13} />
@@ -197,7 +214,7 @@ const TitleBar: Component = () => {
                 height: 'var(--title-bar-height)',
                 'transition-duration': 'var(--duration-fast)',
               }}
-              onClick={() => appWindow.toggleMaximize()}
+              onClick={() => withCurrentWindow((appWindow) => void appWindow.toggleMaximize())}
               aria-label="Maximize"
             >
               <Maximize2 size={13} />
@@ -208,7 +225,7 @@ const TitleBar: Component = () => {
                 height: 'var(--title-bar-height)',
                 'transition-duration': 'var(--duration-fast)',
               }}
-              onClick={() => appWindow.close()}
+              onClick={() => withCurrentWindow((appWindow) => void appWindow.close())}
               aria-label="Close"
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'rgba(248, 81, 73, 0.2)';

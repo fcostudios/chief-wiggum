@@ -390,7 +390,8 @@ const ConversationView: Component = () => {
                       class="w-full max-w-md mx-auto mb-4 flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors group"
                       style={{
                         background: 'var(--color-accent-muted)',
-                        border: '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
+                        border:
+                          '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = 'var(--color-accent)';
@@ -408,14 +409,14 @@ const ConversationView: Component = () => {
                     >
                       <div
                         class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-                        style={{ background: 'color-mix(in srgb, var(--color-accent) 20%, transparent)' }}
+                        style={{
+                          background: 'color-mix(in srgb, var(--color-accent) 20%, transparent)',
+                        }}
                       >
                         <FolderOpen size={16} style={{ color: 'var(--color-accent)' }} />
                       </div>
                       <div class="min-w-0">
-                        <p class="text-xs font-medium text-text-primary">
-                          Open a Project Folder
-                        </p>
+                        <p class="text-xs font-medium text-text-primary">Open a Project Folder</p>
                         <p class="text-[10px] text-text-tertiary mt-0.5 leading-relaxed">
                           Select a folder to give Claude Code context about your codebase
                         </p>

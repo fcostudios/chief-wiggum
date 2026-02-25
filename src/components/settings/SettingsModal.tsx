@@ -2,7 +2,17 @@
 // Full-screen settings overlay with category navigation and auto-saving controls.
 
 import type { Component, ParentComponent } from 'solid-js';
-import { createEffect, createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  Match,
+  onCleanup,
+  onMount,
+  Show,
+  Switch,
+} from 'solid-js';
 import {
   Info,
   Keyboard,
@@ -107,9 +117,7 @@ const SEARCH_INDEX: Record<SettingsCategory, Array<{ label: string; description:
     { label: 'Max Concurrent Sessions', description: 'Maximum number of parallel CLI sessions' },
     { label: 'Auto Save Interval', description: 'Automatic draft save interval in seconds' },
   ],
-  keybindings: [
-    { label: 'Keybindings JSON', description: 'Custom shortcut overrides' },
-  ],
+  keybindings: [{ label: 'Keybindings JSON', description: 'Custom shortcut overrides' }],
   privacy: [
     { label: 'Log Redaction Level', description: 'Diagnostic log redaction aggressiveness' },
   ],
@@ -128,10 +136,7 @@ function normalizeSearch(query: string): string {
 function matchesSearch(query: string, ...parts: Array<string | undefined>): boolean {
   const q = normalizeSearch(query);
   if (!q) return true;
-  const haystack = parts
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+  const haystack = parts.filter(Boolean).join(' ').toLowerCase();
   return haystack.includes(q);
 }
 
@@ -194,7 +199,8 @@ const SettingsModal: Component = () => {
     }
   }
 
-  const activeLabel = () => CATEGORIES.find((cat) => cat.id === activeCategory())?.label ?? 'Settings';
+  const activeLabel = () =>
+    CATEGORIES.find((cat) => cat.id === activeCategory())?.label ?? 'Settings';
 
   return (
     <div
@@ -291,12 +297,17 @@ const SettingsModal: Component = () => {
                       aria-current={isActive() ? 'page' : undefined}
                     >
                       <div class="flex items-center gap-2 text-xs font-medium">
-                        <Icon size={13} class={isActive() ? 'text-accent' : 'text-text-secondary'} />
+                        <Icon
+                          size={13}
+                          class={isActive() ? 'text-accent' : 'text-text-secondary'}
+                        />
                         <span class={isActive() ? 'text-text-primary' : 'text-text-secondary'}>
                           {cat.label}
                         </span>
                       </div>
-                      <p class="mt-1 text-[11px] leading-snug text-text-tertiary">{cat.description}</p>
+                      <p class="mt-1 text-[11px] leading-snug text-text-tertiary">
+                        {cat.description}
+                      </p>
                     </button>
                   );
                 }}
@@ -309,8 +320,14 @@ const SettingsModal: Component = () => {
           </nav>
         </aside>
 
-        <main class="flex-1 min-w-0 min-h-0 overflow-y-auto px-6 py-5" aria-label={`${activeLabel()} settings`}>
-          <Show when={settingsState.isLoaded} fallback={<p class="text-sm text-text-tertiary">Loading settings…</p>}>
+        <main
+          class="flex-1 min-w-0 min-h-0 overflow-y-auto px-6 py-5"
+          aria-label={`${activeLabel()} settings`}
+        >
+          <Show
+            when={settingsState.isLoaded}
+            fallback={<p class="text-sm text-text-tertiary">Loading settings…</p>}
+          >
             <SettingsContent category={activeCategory()} searchQuery={searchQuery()} />
           </Show>
         </main>
@@ -376,13 +393,17 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
       <div class="space-y-4">
         <Switch>
           <Match when={props.category === 'appearance'}>
-            <Show when={visible('Theme', 'Application color scheme') }>
+            <Show when={visible('Theme', 'Application color scheme')}>
               <SettingCard label="Theme" description="Application color scheme">
                 <select
                   class={SELECT_CLASS}
                   value={settings().appearance.theme}
                   onChange={(e) =>
-                    updateSetting('appearance', 'theme', e.currentTarget.value as UserSettings['appearance']['theme'])
+                    updateSetting(
+                      'appearance',
+                      'theme',
+                      e.currentTarget.value as UserSettings['appearance']['theme'],
+                    )
                   }
                   aria-label="Theme"
                 >
@@ -393,7 +414,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               </SettingCard>
             </Show>
 
-            <Show when={visible('Font Size', 'Base font size for UI text', 'ui font') }>
+            <Show when={visible('Font Size', 'Base font size for UI text', 'ui font')}>
               <RangeCard
                 label="Font Size"
                 description="Base font size for UI text"
@@ -405,7 +426,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               />
             </Show>
 
-            <Show when={visible('Code Font Size', 'Font size for code and terminal text') }>
+            <Show when={visible('Code Font Size', 'Font size for code and terminal text')}>
               <RangeCard
                 label="Code Font Size"
                 description="Font size for code blocks and terminal text"
@@ -417,8 +438,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               />
             </Show>
 
-            <Show when={visible('Sidebar Default', 'Default sidebar state on app launch') }>
-              <SettingCard label="Sidebar Default" description="Default sidebar state when the app opens">
+            <Show when={visible('Sidebar Default', 'Default sidebar state on app launch')}>
+              <SettingCard
+                label="Sidebar Default"
+                description="Default sidebar state when the app opens"
+              >
                 <select
                   class={SELECT_CLASS}
                   value={settings().appearance.sidebar_default}
@@ -440,7 +464,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'i18n'}>
-            <Show when={visible('Language', 'Application locale') }>
+            <Show when={visible('Language', 'Application locale')}>
               <SettingCard label="Language" description="Application locale for translated UI copy">
                 <select
                   class={SELECT_CLASS}
@@ -454,7 +478,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               </SettingCard>
             </Show>
 
-            <Show when={visible('Date Format', 'How dates are displayed') }>
+            <Show when={visible('Date Format', 'How dates are displayed')}>
               <SettingCard label="Date Format" description="How timestamps are shown in the UI">
                 <select
                   class={SELECT_CLASS}
@@ -475,8 +499,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               </SettingCard>
             </Show>
 
-            <Show when={visible('Number Format', 'How numeric values are formatted') }>
-              <SettingCard label="Number Format" description="Compact formats affect token/cost displays">
+            <Show when={visible('Number Format', 'How numeric values are formatted')}>
+              <SettingCard
+                label="Number Format"
+                description="Compact formats affect token/cost displays"
+              >
                 <select
                   class={SELECT_CLASS}
                   value={settings().i18n.number_format}
@@ -497,8 +524,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'cli'}>
-            <Show when={visible('Default Model', 'Model used for new sessions') }>
-              <SettingCard label="Default Model" description="Default model for newly created sessions">
+            <Show when={visible('Default Model', 'Model used for new sessions')}>
+              <SettingCard
+                label="Default Model"
+                description="Default model for newly created sessions"
+              >
                 <select
                   class={SELECT_CLASS}
                   value={settings().cli.default_model}
@@ -512,7 +542,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               </SettingCard>
             </Show>
 
-            <Show when={visible('Default Effort', 'Reasoning effort for new sessions') }>
+            <Show when={visible('Default Effort', 'Reasoning effort for new sessions')}>
               <SettingCard label="Default Effort" description="Reasoning depth used by default">
                 <select
                   class={SELECT_CLASS}
@@ -535,7 +565,9 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'sessions'}>
-            <Show when={visible('Max Concurrent Sessions', 'Maximum number of parallel CLI sessions') }>
+            <Show
+              when={visible('Max Concurrent Sessions', 'Maximum number of parallel CLI sessions')}
+            >
               <RangeCard
                 label="Max Concurrent Sessions"
                 description="Limit concurrent Claude CLI processes (1–8)"
@@ -547,8 +579,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               />
             </Show>
 
-            <Show when={visible('Auto Save Interval', 'Automatic draft save interval in seconds') }>
-              <SettingCard label="Auto Save Interval" description="0 disables automatic draft persistence">
+            <Show when={visible('Auto Save Interval', 'Automatic draft save interval in seconds')}>
+              <SettingCard
+                label="Auto Save Interval"
+                description="0 disables automatic draft persistence"
+              >
                 <div class="flex items-center gap-2">
                   <input
                     type="number"
@@ -569,7 +604,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'keybindings'}>
-            <Show when={visible('Keybindings JSON', 'Custom shortcut overrides') }>
+            <Show when={visible('Keybindings JSON', 'Custom shortcut overrides')}>
               <SettingCard
                 label="Keybindings Overrides"
                 description="Custom keybindings are stored as a JSON object (feature wiring to editor is coming next)."
@@ -585,8 +620,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'privacy'}>
-            <Show when={visible('Log Redaction Level', 'Diagnostic log redaction aggressiveness') }>
-              <SettingCard label="Log Redaction Level" description="Controls redaction in exported diagnostics bundles">
+            <Show when={visible('Log Redaction Level', 'Diagnostic log redaction aggressiveness')}>
+              <SettingCard
+                label="Log Redaction Level"
+                description="Controls redaction in exported diagnostics bundles"
+              >
                 <select
                   class={SELECT_CLASS}
                   value={settings().privacy.log_redaction_level}
@@ -608,12 +646,17 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
           </Match>
 
           <Match when={props.category === 'advanced'}>
-            <Show when={visible('CLI Path Override', 'Use a custom Claude CLI binary path') }>
-              <SettingCard label="CLI Path Override" description="Leave empty to auto-detect the Claude CLI binary">
+            <Show when={visible('CLI Path Override', 'Use a custom Claude CLI binary path')}>
+              <SettingCard
+                label="CLI Path Override"
+                description="Leave empty to auto-detect the Claude CLI binary"
+              >
                 <input
                   type="text"
                   value={settings().advanced.cli_path_override}
-                  onInput={(e) => updateSetting('advanced', 'cli_path_override', e.currentTarget.value)}
+                  onInput={(e) =>
+                    updateSetting('advanced', 'cli_path_override', e.currentTarget.value)
+                  }
                   placeholder="/usr/local/bin/claude"
                   class={`${INPUT_CLASS} w-full`}
                   aria-label="CLI Path Override"
@@ -621,7 +664,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               </SettingCard>
             </Show>
 
-            <Show when={visible('Debug Mode', 'Enable additional frontend debug behavior') }>
+            <Show when={visible('Debug Mode', 'Enable additional frontend debug behavior')}>
               <ToggleCard
                 label="Debug Mode"
                 description="Enable extra debug logging and troubleshooting UI"
@@ -630,7 +673,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               />
             </Show>
 
-            <Show when={visible('Developer Mode', 'Default permission tier preference') }>
+            <Show when={visible('Developer Mode', 'Default permission tier preference')}>
               <ToggleCard
                 label="Developer Mode"
                 description="Persist developer permission tier preference for future sessions"
@@ -639,8 +682,11 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
               />
             </Show>
 
-            <Show when={visible('Raw JSON', 'Advanced settings preview') }>
-              <SettingCard label="Raw JSON" description="Live settings JSON preview for advanced troubleshooting">
+            <Show when={visible('Raw JSON', 'Advanced settings preview')}>
+              <SettingCard
+                label="Raw JSON"
+                description="Live settings JSON preview for advanced troubleshooting"
+              >
                 <textarea
                   class={`${TEXTAREA_CLASS} h-56 font-mono text-xs`}
                   readOnly
@@ -664,14 +710,20 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
                 </div>
                 <div>
                   <span class="text-text-tertiary">Open settings:</span>{' '}
-                  <code class="text-xs px-1.5 py-0.5 rounded bg-bg-inset text-text-primary">Cmd+,</code>
+                  <code class="text-xs px-1.5 py-0.5 rounded bg-bg-inset text-text-primary">
+                    Cmd+,
+                  </code>
                 </div>
                 <div>
                   <span class="text-text-tertiary">Close settings:</span>{' '}
-                  <code class="text-xs px-1.5 py-0.5 rounded bg-bg-inset text-text-primary">Escape</code>
+                  <code class="text-xs px-1.5 py-0.5 rounded bg-bg-inset text-text-primary">
+                    Escape
+                  </code>
                 </div>
                 <p class="text-xs text-text-tertiary">
-                  This screen currently reflects the CHI-122 backend settings schema. Additional settings categories from the UX spec can be layered on top as the backend schema expands.
+                  This screen currently reflects the CHI-122 backend settings schema. Additional
+                  settings categories from the UX spec can be layered on top as the backend schema
+                  expands.
                 </p>
               </div>
             </SettingCard>
@@ -681,11 +733,16 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
 
       <Show when={normalizeSearch(props.searchQuery)}>
         <div class="text-xs text-text-tertiary">
-          Filtering by “{props.searchQuery.trim()}”. Results are scoped to the selected category and category list.
+          Filtering by “{props.searchQuery.trim()}”. Results are scoped to the selected category and
+          category list.
         </div>
       </Show>
 
-      <Show when={normalizeSearch(props.searchQuery) && noVisibleSettings(props.category, props.searchQuery)}>
+      <Show
+        when={
+          normalizeSearch(props.searchQuery) && noVisibleSettings(props.category, props.searchQuery)
+        }
+      >
         <div class="text-sm text-text-tertiary rounded-md px-3 py-2 border border-border-secondary bg-bg-secondary/20">
           No settings in this category match the current search.
         </div>
@@ -697,7 +754,8 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
 function noVisibleSettings(category: ModalCategory, query: string): boolean {
   const q = normalizeSearch(query);
   if (!q) return false;
-  if (category === 'about') return !matchesSearch(query, 'about settings version keyboard shortcuts');
+  if (category === 'about')
+    return !matchesSearch(query, 'about settings version keyboard shortcuts');
   return !SEARCH_INDEX[category].some((entry) =>
     matchesSearch(query, category, entry.label, entry.description),
   );

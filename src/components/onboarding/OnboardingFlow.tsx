@@ -1,14 +1,7 @@
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { Portal } from 'solid-js/web';
-import {
-  ArrowRight,
-  FolderOpen,
-  Keyboard,
-  MessageSquare,
-  X,
-  Zap,
-} from 'lucide-solid';
+import { ArrowRight, FolderOpen, Keyboard, MessageSquare, X, Zap } from 'lucide-solid';
 import { pickAndCreateProject } from '@/stores/projectStore';
 import { markOnboardingCompleted } from '@/stores/settingsStore';
 
@@ -106,9 +99,7 @@ const OnboardingFlow: Component = () => {
                     class="w-1.5 h-1.5 rounded-full transition-colors"
                     style={{
                       background:
-                        i() <= step()
-                          ? 'var(--color-accent)'
-                          : 'var(--color-border-secondary)',
+                        i() <= step() ? 'var(--color-accent)' : 'var(--color-border-secondary)',
                       'transition-duration': 'var(--duration-normal)',
                     }}
                   />

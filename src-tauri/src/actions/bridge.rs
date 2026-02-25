@@ -166,13 +166,16 @@ impl ActionBridge {
                 }
 
                 if !line_buf.is_empty() {
-                    let _ = reader_output_tx.blocking_send(ActionBridgeOutput::Output(ActionOutput {
-                        line: line_buf,
-                        is_error: false,
-                    }));
+                    let _ =
+                        reader_output_tx.blocking_send(ActionBridgeOutput::Output(ActionOutput {
+                            line: line_buf,
+                            is_error: false,
+                        }));
                 }
             })
-            .map_err(|e| AppError::Bridge(format!("Failed to spawn action reader thread: {}", e)))?;
+            .map_err(|e| {
+                AppError::Bridge(format!("Failed to spawn action reader thread: {}", e))
+            })?;
 
         std::thread::Builder::new()
             .name("action-writer".to_string())
@@ -186,7 +189,9 @@ impl ActionBridge {
                     }
                 }
             })
-            .map_err(|e| AppError::Bridge(format!("Failed to spawn action writer thread: {}", e)))?;
+            .map_err(|e| {
+                AppError::Bridge(format!("Failed to spawn action writer thread: {}", e))
+            })?;
 
         let monitor_status = status.clone();
         let monitor_output_tx = output_tx;

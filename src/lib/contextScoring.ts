@@ -79,10 +79,7 @@ export function scoreAttachment(
 
   const relevance =
     conversationKeywords.length > 0
-      ? Math.min(
-          100,
-          Math.round((relevanceHits / Math.min(conversationKeywords.length, 10)) * 100),
-        )
+      ? Math.min(100, Math.round((relevanceHits / Math.min(conversationKeywords.length, 10)) * 100))
       : 50;
 
   const tokens = ref.estimated_tokens;

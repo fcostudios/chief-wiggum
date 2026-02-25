@@ -3,10 +3,10 @@
 //! Discovers runnable commands from project files (package.json, Makefile, etc.)
 //! and provides PTY-based execution with streaming output.
 
-pub mod scanner;
 pub mod bridge;
 pub mod event_loop;
 pub mod manager;
+pub mod scanner;
 
 use std::collections::BTreeMap;
 

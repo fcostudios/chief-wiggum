@@ -112,9 +112,7 @@ export async function refreshSessionById(sessionId: string): Promise<void> {
     const session = await invoke<Session>('get_session_cost', { session_id: sessionId });
     setState('sessions', (s) => s.id === sessionId, session);
   } catch (err) {
-    log.warn(
-      'Failed to refresh session: ' + (err instanceof Error ? err.message : String(err)),
-    );
+    log.warn('Failed to refresh session: ' + (err instanceof Error ? err.message : String(err)));
   }
 }
 

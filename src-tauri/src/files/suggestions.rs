@@ -39,7 +39,9 @@ fn parse_ts_imports(content: &str) -> Vec<String> {
         if let Some(start_idx) = trimmed.find("require(") {
             let after = &trimmed[start_idx + 8..];
             if let Some(end_idx) = after.find(')') {
-                let path = after[..end_idx].trim().trim_matches(|c| c == '\'' || c == '"');
+                let path = after[..end_idx]
+                    .trim()
+                    .trim_matches(|c| c == '\'' || c == '"');
                 if path.starts_with('.') {
                     imports.push(path.to_string());
                 }

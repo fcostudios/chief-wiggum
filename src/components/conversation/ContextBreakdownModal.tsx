@@ -33,9 +33,8 @@ const ContextBreakdownModal: Component = () => {
   });
 
   const weakestAttachment = () => {
-    let worst:
-      | { id: string; name: string; tokens: number; score: ContextQualityScore }
-      | null = null;
+    let worst: { id: string; name: string; tokens: number; score: ContextQualityScore } | null =
+      null;
     for (const attachment of contextState.attachments) {
       const score = contextState.scores[attachment.id];
       if (score && (!worst || score.overall < worst.score.overall)) {
@@ -125,7 +124,8 @@ const ContextBreakdownModal: Component = () => {
               <For each={contextState.attachments}>
                 {(attachment) => {
                   const score = () => contextState.scores[attachment.id];
-                  const color = () => (score() ? qualityColor(score()!.label) : 'var(--color-border-secondary)');
+                  const color = () =>
+                    score() ? qualityColor(score()!.label) : 'var(--color-border-secondary)';
                   return (
                     <div
                       class="flex items-center gap-3 px-3 py-2 rounded-md"

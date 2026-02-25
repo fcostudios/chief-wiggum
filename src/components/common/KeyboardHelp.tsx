@@ -106,7 +106,9 @@ const KeyboardHelp: Component = () => {
           style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
         >
           <div>
-            <h2 class="text-sm font-semibold text-text-primary tracking-wide">Keyboard Shortcuts</h2>
+            <h2 class="text-sm font-semibold text-text-primary tracking-wide">
+              Keyboard Shortcuts
+            </h2>
             <p class="text-[11px] text-text-tertiary mt-0.5">
               Power-user shortcuts available in the current UI
             </p>
@@ -158,4 +160,3 @@ const KeyboardHelp: Component = () => {
 };
 
 export default KeyboardHelp;
-

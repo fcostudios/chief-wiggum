@@ -101,9 +101,7 @@ export function updateAttachmentRange(
     normalizedStart != null && normalizedEnd != null ? normalizedEnd - normalizedStart + 1 : 0;
   // Rough estimate (~40 chars/line, ~4 chars/token). Preserves previous estimate if no range.
   const estimatedTokens =
-    lineCount > 0
-      ? Math.ceil((lineCount * 40) / 4)
-      : attachment.reference.estimated_tokens;
+    lineCount > 0 ? Math.ceil((lineCount * 40) / 4) : attachment.reference.estimated_tokens;
 
   setState('attachments', idx, 'reference', {
     ...attachment.reference,

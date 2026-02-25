@@ -68,8 +68,7 @@ const StatusBar: Component = () => {
   const totalRunningSessionCount = () => {
     const activeId = activeSessionId();
     const activeStatus = activeId ? conversationState.sessionStatuses[activeId] : null;
-    const activeRunning =
-      activeStatus === 'running' || activeStatus === 'starting' ? 1 : 0;
+    const activeRunning = activeStatus === 'running' || activeStatus === 'starting' ? 1 : 0;
     return activeRunning + backgroundRunningCount();
   };
   const aggregateRunningCostDisplay = () => {

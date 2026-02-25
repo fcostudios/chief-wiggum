@@ -367,6 +367,7 @@ pub fn search_files(
     );
     let limit = max_results.unwrap_or(20).min(100);
     let query_lower = query.to_lowercase();
+    let query_path_normalized = query_lower.replace('\\', "/");
     let mut results: Vec<FileSearchResult> = Vec::new();
 
     let walker = ignore::WalkBuilder::new(project_root)
@@ -402,6 +403,7 @@ pub fn search_files(
             Err(_) => continue,
         };
         let rel_lower = rel_path.to_lowercase();
+        let rel_lower_normalized = rel_lower.replace('\\', "/");
 
         let score = if name_lower == query_lower {
             1.0
@@ -409,7 +411,9 @@ pub fn search_files(
             0.9
         } else if name_lower.contains(&query_lower) {
             0.7
-        } else if rel_lower.contains(&query_lower) {
+        } else if rel_lower.contains(&query_lower)
+            || rel_lower_normalized.contains(&query_path_normalized)
+        {
             0.4
         } else {
             continue;

@@ -63,9 +63,7 @@ const SplitPaneContainer: Component = () => {
 
   function isPaneLive(pane: { id: string; sessionId: string | null }): boolean {
     return (
-      isPaneFocused(pane) &&
-      !!pane.sessionId &&
-      pane.sessionId === sessionState.activeSessionId
+      isPaneFocused(pane) && !!pane.sessionId && pane.sessionId === sessionState.activeSessionId
     );
   }
 
@@ -209,7 +207,7 @@ const SplitPaneContainer: Component = () => {
                   border: isPaneFocused(pane)
                     ? '2px solid var(--color-accent-muted)'
                     : '2px solid transparent',
-                  'transition': 'border-color var(--duration-fast)',
+                  transition: 'border-color var(--duration-fast)',
                 }}
                 onClick={() => {
                   void handleFocusPane(pane);
@@ -326,9 +324,7 @@ const PaneSnapshot: Component<{ messages: Message[] }> = (props) => {
             Showing last {SNAPSHOT_MESSAGE_LIMIT} messages (snapshot preview)
           </div>
         </Show>
-        <For each={recentMessages()}>
-          {(message) => <MessageBubble message={message} />}
-        </For>
+        <For each={recentMessages()}>{(message) => <MessageBubble message={message} />}</For>
       </Show>
     </div>
   );

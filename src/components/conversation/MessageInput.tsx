@@ -633,11 +633,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             'box-shadow': isFocused() ? 'var(--glow-accent-subtle)' : 'none',
             'transition-duration': 'var(--duration-normal)',
           }}
-          placeholder={
-            props.isDisabled
-              ? t('input.noBridge')
-              : t('input.placeholder')
-          }
+          placeholder={props.isDisabled ? t('input.noBridge') : t('input.placeholder')}
           disabled={props.isDisabled}
           onInput={handleInput}
           on:keydown={handleKeyDown}

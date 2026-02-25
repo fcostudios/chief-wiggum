@@ -105,7 +105,8 @@ pub fn get_file_suggestions(
             .unwrap_or("");
 
         for import_path in suggestions::parse_imports(&content, ext) {
-            let Some(resolved) = suggestions::resolve_import(&import_path, attached_path, ext) else {
+            let Some(resolved) = suggestions::resolve_import(&import_path, attached_path, ext)
+            else {
                 continue;
             };
             if attached_set.contains(resolved.as_str()) || !project_root.join(&resolved).exists() {
@@ -122,7 +123,8 @@ pub fn get_file_suggestions(
         }
 
         for test_path in suggestions::suggest_test_files(attached_path) {
-            if attached_set.contains(test_path.as_str()) || !project_root.join(&test_path).exists() {
+            if attached_set.contains(test_path.as_str()) || !project_root.join(&test_path).exists()
+            {
                 continue;
             }
 

@@ -164,7 +164,9 @@ const FileTree: Component<FileTreeProps> = (props) => {
             <Show
               when={getRootNodes().length > 0}
               fallback={
-                <div class="px-2 py-2 text-[10px] text-text-tertiary/50">{t('explorer.noFiles')}</div>
+                <div class="px-2 py-2 text-[10px] text-text-tertiary/50">
+                  {t('explorer.noFiles')}
+                </div>
               }
             >
               <div class="px-1" role="tree" aria-label="File explorer">

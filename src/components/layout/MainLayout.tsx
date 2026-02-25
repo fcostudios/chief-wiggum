@@ -146,7 +146,9 @@ const MainLayout: Component = () => {
                     <Users size={24} style={{ color: 'var(--color-accent)' }} />
                   </div>
                   <div>
-                    <h3 class="text-sm font-semibold text-text-primary tracking-wide">Agent Teams</h3>
+                    <h3 class="text-sm font-semibold text-text-primary tracking-wide">
+                      Agent Teams
+                    </h3>
                     <p class="text-xs text-text-tertiary mt-1">
                       Orchestrate multiple AI agents working together in parallel.
                     </p>

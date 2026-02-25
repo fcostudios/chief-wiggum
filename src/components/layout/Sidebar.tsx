@@ -85,9 +85,9 @@ const Sidebar: Component = () => {
   const [olderOpen, setOlderOpen] = createSignal(true);
   const [actionsOpen, setActionsOpen] = createSignal(false);
   const [sessionsOpen, setSessionsOpen] = createSignal(true);
-  const [focusedContentSection, setFocusedContentSection] = createSignal<'files' | 'actions' | null>(
-    null,
-  );
+  const [focusedContentSection, setFocusedContentSection] = createSignal<
+    'files' | 'actions' | null
+  >(null);
   const [searchQuery, setSearchQuery] = createSignal('');
   const [debouncedQuery, setDebouncedQuery] = createSignal('');
   let searchInputRef: HTMLInputElement | undefined;
@@ -421,8 +421,7 @@ const Sidebar: Component = () => {
                 }}
                 style={{
                   'transition-duration': 'var(--duration-normal)',
-                  'scrollbar-gutter':
-                    focusedContentSection() === 'files' ? 'stable' : undefined,
+                  'scrollbar-gutter': focusedContentSection() === 'files' ? 'stable' : undefined,
                   'overscroll-behavior':
                     focusedContentSection() === 'files' ? 'contain' : undefined,
                 }}
@@ -497,8 +496,7 @@ const Sidebar: Component = () => {
                 }}
                 style={{
                   'transition-duration': 'var(--duration-normal)',
-                  'scrollbar-gutter':
-                    focusedContentSection() === 'actions' ? 'stable' : undefined,
+                  'scrollbar-gutter': focusedContentSection() === 'actions' ? 'stable' : undefined,
                   'overscroll-behavior':
                     focusedContentSection() === 'actions' ? 'contain' : undefined,
                 }}
@@ -672,13 +670,39 @@ const Sidebar: Component = () => {
 
       {/* New session button — hidden when sessions section is manually collapsed */}
       <Show when={sessionsOpen() || isCollapsed()}>
-      <div class="p-2" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
-        <Show
-          when={!isCollapsed()}
-          fallback={
-            /* Collapsed: icon-only new session button */
+        <div class="p-2" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
+          <Show
+            when={!isCollapsed()}
+            fallback={
+              /* Collapsed: icon-only new session button */
+              <button
+                class="flex items-center justify-center w-full h-8 rounded-md transition-all"
+                style={{
+                  'transition-duration': 'var(--duration-normal)',
+                  color: 'var(--color-text-secondary)',
+                  background: 'transparent',
+                  border: '1px solid var(--color-border-secondary)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-accent)';
+                  e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+                  e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-secondary)';
+                  e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+                onClick={handleNewSession}
+                aria-label={t('sidebar.newSession')}
+                title={t('sidebar.newSession')}
+              >
+                <Plus size={14} />
+              </button>
+            }
+          >
             <button
-              class="flex items-center justify-center w-full h-8 rounded-md transition-all"
+              class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
               style={{
                 'transition-duration': 'var(--duration-normal)',
                 color: 'var(--color-text-secondary)',
@@ -697,38 +721,12 @@ const Sidebar: Component = () => {
               }}
               onClick={handleNewSession}
               aria-label={t('sidebar.newSession')}
-              title={t('sidebar.newSession')}
             >
-              <Plus size={14} />
+              <Plus size={13} />
+              <span class="tracking-wide">{t('sidebar.newSession')}</span>
             </button>
-          }
-        >
-          <button
-            class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
-            style={{
-              'transition-duration': 'var(--duration-normal)',
-              color: 'var(--color-text-secondary)',
-              background: 'transparent',
-              border: '1px solid var(--color-border-secondary)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'var(--color-accent)';
-              e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
-              e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--color-text-secondary)';
-              e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
-              e.currentTarget.style.background = 'transparent';
-            }}
-            onClick={handleNewSession}
-            aria-label={t('sidebar.newSession')}
-          >
-            <Plus size={13} />
-            <span class="tracking-wide">{t('sidebar.newSession')}</span>
-          </button>
-        </Show>
-      </div>
+          </Show>
+        </div>
       </Show>
     </nav>
   );
@@ -878,9 +876,7 @@ const SessionItem: Component<{
 
     const hasMessages = await sessionHasMessages(props.session.id);
     if (hasMessages) {
-      const confirmed = window.confirm(
-        t('sidebar.deleteConfirm'),
-      );
+      const confirmed = window.confirm(t('sidebar.deleteConfirm'));
       if (!confirmed) return;
     }
 

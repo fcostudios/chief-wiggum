@@ -9,9 +9,9 @@ export function createFocusTrap(container: HTMLElement): () => void {
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key !== 'Tab') return;
 
-    const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-      (el) => !el.hasAttribute('disabled') && el.offsetParent !== null,
-    );
+    const focusable = Array.from(
+      container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+    ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
     if (focusable.length === 0) return;
 
     const first = focusable[0];
@@ -40,4 +40,3 @@ export function createFocusTrap(container: HTMLElement): () => void {
 
   return () => container.removeEventListener('keydown', handleKeyDown);
 }
-

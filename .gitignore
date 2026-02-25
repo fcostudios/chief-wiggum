@@ -38,10 +38,14 @@ npm-debug.log*
 
 # Testing
 coverage/
+test-results/
+playwright-report/
+blob-report/
 
 # Screenshots (Playwright MCP)
 *.playwright-mcp/
 chief-wiggum-*.png
+
 
 # Local git worktrees
 .worktrees/

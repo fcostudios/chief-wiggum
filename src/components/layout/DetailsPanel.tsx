@@ -115,8 +115,7 @@ const DetailsPanel: Component = () => {
     return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
   };
 
-  const isSectionOpen = (id: string, fallback = true) =>
-    sectionOpenState()[id] ?? fallback;
+  const isSectionOpen = (id: string, fallback = true) => sectionOpenState()[id] ?? fallback;
   const isFocused = (id: string) => focusedSectionId() === id;
 
   function handleSectionHeaderClick(id: string, fallback = true) {
@@ -198,7 +197,9 @@ const DetailsPanel: Component = () => {
           focused={isFocused('filePreview')}
           onHeaderClick={() => handleSectionHeaderClick('filePreview')}
         >
-          <div classList={{ 'h-full': isFocused('filePreview'), 'min-h-0': isFocused('filePreview') }}>
+          <div
+            classList={{ 'h-full': isFocused('filePreview'), 'min-h-0': isFocused('filePreview') }}
+          >
             <FilePreview
               content={fileState.previewContent!}
               isLoading={fileState.isPreviewLoading}

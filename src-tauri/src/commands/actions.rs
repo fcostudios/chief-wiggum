@@ -120,7 +120,10 @@ pub async fn read_custom_actions(project_path: String) -> Result<Vec<ActionDefin
 
 /// Save or update a custom action in `.claude/actions.json`.
 #[tauri::command(rename_all = "snake_case")]
-pub async fn save_custom_action(project_path: String, action: ActionDefinition) -> Result<(), AppError> {
+pub async fn save_custom_action(
+    project_path: String,
+    action: ActionDefinition,
+) -> Result<(), AppError> {
     let path = PathBuf::from(&project_path);
     if !path.exists() {
         return Err(AppError::Validation(format!(
@@ -129,10 +132,14 @@ pub async fn save_custom_action(project_path: String, action: ActionDefinition) 
         )));
     }
     if action.name.trim().is_empty() {
-        return Err(AppError::Validation("Action name cannot be empty".to_string()));
+        return Err(AppError::Validation(
+            "Action name cannot be empty".to_string(),
+        ));
     }
     if action.command.trim().is_empty() {
-        return Err(AppError::Validation("Action command cannot be empty".to_string()));
+        return Err(AppError::Validation(
+            "Action command cannot be empty".to_string(),
+        ));
     }
 
     let custom = CustomActionConfig {
@@ -157,7 +164,10 @@ pub async fn save_custom_action(project_path: String, action: ActionDefinition) 
 
 /// Delete a custom action by name from `.claude/actions.json`.
 #[tauri::command(rename_all = "snake_case")]
-pub async fn delete_custom_action(project_path: String, action_name: String) -> Result<(), AppError> {
+pub async fn delete_custom_action(
+    project_path: String,
+    action_name: String,
+) -> Result<(), AppError> {
     let path = PathBuf::from(&project_path);
     if !path.exists() {
         return Err(AppError::Validation(format!(
@@ -166,7 +176,9 @@ pub async fn delete_custom_action(project_path: String, action_name: String) -> 
         )));
     }
     if action_name.trim().is_empty() {
-        return Err(AppError::Validation("Action name cannot be empty".to_string()));
+        return Err(AppError::Validation(
+            "Action name cannot be empty".to_string(),
+        ));
     }
 
     tokio::task::spawn_blocking(move || scanner::delete_custom_action_file(&path, &action_name))
@@ -188,9 +200,7 @@ fn custom_config_to_definition(cfg: CustomActionConfig, project_path: &str) -> A
         id: format!("claude_actions:{}", name),
         name,
         command: cfg.command,
-        working_dir: cfg
-            .working_dir
-            .unwrap_or_else(|| project_path.to_string()),
+        working_dir: cfg.working_dir.unwrap_or_else(|| project_path.to_string()),
         source: ActionSource::ClaudeActions,
         category,
         description: cfg.description,

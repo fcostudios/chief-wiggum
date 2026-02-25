@@ -125,7 +125,10 @@ fn parse_makefile(content: &str, working_dir: &str) -> AppResult<Vec<ActionDefin
             continue;
         }
 
-        if let Some(target) = trimmed.strip_suffix(':').or_else(|| trimmed.split(':').next()) {
+        if let Some(target) = trimmed
+            .strip_suffix(':')
+            .or_else(|| trimmed.split(':').next())
+        {
             let target = target.trim();
             if trimmed.contains(':')
                 && !line.starts_with('\t')
@@ -316,7 +319,9 @@ fn parse_claude_actions(content: &str, working_dir: &str) -> AppResult<Vec<Actio
             id: format!("claude_actions:{}", custom.name),
             name: custom.name,
             command: custom.command,
-            working_dir: custom.working_dir.unwrap_or_else(|| working_dir.to_string()),
+            working_dir: custom
+                .working_dir
+                .unwrap_or_else(|| working_dir.to_string()),
             source: ActionSource::ClaudeActions,
             category,
             description: custom.description,
@@ -456,7 +461,10 @@ mod tests {
     fn package_json_command_format() {
         let dir = temp_project(&[("package.json", r#"{"scripts":{"dev":"vite"}}"#)]);
         let actions = discover_actions(dir.path()).expect("discover actions");
-        let dev = actions.iter().find(|a| a.name == "dev").expect("dev action");
+        let dev = actions
+            .iter()
+            .find(|a| a.name == "dev")
+            .expect("dev action");
         assert_eq!(dev.command, "npm run dev");
         assert_eq!(dev.source, ActionSource::PackageJson);
         assert!(dev.is_long_running);
@@ -477,10 +485,7 @@ mod tests {
 
     #[test]
     fn makefile_captures_comments() {
-        let dir = temp_project(&[(
-            "Makefile",
-            "# Build the project\nbuild:\n\tcargo build\n",
-        )]);
+        let dir = temp_project(&[("Makefile", "# Build the project\nbuild:\n\tcargo build\n")]);
         let actions = discover_actions(dir.path()).expect("discover actions");
         let build = actions
             .iter()
