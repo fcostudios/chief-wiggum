@@ -9,7 +9,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
-    ? [['html', { open: 'never' }], ['json', { outputFile: 'test-results/results.json' }]]
+    ? [
+        ['html', { open: 'never' }],
+        ['json', { outputFile: 'test-results/results.json' }],
+        ['./tests/e2e/reporters/failure-reporter.ts'],
+      ]
     : [['html', { open: 'on-failure' }]],
   use: {
     baseURL: 'http://localhost:1420',
