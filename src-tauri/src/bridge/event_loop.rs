@@ -147,6 +147,207 @@ pub(crate) fn normalize_mcp_server_name(server_name: &str) -> String {
     format!("mcp__{}", normalized)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chunk_payload_serializes_correctly() {
+        let payload = ChunkPayload {
+            session_id: "s1".to_string(),
+            content: "Hello world".to_string(),
+            token_count: Some(3),
+        };
+        let json = serde_json::to_string(&payload).expect("serialize chunk payload");
+        assert!(json.contains("\"session_id\":\"s1\""));
+        assert!(json.contains("\"content\":\"Hello world\""));
+        assert!(json.contains("\"token_count\":3"));
+    }
+
+    #[test]
+    fn message_complete_payload_serializes_with_all_fields() {
+        let payload = MessageCompletePayload {
+            session_id: "s1".to_string(),
+            role: "assistant".to_string(),
+            content: "Hello!".to_string(),
+            model: Some("claude-sonnet-4-6".to_string()),
+            input_tokens: Some(10),
+            output_tokens: Some(5),
+            thinking_tokens: Some(2),
+            cost_cents: Some(0.05),
+            is_error: false,
+        };
+        let json = serde_json::to_string(&payload).expect("serialize complete payload");
+        assert!(json.contains("\"role\":\"assistant\""));
+        assert!(json.contains("\"model\":\"claude-sonnet-4-6\""));
+        assert!(json.contains("\"is_error\":false"));
+    }
+
+    #[test]
+    fn message_complete_payload_handles_null_optionals() {
+        let payload = MessageCompletePayload {
+            session_id: "s1".to_string(),
+            role: "assistant".to_string(),
+            content: "Error".to_string(),
+            model: None,
+            input_tokens: None,
+            output_tokens: None,
+            thinking_tokens: None,
+            cost_cents: None,
+            is_error: true,
+        };
+        let json = serde_json::to_string(&payload).expect("serialize nullable complete payload");
+        assert!(json.contains("\"model\":null"));
+        assert!(json.contains("\"is_error\":true"));
+    }
+
+    #[test]
+    fn cli_exited_payload_serializes() {
+        let payload = CliExitedPayload {
+            session_id: "s1".to_string(),
+            exit_code: Some(0),
+        };
+        let json = serde_json::to_string(&payload).expect("serialize exited payload");
+        assert!(json.contains("\"exit_code\":0"));
+
+        let no_code = CliExitedPayload {
+            session_id: "s1".to_string(),
+            exit_code: None,
+        };
+        let json = serde_json::to_string(&no_code).expect("serialize exited payload without code");
+        assert!(json.contains("\"exit_code\":null"));
+    }
+
+    #[test]
+    fn permission_request_payload_serializes() {
+        let payload = PermissionRequestPayload {
+            session_id: "s1".to_string(),
+            request_id: "req-1".to_string(),
+            tool: "Bash".to_string(),
+            command: "rm -rf /tmp".to_string(),
+            file_path: None,
+            risk_level: "high".to_string(),
+        };
+        let json = serde_json::to_string(&payload).expect("serialize permission payload");
+        assert!(json.contains("\"tool\":\"Bash\""));
+        assert!(json.contains("\"risk_level\":\"high\""));
+    }
+
+    #[test]
+    fn cli_init_payload_serializes_with_tools_and_mcp() {
+        let payload = CliInitPayload {
+            session_id: "s1".to_string(),
+            cli_session_id: "cli-abc123".to_string(),
+            model: "claude-sonnet-4-6".to_string(),
+            tools: vec!["Read".to_string(), "Write".to_string()],
+            mcp_servers: vec!["server1".to_string()],
+        };
+        let json = serde_json::to_string(&payload).expect("serialize init payload");
+        assert!(json.contains("\"cli_session_id\":\"cli-abc123\""));
+        assert!(json.contains("\"Read\""));
+        assert!(json.contains("\"server1\""));
+    }
+
+    #[test]
+    fn tool_use_payload_serializes() {
+        let payload = ToolUsePayload {
+            session_id: "s1".to_string(),
+            tool_use_id: "tu-1".to_string(),
+            tool_name: "Read".to_string(),
+            tool_input: r#"{"file_path":"/tmp/test.rs"}"#.to_string(),
+        };
+        let json = serde_json::to_string(&payload).expect("serialize tool use payload");
+        assert!(json.contains("\"tool_name\":\"Read\""));
+        assert!(json.contains("\"tool_use_id\":\"tu-1\""));
+    }
+
+    #[test]
+    fn tool_result_payload_serializes() {
+        let payload = ToolResultPayload {
+            session_id: "s1".to_string(),
+            tool_use_id: "tu-1".to_string(),
+            content: "file content here".to_string(),
+            is_error: false,
+        };
+        let json = serde_json::to_string(&payload).expect("serialize tool result payload");
+        assert!(json.contains("\"is_error\":false"));
+
+        let error_result = ToolResultPayload {
+            session_id: "s1".to_string(),
+            tool_use_id: "tu-2".to_string(),
+            content: "Permission denied".to_string(),
+            is_error: true,
+        };
+        let json = serde_json::to_string(&error_result).expect("serialize errored tool result");
+        assert!(json.contains("\"is_error\":true"));
+    }
+
+    #[test]
+    fn thinking_payload_serializes() {
+        let payload = ThinkingPayload {
+            session_id: "s1".to_string(),
+            content: "I'm thinking about...".to_string(),
+            is_streaming: true,
+        };
+        let json = serde_json::to_string(&payload).expect("serialize thinking payload");
+        assert!(json.contains("\"is_streaming\":true"));
+    }
+
+    #[test]
+    fn all_payloads_roundtrip_serde() {
+        let chunk = ChunkPayload {
+            session_id: "s1".to_string(),
+            content: "test".to_string(),
+            token_count: None,
+        };
+        let json = serde_json::to_string(&chunk).expect("serialize chunk");
+        let decoded: ChunkPayload = serde_json::from_str(&json).expect("deserialize chunk");
+        assert_eq!(decoded.session_id, "s1");
+        assert_eq!(decoded.content, "test");
+
+        let complete = MessageCompletePayload {
+            session_id: "s1".to_string(),
+            role: "assistant".to_string(),
+            content: "done".to_string(),
+            model: Some("claude-sonnet-4-6".to_string()),
+            input_tokens: Some(100),
+            output_tokens: Some(50),
+            thinking_tokens: None,
+            cost_cents: Some(1.5),
+            is_error: false,
+        };
+        let json = serde_json::to_string(&complete).expect("serialize complete");
+        let decoded: MessageCompletePayload =
+            serde_json::from_str(&json).expect("deserialize complete");
+        assert_eq!(decoded.role, "assistant");
+        assert_eq!(decoded.input_tokens, Some(100));
+    }
+
+    #[test]
+    fn chunk_payload_handles_unicode_content() {
+        let payload = ChunkPayload {
+            session_id: "s1".to_string(),
+            content: "Hello 世界! 🌍 café".to_string(),
+            token_count: Some(5),
+        };
+        let json = serde_json::to_string(&payload).expect("serialize unicode chunk");
+        let decoded: ChunkPayload = serde_json::from_str(&json).expect("deserialize unicode chunk");
+        assert_eq!(decoded.content, "Hello 世界! 🌍 café");
+    }
+
+    #[test]
+    fn chunk_payload_handles_empty_content() {
+        let payload = ChunkPayload {
+            session_id: "s1".to_string(),
+            content: String::new(),
+            token_count: None,
+        };
+        let json = serde_json::to_string(&payload).expect("serialize empty chunk");
+        let decoded: ChunkPayload = serde_json::from_str(&json).expect("deserialize empty chunk");
+        assert!(decoded.content.is_empty());
+    }
+}
+
 /// Extract the MCP server prefix from a full tool name.
 /// e.g., "mcp__plugin_context7_context7__query-docs" → "mcp__plugin_context7_context7"
 fn extract_mcp_prefix(tool_name: &str) -> Option<String> {
