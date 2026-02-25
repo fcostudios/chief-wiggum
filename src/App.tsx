@@ -25,6 +25,18 @@ import { switchLocale } from '@/stores/i18nStore';
 const App: Component = () => {
   let lastAppliedLocale: string | null = null;
 
+  function applyTheme(theme: string): void {
+    if (typeof document === 'undefined') return;
+
+    if (theme === 'system' && typeof window !== 'undefined') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      return;
+    }
+
+    document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
+  }
+
   // Reload slash commands after project auto-selection or project switches so
   // project-scoped `.claude/commands` are reflected without needing a CLI init.
   createEffect(() => {
@@ -48,6 +60,10 @@ const App: Component = () => {
     void switchLocale(configuredLocale);
   });
 
+  createEffect(() => {
+    applyTheme(settingsState.settings.appearance.theme ?? 'dark');
+  });
+
   onMount(() => {
     detectCli();
     loadProjects();
@@ -67,6 +83,17 @@ const App: Component = () => {
     setTimeout(async () => {
       await reconnectAfterReload(sessionState.activeSessionId);
     }, 100);
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+      if (settingsState.settings.appearance.theme === 'system') {
+        applyTheme('system');
+      }
+    };
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    onCleanup(() => {
+      mediaQuery.removeEventListener('change', handleSystemThemeChange);
+    });
   });
 
   onCleanup(() => {

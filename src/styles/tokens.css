@@ -154,6 +154,76 @@
   --color-chrome-border: rgba(48, 54, 61, 0.7);
 }
 
+/* ============================================================
+ * SPEC-002 §3.7: Light Theme
+ * Toggle via [data-theme="light"] on <html>.
+ * ============================================================ */
+
+:root[data-theme='light'] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f6f8fa;
+  --color-bg-elevated: #ffffff;
+  --color-bg-inset: #f0f2f5;
+
+  --color-border-primary: #d0d7de;
+  --color-border-secondary: #e1e4e8;
+  --color-border-focus: #cf6e3e;
+
+  --color-text-primary: #1f2328;
+  --color-text-secondary: #656d76;
+  --color-text-tertiary: #8b949e;
+  --color-text-link: #0969da;
+
+  --color-accent: #cf6e3e;
+  --color-accent-hover: #b85c30;
+  --color-accent-muted: #cf6e3e1a;
+
+  --color-success: #1a7f37;
+  --color-success-muted: #1a7f371a;
+  --color-warning: #9a6700;
+  --color-warning-muted: #9a67001a;
+  --color-error: #cf222e;
+  --color-error-muted: #cf222e1a;
+  --color-info: #0969da;
+
+  --color-model-opus: #8250df;
+  --color-model-sonnet: #0969da;
+  --color-model-haiku: #1a7f37;
+
+  --color-context-green: #1a7f37;
+  --color-context-yellow: #9a6700;
+  --color-context-red: #cf222e;
+  --color-context-critical: #a40e26;
+
+  --color-diff-add-bg: #dafbe1;
+  --color-diff-add-text: #1a7f37;
+  --color-diff-remove-bg: #ffebe9;
+  --color-diff-remove-text: #cf222e;
+  --color-diff-modify-bg: #fff8c5;
+
+  --color-tool-file: #0969da;
+  --color-tool-bash: #1a7f37;
+  --color-tool-neutral: #8b949e;
+  --color-tool-permission-allow: #1a7f37;
+  --color-tool-permission-deny: #cf222e;
+  --color-tool-permission-yolo: #9a6700;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.07);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  --glow-accent: 0 0 20px rgba(207, 110, 62, 0.08);
+  --glow-accent-strong: 0 0 30px rgba(207, 110, 62, 0.12);
+  --glow-accent-subtle: 0 0 12px rgba(207, 110, 62, 0.04);
+
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(208, 215, 222, 0.6);
+
+  --color-chrome-bg: rgba(246, 248, 250, 0.92);
+  --color-chrome-bg-strong: rgba(255, 255, 255, 0.95);
+  --color-chrome-border: rgba(208, 215, 222, 0.7);
+}
+
 .cw-platform-macos {
   --color-chrome-bg: rgba(22, 27, 34, 0.72);
   --color-chrome-bg-strong: rgba(28, 33, 40, 0.8);
@@ -180,6 +250,14 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(139, 148, 158, 0.35);
+}
+
+:root[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+:root[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
 }
 
 ::-webkit-scrollbar-corner {
