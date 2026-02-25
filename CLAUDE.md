@@ -1,7 +1,7 @@
 # Chief Wiggum — Agent Instructions
 
 > **Read this file first.** It is the auto-briefing for any Claude Code session.
-> Updated: 2026-02-24
+> Updated: 2026-02-25
 
 ---
 
@@ -103,6 +103,11 @@
 | CHI-126: i18n Infrastructure        | **Done** | `i18nStore` with lazy locale loading, extracted UI strings, locale sync from settings                |
 | CHI-128: Spanish Locale             | **Done** | `src/locales/es.json` translations for current UI chrome and common interaction strings               |
 | CHI-137: Message Edit/Regenerate    | **Done** | Backend edit/delete-after IPC + frontend edit/regenerate UX without duplicate resend                  |
+| CHI-130: Theme System               | **Done** | Light/dark/system theme mode with reactive CSS variables + terminal theme sync                        |
+| CHI-63: Power User UX Epic          | **Done** | CHI-78 context menus + CHI-79 keyboard help/focus trap completed                                      |
+| CHI-64: Onboarding & Empty States   | **Done** | CHI-81 onboarding flow, CHI-82 Agents placeholder, CHI-83 no-project guidance                        |
+| CHI-109: Parallel Sessions v2 Epic  | **Done** | CHI-110 split panes, CHI-112 aggregate cost, CHI-113 activity notifications complete                  |
+| CHI-27: Playwright E2E Epic         | **Done** | CHI-28..34 complete: Playwright suite + CI workflow/reporter integration                              |
 | CHI-132: Conversation Virtualization| **Done** | `ConversationView` virtual scrolling with `@tanstack/solid-virtual` + jump-to-latest                |
 | CHI-97: Frontend Log Forwarding    | **Done** | `src/lib/logger.ts` IPC forwarding, replaced all `console.*` in stores, unified log stream          |
 | CHI-98: Export Diagnostic UI        | **Done** | `ExportDialog.tsx`, consent preview, Cmd+Shift+D copy debug info, toast notifications               |
@@ -175,19 +180,19 @@
 | CHI-59 | P1       | **Done** | Crash recovery with error UI              |
 | CHI-60 | P0       | **Done** | Shutdown all CLI processes on app quit    |
 
-### Parallel: E2E Testing (Epic CHI-27)
+### Parallel: E2E Testing (Epic CHI-27) — DONE
 
-Playwright e2e tests covering all 13 UI components (~98 test cases). Can run alongside Phase 2.
+Playwright E2E infrastructure and CI integration are implemented. The browser-mode suite currently covers layout, conversation, permissions, terminal/model selector, and keyboard/session-flow integration paths (25 passing tests), plus CI artifact capture through a custom failure reporter.
 
-| Task   | Priority | What to test                                                                  |
-| ------ | -------- | ----------------------------------------------------------------------------- |
-| CHI-28 | P0       | Playwright + Tauri WebDriver setup, smoke test                                |
-| CHI-29 | P0       | Layout shell (MainLayout, Sidebar, TitleBar, StatusBar, DetailsPanel)         |
-| CHI-30 | P0       | Conversation (ConversationView, MessageInput, MessageBubble, MarkdownContent) |
-| CHI-31 | P1       | Permissions (PermissionDialog, YoloWarningDialog)                             |
-| CHI-32 | P1       | Terminal (TerminalPane) + Model selector (ModelSelector)                      |
-| CHI-33 | P1       | Integration tests (keyboard shortcuts, session flow)                          |
-| CHI-34 | P0       | CI integration + failure→issue pipeline (JSON reporter, screenshots)          |
+| Task   | Priority | Status   | What to test                                                                  |
+| ------ | -------- | -------- | ----------------------------------------------------------------------------- |
+| CHI-28 | P0       | **Done** | Playwright + Tauri WebDriver setup, smoke test                                |
+| CHI-29 | P0       | **Done** | Layout shell (MainLayout, Sidebar, TitleBar, StatusBar, DetailsPanel)         |
+| CHI-30 | P0       | **Done** | Conversation (ConversationView, MessageInput, MessageBubble, MarkdownContent) |
+| CHI-31 | P1       | **Done** | Permissions (PermissionDialog, YoloWarningDialog)                             |
+| CHI-32 | P1       | **Done** | Terminal (TerminalPane) + Model selector (ModelSelector)                      |
+| CHI-33 | P1       | **Done** | Integration tests (keyboard shortcuts, session flow)                          |
+| CHI-34 | P0       | **Done** | CI integration + failure→issue pipeline (JSON reporter, screenshots)          |
 
 ### UX Polish Epics (Parallel with Phase 2)
 
@@ -218,17 +223,17 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 | ------ | -------- | ------------------------------------------------------ | ------------------------------------------------------------- |
 | CHI-76 | High     | **Done**                                               | Command palette UI (Cmd+K, fuzzy search, categorized actions) |
 | CHI-77 | Medium   | **Done**                                               | Session quick-switcher (Cmd+Shift+P)                          |
-| CHI-78 | Medium   | Custom context menus (messages, sessions, code blocks) |
-| CHI-79 | Medium   | Keyboard navigation audit + focus management           |
+| CHI-78 | Medium   | **Done**                                               | Custom context menus (messages, files, code blocks)            |
+| CHI-79 | Medium   | **Done**                                               | Keyboard help overlay + focus trap / keyboard navigation audit |
 
 #### Epic CHI-64: Onboarding & Empty States (Medium)
 
-| Task   | Priority | Description                                                 |
-| ------ | -------- | ----------------------------------------------------------- | --------------------------------------------------------------- |
-| CHI-80 | High     | **Done**                                                    | Conversation empty state redesign (sample prompts, personality) |
-| CHI-81 | Low      | First-launch onboarding flow (3-5 step walkthrough)         |
-| CHI-82 | Medium   | Placeholder views for Agents/Diff (informative, not broken) |
-| CHI-83 | Medium   | "No project selected" guidance state                        |
+| Task   | Priority | Status   | Description                                                   |
+| ------ | -------- | -------- | ------------------------------------------------------------- |
+| CHI-80 | High     | **Done** | Conversation empty state redesign (sample prompts, personality) |
+| CHI-81 | Low      | **Done** | First-launch onboarding flow (3-5 step walkthrough)           |
+| CHI-82 | Medium   | **Done** | Placeholder views for Agents/Diff (informative, not broken)   |
+| CHI-83 | Medium   | **Done** | "No project selected" guidance state                          |
 
 #### Epic CHI-65: Sidebar & Navigation Polish (Medium)
 
@@ -262,7 +267,7 @@ CX/UX investigation identified 6 improvement areas. These can be worked on along
 
 **CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
 
-**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122/124 (settings backend + UI shell/autosave), CHI-123 (file explorer quick wins), CHI-132/133 (conversation virtualization + FilePreview editable ranges), CHI-135 (missing error states), CHI-136 (accessibility pass), and CHI-138 (Project Actions epic complete: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline, statusbar/palette integration, custom action configuration). **CHI-93 Structured Log Collector epic COMPLETE** (CHI-97 frontend log forwarding, CHI-98 export UI, CHI-99 DB query tracing, CHI-100 GitHub issue templates). **CHI-65 Sidebar Polish epic COMPLETE** (CHI-87 view tab icons, CHI-88 sidebar search). Current validation snapshot: 224+ Rust tests pass; frontend typecheck/lint/build pass.
+**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122/124/126/128/130 (settings + i18n + locale + theme system), CHI-123 (file explorer quick wins), CHI-125/127 (context scoring + smart suggestions), CHI-132/133 (conversation virtualization + FilePreview editable ranges), CHI-135 (missing error states), CHI-136 (accessibility pass), CHI-137 (message edit/regenerate), CHI-109 follow-through (CHI-110/112/113 split panes + aggregate cost + activity indicators), **CHI-63 COMPLETE** (CHI-78/79), **CHI-64 COMPLETE** (CHI-81/82/83), **CHI-27 E2E epic COMPLETE** (CHI-28..34 Playwright + CI reporter), and CHI-138 (Project Actions epic complete: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline, statusbar/palette integration, custom action configuration). **CHI-93 Structured Log Collector epic COMPLETE** (CHI-97 frontend log forwarding, CHI-98 export UI, CHI-99 DB query tracing, CHI-100 GitHub issue templates). **CHI-65 Sidebar Polish epic COMPLETE** (CHI-87 view tab icons, CHI-88 sidebar search). Current validation snapshot: 230 Rust tests pass; frontend typecheck/lint/build/format pass; Playwright e2e suite passes.
 
 ### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
 
@@ -278,12 +283,12 @@ Two-phase architecture is now fully implemented: Phase A (CHI-106/107) file scan
 
 | Task    | Priority | Status   | Description                                                                 |
 | ------- | -------- | -------- | --------------------------------------------------------------------------- |
-| CHI-110 | High     | Todo     | Split Pane Layout System — Cmd+\\, draggable divider, dual ConversationView |
+| CHI-110 | High     | **Done** | Split Pane Layout System — Cmd+\\, draggable divider, dual ConversationView |
 | CHI-111 | High     | **Done** | Concurrent Session Resource Limits — configurable max (default 4)           |
-| CHI-112 | Medium   | Todo     | Aggregate Cost Tracking Across Sessions                                     |
-| CHI-113 | Medium   | Todo     | Session Activity Notifications — unread badges, background toasts           |
+| CHI-112 | Medium   | **Done** | Aggregate Cost Tracking Across Sessions                                     |
+| CHI-113 | Medium   | **Done** | Session Activity Notifications — unread badges, background toasts           |
 
-Builds on CHI-104's per-session state and non-destructive switching. See SPEC-003 §4.14, §10.8 and SPEC-004 §4.4.8, §5.8.
+Builds on CHI-104's per-session state and non-destructive switching. Split panes, aggregate cost, and activity indicators are now implemented. See SPEC-003 §4.14, §10.8 and SPEC-004 §4.4.8, §5.8.
 
 ### Epic CHI-114: File Explorer & @-Mention Context System (Phase 3) — DONE
 

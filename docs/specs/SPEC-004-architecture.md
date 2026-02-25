@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 2.9
-**Date:** 2026-02-24
-**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing
+**Version:** 3.0
+**Date:** 2026-02-25
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing + Theme/Onboarding/E2E follow-through
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -11,6 +11,8 @@
 ## 1. Purpose
 
 This document specifies the internal module decomposition, IPC contracts, data flow patterns, and error handling strategies for Chief Wiggum. A coding agent implementing any feature should reference this spec to understand how modules communicate and where new code belongs.
+
+**Implementation status (2026-02-25):** Recent architecture follow-through now implemented includes CHI-81 onboarding persistence in the settings schema/IPC (`settings.onboarding.completed`), CHI-130 frontend theme system propagation (including reactive terminal theming), and CHI-27 Playwright E2E infrastructure + CI integration (browser-safe TitleBar behavior in non-Tauri runtime, CI failure artifact reporter wiring).
 
 ---
 

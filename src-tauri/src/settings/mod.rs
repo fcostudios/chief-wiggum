@@ -64,7 +64,7 @@ pub struct SessionSettings {
     pub auto_save_interval_secs: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct OnboardingSettings {
     /// Whether the first-launch onboarding flow has been completed.
     pub completed: bool,
@@ -120,12 +120,6 @@ impl Default for UserSettings {
                 developer_mode: false,
             },
         }
-    }
-}
-
-impl Default for OnboardingSettings {
-    fn default() -> Self {
-        Self { completed: false }
     }
 }
 

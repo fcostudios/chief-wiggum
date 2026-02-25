@@ -1,8 +1,8 @@
 # SPEC-003: UX Design Specification
 
-**Version:** 2.4
-**Date:** 2026-02-24
-**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening + Context/i18n/Message Editing follow-through
+**Version:** 2.5
+**Date:** 2026-02-25
+**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening + Context/i18n/Message Editing + Split/Onboarding/Theme/E2E follow-through
 **Parent:** SPEC-001 (Section 6, 10), SPEC-002 (Design System)
 **Audience:** Frontend developers, coding agents, UX reviewers
 
@@ -11,6 +11,8 @@
 ## 1. Purpose
 
 This document specifies every screen, interaction flow, and state transition in Chief Wiggum. Where SPEC-001 says "what" features exist and SPEC-002 says "how they look," this spec says "how they behave." A coding agent should be able to build any screen by reading only this document plus SPEC-002.
+
+**Implementation status (2026-02-25):** The UX follow-through covered here is now implemented for CHI-63 (CHI-78 context menus, CHI-79 keyboard help/focus trap), CHI-64 (CHI-81 onboarding, CHI-82 Agents placeholder, CHI-83 no-project guidance), CHI-109 follow-through (CHI-110 split panes, CHI-112 aggregate cost, CHI-113 background activity indicators), CHI-130 (light/dark/system theme system with reactive terminal theming), and CHI-27 (CHI-28..34 Playwright E2E + CI integration with failure artifacts).
 
 ---
 
@@ -1103,6 +1105,8 @@ Slide in from right + fade, slide out left + fade.
 
 ### 10.3 Command Palette & Power User UX (CHI-63)
 
+**Implementation status (2026-02-25):** CHI-78 and CHI-79 are implemented. Current CHI-78 coverage includes custom context menus for conversation messages and file-tree items (message delete remains a disabled placeholder until a safe backend delete flow ships). CHI-79 includes a keyboard shortcuts help overlay (`Cmd+/`) and reusable focus trap.
+
 **CHI-76: Command Palette UI (High)**
 
 Triggered by Cmd+K. Centered overlay, 560px wide, max 400px tall.
@@ -1158,6 +1162,8 @@ Rendered as custom HTML menus (not native), matching app theme.
 - Skip-navigation link for accessibility
 
 ### 10.4 Onboarding & Empty States (CHI-64)
+
+**Implementation status (2026-02-25):** CHI-81, CHI-82, and CHI-83 are implemented. The first-launch onboarding flow persists completion in user settings and is dismissible/skippable; the Agents view uses an upgraded placeholder, and the no-project guidance appears in the conversation empty state.
 
 **CHI-80: Conversation Empty State Redesign (High)**
 
@@ -1373,6 +1379,8 @@ After CHI-101 Agent SDK migration:
 - File-scanned commands remain as fallback
 
 ### 10.8 Split Pane & Parallel Sessions v2 (CHI-109)
+
+**Implementation status (2026-02-25):** CHI-110, CHI-112, and CHI-113 are implemented (split conversation panes, aggregate cost tracking UI, and background session activity indicators/toasts).
 
 **CHI-110: Split Pane Layout System (High)**
 
