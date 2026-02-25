@@ -1,18 +1,28 @@
 /// <reference types="vitest" />
+import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 import solid from 'vite-plugin-solid';
 
+const rootDir = process.cwd();
+const repoRootDir = resolve(rootDir, '..', '..');
+
 export default defineConfig({
+  root: rootDir,
   plugins: [solid()],
+  server: {
+    fs: {
+      allow: [rootDir, repoRootDir],
+    },
+  },
   resolve: {
     alias: {
-      '@': '/src',
+      '@': resolve(rootDir, 'src'),
     },
   },
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: [resolve(rootDir, 'src/test/setup.ts')],
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
