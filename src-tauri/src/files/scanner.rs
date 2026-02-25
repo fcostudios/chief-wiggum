@@ -691,6 +691,34 @@ mod tests {
     }
 
     #[test]
+    fn search_files_returns_empty_for_no_match() {
+        let project = create_test_project();
+        let results = search_files(project.path(), "nonexistent_xyz", Some(10)).unwrap();
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn search_files_respects_max_results_limit() {
+        let project = create_test_project();
+        fs::write(project.path().join("alpha-one.txt"), "a").unwrap();
+        fs::write(project.path().join("alpha-two.txt"), "a").unwrap();
+        fs::write(project.path().join("alpha-three.txt"), "a").unwrap();
+
+        let results = search_files(project.path(), "alpha", Some(2)).unwrap();
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn search_files_normalizes_windows_style_query_paths() {
+        let project = create_test_project();
+        let results = search_files(project.path(), "src\\main", None).unwrap();
+        assert!(!results.is_empty());
+        assert!(results
+            .iter()
+            .any(|r| r.relative_path.ends_with("src/main.rs")));
+    }
+
+    #[test]
     fn estimate_tokens_returns_reasonable_value() {
         let project = create_test_project();
         let tokens = estimate_tokens(project.path(), "src/main.rs").unwrap();
@@ -715,6 +743,29 @@ mod tests {
         assert_eq!(detect_language("py"), Some("python".to_string()));
         assert_eq!(detect_language("json"), Some("json".to_string()));
         assert_eq!(detect_language("xyz"), None);
+    }
+
+    #[test]
+    fn read_file_start_line_without_end_returns_tail() {
+        let project = create_test_project();
+        let content = "line1\nline2\nline3\nline4\n";
+        fs::write(project.path().join("multi3.txt"), content).unwrap();
+
+        let result = read_file(project.path(), "multi3.txt", Some(3), None).unwrap();
+        assert_eq!(result.content, "line3\nline4");
+        assert_eq!(result.line_count, 4);
+    }
+
+    #[test]
+    fn read_file_large_file_sets_truncated_flag() {
+        let project = create_test_project();
+        let large = "x".repeat((MAX_READ_BYTES as usize) + 4096);
+        fs::write(project.path().join("large.txt"), large).unwrap();
+
+        let result = read_file(project.path(), "large.txt", None, None).unwrap();
+        assert!(result.truncated);
+        assert!(result.content.len() <= MAX_READ_BYTES as usize);
+        assert_eq!(result.line_count, 1);
     }
 
     #[test]
