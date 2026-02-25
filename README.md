@@ -10,7 +10,7 @@
 
 <p align="center">
   A cross-platform desktop GUI that wraps Claude Code CLI in the warm embrace it never asked for.<br />
-  Visual multi-agent orchestration. Real-time cost tracking. YOLO Mode.<br />
+  Split-pane conversations. File-aware context tooling. Project Actions. YOLO Mode.<br />
   Built with Tauri v2 + Rust + SolidJS. Electron need not apply.
 </p>
 
@@ -27,9 +27,11 @@
 
 Chief Wiggum is a desktop app for developers who love Claude Code but wish it had... well, a window.
 
-It gives you everything Claude Code CLI does — Opus 4.6, Sonnet 4.6, Agent Teams, MCP, hooks — wrapped in a native desktop experience that doesn't eat your RAM for breakfast like certain Electron-based competitors we won't name (we'll name them: Codex Desktop App).
+It wraps Claude Code workflows in a native desktop UI with persistent sessions, permission handling, project-aware context tools, cost tracking, diagnostics, and keyboard-first navigation.
 
-**The pitch in 10 seconds:** Claude Code is a beast. The terminal is great. But when you're orchestrating multiple agents, tracking costs across sessions, reviewing diffs, and managing permissions — a real GUI matters. That's Chief Wiggum.
+**The pitch in 10 seconds:** Claude Code in the terminal is excellent. Chief Wiggum adds the desktop ergonomics around it: sessions, context, settings, permissions, cost visibility, and testing/quality rails.
+
+> Current scope note: the **Agents** tab is still a polished placeholder while the core Claude Code + project workflows are already usable.
 
 ## Why "Chief Wiggum"?
 
@@ -39,17 +41,25 @@ Every good project needs a codename that has absolutely nothing to do with what 
 
 ## Highlights
 
-**Native & Lightweight** — Tauri v2 means no bundled Chromium. The app ships under 15 MB. Your laptop fans can finally rest.
+**Native Desktop Shell (Tauri v2)** — Rust backend + system webview. No Electron runtime.
 
-**Visual Agent Orchestration** — See all your Claude agents in one place. Dispatch tasks, monitor progress, review results. Like air traffic control, but for code.
+**Claude Code Agent SDK Bridge** — Persistent CLI sessions, structured streaming, permission interception, YOLO mode, and legacy fallback handling.
 
-**Real-Time Cost Intelligence** — Watch your API spend in real-time with per-session breakdowns. Set budgets. Get warnings before Opus 4.6 bankrupts your side project.
+**Project-Aware Context Tooling** — File explorer, `@` mentions, code-range attachments, context quality scoring, and smart file suggestions.
 
-**YOLO Mode** — For the brave (or the reckless). One toggle auto-approves every permission request. A pulsing lightning bolt reminds you that you're living dangerously. Named after what the community already calls `--dangerously-skip-permissions`.
+**Split-Pane Parallel Sessions** — Side-by-side conversation panes, aggregate cost display, and background activity indicators.
 
-**Cross-Platform From Day One** — macOS, Windows, Linux. Not "macOS first and we'll think about it."
+**Settings + i18n + Theme System** — Full settings UI (`Cmd+,`), autosave/retry, English + Spanish locale support, and light/dark/system theme modes.
 
-**Embedded Terminal** — Full xterm.js with WebGL rendering. `Cmd+\`` toggles between GUI and raw terminal. Best of both worlds.
+**Project Actions Runner** — Discover/run project commands, stream logs in-app, and hand action output back to the conversation.
+
+**Embedded Terminal** — Full xterm.js pane with WebGL rendering and reactive theming.
+
+**Diagnostics & Reliability** — Structured logging, redacted diagnostic bundle export, and CI coverage with formatting/lint/test gates.
+
+**Playwright E2E + CI Integration** — Browser-mode E2E suite (25 tests) with CI artifact reporting for failures.
+
+**YOLO Mode** — For the brave (or the reckless). One toggle auto-approves permission requests, with loud UI warnings so you know what you're doing.
 
 ---
 
@@ -79,6 +89,22 @@ npm install
 
 # Run in dev mode (Rust compiles on first run — go get coffee)
 npm run tauri dev
+
+# Frontend checks
+npm run format:check
+npm run typecheck
+npm run lint
+npm run build
+
+# Rust checks
+cd src-tauri
+cargo fmt --all -- --check
+cargo test
+cargo clippy -- -D warnings
+
+# E2E (from repo root)
+cd ..
+npm run test:e2e
 
 # Build for production
 npm run tauri build
@@ -113,11 +139,11 @@ npm run tauri build
 └──────────────────────────────────────────────┘
 ```
 
-**Frontend:** SolidJS 2.x + TailwindCSS v4 — fine-grained reactivity, ~7 KB JS bundle. No virtual DOM.
+**Frontend:** SolidJS + TailwindCSS v4 + Lucide + xterm.js + `@solid-primitives/i18n`.
 
-**Backend:** Rust + Tokio async runtime. PTY management via `portable-pty`. SQLite with WAL mode for session persistence. Zero `.unwrap()` in production — every function returns `Result`.
+**Backend:** Rust + Tokio async runtime. PTY management via `portable-pty`. SQLite with WAL mode for session persistence. Typed error handling and tracing across backend modules.
 
-**Bridge:** Structured JSON parsing of Claude Code's `--output-format stream-json`. Version-adaptive adapter system so CLI updates don't break things.
+**Bridge:** Agent SDK control protocol (persistent JSONL sessions) with version-adaptive behavior and legacy CLI fallback paths.
 
 ---
 
@@ -127,6 +153,12 @@ npm run tauri build
 | ------------- | ------------------------------------- |
 | `Cmd+B`       | Toggle sidebar                        |
 | `Cmd+Shift+B` | Toggle details panel                  |
+| `Cmd+,`       | Open settings                         |
+| `Cmd+/`       | Open keyboard shortcuts help          |
+| `Cmd+K`       | Open command palette                  |
+| `Cmd+Shift+P` | Session quick-switcher                |
+| `Cmd+Shift+T` | Context breakdown modal               |
+| `Cmd+\\`      | Split conversation pane               |
 | `Cmd+\``      | Toggle terminal / conversation        |
 | `Cmd+M`       | Cycle model (Sonnet → Opus → Haiku)   |
 | `Cmd+Shift+Y` | Toggle YOLO Mode (you've been warned) |
@@ -138,40 +170,43 @@ npm run tauri build
 
 ## Project Status
 
-**Status snapshot (February 23, 2026):**
+**Status snapshot (February 25, 2026):**
 - **Phase 1: Foundation** — Complete
 - **Phase 2: Make It Real (core epics)** — Complete
-- **Phase 3: Agent SDK Integration / Advanced UX** — In progress (partial delivery)
+- **Phase 3: Advanced UX / Context Intelligence** — In progress (major sub-epics shipped; context follow-up remains)
 
 Latest verified snapshot:
-- **144 Rust tests passing**
-- Frontend checks pass (`typecheck`, `lint`, `build`)
+- **230 Rust tests passing**
+- **25 Playwright E2E tests passing**
+- Frontend checks pass (`format:check`, `typecheck`, `lint`, `build`)
+- Rust quality gates pass (`cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`)
 - DB schema version: **v3**
-- CI + release workflows are configured
+- CI + release workflows are configured (including E2E job + failure artifacts)
 
 ### Phase Progress
 
 | Phase                         | Status             | Notes                                                                      |
 | ----------------------------- | ------------------ | -------------------------------------------------------------------------- |
 | Phase 1 — Foundation          | Done               | Core scaffolding, CLI bridge, persistence, and base UI shipped             |
-| Phase 2 — Make It Real        | Done (core epics)  | Core product UX and workflows delivered; polish work continues in follow-up epics |
-| Phase 3 — Agent SDK Integration | In Progress      | `CHI-101` (Agent SDK migration) remains the major pending architecture milestone |
+| Phase 2 — Make It Real        | Done (core epics)  | Core product UX and workflows delivered; follow-up polish epics largely shipped |
+| Phase 3 — Advanced UX / Context Intelligence | In Progress | Agent SDK migration is done; remaining focus is context follow-up (`CHI-131`, `CHI-134`) |
 
 ### Recently Shipped (high impact)
 
-- **Slash commands (Phase A)** — command discovery + inline `/` autocomplete (`CHI-106`, `CHI-107`)
-- **File Explorer + `@` mentions** — file tree, preview, code-range selection, prompt context assembly (`CHI-114` / `CHI-115..119`)
-- **Inline tool diff previews** — conversation diff preview + "Open in Diff" bridge (`CHI-92`)
-- **Sidebar polish additions** — session actions menu + inline rename + duplicate (`CHI-86`)
-- **Platform feel improvements** — macOS vibrancy chrome enhancements (`CHI-69`)
+- **Agent SDK bridge migration + SDK slash discovery** — persistent CLI sessions, runtime permissions, and slash command discovery from `system:init` (`CHI-101`, `CHI-108`)
+- **Context intelligence v1** — file explorer, `@` mentions, range editing, context scoring, smart file suggestions (`CHI-114`, `CHI-123`, `CHI-125`, `CHI-127`, `CHI-133`)
+- **Settings / i18n / theme** — settings backend+UI, locale extraction, Spanish locale, light/dark/system themes (`CHI-122`, `CHI-124`, `CHI-126`, `CHI-128`, `CHI-130`)
+- **UX hardening** — missing error states, accessibility pass, message edit/regenerate (`CHI-135`, `CHI-136`, `CHI-137`)
+- **Parallel sessions v2 follow-through** — split panes, aggregate cost tracking, background activity indicators (`CHI-109`, `CHI-110`, `CHI-112`, `CHI-113`)
+- **Power-user + onboarding polish** — context menus, keyboard help overlay, onboarding flow, improved empty states (`CHI-63`, `CHI-64`, `CHI-78`, `CHI-79`, `CHI-81`, `CHI-82`, `CHI-83`)
+- **Project Actions** — discover/run project commands, output panel, command palette/status bar integration (`CHI-138` to `CHI-145`)
+- **Playwright E2E + CI integration** — layout/conversation/permissions/terminal/integration suites, CI failure artifact reporter (`CHI-27`, `CHI-28..34`)
 
 ### What's Next
 
-- **CHI-101** — Agent SDK control protocol migration (high-priority architectural upgrade)
-- Follow-up Phase 3 epics already defined in Linear/specs:
-  - **CHI-120** Settings & i18n
-  - **CHI-121** Context Intelligence
-  - **CHI-129** UX Hardening
+- **CHI-131** — Token-Optimized Snippets (context intelligence follow-up)
+- **CHI-134** — Multi-File Bundles (context intelligence follow-up)
+- Manual desktop QA / polish passes for newly shipped onboarding, theming, and E2E-covered flows on release builds
 
 ---
 
@@ -186,6 +221,7 @@ Latest verified snapshot:
 | Backend runtime    | Tokio             | Async Rust, battle-tested                     |
 | Database           | SQLite (rusqlite) | Embedded, zero-config, WAL mode               |
 | Process management | portable-pty      | Cross-platform PTY spawning                   |
+| E2E testing        | Playwright        | Regression coverage + CI failure artifacts    |
 | CI/CD              | GitHub Actions    | Matrix builds (macOS, Windows, Ubuntu)        |
 
 ---
