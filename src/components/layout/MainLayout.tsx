@@ -43,6 +43,8 @@ import ToastContainer from '@/components/common/ToastContainer';
 import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
 import SettingsModal from '@/components/settings/SettingsModal';
 import ContextBreakdownModal from '@/components/conversation/ContextBreakdownModal';
+import SplitPaneContainer from '@/components/layout/SplitPaneContainer';
+import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -64,6 +66,11 @@ const MainLayout: Component = () => {
   onCleanup(() => {
     document.removeEventListener('keydown', handleGlobalKeyDown);
     document.documentElement.classList.remove('cw-platform-macos');
+  });
+
+  // Seed the primary pane with the current active session after app/session restore.
+  onMount(() => {
+    ensureMainPaneSession(sessionState.activeSessionId);
   });
 
   return (
@@ -124,7 +131,9 @@ const MainLayout: Component = () => {
           {/* View content area */}
           <div class="flex-1 flex flex-col overflow-hidden">
             <Show when={uiState.activeView === 'conversation'}>
-              <ConversationView />
+              <Show when={viewState.layoutMode === 'single'} fallback={<SplitPaneContainer />}>
+                <ConversationView />
+              </Show>
             </Show>
             <Show when={uiState.activeView === 'agents'}>
               <div class="flex items-center justify-center h-full">
@@ -143,7 +152,7 @@ const MainLayout: Component = () => {
           </div>
 
           {/* Message input — only visible in conversation view */}
-          <Show when={uiState.activeView === 'conversation'}>
+          <Show when={uiState.activeView === 'conversation' && viewState.layoutMode === 'single'}>
             <MessageInput
               onSend={(text) => {
                 const sessionId = sessionState.activeSessionId;
