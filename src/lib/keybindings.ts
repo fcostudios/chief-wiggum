@@ -16,6 +16,7 @@ import {
   openSessionSwitcher,
   openSettings,
   toggleContextBreakdown,
+  toggleKeyboardHelp,
   type ActiveView,
 } from '@/stores/uiStore';
 import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore';
@@ -41,6 +42,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyK' && !e.shiftKey) {
     e.preventDefault();
     toggleCommandPalette();
+    return;
+  }
+
+  // Cmd+/ — keyboard shortcuts help
+  if (e.code === 'Slash' && !e.shiftKey) {
+    e.preventDefault();
+    toggleKeyboardHelp();
     return;
   }
 

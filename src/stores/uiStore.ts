@@ -36,6 +36,7 @@ interface UIState {
   commandPaletteVisible: boolean;
   commandPaletteMode: CommandPaletteMode;
   sessionSwitcherVisible: boolean;
+  keyboardHelpVisible: boolean;
 }
 
 /** Restore persisted permission tier from localStorage. */
@@ -75,6 +76,7 @@ const [state, setState] = createStore<UIState>({
   commandPaletteVisible: false,
   commandPaletteMode: 'all',
   sessionSwitcherVisible: false,
+  keyboardHelpVisible: false,
 });
 
 // Sync persisted tier to backend on startup
@@ -257,6 +259,16 @@ export function openSessionSwitcher() {
 /** Close the session quick-switcher. */
 export function closeSessionSwitcher() {
   setState('sessionSwitcherVisible', false);
+}
+
+/** Toggle the keyboard shortcuts help overlay (Cmd+/). */
+export function toggleKeyboardHelp() {
+  setState('keyboardHelpVisible', (prev) => !prev);
+}
+
+/** Close the keyboard shortcuts help overlay. */
+export function closeKeyboardHelp() {
+  setState('keyboardHelpVisible', false);
 }
 
 export { state as uiState };

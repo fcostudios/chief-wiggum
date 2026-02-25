@@ -38,6 +38,7 @@ import {
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 import CommandPalette from '@/components/common/CommandPalette';
+import KeyboardHelp from '@/components/common/KeyboardHelp';
 import ExportDialog from '@/components/diagnostics/ExportDialog';
 import ToastContainer from '@/components/common/ToastContainer';
 import DiffPreviewPane from '@/components/diff/DiffPreviewPane';
@@ -237,6 +238,11 @@ const MainLayout: Component = () => {
       {/* Session quick-switcher (Cmd+Shift+P) */}
       <Show when={uiState.sessionSwitcherVisible}>
         <CommandPalette mode="sessions" onClose={closeSessionSwitcher} />
+      </Show>
+
+      {/* Keyboard shortcuts help (Cmd+/) */}
+      <Show when={uiState.keyboardHelpVisible}>
+        <KeyboardHelp />
       </Show>
 
       {/* Export diagnostics dialog (CHI-98) */}
