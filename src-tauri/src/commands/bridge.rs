@@ -12,6 +12,18 @@ use crate::bridge::{control, ControlRequest};
 use crate::AppError;
 use tauri::State;
 
+fn parse_permission_action(action: &str) -> Result<PermissionAction, AppError> {
+    match action {
+        "Approve" => Ok(PermissionAction::Approve),
+        "Deny" => Ok(PermissionAction::Deny),
+        "AlwaysAllow" => Ok(PermissionAction::AlwaysAllow),
+        other => Err(AppError::Validation(format!(
+            "Invalid permission action: {}",
+            other
+        ))),
+    }
+}
+
 /// Start a persistent CLI session using the Agent SDK control protocol.
 ///
 /// Creates an AgentSdkBridge with bidirectional JSONL communication.
@@ -345,17 +357,7 @@ pub async fn respond_permission(
     action: String,
     pattern: Option<String>,
 ) -> Result<(), AppError> {
-    let action = match action.as_str() {
-        "Approve" => PermissionAction::Approve,
-        "Deny" => PermissionAction::Deny,
-        "AlwaysAllow" => PermissionAction::AlwaysAllow,
-        other => {
-            return Err(AppError::Validation(format!(
-                "Invalid permission action: {}",
-                other
-            )))
-        }
-    };
+    let action = parse_permission_action(&action)?;
 
     let response = PermissionResponse {
         request_id,
@@ -416,4 +418,151 @@ pub async fn toggle_developer_mode(
         permission_manager.disable_developer_mode().await;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    fn make_request(tool: &str, command: &str) -> crate::bridge::permission::PermissionRequest {
+        crate::bridge::permission::PermissionRequest {
+            request_id: uuid::Uuid::new_v4().to_string(),
+            tool: tool.to_string(),
+            command: command.to_string(),
+            file_path: None,
+            risk_level: "medium".to_string(),
+            tool_input: None,
+        }
+    }
+
+    #[test]
+    fn parse_permission_action_approve() {
+        let action = parse_permission_action("Approve").expect("parse Approve");
+        assert_eq!(action, PermissionAction::Approve);
+    }
+
+    #[test]
+    fn parse_permission_action_deny() {
+        let action = parse_permission_action("Deny").expect("parse Deny");
+        assert_eq!(action, PermissionAction::Deny);
+    }
+
+    #[test]
+    fn parse_permission_action_always_allow() {
+        let action = parse_permission_action("AlwaysAllow").expect("parse AlwaysAllow");
+        assert_eq!(action, PermissionAction::AlwaysAllow);
+    }
+
+    #[test]
+    fn parse_permission_action_invalid_rejected() {
+        let err = parse_permission_action("InvalidAction").expect_err("should reject invalid");
+        match err {
+            AppError::Validation(message) => assert!(message.contains("InvalidAction")),
+            other => panic!("expected validation error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn parse_permission_action_case_sensitive() {
+        let err = parse_permission_action("approve").expect_err("lowercase should fail");
+        match err {
+            AppError::Validation(message) => assert!(message.contains("approve")),
+            other => panic!("expected validation error, got {:?}", other),
+        }
+    }
+
+    #[tokio::test]
+    async fn toggle_yolo_mode_manager_logic() {
+        let manager = PermissionManager::new();
+        assert!(!manager.is_yolo_mode().await);
+        manager.enable_yolo_mode().await;
+        assert!(manager.is_yolo_mode().await);
+        manager.disable_yolo_mode().await;
+        assert!(!manager.is_yolo_mode().await);
+    }
+
+    #[tokio::test]
+    async fn toggle_developer_mode_manager_logic() {
+        let manager = PermissionManager::new();
+        assert!(!manager.is_developer_mode().await);
+        manager.enable_developer_mode().await;
+        assert!(manager.is_developer_mode().await);
+        manager.disable_developer_mode().await;
+        assert!(!manager.is_developer_mode().await);
+    }
+
+    #[tokio::test]
+    async fn resolve_permission_approve_flow_via_manager_delegate() {
+        let manager = Arc::new(PermissionManager::with_timeout(5));
+        let req = make_request("Read", "cat /tmp/test");
+        let req_id = req.request_id.clone();
+
+        let mgr = Arc::clone(&manager);
+        let handle = tokio::spawn(async move { mgr.request_permission(req).await });
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        manager
+            .resolve_permission(PermissionResponse {
+                request_id: req_id,
+                action: PermissionAction::Approve,
+                pattern: None,
+            })
+            .await
+            .expect("resolve request");
+
+        let result = handle
+            .await
+            .expect("join permission task")
+            .expect("permission result");
+        assert_eq!(result, PermissionAction::Approve);
+    }
+
+    #[tokio::test]
+    async fn resolve_nonexistent_request_returns_error_via_manager_delegate() {
+        let manager = PermissionManager::new();
+        let result = manager
+            .resolve_permission(PermissionResponse {
+                request_id: "does-not-exist".to_string(),
+                action: PermissionAction::Approve,
+                pattern: None,
+            })
+            .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn list_active_bridges_empty_initially() {
+        let map = SessionBridgeMap::new();
+        let active = map.list_active_sessions().await;
+        assert!(active.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_active_bridges_reflects_runtime_metadata() {
+        let map = SessionBridgeMap::new();
+        map.create_runtime("session-1").await;
+        let active = map.list_active_sessions().await;
+        assert!(
+            active.is_empty(),
+            "runtime alone should not appear without bridge"
+        );
+
+        let mock = Arc::new(crate::bridge::process::MockBridge::new(vec![]));
+        map.insert_mock("session-1", mock).await;
+        let active = map.list_active_sessions().await;
+        assert_eq!(active.len(), 1);
+        assert_eq!(active[0].session_id, "session-1");
+        assert_eq!(active[0].process_status, "starting");
+        assert!(!active[0].has_buffered_events);
+    }
+
+    #[tokio::test]
+    async fn drain_nonexistent_session_returns_empty() {
+        let map = SessionBridgeMap::new();
+        let events = map.drain_session_buffer("nonexistent").await;
+        assert!(events.is_empty());
+    }
 }
