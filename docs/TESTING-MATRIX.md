@@ -189,7 +189,7 @@
 | 147 | Frontend Test Infrastructure | — | ✅ 12 | — | — | COVERED |
 | 148 | Event Loop Tests | ✅ 12 | — | — | — | COVERED |
 | 149 | Bridge IPC Command Tests | ⚠️ 12 | — | ❌ 0 | — | PARTIAL |
-| 150 | Actions System Tests | ❌ 0 | — | ❌ 0 | — | GAP |
+| 150 | Actions System Tests | ⚠️ 4 | — | ❌ 0 | — | PARTIAL |
 | 151 | Remaining IPC Command Tests | ⚠️ 17 | — | ❌ 0 | — | PARTIAL |
 | 152 | Permission Security Tests 🔒 | ⚠️ 7 | ❌ 0 | ❌ 0 | — | PARTIAL |
 
@@ -233,7 +233,7 @@
 |----------|---------------|---------|---------|-----|-----|
 | Phase 1 | 18 | 4 | 10 | 1 | 3 |
 | Phase 2 | 21 | 0 | 6 | 15 | 0 |
-| Phase 3 | 51 | 4 | 18 | 25 | 4 |
-| **Total** | **90** | **8 (9%)** | **34 (38%)** | **41 (46%)** | **7 (8%)** |
+| Phase 3 | 51 | 4 | 19 | 24 | 4 |
+| **Total** | **90** | **8 (9%)** | **35 (39%)** | **40 (44%)** | **7 (8%)** |
 
 **Target:** Move all GAP → PARTIAL within next sprint, all PARTIAL → COVERED within 2 sprints.
