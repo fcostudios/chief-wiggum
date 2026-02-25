@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-25T01:29:14Z",
+  "last_updated": "2026-02-25T19:28:17Z",
   "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1870,19 +1870,232 @@
         }
       },
       "critical_path": "CHI-139 \u2192 CHI-140 \u2192 CHI-141 \u2192 CHI-142/CHI-143 \u2192 CHI-144/CHI-145"
+    },
+    "CHI-146": {
+      "title": "Test Coverage to 90%+ (Code Quality Gate)",
+      "status": "in_progress",
+      "linear_id": "6a0733cc-ac6d-4a1e-bf16-caf43cc9a4e6",
+      "tasks": {
+        "CHI-147": {
+          "title": "Frontend Test Infrastructure",
+          "status": "done",
+          "priority": "urgent",
+          "track": "A",
+          "notes": "Completed Track A frontend test infrastructure Tasks 1-4: Vitest/jsdom setup, IPC mocks/helpers, 4 store smoke test files (12 tests), and CI frontend unit-test matrix step.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 12,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "vitest.config.ts",
+              "src/test/mockIPC.ts",
+              "src/test/setup.ts",
+              "src/test/helpers.ts",
+              "src/stores/uiStore.test.ts",
+              "src/stores/sessionStore.test.ts",
+              "src/stores/toastStore.test.ts",
+              "src/stores/cliStore.test.ts"
+            ],
+            "regression_verified": true
+          }
+        },
+        "CHI-148": {
+          "title": "Event Loop Tests (551 LOC)",
+          "status": "done",
+          "priority": "urgent",
+          "track": "B1",
+          "notes": "Added 12 Rust unit tests in bridge/event_loop.rs covering payload serialization, nullable fields, unicode/empty chunk handling, and serde round-trips.",
+          "testing": {
+            "rust_unit_tests": 12,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src-tauri/src/bridge/event_loop.rs (tests mod)"
+            ],
+            "regression_verified": true
+          }
+        },
+        "CHI-149": {
+          "title": "Bridge IPC Command Tests (419 LOC)",
+          "status": "done",
+          "priority": "urgent",
+          "track": "B2",
+          "notes": "Added 12 Rust unit tests in commands/bridge.rs covering permission-action validation parsing (including invalid/case-sensitive inputs) plus bridge command delegate behaviors via PermissionManager and SessionBridgeMap helpers.",
+          "testing": {
+            "rust_unit_tests": 12,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src-tauri/src/commands/bridge.rs (tests mod)"
+            ],
+            "regression_verified": true
+          }
+        },
+        "CHI-150": {
+          "title": "Actions System Tests (686 LOC)",
+          "status": "done",
+          "priority": "high",
+          "track": "B3",
+          "notes": "Added 4 Rust unit tests in actions/manager.rs covering lifecycle/error-safe paths: empty list, active_count tracking, stop on nonexistent action, and shutdown_all on empty manager.",
+          "testing": {
+            "rust_unit_tests": 4,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src-tauri/src/actions/manager.rs (tests mod)"
+            ],
+            "regression_verified": true
+          }
+        },
+        "CHI-151": {
+          "title": "Remaining IPC Command Tests (546 LOC)",
+          "status": "done",
+          "priority": "high",
+          "track": "B4",
+          "notes": "Completed CHI-151 partial tasks from this plan: 12 session/database command business-logic tests in commands/session.rs + 5 file scanner/file-command edge-case tests in files/scanner.rs (17 Rust unit tests total).",
+          "testing": {
+            "rust_unit_tests": 17,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src-tauri/src/commands/session.rs (tests mod)",
+              "src-tauri/src/files/scanner.rs (tests mod)"
+            ],
+            "regression_verified": true
+          }
+        },
+        "CHI-152": {
+          "title": "Permission Security Tests \ud83d\udd12",
+          "status": "done",
+          "priority": "urgent",
+          "track": "B5",
+          "notes": "Added 7 security-edge Rust tests in bridge/permission.rs for timeout wait+cleanup, double-resolve rejection, exact-command fallback for AlwaysAllow, YOLO restore-to-normal flow, pending queue inspection, and pattern empty-value behavior.",
+          "testing": {
+            "rust_unit_tests": 7,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "src-tauri/src/bridge/permission.rs (tests mod)"
+            ],
+            "regression_verified": true
+          }
+        },
+        "CHI-153": {
+          "title": "Store Tests: session + conversation",
+          "status": "todo",
+          "priority": "high",
+          "track": "C1",
+          "blocked_by": "CHI-147"
+        },
+        "CHI-154": {
+          "title": "Store Tests: file + context + action",
+          "status": "todo",
+          "priority": "high",
+          "track": "C2",
+          "blocked_by": "CHI-147"
+        },
+        "CHI-155": {
+          "title": "Store Tests: ui + settings + i18n + toast",
+          "status": "todo",
+          "priority": "medium",
+          "track": "C3",
+          "blocked_by": "CHI-147"
+        },
+        "CHI-156": {
+          "title": "Component Tests: critical UI",
+          "status": "todo",
+          "priority": "medium",
+          "track": "C4",
+          "blocked_by": "CHI-147"
+        },
+        "CHI-157": {
+          "title": "Utility Tests: typewriter, scoring, keys, logger",
+          "status": "todo",
+          "priority": "medium",
+          "track": "C5",
+          "blocked_by": "CHI-147"
+        },
+        "CHI-158": {
+          "title": "E2E: File Explorer + @-Mention",
+          "status": "todo",
+          "priority": "high",
+          "track": "D1"
+        },
+        "CHI-159": {
+          "title": "E2E: Actions Discovery + Run",
+          "status": "todo",
+          "priority": "high",
+          "track": "D2"
+        },
+        "CHI-160": {
+          "title": "E2E: Settings + Theme + i18n",
+          "status": "todo",
+          "priority": "medium",
+          "track": "D3"
+        },
+        "CHI-161": {
+          "title": "E2E: Permissions + YOLO + DevMode \ud83d\udd12",
+          "status": "todo",
+          "priority": "high",
+          "track": "D4"
+        },
+        "CHI-162": {
+          "title": "E2E: Split Panes + Sessions + Onboarding",
+          "status": "todo",
+          "priority": "medium",
+          "track": "D5"
+        },
+        "CHI-163": {
+          "title": "CI Coverage Gates & Reporting",
+          "status": "todo",
+          "priority": "high",
+          "track": "E"
+        }
+      },
+      "critical_path": "CHI-153/154 -> CHI-156/160/161 -> CHI-163",
+      "estimated_total_tests": "~200 new tests (75 Rust, 85 frontend unit, 40 E2E)"
     }
   },
   "recommended_next": [
+    "CHI-153",
+    "CHI-154",
+    "CHI-155",
+    "CHI-160",
+    "CHI-163",
     "CHI-131",
     "CHI-134"
   ],
-  "critical_path": "CHI-27 (Playwright E2E), CHI-63 (Power User UX), CHI-64 (Onboarding & Empty States), CHI-109 follow-through (split panes/aggregate cost/activity notifications), and CHI-120/CHI-129 follow-through are COMPLETE. Remaining priority work centers on CHI-121 context intelligence follow-up: CHI-131 (Token-Optimized Snippets) and CHI-134 (Multi-File Bundles), plus manual desktop QA of newly covered onboarding/theme/E2E paths.",
+  "critical_path": "CHI-146 (Test Coverage 90%+ epic) remains the primary work track, but Track A/B foundation (CHI-147..CHI-152) is now complete. Critical path shifts to CHI-153/154 (core store tests) -> CHI-156/160/161 (critical UI + settings/permissions coverage) -> CHI-163 (CI coverage gates). CHI-121 context intelligence follow-up (CHI-131, CHI-134) remains secondary work.",
   "ux_quick_wins": [
-    "All originally scoped UX quick wins are complete (including CHI-78, CHI-82, CHI-83, and CHI-130 follow-through).",
-    "Next UX/context focus shifts to CHI-131 and CHI-134 plus manual desktop QA of onboarding/theme/E2E-covered flows."
+    "All originally scoped UX quick wins remain complete (CHI-78, CHI-82, CHI-83, CHI-130 follow-through) and are now partially protected by Playwright + new frontend unit infrastructure.",
+    "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage work should continue with store/component test tracks (CHI-153..157) and settings/permissions E2E coverage (CHI-160/161)."
   ],
   "spec_updates": {
-    "completed_at": "2026-02-25T01:25:46Z",
+    "completed_at": "2026-02-25T19:26:26Z",
     "SPEC-002": {
       "version": "2.0",
       "changes": "Added tool use colors (\u00a73.5), toast colors (\u00a73.6), 7 new component specs (\u00a710.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
@@ -1892,8 +2105,8 @@
       "changes": "v2.0: Added 6 Phase 2 interaction flows (\u00a74.7-4.12). v2.1: Added \u00a74.13 Slash Command Interaction Flow, \u00a74.14 Split Pane Layout Flow, \u00a710.7 Slash Commands spec, \u00a710.8 Split Pane spec. v2.2: Added \u00a74.15 File Explorer & @-Mention Context Flow, \u00a710.9 File Explorer & @-Mention Context System spec. v2.3: Added \u00a73.5 Settings Screen, \u00a74.16 Settings Flow, \u00a74.17 Context Intelligence Flow, \u00a710.10-10.12 (Settings, Context Intelligence, UX Hardening) v2.4: Implementation status follow-through notes for CHI-125/126/127/128/137 (context scoring + smart suggestions, i18n locale coverage, message edit/regenerate UX). v2.5: Implementation status follow-through notes for CHI-63/64/109/130/27 (context menus + keyboard help, onboarding/empty states, split panes aggregate/activity, theme system, Playwright E2E + CI integration)."
     },
     "SPEC-004": {
-      "version": "3.0",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol \u00a75.6. v2.2: slash/ module, \u00a74.4.7-4.4.8 IPC, \u00a75.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, \u00a74.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), \u00a75.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up \u2014 MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands. v3.0: CHI-81 onboarding settings-schema persistence, CHI-130 theme propagation note, and CHI-27 Playwright/CI E2E architecture follow-through (browser-safe TitleBar + failure artifact reporter)."
+      "version": "3.1",
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol \u00a75.6. v2.2: slash/ module, \u00a74.4.7-4.4.8 IPC, \u00a75.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, \u00a74.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), \u00a75.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up \u2014 MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands. v3.0: CHI-81 onboarding settings-schema persistence, CHI-130 theme propagation note, and CHI-27 Playwright/CI E2E architecture follow-through (browser-safe TitleBar + failure artifact reporter). v3.1: CHI-146 Track A/B test-infrastructure foundation (Vitest + IPC mocks + CI frontend unit step, Rust coverage expansion), and GUIDE-003 / TESTING-MATRIX documentation references."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -1901,7 +2114,12 @@
       "changes": "Full Phase 2 task breakdown: 5 core epics (21 tasks) + 6 UX polish epics (26 tasks), spec references on every task, dependency graph, gate criteria"
     },
     "linear_issues_updated": 21,
-    "notes": "All 21 remaining Phase 2 Linear issues updated with spec references and detailed acceptance criteria"
+    "notes": "All 21 remaining Phase 2 Linear issues updated with spec references and detailed acceptance criteria",
+    "GUIDE-003": {
+      "version": "1.0",
+      "created": true,
+      "changes": "Added mandatory development protocol for planning\u2192implementation\u2192verification lifecycle, handover testing metadata, and TESTING-MATRIX maintenance rules."
+    }
   },
   "session_work_log": {
     "2026-02-22_session": {
@@ -2296,10 +2514,173 @@
       ],
       "tests": "Final closure verification in feature worktree passed: npm run format:check, npm run typecheck, npm run lint, npm run build, npx playwright test (25 passed), cargo fmt --all -- --check, cargo test (230 passed), cargo clippy -- -D warnings.",
       "verified": "Manual desktop QA still recommended after merge on main for onboarding first-run UX, system theme switching visuals, and CI artifact output review on a forced failing Playwright run if pipeline changes again."
+    },
+    "2026-02-25_chi147_chi152_batch1": {
+      "description": "Batch 1 for CHI-147/CHI-152 test-infrastructure plan: implemented frontend unit-test infrastructure (Tasks 1-3) and aligned worktree handover state with the refined CHI-146 test-coverage epic structure.",
+      "changes": [
+        {
+          "task": "Task 1 CHI-147 Vitest + tooling setup",
+          "files_modified": [
+            "package.json",
+            "package-lock.json",
+            "tsconfig.json",
+            "vitest.config.ts"
+          ]
+        },
+        {
+          "task": "Task 2 CHI-147 IPC mocks and test helpers",
+          "files_modified": [
+            "src/test/mockIPC.ts",
+            "src/test/setup.ts",
+            "src/test/helpers.ts"
+          ]
+        },
+        {
+          "task": "Task 3 CHI-147 store smoke tests",
+          "files_modified": [
+            "src/stores/uiStore.test.ts",
+            "src/stores/sessionStore.test.ts",
+            "src/stores/toastStore.test.ts",
+            "src/stores/cliStore.test.ts"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "Worktree handover baseline did not include the newly refined CHI-146 test-coverage epic because the local root .claude/handover.json protocol updates are uncommitted; synced the refined handover file into the worktree before writing the batch checkpoint.",
+        "docs/TESTING-MATRIX.md is referenced by GUIDE-003 but is not a tracked file in this branch baseline yet, so matrix updates are deferred until the file is introduced/committed."
+      ],
+      "tests": "Batch 1 verification passed in feature worktree: npm install (test deps), npx tsc --noEmit, npx vitest run --no-coverage --passWithNoTests, npx vitest run (4 files/12 tests), npx tsc --noEmit && npx eslint ., npm run format:check.",
+      "verified": "CHI-147 remains in progress pending Task 4 (CI frontend unit-test matrix step). Next batch should add CI integration and then run the broader Rust test-coverage tasks (CHI-148+)."
+    },
+    "2026-02-25_chi147_chi152_batch2": {
+      "description": "Batch 2 for CHI-147/CHI-152 plan: completed CHI-147 CI integration (Task 4), CHI-148 event loop tests (Task 5), CHI-151 session/db command tests partial (Task 6), and added docs/TESTING-MATRIX.md to the repo with CHI-146 tracking rows.",
+      "changes": [
+        {
+          "task": "Task 4 CHI-147 CI frontend unit-test matrix step",
+          "files_modified": [
+            ".github/workflows/ci.yml"
+          ]
+        },
+        {
+          "task": "Task 5 CHI-148 event loop payload tests",
+          "files_modified": [
+            "src-tauri/src/bridge/event_loop.rs"
+          ]
+        },
+        {
+          "task": "Task 6 CHI-151 partial session/database command tests",
+          "files_modified": [
+            "src-tauri/src/commands/session.rs"
+          ]
+        },
+        {
+          "task": "Protocol support: add testing matrix to repo and track CHI-146 progress",
+          "files_modified": [
+            "docs/TESTING-MATRIX.md"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "cargo fmt --all -- --check failed after adding commands/session.rs tests (formatting-only drift); fixed by running cargo fmt --all before final verification.",
+        "Coverage percentages are not measured yet in this batch because CHI-163 coverage gates/reporting is a later task; handover testing metadata records test counts and regression verification now, with coverage values left at 0 pending measured reports."
+      ],
+      "tests": "Batch 2 verification passed in feature worktree: npx tsc --noEmit && npx eslint . && npx vitest run (4 files/12 tests), npm run format:check, cargo test --lib event_loop::tests (12 passed), cargo test --lib commands::session::tests (12 passed), cargo fmt --all -- --check, cargo test --lib (254 passed).",
+      "verified": "Next batch should continue Track B with CHI-151 Task 7 (file command tests) and CHI-152 permission security tests, then keep TESTING-MATRIX rows in sync so the matrix can be executed as the completion verification artifact."
+    },
+    "2026-02-25_chi147_chi152_batch3": {
+      "description": "Batch 3 for CHI-147/CHI-152 plan: completed CHI-151 file-command test coverage (Task 7), CHI-152 permission security-edge tests (Task 8), and CHI-149 bridge command validation tests (Task 9), then synchronized TESTING-MATRIX rows and summary counts.",
+      "changes": [
+        {
+          "task": "Task 7 CHI-151 file scanner/file command tests",
+          "files_modified": [
+            "src-tauri/src/files/scanner.rs"
+          ]
+        },
+        {
+          "task": "Task 8 CHI-152 permission security-edge tests",
+          "files_modified": [
+            "src-tauri/src/bridge/permission.rs"
+          ]
+        },
+        {
+          "task": "Task 9 CHI-149 bridge command validation tests",
+          "files_modified": [
+            "src-tauri/src/commands/bridge.rs"
+          ]
+        },
+        {
+          "task": "Testing matrix progress update for CHI-149/151/152",
+          "files_modified": [
+            "docs/TESTING-MATRIX.md"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "commands::bridge::tests::list_active_bridges_reflects_runtime_metadata initially expected process_status=\"unknown\" but SessionRuntime::new() initializes to \"starting\"; updated assertion to match actual behavior.",
+        "Rust fmt check caught formatting-only diffs in newly added scanner and commands/bridge tests; resolved by running cargo fmt --all before final verification."
+      ],
+      "tests": "Batch 3 verification passed in feature worktree: cargo test --lib files::scanner::tests (25 passed), cargo test --lib bridge::permission::tests (29 passed), cargo test --lib commands::bridge::tests (12 passed), cargo fmt --all -- --check, cargo test --lib (278 passed), npx vitest run (4 files/12 tests), npx tsc --noEmit && npx eslint ., npm run format:check.",
+      "verified": "Track B tasks CHI-148, CHI-149, CHI-151, and CHI-152 are now complete in this plan path. Next batch should run CHI-150 actions-system tests (Task 10) and then the plan\u2019s full verification task, using docs/TESTING-MATRIX.md as the completion verification checklist artifact."
+    },
+    "2026-02-25_chi147_chi152_batch4": {
+      "description": "Batch 4 for CHI-147/CHI-152 plan: completed CHI-150 actions manager tests (Task 10) and finished the plan verification sweep (Task 11), then updated TESTING-MATRIX and handover testing metadata for CHI-150.",
+      "changes": [
+        {
+          "task": "Task 10 CHI-150 actions manager lifecycle/error handling tests",
+          "files_modified": [
+            "src-tauri/src/actions/manager.rs"
+          ]
+        },
+        {
+          "task": "Task 11 verification + matrix sync for CHI-150",
+          "files_modified": [
+            "docs/TESTING-MATRIX.md",
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "Running npx vitest run --coverage generated a coverage/ directory that caused npx eslint . to lint generated artifacts and fail on warnings; removed coverage/ before rerunning the frontend lint/typecheck verification.",
+        "cargo clippy -- -D warnings completed cleanly after CHI-150 tests; no code changes were required for clippy in this batch."
+      ],
+      "tests": "Batch 4 verification passed in feature worktree: cargo test --lib actions::manager::tests (7 passed), cargo test --lib (282 passed), cargo fmt --all -- --check, cargo clippy -- -D warnings, npx vitest run --coverage, npx tsc --noEmit && npx eslint ., npm run format:check.",
+      "verified": "Plan implementation tasks CHI-147 through CHI-152 are now complete for this test-infrastructure plan path. docs/TESTING-MATRIX.md is updated and can be used as the execution checklist artifact during the final closure and completion verification run."
+    },
+    "2026-02-25_chi147_chi152_closure": {
+      "description": "Closure batch for CHI-147/148/149/150/151/152: finalized docs/spec/handover updates, added GUIDE-003 and TESTING-MATRIX to tracked docs, and prepared branch for merge/coverage verification on main.",
+      "changes": [
+        {
+          "task": "Closure docs/spec updates for test infrastructure plan",
+          "files_modified": [
+            "CLAUDE.md",
+            "docs/specs/SPEC-004-architecture.md",
+            "docs/TESTING-MATRIX.md",
+            "docs/guides/GUIDE-003-development-protocol.md"
+          ]
+        },
+        {
+          "task": "Refined handover checkpoint + protocol metadata sync",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "vitest --coverage generates a coverage/ directory that can cause eslint on \".\" to lint generated artifacts; removed coverage/ before rerunning frontend lint/typecheck in the verification sweep."
+      ],
+      "tests": "Plan verification sweep completed in feature worktree: cargo test --lib (282 passed), cargo fmt --all -- --check, cargo clippy -- -D warnings, npx vitest run --coverage, npx tsc --noEmit && npx eslint ., npm run format:check. Closure will additionally run final verification and a post-merge coverage run on main per user request.",
+      "verified": "All implemented plan tasks (CHI-147..CHI-152) are complete. CHI-146 epic remains in progress with Tracks C-E pending; TESTING-MATRIX rows are updated and ready to be used as the completion verification artifact."
     }
   },
   "warnings": [],
-  "notes": "Phase 1: Foundation COMPLETE. Phase 2 core epics COMPLETE. Phase 3 remains active with CHI-121 Context Intelligence follow-up (CHI-131 token-optimized snippets, CHI-134 multi-file bundles) still pending. CHI-120 Settings & i18n, CHI-129 UX Hardening, CHI-63 Power User UX, CHI-64 Onboarding & Empty States, CHI-109 split-pane follow-through, and CHI-27 Playwright E2E epic are now COMPLETE. Current verification snapshot: frontend typecheck/lint/build/format pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test pass (230 Rust tests), and cargo clippy -- -D warnings pass.",
+  "development_protocol": {
+    "guide": "docs/guides/GUIDE-003-development-protocol.md",
+    "testing_matrix": "docs/TESTING-MATRIX.md",
+    "created_at": "2026-02-25T02:00:00Z",
+    "version": "1.0",
+    "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
+  },
+  "notes": "Phase 1: Foundation COMPLETE. Phase 2 core epics COMPLETE. Phase 3 remains active with CHI-121 Context Intelligence follow-up (CHI-131 token-optimized snippets, CHI-134 multi-file bundles) and the active CHI-146 Test Coverage epic (Track A/B foundations CHI-147..CHI-152 now complete). GUIDE-003 development protocol now governs all new feature work. Current verification snapshot: frontend unit tests pass (Vitest 4 files/12 tests + coverage run), frontend typecheck/lint/build/format pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), and cargo clippy -- -D warnings pass.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -2307,9 +2688,9 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. Current closure snapshot: frontend format/typecheck/lint/build pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test pass (230 Rust tests), cargo clippy -- -D warnings pass. Agent SDK, slash discovery, diagnostic bundle export, settings+i18n+theme, file explorer/context intelligence v1, UX hardening, split-pane follow-through, and Playwright CI integration are implemented. Primary remaining tracked follow-up in active Phase 3 work is CHI-121 (CHI-131, CHI-134)."
+    "notes": "Full toolchain ready. Current closure snapshot: frontend unit tests pass (Vitest 4 files/12 tests + coverage run), frontend format/typecheck/lint/build pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), cargo clippy -- -D warnings pass. GUIDE-003 protocol and docs/TESTING-MATRIX.md are now part of the repo and active for feature verification. Primary remaining tracked follow-ups are CHI-146 coverage tracks C-E (CHI-153..163) and CHI-121 (CHI-131, CHI-134)."
   },
   "metadata": {
-    "last_updated": "2026-02-25T01:29:14Z"
+    "last_updated": "2026-02-25T19:28:17Z"
   }
 }

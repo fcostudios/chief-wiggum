@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 3.0
+**Version:** 3.1
 **Date:** 2026-02-25
-**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing + Theme/Onboarding/E2E follow-through
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing + Theme/Onboarding/E2E follow-through + Test Infrastructure/Coverage Program foundations
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -12,7 +12,7 @@
 
 This document specifies the internal module decomposition, IPC contracts, data flow patterns, and error handling strategies for Chief Wiggum. A coding agent implementing any feature should reference this spec to understand how modules communicate and where new code belongs.
 
-**Implementation status (2026-02-25):** Recent architecture follow-through now implemented includes CHI-81 onboarding persistence in the settings schema/IPC (`settings.onboarding.completed`), CHI-130 frontend theme system propagation (including reactive terminal theming), and CHI-27 Playwright E2E infrastructure + CI integration (browser-safe TitleBar behavior in non-Tauri runtime, CI failure artifact reporter wiring).
+**Implementation status (2026-02-25):** Recent architecture follow-through now implemented includes CHI-81 onboarding persistence in the settings schema/IPC (`settings.onboarding.completed`), CHI-130 frontend theme system propagation (including reactive terminal theming), CHI-27 Playwright E2E infrastructure + CI integration (browser-safe TitleBar behavior in non-Tauri runtime, CI failure artifact reporter wiring), and CHI-146 Track A/B foundation work (Vitest frontend unit-test infrastructure + IPC mock layer, CI frontend unit-test step, and Rust coverage expansion for `bridge/event_loop`, `commands/bridge`, `commands/session`, `files/scanner`, `actions/manager`, and `bridge/permission`) with progress tracked in `docs/TESTING-MATRIX.md` under `GUIDE-003`.
 
 ---
 
@@ -179,12 +179,17 @@ chief-wiggum/
 │       └── global.css              # Base styles, resets
 │
 ├── docs/                           # Documentation (this folder)
+│   ├── TESTING-MATRIX.md           # Feature→coverage map (GUIDE-003)
+│   ├── guides/
+│   │   └── GUIDE-003-development-protocol.md # Planning→implementation→verification protocol
+│   └── ...
 ├── tests/                          # E2E and cross-platform tests
 ├── .github/                        # CI/CD workflows, templates
 ├── package.json
 ├── tsconfig.json
 ├── tailwind.config.ts
 ├── vite.config.ts                  # Vite for frontend bundling
+├── vitest.config.ts                # Frontend unit test runner config (CHI-147)
 └── CLAUDE.md                       # Agent instructions
 ```
 

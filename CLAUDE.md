@@ -115,6 +115,12 @@
 | CHI-100: GitHub Issue Templates    | **Done** | `.github/ISSUE_TEMPLATE/` bug report + feature request + config with diagnostic bundle guidance     |
 | CHI-144: StatusBar/Palette Actions | **Done** | Actions in CommandPalette, Cmd+Shift+R runner, StatusBar running count popover, lifecycle toasts    |
 | CHI-145: Custom Action Config      | **Done** | Inline ActionEditor, `.claude/actions.json` CRUD, argument templates, pin/customize discovered      |
+| CHI-147: Frontend Test Infrastructure | **Done** | Vitest + jsdom + solid-testing-library, IPC mock layer, test helpers, 4 store smoke test files (12 tests) |
+| CHI-148: Event Loop Tests          | **Done** | `bridge/event_loop.rs` payload serialization + mapping tests (12 Rust unit tests)                    |
+| CHI-149: Bridge IPC Command Tests  | **Done** | `commands/bridge.rs` validation + delegate flow tests (12 Rust unit tests)                           |
+| CHI-150: Actions System Tests      | **Done** | `actions/manager.rs` lifecycle/error-safe path tests (4 new Rust unit tests; 7 total in module)     |
+| CHI-151: Remaining IPC Command Tests | **Done** | `commands/session.rs` + `files/scanner.rs` test coverage additions (17 Rust unit tests total)      |
+| CHI-152: Permission Security Tests | **Done** | `bridge/permission.rs` security-edge tests (timeouts, YOLO toggles, resolution safety; 7 Rust tests) |
 
 ## Phase 1 Status
 
