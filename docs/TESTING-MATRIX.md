@@ -192,6 +192,11 @@
 | 150 | Actions System Tests | ⚠️ 4 | — | ❌ 0 | — | PARTIAL |
 | 151 | Remaining IPC Command Tests | ⚠️ 17 | — | ❌ 0 | — | PARTIAL |
 | 152 | Permission Security Tests 🔒 | ⚠️ 7 | ❌ 0 | ❌ 0 | — | PARTIAL |
+| 153 | Store Tests: session + conversation | — | ✅ 13 | — | — | COVERED |
+| 154 | Store Tests: file + context + action | — | ✅ 65 | — | — | COVERED |
+| 155 | Store Tests: ui + settings + i18n + toast | — | ✅ 24 | — | — | COVERED |
+| 156 | Component Tests: critical UI | — | ✅ 29 | — | — | COVERED |
+| 157 | Utility Tests: typewriter, scoring, keys, logger | — | ✅ 44 | — | — | COVERED |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -233,7 +238,7 @@
 |----------|---------------|---------|---------|-----|-----|
 | Phase 1 | 18 | 4 | 10 | 1 | 3 |
 | Phase 2 | 21 | 0 | 6 | 15 | 0 |
-| Phase 3 | 51 | 4 | 19 | 24 | 4 |
-| **Total** | **90** | **8 (9%)** | **35 (39%)** | **40 (44%)** | **7 (8%)** |
+| Phase 3 | 56 | 9 | 19 | 24 | 4 |
+| **Total** | **95** | **13 (14%)** | **35 (37%)** | **40 (42%)** | **7 (7%)** |
 
 **Target:** Move all GAP → PARTIAL within next sprint, all PARTIAL → COVERED within 2 sprints.
