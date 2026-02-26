@@ -2273,7 +2273,7 @@
       "status": "done",
       "linear_id": "92383110-f275-4d24-af3e-dfa9cae02049",
       "linear_url": "https://linear.app/chief-wiggum/issue/CHI-164/epic-quality-coverage-enhancement-90percent-line-coverage",
-      "notes": "All 12 subtasks complete. Tracks F, G, H implemented and verified. Track F (CHI-165..169) adds 36 Playwright E2E tests across 5 specs; Track G (CHI-170..174) adds 115 frontend unit tests across 22 component test files; Track H1 (CHI-175) adds 18 cross-store integration tests across 6 files; Track H2 (CHI-176) ramps the combined CI coverage gate from 60% to 75% and adds Vitest per-file store coverage floors. Remaining work for this branch is closure operations (docs/spec sync, Linear updates, push/merge/cleanup).",
+      "notes": "CHI-164 is complete. Tracks F, G, and H are implemented and verified: 36 Playwright E2E tests (CHI-165..169), 115 frontend unit tests across conversation/layout/settings/explorer/actions/terminal components (CHI-170..174), 18 cross-store integration tests (CHI-175), and CHI-176 CI coverage threshold ramp (combined gate 60% -> 75% with Vitest per-file store floors). See docs/TESTING-MATRIX.md for row-level status and current coverage summary.",
       "tasks": {
         "CHI-165": {
           "title": "E2E Slash Command Menu + Discovery",
@@ -2538,7 +2538,7 @@
           }
         }
       },
-      "critical_path": "Closure batch (docs/spec/handover consistency + Linear + push/merge/cleanup) -> next coverage-gap remediation / CHI-131/CHI-134",
+      "critical_path": "Next quality gap remediation (remaining GAP: CHI-78) + context intelligence follow-through (CHI-131/CHI-134) + future coverage gate ramp to 85%",
       "testing": {
         "rust_unit_tests": 0,
         "frontend_unit_tests": 115,
@@ -2551,11 +2551,11 @@
     }
   },
   "recommended_next": [
-    "CHI-164 closure",
     "CHI-131",
-    "CHI-134"
+    "CHI-134",
+    "CHI-78"
   ],
-  "critical_path": "CHI-164 implementation and verification are complete in this branch. Next immediate step is the closure batch (cross-artifact consistency check, Linear status/comments, push/merge to main, branch/worktree cleanup), then continue CHI-131/CHI-134.",
+  "critical_path": "CHI-164 is complete. Next priorities are CHI-131/CHI-134 (Context Intelligence follow-through) and remaining low-priority coverage gap remediation (CHI-78) before the next CI coverage threshold ramp toward 85%.",
   "ux_quick_wins": [
     "All originally scoped UX quick wins remain complete (CHI-78, CHI-82, CHI-83, CHI-130 follow-through) and are now protected by Playwright E2E plus Track C frontend unit-test coverage for key stores/components/utilities.",
     "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage follow-through shifts from Track E implementation to post-Track-E gap remediation and threshold ramping."
@@ -3742,6 +3742,28 @@
       "next_steps": [
         "Run closure batch: cross-artifact consistency pass, docs/spec finalization, Linear updates, push/merge to main, and branch/worktree cleanup."
       ]
+    },
+    "2026-02-26_chi164_remaining_closure": {
+      "description": "Closure batch for CHI-164 remaining coverage plan: reran the full validation suite, performed cross-artifact consistency fixes (handover, CLAUDE, SPEC-004, TASKS-003), and finalized CHI-164 completion metadata for merge.",
+      "changes": [
+        {
+          "task": "Closure consistency finalization for CHI-164",
+          "files_modified": [
+            ".claude/handover.json",
+            "CLAUDE.md",
+            "docs/specs/SPEC-004-architecture.md",
+            "docs/tasks/TASKS-003-quality-coverage-enhancement.md"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "Cross-artifact drift remained after Task 11: CLAUDE.md and SPEC-004 still described CHI-164 as partial/in-progress, and TASKS-003 still stated the CI threshold was stuck at 60%. Closure batch normalized these to the final CHI-164-complete state (TESTING-MATRIX row/status and summaries were already corrected in Task 11).",
+        "Generated coverage artifacts from npm run test:coverage can introduce noise in follow-up checks; coverage/ was removed after verification."
+      ],
+      "tests": "Closure verification rerun passed: cargo fmt --all -- --check, cargo check, cargo test, cargo clippy --all-targets -- -D warnings; npm run typecheck, npm run lint, npm run format:check, npm run build; npx vitest run (50/50), npx playwright test (106/106), npm run test:coverage (frontend lines 44.68%).",
+      "next_steps": [
+        "Linear status/comment updates for CHI-164 and CHI-166..176, then push/merge to main and remove the feature worktree/branch."
+      ]
     }
   },
   "warnings": [],
@@ -3752,7 +3774,7 @@
     "version": "1.0",
     "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
-  "notes": "Phase 1/2 epics and CHI-146 remain complete. CHI-164 epic implementation is now complete (CHI-165..176 all done) with final validation passing in this branch. Current validation snapshot: cargo fmt/clippy/test pass (282 Rust tests), full Vitest suite + coverage pass (50 files / 336 tests, frontend lines 44.68%), frontend typecheck/lint/format:check pass, and full Playwright suite passes (106/106). Repo-wide prettier --check . remains a known baseline issue outside the project script scope. Closure batch (docs/spec/Linear/push/merge/cleanup) remains pending.",
+  "notes": "Phase 1/2 epics, CHI-146, and CHI-164 are complete. The repository now includes expanded Playwright E2E coverage (106 tests passing in suite), frontend unit/integration coverage expansion (Vitest 50 files / 336 tests passing), and a 75% combined CI coverage gate with per-file store floors. Current TESTING-MATRIX totals after CHI-164 completion: 61 COVERED, 40 PARTIAL, 1 GAP, 0 PLANNED, 11 N/A. Repo-wide prettier --check . remains a known baseline issue outside the project script scope.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -3760,7 +3782,7 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. Task 11 final validation passed: cargo fmt --check + clippy -D warnings + cargo test (282), npx vitest run (50 files / 336 tests), npm run typecheck, npm run lint, npm run format:check, npx playwright test (106/106), and npm run test:coverage (frontend lines 44.68%). CHI-164 is marked done in handover; closure batch is the remaining step before merge."
+    "notes": "Full toolchain ready. CHI-164 closure verification passed: cargo fmt/check/test/clippy (282 Rust tests), npm build/typecheck/lint/format:check, full Vitest suite (50 files / 336 tests), full Playwright suite (106/106), and npm run test:coverage (frontend lines 44.68%)."
   },
   "metadata": {
     "last_updated": "2026-02-26"

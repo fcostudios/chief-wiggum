@@ -1,7 +1,7 @@
 # TASKS-003: Quality Coverage Enhancement (90%+ Line Coverage)
 
 **Created:** 2026-02-26
-**Epic:** CHI-164 (created in Linear)
+**Epic:** CHI-164 (Linear epic — completed 2026-02-26)
 **Parent Project:** Phase 2: Make It Real
 **Depends on:** CHI-146 (Test Coverage to 90%+ — DONE)
 
@@ -9,11 +9,11 @@
 
 ## Overview
 
-CHI-146 built the test foundation (555 tests, 60% CI gate). This epic closes the remaining gaps:
+CHI-146 built the test foundation (555 tests, 60% CI gate). This epic closed the remaining gaps (execution tracked in `docs/TESTING-MATRIX.md` and `.claude/handover.json`):
 - **37/43 components** at 0% unit coverage → frontend line coverage only 15.92%
 - **5 critical E2E flows** untested (slash commands, diff review, diagnostics export, etc.)
 - **8 integration paths** unvalidated (settings→theme, session→conversation, context→cost, etc.)
-- **CI threshold** stuck at 60% — needs ramp to 75%→85%→90%
+- **CI threshold** ramped to 75% via CHI-176; next ramps remain 85%→90%
 
 ---
 
