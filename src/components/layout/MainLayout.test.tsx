@@ -70,7 +70,8 @@ vi.mock('@/stores/uiStore', () => ({
       return mockViewBadges;
     },
   },
-  setActiveView: mockSetActiveView,
+  setActiveView: (...args: unknown[]) =>
+    (mockSetActiveView as unknown as (...inner: unknown[]) => unknown)(...args),
   dismissPermissionDialog: () => mockDismissPermissionDialog(),
   closeSessionSwitcher: () => mockCloseSessionSwitcher(),
 }));
@@ -81,7 +82,8 @@ vi.mock('@/stores/sessionStore', () => ({
       return mockSessionId;
     },
   },
-  createNewSession: mockCreateNewSession,
+  createNewSession: (...args: unknown[]) =>
+    (mockCreateNewSession as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/conversationStore', () => ({
@@ -90,8 +92,10 @@ vi.mock('@/stores/conversationStore', () => ({
       return mockIsLoading;
     },
   },
-  sendMessage: mockSendMessage,
-  recordPermissionOutcome: mockRecordPermissionOutcome,
+  sendMessage: (...args: unknown[]) =>
+    (mockSendMessage as unknown as (...inner: unknown[]) => unknown)(...args),
+  recordPermissionOutcome: (...args: unknown[]) =>
+    (mockRecordPermissionOutcome as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/cliStore', () => ({
@@ -111,7 +115,8 @@ vi.mock('@/stores/viewStore', () => ({
       return mockActivePaneId;
     },
   },
-  ensureMainPaneSession: mockEnsureMainPaneSession,
+  ensureMainPaneSession: (...args: unknown[]) =>
+    (mockEnsureMainPaneSession as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('./TitleBar', () => ({ default: () => <div data-testid="titlebar">TitleBar</div> }));

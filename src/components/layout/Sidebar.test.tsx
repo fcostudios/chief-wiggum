@@ -66,23 +66,34 @@ vi.mock('@/stores/sessionStore', () => ({
     },
   },
   loadSessions: () => mockLoadSessions(),
-  createNewSession: mockCreateNewSession,
-  setActiveSession: mockSetActiveSession,
-  deleteSession: mockDeleteSession,
-  toggleSessionPinned: mockToggleSessionPinned,
-  updateSessionTitle: mockUpdateSessionTitle,
-  duplicateSession: mockDuplicateSession,
-  sessionHasMessages: mockSessionHasMessages,
+  createNewSession: (...args: unknown[]) =>
+    (mockCreateNewSession as unknown as (...inner: unknown[]) => unknown)(...args),
+  setActiveSession: (...args: unknown[]) =>
+    (mockSetActiveSession as unknown as (...inner: unknown[]) => unknown)(...args),
+  deleteSession: (...args: unknown[]) =>
+    (mockDeleteSession as unknown as (...inner: unknown[]) => unknown)(...args),
+  toggleSessionPinned: (...args: unknown[]) =>
+    (mockToggleSessionPinned as unknown as (...inner: unknown[]) => unknown)(...args),
+  updateSessionTitle: (...args: unknown[]) =>
+    (mockUpdateSessionTitle as unknown as (...inner: unknown[]) => unknown)(...args),
+  duplicateSession: (...args: unknown[]) =>
+    (mockDuplicateSession as unknown as (...inner: unknown[]) => unknown)(...args),
+  sessionHasMessages: (...args: unknown[]) =>
+    (mockSessionHasMessages as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/conversationStore', () => ({
-  loadMessages: mockLoadMessages,
+  loadMessages: (...args: unknown[]) =>
+    (mockLoadMessages as unknown as (...inner: unknown[]) => unknown)(...args),
   clearMessages: () => mockClearMessages(),
-  switchSession: mockSwitchSession,
-  stopSessionCli: mockStopSessionCli,
+  switchSession: (...args: unknown[]) =>
+    (mockSwitchSession as unknown as (...inner: unknown[]) => unknown)(...args),
+  stopSessionCli: (...args: unknown[]) =>
+    (mockStopSessionCli as unknown as (...inner: unknown[]) => unknown)(...args),
   getSessionStatus: () => 'not_started',
   isSessionUnread: () => false,
-  clearSessionUnread: mockClearSessionUnread,
+  clearSessionUnread: (...args: unknown[]) =>
+    (mockClearSessionUnread as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
@@ -96,7 +107,8 @@ vi.mock('@/stores/projectStore', () => ({
   },
   loadProjects: () => mockLoadProjects(),
   pickAndCreateProject: () => mockPickAndCreateProject(),
-  setActiveProject: mockSetActiveProject,
+  setActiveProject: (...args: unknown[]) =>
+    (mockSetActiveProject as unknown as (...inner: unknown[]) => unknown)(...args),
   getActiveProject: () => mockProjects.find((p) => p.id === mockActiveProjectId) ?? null,
 }));
 
@@ -115,7 +127,8 @@ vi.mock('@/stores/actionStore', () => ({
       return mockActions;
     },
   },
-  discoverActions: mockDiscoverActions,
+  discoverActions: (...args: unknown[]) =>
+    (mockDiscoverActions as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/uiStore', () => ({
