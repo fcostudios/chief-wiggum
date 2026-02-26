@@ -231,3 +231,79 @@ jobs:
           name: coverage-frontend-lcov
           path: coverage/lcov.info
           retention-days: 7
+
+  # ── Coverage gate: merge, threshold, PR comment ─────────────
+  coverage-gate:
+    name: Coverage Gate
+    needs: [coverage-rust, coverage-frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Rust LCOV
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-rust-lcov
+          path: coverage-rust
+
+      - name: Download Frontend LCOV
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-frontend-lcov
+          path: coverage-frontend
+
+      - name: Run coverage gate
+        id: gate
+        run: |
+          chmod +x scripts/coverage-gate.sh
+          ./scripts/coverage-gate.sh \
+            coverage-rust/lcov.info \
+            coverage-frontend/lcov.info \
+            60
+        continue-on-error: true
+
+      - name: Post PR coverage comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          COMMENT_MARKER='<!-- coverage-report -->'
+
+          BODY="${COMMENT_MARKER}
+          $(cat coverage/summary.md)"
+
+          EXISTING=$(gh api \
+            "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq ".[] | select(.body | startswith(\"${COMMENT_MARKER}\")) | .id" \
+            2>/dev/null || true)
+
+          if [ -n "$EXISTING" ]; then
+            for id in $EXISTING; do
+              gh api -X DELETE \
+                "repos/${{ github.repository }}/issues/comments/${id}" \
+                2>/dev/null || true
+            done
+          fi
+
+          gh pr comment "$PR_NUMBER" --body "$BODY"
+
+      - name: Upload combined coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-combined
+          path: |
+            coverage/combined.info
+            coverage/summary.md
+          retention-days: 14
+
+      - name: Fail if below threshold
+        if: steps.gate.outcome == 'failure'
+        run: |
+          echo "::error::Coverage below threshold. See PR comment for details."
+          exit 1
