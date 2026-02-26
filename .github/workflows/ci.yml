@@ -164,3 +164,44 @@ jobs:
       - name: Fail job if E2E tests failed
         if: steps.e2e_tests.outcome == 'failure'
         run: exit 1
+
+  # ── Coverage: Rust (cargo-tarpaulin, Ubuntu only) ────────────
+  coverage-rust:
+    name: Coverage (Rust)
+    needs: [rust]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install cargo-tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Run Rust coverage
+        working-directory: src-tauri
+        run: |
+          cargo tarpaulin \
+            --out lcov \
+            --output-dir ../coverage \
+            --skip-clean \
+            --timeout 120 \
+            --exclude-files "src/main.rs" \
+            -- --test-threads=1
+
+      - name: Upload Rust LCOV
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-rust-lcov
+          path: coverage/lcov.info
+          retention-days: 7
