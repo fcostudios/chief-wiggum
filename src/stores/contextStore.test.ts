@@ -3,14 +3,18 @@ import { mockIpcCommand } from '@/test/mockIPC';
 import { setActiveProject } from './projectStore';
 import { clearMessages } from './conversationStore';
 import {
+  addImageAttachment,
   addFileReference,
   assembleContext,
   clearAttachments,
   contextState,
   getAttachmentCount,
+  getImageCount,
+  getImageTokenEstimate,
   getTotalEstimatedTokens,
   refreshSuggestions,
   removeAttachment,
+  removeImageAttachment,
   updateAttachmentRange,
 } from './contextStore';
 import type { FileReference } from '@/lib/types';
@@ -156,5 +160,40 @@ describe('contextStore', () => {
     addFileReference(makeRef());
     await refreshSuggestions();
     expect(contextState.suggestions).toEqual([]);
+  });
+
+  describe('image attachments', () => {
+    it('addImageAttachment stores image and returns id', () => {
+      const id = addImageAttachment('data:image/png;base64,abc', 'image/png', 1024, 200, 200);
+      expect(id).toBeTruthy();
+      expect(getImageCount()).toBe(1);
+      expect(contextState.images[0].file_name).toBe('paste-1.png');
+      expect(getImageTokenEstimate()).toBeGreaterThan(0);
+    });
+
+    it('rejects images over 5MB', () => {
+      const id = addImageAttachment('data:image/png;base64,abc', 'image/png', 6 * 1024 * 1024);
+      expect(id).toBeNull();
+      expect(getImageCount()).toBe(0);
+    });
+
+    it('removeImageAttachment removes image by id', () => {
+      const id = addImageAttachment('data:image/png;base64,abc', 'image/png', 1024, 100, 100);
+      expect(getImageCount()).toBe(1);
+      removeImageAttachment(id!);
+      expect(getImageCount()).toBe(0);
+    });
+
+    it('clearAttachments also clears images', () => {
+      addImageAttachment('data:image/png;base64,abc', 'image/png', 1024);
+      expect(getImageCount()).toBe(1);
+      clearAttachments();
+      expect(getImageCount()).toBe(0);
+    });
+
+    it('getTotalEstimatedTokens includes image tokens', () => {
+      addImageAttachment('data:image/png;base64,YWJj', 'image/png', 1024, 512, 512);
+      expect(getTotalEstimatedTokens()).toBeGreaterThan(0);
+    });
   });
 });
