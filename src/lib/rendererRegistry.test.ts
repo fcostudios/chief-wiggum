@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   clearRenderers,
+  findRenderer,
   getRenderer,
   hasRenderer,
   listRenderers,
@@ -90,5 +91,54 @@ describe('ContentDetector', () => {
     const entry = getRenderer('json-auto');
     expect(entry?.detect?.('', '{"key":"value"}')).toBe(true);
     expect(entry?.detect?.('', 'not json')).toBe(false);
+  });
+});
+
+describe('findRenderer', () => {
+  beforeEach(() => {
+    clearRenderers();
+  });
+
+  it('finds renderer by exact language match', () => {
+    const component = vi.fn();
+    registerRenderer('json', { component, label: 'JSON' });
+
+    const found = findRenderer('json', '{}');
+    expect(found).toBeDefined();
+    expect(found?.component).toBe(component);
+  });
+
+  it('returns undefined when no renderer matches', () => {
+    expect(findRenderer('python', 'print("hi")')).toBeUndefined();
+  });
+
+  it('falls back to detect() when exact language does not match', () => {
+    const component = vi.fn();
+    registerRenderer('json-auto', {
+      component,
+      label: 'JSON Auto',
+      detect: (_lang, code) => {
+        try {
+          JSON.parse(code);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    });
+
+    const found = findRenderer('', '{"key":"value"}');
+    expect(found).toBeDefined();
+    expect(found?.label).toBe('JSON Auto');
+  });
+
+  it('returns undefined when detect() is false for all entries', () => {
+    registerRenderer('never', {
+      component: vi.fn(),
+      label: 'Never',
+      detect: () => false,
+    });
+
+    expect(findRenderer('', 'not a match')).toBeUndefined();
   });
 });

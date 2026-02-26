@@ -46,11 +46,13 @@ vi.mock('@/stores/uiStore', () => ({
 }));
 
 import MarkdownContent from './MarkdownContent';
+import { clearRenderers, registerRenderer } from '@/lib/rendererRegistry';
 
 describe('MarkdownContent', () => {
   beforeEach(() => {
     mockClipboardWriteText.mockClear();
     mockSetActiveView.mockClear();
+    clearRenderers();
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: mockClipboardWriteText },
@@ -181,6 +183,45 @@ describe('MarkdownContent', () => {
       await waitFor(() => {
         expect(screen.getByTestId('code-context-menu')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('renderer registry hydration', () => {
+    it('renders a registered component in place of a matching code block', async () => {
+      registerRenderer('custom-test', {
+        label: 'Custom Test',
+        component: (rendererProps: { code: string; lang: string }) => (
+          <div data-testid="custom-renderer">
+            {rendererProps.lang}:{rendererProps.code}
+          </div>
+        ),
+      });
+
+      const { container } = render(() => (
+        <MarkdownContent content={'```custom-test\nhello world\n```'} />
+      ));
+
+      await waitFor(() => {
+        expect(container.querySelector('[data-testid="custom-renderer"]')).toBeTruthy();
+      });
+
+      expect(container.querySelector('pre')).toBeNull();
+      expect(container.querySelector('[data-testid="custom-renderer"]')?.textContent).toContain(
+        'hello world',
+      );
+    });
+
+    it('falls back to normal code block when no renderer is registered', async () => {
+      const { container } = render(() => (
+        <MarkdownContent content={'```python\nprint("hi")\n```'} />
+      ));
+
+      await waitFor(() => {
+        expect(container.querySelector('pre')).toBeTruthy();
+      });
+
+      expect(container.querySelector('[data-cw-renderer]')).toBeNull();
+      expect(container.querySelector('pre')).toBeTruthy();
     });
   });
 });
