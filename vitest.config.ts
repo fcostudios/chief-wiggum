@@ -27,8 +27,17 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: 'coverage',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/test/**', 'src/**/*.test.*', 'src/index.tsx'],
+      thresholds: {
+        // Baseline per-file floors for critical stores (CHI-176); ramp upward as coverage improves.
+        'src/stores/conversationStore.ts': { lines: 10 },
+        'src/stores/sessionStore.ts': { lines: 10 },
+        'src/stores/contextStore.ts': { lines: 80 },
+        'src/stores/slashStore.ts': { lines: 50 },
+        'src/stores/uiStore.ts': { lines: 20 },
+      },
     },
     testTransformMode: {
       web: [/\.[jt]sx?$/],

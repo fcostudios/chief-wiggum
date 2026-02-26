@@ -263,7 +263,7 @@ jobs:
           ./scripts/coverage-gate.sh \
             coverage-rust/lcov.info \
             coverage-frontend/lcov.info \
-            60
+            75
         continue-on-error: true
 
       - name: Post PR coverage comment

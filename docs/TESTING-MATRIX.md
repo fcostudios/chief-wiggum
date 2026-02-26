@@ -28,11 +28,11 @@ The threshold ramps up as test tracks are completed:
 | After Track E (CHI-163) + gaps filled | **85%** | Target steady-state coverage gate |
 | Stretch goal | **90%** | Once all gaps in TESTING-MATRIX are filled |
 
-**How to update the threshold:** Edit the `60` argument in `.github/workflows/ci.yml` → `coverage-gate` job → `Run coverage gate` step.
+**How to update the threshold:** Edit the threshold argument in `.github/workflows/ci.yml` → `coverage-gate` job → `Run coverage gate` step.
 
 **Security-critical modules** (`bridge/permission.rs`, `commands/bridge.rs` permission handlers) target **95%** line coverage individually, tracked in the matrix below.
 
-**Current CI threshold:** 60% (all tracks complete — recommend bumping to 75%)
+**Current CI threshold:** 75% (bumped from 60% after Track F/G/H completion)
 
 ## Status Summary
 
@@ -228,17 +228,17 @@ The threshold ramps up as test tracks are completed:
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
 | 165 | E2E Slash Command Menu | — | — | — | ✅ 8 | COVERED |
-| 166 | E2E Sidebar Session Actions | — | — | — | ❌ 0 | PLANNED |
-| 167 | E2E Settings Modal Interactions | — | — | — | ❌ 0 | PLANNED |
-| 168 | E2E Diff Review Pane | — | — | — | ❌ 0 | PLANNED |
-| 169 | E2E Diagnostics Export Dialog | — | — | — | ❌ 0 | PLANNED |
-| 170 | Component Tests: Conversation Rendering | — | ❌ 0 | — | — | PLANNED |
+| 166 | E2E Sidebar Session Actions | — | — | — | ✅ 8 | COVERED |
+| 167 | E2E Settings Modal Interactions | — | — | — | ✅ 8 | COVERED |
+| 168 | E2E Diff Review Pane | — | — | — | ✅ 6 | COVERED |
+| 169 | E2E Diagnostics Export Dialog | — | — | — | ✅ 6 | COVERED |
+| 170 | Component Tests: Conversation Rendering | — | ✅ 22 | — | — | COVERED |
 | 171 | Component Tests: Slash & Context UI | — | ✅ 26 | — | — | COVERED |
-| 172 | Component Tests: Layout Shell | — | ❌ 0 | — | — | PLANNED |
-| 173 | Component Tests: Settings & Onboarding | — | ❌ 0 | — | — | PLANNED |
-| 174 | Component Tests: Explorer & Actions | — | ❌ 0 | — | — | PLANNED |
-| 175 | Cross-Store Integration Tests | — | ❌ 0 | ❌ 0 | — | PLANNED |
-| 176 | CI Coverage Threshold Ramp | — | — | — | — | PLANNED |
+| 172 | Component Tests: Layout Shell | — | ✅ 25 | — | — | COVERED |
+| 173 | Component Tests: Settings & Onboarding | — | ✅ 20 | — | — | COVERED |
+| 174 | Component Tests: Explorer & Actions | — | ✅ 22 | — | — | COVERED |
+| 175 | Cross-Store Integration Tests | — | — | ✅ 18 | — | COVERED |
+| 176 | CI Coverage Threshold Ramp | — | — | — | — | N/A |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -281,13 +281,13 @@ The threshold ramps up as test tracks are completed:
 | Phase 1 | 18 | 10 | 4 | 0 | 0 | 4 |
 | Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
 | Phase 3 (CHI-146 & earlier) | 62 | 33 | 22 | 1 | 0 | 6 |
-| Phase 3 (CHI-164 epic) | 12 | 2 | 0 | 0 | 10 | 0 |
-| **Total** | **113** | **52 (46%)** | **40 (35%)** | **1 (1%)** | **10 (9%)** | **10 (9%)** |
+| Phase 3 (CHI-164 epic) | 12 | 5 | 0 | 0 | 6 | 1 |
+| **Total** | **113** | **55 (49%)** | **40 (35%)** | **1 (1%)** | **6 (5%)** | **11 (10%)** |
 
 **Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
 **Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
-**Current (after CHI-165/171):** 52 COVERED (46%), 40 PARTIAL (35%), 1 GAP (1%), 10 PLANNED (9%), 10 N/A (9%)
+**Current (after CHI-176):** 55 COVERED (49%), 40 PARTIAL (35%), 1 GAP (1%), 6 PLANNED (5%), 11 N/A (10%)
 
 **Remaining GAP:** CHI-78 (Context Menus) — pure UI feature, no store/backend logic, low priority.
 
-**Target:** Bump CI threshold from 60% → 75% (next via CHI-176). Measure actual line coverage with `cargo-tarpaulin` + `vitest --coverage` to validate.
+**Target:** CI threshold is now 75% (via CHI-176). Next ramp target is 85% after additional gap closure and combined coverage growth.
