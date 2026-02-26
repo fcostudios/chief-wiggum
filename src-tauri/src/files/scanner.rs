@@ -402,8 +402,9 @@ pub fn search_files(
             Ok(r) => r.to_string_lossy().to_string(),
             Err(_) => continue,
         };
+        let rel_path = rel_path.replace('\\', "/");
         let rel_lower = rel_path.to_lowercase();
-        let rel_lower_normalized = rel_lower.replace('\\', "/");
+        let rel_lower_normalized = rel_lower.clone();
 
         let score = if name_lower == query_lower {
             1.0
