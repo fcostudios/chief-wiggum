@@ -37,6 +37,7 @@ interface UIState {
   commandPaletteMode: CommandPaletteMode;
   sessionSwitcherVisible: boolean;
   keyboardHelpVisible: boolean;
+  messageSearchVisible: boolean;
 }
 
 /** Restore persisted permission tier from localStorage. */
@@ -77,6 +78,7 @@ const [state, setState] = createStore<UIState>({
   commandPaletteMode: 'all',
   sessionSwitcherVisible: false,
   keyboardHelpVisible: false,
+  messageSearchVisible: false,
 });
 
 // Sync persisted tier to backend on startup
@@ -264,6 +266,16 @@ export function closeSessionSwitcher() {
 /** Toggle the keyboard shortcuts help overlay (Cmd+/). */
 export function toggleKeyboardHelp() {
   setState('keyboardHelpVisible', (prev) => !prev);
+}
+
+/** Open in-session conversation search overlay (Cmd+F). */
+export function openMessageSearch() {
+  setState('messageSearchVisible', true);
+}
+
+/** Close in-session conversation search overlay. */
+export function closeMessageSearch() {
+  setState('messageSearchVisible', false);
 }
 
 /** Close the keyboard shortcuts help overlay. */

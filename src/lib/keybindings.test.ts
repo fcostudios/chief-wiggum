@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
       openCommandPalette: vi.fn(),
       openSessionSwitcher: vi.fn(),
       openSettings: vi.fn(),
+      openMessageSearch: vi.fn(),
       toggleContextBreakdown: vi.fn(),
       toggleKeyboardHelp: vi.fn(),
     },
@@ -133,6 +134,11 @@ describe('keybindings', () => {
   it('Cmd+, opens settings', () => {
     handleGlobalKeyDown(createKeyEvent('Comma'));
     expect(mocks.ui.openSettings).toHaveBeenCalled();
+  });
+
+  it('Cmd+F opens in-session message search', () => {
+    handleGlobalKeyDown(createKeyEvent('KeyF'));
+    expect(mocks.ui.openMessageSearch).toHaveBeenCalled();
   });
 
   it('Cmd+Shift+P opens session switcher', () => {

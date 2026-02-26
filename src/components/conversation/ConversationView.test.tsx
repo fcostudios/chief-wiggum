@@ -12,10 +12,12 @@ let mockActiveSessionId: string | null = 'session-1';
 let mockCliDetected = true;
 let mockActiveProjectId: string | null = null;
 let mockTypewriterRendered = '';
+let mockMessageSearchVisible = false;
 
 const mockSendMessage = vi.fn();
 const mockRetryLastMessage = vi.fn();
 const mockPickAndCreateProject = vi.fn(() => Promise.resolve());
+const mockCloseMessageSearch = vi.fn();
 
 vi.mock('@tanstack/solid-virtual', () => ({
   createVirtualizer: () => ({
@@ -86,6 +88,15 @@ vi.mock('@/stores/i18nStore', () => ({
   t: (key: string) => key,
 }));
 
+vi.mock('@/stores/uiStore', () => ({
+  uiState: {
+    get messageSearchVisible() {
+      return mockMessageSearchVisible;
+    },
+  },
+  closeMessageSearch: (...args: unknown[]) => mockCloseMessageSearch(...args),
+}));
+
 vi.mock('./MessageBubble', () => ({
   default: (props: { message: Message }) => (
     <div data-testid="message-bubble">{props.message.content}</div>
@@ -137,9 +148,11 @@ describe('ConversationView', () => {
     mockCliDetected = true;
     mockActiveProjectId = null;
     mockTypewriterRendered = '';
+    mockMessageSearchVisible = false;
     mockSendMessage.mockClear();
     mockRetryLastMessage.mockClear();
     mockPickAndCreateProject.mockClear();
+    mockCloseMessageSearch.mockClear();
     if (!HTMLElement.prototype.scrollTo) {
       Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
         configurable: true,

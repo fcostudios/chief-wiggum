@@ -15,6 +15,7 @@ import {
   openCommandPalette,
   openSessionSwitcher,
   openSettings,
+  openMessageSearch,
   toggleContextBreakdown,
   toggleKeyboardHelp,
   type ActiveView,
@@ -56,6 +57,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'Comma' && !e.shiftKey) {
     e.preventDefault();
     openSettings();
+    return;
+  }
+
+  // Cmd+F — open in-session message search
+  if (e.code === 'KeyF' && !e.shiftKey) {
+    e.preventDefault();
+    openMessageSearch();
     return;
   }
 
