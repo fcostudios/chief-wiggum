@@ -10,6 +10,8 @@ import {
   MessageSquare,
   FolderOpen,
   Pin,
+  Pencil,
+  Copy,
   FileCode,
   MoreHorizontal,
   Zap,
@@ -50,6 +52,7 @@ import { uiState } from '@/stores/uiStore';
 import { t } from '@/stores/i18nStore';
 import FileTree from '@/components/explorer/FileTree';
 import ActionsPanel from '@/components/actions/ActionsPanel';
+import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -831,6 +834,9 @@ const SessionItem: Component<{
   const [menuOpen, setMenuOpen] = createSignal(false);
   const [isRenaming, setIsRenaming] = createSignal(false);
   const [draftTitle, setDraftTitle] = createSignal('');
+  const [sessionContextPos, setSessionContextPos] = createSignal<{ x: number; y: number } | null>(
+    null,
+  );
 
   function currentTitle() {
     return props.session.title || t('sidebar.newSession');
@@ -863,15 +869,15 @@ const SessionItem: Component<{
     setIsRenaming(false);
   }
 
-  async function handleDuplicateClick(e: MouseEvent) {
-    e.stopPropagation();
+  async function handleDuplicateClick(e?: MouseEvent) {
+    e?.stopPropagation();
     const dup = await duplicateSession(props.session.id);
     setMenuOpen(false);
     props.onSelect(dup.id);
   }
 
-  async function handleDeleteRequest(e: MouseEvent) {
-    e.stopPropagation();
+  async function handleDeleteRequest(e?: MouseEvent) {
+    e?.stopPropagation();
     setMenuOpen(false);
 
     const hasMessages = await sessionHasMessages(props.session.id);
@@ -882,6 +888,37 @@ const SessionItem: Component<{
 
     await props.onDelete(props.session.id);
   }
+
+  const sessionContextItems = (): ContextMenuItem[] => [
+    {
+      label: t('sidebar.rename'),
+      icon: Pencil,
+      onClick: startRenaming,
+    },
+    {
+      label: props.session.pinned ? t('sidebar.unpin') : t('sidebar.pin'),
+      icon: Pin,
+      onClick: () => {
+        void toggleSessionPinned(props.session.id);
+      },
+    },
+    {
+      label: t('sidebar.duplicate'),
+      icon: Copy,
+      onClick: () => {
+        void handleDuplicateClick();
+      },
+    },
+    { separator: true, label: 'separator' },
+    {
+      label: t('common.delete'),
+      icon: Trash2,
+      danger: true,
+      onClick: () => {
+        void handleDeleteRequest();
+      },
+    },
+  ];
 
   function handleClickOutside(e: MouseEvent) {
     if (!menuOpen()) return;
@@ -939,6 +976,11 @@ const SessionItem: Component<{
         }
       }}
       onClick={() => props.onSelect(props.session.id)}
+      onContextMenu={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setSessionContextPos({ x: e.clientX, y: e.clientY });
+      }}
       role="button"
       tabindex="0"
       onKeyDown={(e) => {
@@ -1171,6 +1213,16 @@ const SessionItem: Component<{
           </div>
         </Show>
       </div>
+      <Show when={sessionContextPos()}>
+        {(pos) => (
+          <ContextMenu
+            items={sessionContextItems()}
+            x={pos().x}
+            y={pos().y}
+            onClose={() => setSessionContextPos(null)}
+          />
+        )}
+      </Show>
     </div>
   );
 };
