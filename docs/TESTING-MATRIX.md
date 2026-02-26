@@ -15,6 +15,23 @@
 | — | Not applicable for this layer |
 | 🔒 | Security-critical (95% target) |
 
+## Coverage Targets & Thresholds
+
+CI enforces a minimum combined (Rust + Frontend) line coverage threshold.
+The threshold ramps up as test tracks are completed:
+
+| Date | Threshold | Rationale |
+|------|-----------|-----------|
+| 2026-02-25 (initial) | **60%** | Baseline after Track A/B (CHI-147–152) |
+| After Track C (CHI-153–157) | **70%** | Frontend store + component + utility tests |
+| After Track D (CHI-158–162) | **75%** | E2E tests don't directly increase line coverage but validate integration |
+| After Track E (CHI-163) + gaps filled | **85%** | Target steady-state coverage gate |
+| Stretch goal | **90%** | Once all gaps in TESTING-MATRIX are filled |
+
+**How to update the threshold:** Edit the `60` argument in `.github/workflows/ci.yml` → `coverage-gate` job → `Run coverage gate` step.
+
+**Security-critical modules** (`bridge/permission.rs`, `commands/bridge.rs` permission handlers) target **95%** line coverage individually, tracked in the matrix below.
+
 ## Status Summary
 
 | Status | Count | Description |
