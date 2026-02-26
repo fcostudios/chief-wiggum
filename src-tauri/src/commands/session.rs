@@ -100,6 +100,15 @@ pub fn delete_messages_after(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn delete_single_message(
+    db: State<'_, Database>,
+    session_id: String,
+    message_id: String,
+) -> Result<(), AppError> {
+    queries::delete_single_message(&db, &session_id, &message_id)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn update_message_content(
     db: State<'_, Database>,
     message_id: String,
@@ -154,6 +163,18 @@ pub fn duplicate_session(
     queries::duplicate_session_metadata_only(&db, &session_id, &new_id)?;
     queries::get_session(&db, &new_id)?
         .ok_or_else(|| AppError::Other("Duplicated session not found".to_string()))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn fork_session(
+    db: State<'_, Database>,
+    session_id: String,
+    up_to_message_id: String,
+) -> Result<SessionRow, AppError> {
+    let new_id = uuid::Uuid::new_v4().to_string();
+    queries::fork_session_up_to(&db, &session_id, &new_id, &up_to_message_id)?;
+    queries::get_session(&db, &new_id)?
+        .ok_or_else(|| AppError::Other("Forked session not found".to_string()))
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -315,6 +336,32 @@ mod tests {
     }
 
     #[test]
+    fn delete_single_message_removes_target() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+
+        queries::insert_message(&db, "m1", "s1", "user", "First", None, None, None, None)
+            .expect("insert m1");
+        queries::insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "Second",
+            None,
+            None,
+            None,
+            None,
+        )
+        .expect("insert m2");
+
+        queries::delete_single_message(&db, "s1", "m2").expect("delete single message");
+        let messages = queries::list_messages(&db, "s1").expect("list messages");
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].id, "m1");
+    }
+
+    #[test]
     fn update_message_content_works() {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
@@ -378,6 +425,26 @@ mod tests {
         assert_ne!(copy.id, original.id);
         assert_eq!(copy.parent_session_id, Some("s1".to_string()));
         assert_eq!(copy.title, Some("Original Title (Copy)".to_string()));
+    }
+
+    #[test]
+    fn fork_session_copies_messages_up_to_point() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+        queries::insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None)
+            .expect("insert m1");
+        queries::insert_message(&db, "m2", "s1", "assistant", "Hi", None, None, None, None)
+            .expect("insert m2");
+        queries::insert_message(&db, "m3", "s1", "user", "More", None, None, None, None)
+            .expect("insert m3");
+
+        let new_id = uuid::Uuid::new_v4().to_string();
+        queries::fork_session_up_to(&db, "s1", &new_id, "m2").expect("fork session");
+        let forked_msgs = queries::list_messages(&db, &new_id).expect("forked messages");
+        assert_eq!(forked_msgs.len(), 2);
+
+        let orig_msgs = queries::list_messages(&db, "s1").expect("orig messages");
+        assert_eq!(orig_msgs.len(), 3);
     }
 
     #[test]

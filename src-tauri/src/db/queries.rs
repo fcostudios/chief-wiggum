@@ -369,6 +369,87 @@ pub fn delete_messages_after(
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn delete_single_message(
+    db: &Database,
+    session_id: &str,
+    message_id: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        let deleted = conn.execute(
+            "DELETE FROM messages WHERE id = ?1 AND session_id = ?2",
+            rusqlite::params![message_id, session_id],
+        )?;
+        if deleted == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn fork_session_up_to(
+    db: &Database,
+    source_session_id: &str,
+    new_session_id: &str,
+    up_to_message_id: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        let anchor_rowid: i64 = conn.query_row(
+            "SELECT rowid FROM messages WHERE id = ?1 AND session_id = ?2",
+            rusqlite::params![up_to_message_id, source_session_id],
+            |row| row.get(0),
+        )?;
+
+        let inserted = conn.execute(
+            r#"
+            INSERT INTO sessions (id, project_id, title, model, status, parent_session_id)
+            SELECT
+                ?2,
+                project_id,
+                CASE
+                    WHEN title IS NULL OR trim(title) = '' THEN 'New Session (Fork)'
+                    ELSE title || ' (Fork)'
+                END,
+                model,
+                'active',
+                id
+            FROM sessions
+            WHERE id = ?1
+            "#,
+            rusqlite::params![source_session_id, new_session_id],
+        )?;
+        if inserted == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+
+        conn.execute(
+            r#"
+            INSERT INTO messages (
+                id, session_id, role, content, model, input_tokens, output_tokens, cost_cents, is_compacted, created_at
+            )
+            SELECT
+                lower(hex(randomblob(16))),
+                ?2,
+                role,
+                content,
+                model,
+                input_tokens,
+                output_tokens,
+                cost_cents,
+                is_compacted,
+                created_at
+            FROM messages
+            WHERE session_id = ?1 AND rowid <= ?3
+            ORDER BY rowid ASC
+            "#,
+            rusqlite::params![source_session_id, new_session_id, anchor_rowid],
+        )?;
+
+        Ok(())
+    })
+}
+
 #[tracing::instrument(target = "db/queries", level = "info", skip(db, new_content))]
 pub fn update_message_content(
     db: &Database,
@@ -696,5 +777,105 @@ mod tests {
 
         insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
         assert_eq!(count_session_messages(&db, "s1").unwrap(), 1);
+    }
+
+    #[test]
+    fn delete_single_message_removes_only_target() {
+        let db = test_db();
+        insert_session(&db, "s1", None, "claude-sonnet-4-6").unwrap();
+        insert_message(&db, "m1", "s1", "user", "First", None, None, None, None).unwrap();
+        insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "Second",
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+        insert_message(&db, "m3", "s1", "user", "Third", None, None, None, None).unwrap();
+
+        delete_single_message(&db, "s1", "m2").unwrap();
+        let messages = list_messages(&db, "s1").unwrap();
+        assert_eq!(messages.len(), 2);
+        let ids: Vec<&str> = messages.iter().map(|m| m.id.as_str()).collect();
+        assert!(ids.contains(&"m1"));
+        assert!(ids.contains(&"m3"));
+        assert!(!ids.contains(&"m2"));
+    }
+
+    #[test]
+    fn delete_single_message_wrong_session_returns_error() {
+        let db = test_db();
+        insert_session(&db, "s1", None, "claude-sonnet-4-6").unwrap();
+        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+
+        let result = delete_single_message(&db, "wrong-session", "m1");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn fork_session_up_to_copies_messages_and_metadata() {
+        let db = test_db();
+        insert_project(&db, "proj1", "Project 1", "/tmp/proj1").unwrap();
+        insert_session(&db, "s1", Some("proj1"), "claude-sonnet-4-6").unwrap();
+        update_session_title(&db, "s1", "Original Session").unwrap();
+        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "Hi there",
+            Some("claude-sonnet-4-6"),
+            Some(100),
+            Some(50),
+            Some(5),
+        )
+        .unwrap();
+        insert_message(&db, "m3", "s1", "user", "Follow up", None, None, None, None).unwrap();
+        insert_message(
+            &db,
+            "m4",
+            "s1",
+            "assistant",
+            "More info",
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        let new_id = "s2";
+        fork_session_up_to(&db, "s1", new_id, "m2").unwrap();
+
+        let new_session = get_session(&db, new_id).unwrap().unwrap();
+        assert_eq!(new_session.project_id, Some("proj1".to_string()));
+        assert_eq!(new_session.parent_session_id, Some("s1".to_string()));
+        assert_eq!(
+            new_session.title,
+            Some("Original Session (Fork)".to_string())
+        );
+
+        let messages = list_messages(&db, new_id).unwrap();
+        assert_eq!(messages.len(), 2);
+        assert_eq!(messages[0].role, "user");
+        assert_eq!(messages[0].content, "Hello");
+        assert_eq!(messages[1].role, "assistant");
+        assert_eq!(messages[1].content, "Hi there");
+    }
+
+    #[test]
+    fn fork_session_up_to_bad_message_id_returns_error() {
+        let db = test_db();
+        insert_session(&db, "s1", None, "claude-sonnet-4-6").unwrap();
+        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+
+        let result = fork_session_up_to(&db, "s1", "s2", "nonexistent");
+        assert!(result.is_err());
     }
 }
