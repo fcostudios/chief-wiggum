@@ -4,10 +4,13 @@
 // Styles in src/styles/tokens.css under .markdown-content.
 
 import type { Component } from 'solid-js';
-import { createEffect, onCleanup } from 'solid-js';
+import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
+import { Copy, FileCode } from 'lucide-solid';
+import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
+import { addToast } from '@/stores/toastStore';
 
 // Configure marked with highlight.js integration
 const marked = new Marked(
@@ -28,10 +31,41 @@ interface MarkdownContentProps {
 
 const MarkdownContent: Component<MarkdownContentProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  const [codeMenuPos, setCodeMenuPos] = createSignal<{ x: number; y: number } | null>(null);
+  const [codeMenuTarget, setCodeMenuTarget] = createSignal<{ code: string; lang: string }>({
+    code: '',
+    lang: '',
+  });
 
   const html = () => marked.parse(props.content) as string;
 
-  // Post-process: add copy buttons to code blocks
+  function codeMenuItems(): ContextMenuItem[] {
+    const { code, lang } = codeMenuTarget();
+    return [
+      {
+        label: 'Copy code',
+        icon: Copy,
+        onClick: () => {
+          navigator.clipboard.writeText(code);
+          addToast('Copied to clipboard', 'success');
+        },
+      },
+      {
+        label: 'Copy as markdown',
+        icon: FileCode,
+        onClick: () => {
+          const withTrailingNewline = code.endsWith('\n') ? code : `${code}\n`;
+          const fence = lang
+            ? `\`\`\`${lang}\n${withTrailingNewline}\`\`\``
+            : `\`\`\`\n${withTrailingNewline}\`\`\``;
+          navigator.clipboard.writeText(fence);
+          addToast('Copied as markdown', 'success');
+        },
+      },
+    ];
+  }
+
+  // Post-process: add copy buttons + context menus to code blocks
   createEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _html = html(); // track reactive dependency
@@ -41,6 +75,11 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
     const rafId = requestAnimationFrame(() => {
       containerRef!.querySelectorAll('pre').forEach((pre) => {
         if (pre.querySelector('.copy-btn')) return; // already has button
+
+        const codeEl = pre.querySelector('code');
+        const code = codeEl?.textContent || '';
+        const langMatch = codeEl?.className.match(/language-([A-Za-z0-9_+-]+)/);
+        const lang = langMatch ? langMatch[1] : '';
 
         const copyIcon =
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
@@ -60,14 +99,35 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
           }, 2000);
         });
         pre.appendChild(btn);
+
+        pre.addEventListener('contextmenu', (e: MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setCodeMenuTarget({ code, lang });
+          setCodeMenuPos({ x: e.clientX, y: e.clientY });
+        });
       });
     });
 
     onCleanup(() => cancelAnimationFrame(rafId));
   });
 
-  // eslint-disable-next-line solid/no-innerhtml -- intentional: renders trusted markdown from marked
-  return <div ref={containerRef} class="markdown-content" innerHTML={html()} />;
+  return (
+    <>
+      {/* eslint-disable-next-line solid/no-innerhtml -- intentional: renders trusted markdown from marked */}
+      <div ref={containerRef} class="markdown-content" innerHTML={html()} />
+      <Show when={codeMenuPos()}>
+        {(pos) => (
+          <ContextMenu
+            items={codeMenuItems()}
+            x={pos().x}
+            y={pos().y}
+            onClose={() => setCodeMenuPos(null)}
+          />
+        )}
+      </Show>
+    </>
+  );
 };
 
 export default MarkdownContent;
