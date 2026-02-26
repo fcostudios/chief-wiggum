@@ -949,6 +949,7 @@ const SessionItem: Component<{
 
   return (
     <div
+      data-testid="session-item"
       class="group flex items-start gap-2 px-2 py-2 rounded-md cursor-pointer transition-all relative"
       style={{
         'transition-duration': 'var(--duration-fast)',

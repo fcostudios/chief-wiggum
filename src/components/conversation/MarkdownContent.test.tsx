@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
+import { For } from 'solid-js';
 
 const mockClipboardWriteText = vi.fn(() => Promise.resolve());
 
@@ -17,9 +18,8 @@ vi.mock('@/components/common/ContextMenu', () => ({
     onClose: () => void;
   }) => (
     <div data-testid="code-context-menu" role="menu">
-      {props.items
-        .filter((item) => !item.separator)
-        .map((item) => (
+      <For each={props.items.filter((item) => !item.separator)}>
+        {(item) => (
           <button
             role="menuitem"
             onClick={() => {
@@ -29,7 +29,8 @@ vi.mock('@/components/common/ContextMenu', () => ({
           >
             {item.label}
           </button>
-        ))}
+        )}
+      </For>
     </div>
   ),
 }));

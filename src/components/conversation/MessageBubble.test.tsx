@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
+import { For } from 'solid-js';
 import type { Message } from '@/lib/types';
 
 const mockAddToast = vi.fn();
@@ -21,9 +22,8 @@ vi.mock('@/components/common/ContextMenu', () => ({
     onClose: () => void;
   }) => (
     <div data-testid="context-menu" role="menu">
-      {props.items
-        .filter((item) => !item.separator)
-        .map((item) => (
+      <For each={props.items.filter((item) => !item.separator)}>
+        {(item) => (
           <button
             role="menuitem"
             disabled={item.disabled}
@@ -34,7 +34,8 @@ vi.mock('@/components/common/ContextMenu', () => ({
           >
             {item.label}
           </button>
-        ))}
+        )}
+      </For>
     </div>
   ),
 }));
@@ -185,7 +186,10 @@ describe('MessageBubble', () => {
 
     it('shows Edit and resend for user messages', () => {
       render(() => (
-        <MessageBubble message={makeMessage({ role: 'user', content: 'User msg' })} onEdit={vi.fn()} />
+        <MessageBubble
+          message={makeMessage({ role: 'user', content: 'User msg' })}
+          onEdit={vi.fn()}
+        />
       ));
       fireEvent.contextMenu(screen.getByText('User msg'));
       expect(screen.getByRole('menuitem', { name: 'Edit and resend' })).toBeInTheDocument();
