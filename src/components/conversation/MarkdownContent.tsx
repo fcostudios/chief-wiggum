@@ -5,11 +5,18 @@
 
 import type { Component } from 'solid-js';
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { render as solidRender } from 'solid-js/web';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import { Copy, FileCode, Terminal } from 'lucide-solid';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
+import {
+  RENDERER_ATTR,
+  RENDERER_CODE_ATTR,
+  RENDERER_LANG_ATTR,
+  findRenderer,
+} from '@/lib/rendererRegistry';
 import { addToast } from '@/stores/toastStore';
 import { setActiveView } from '@/stores/uiStore';
 
@@ -26,12 +33,51 @@ const marked = new Marked(
   }),
 );
 
+function encodeRendererCode(code: string): string {
+  const bytes = new TextEncoder().encode(code);
+  let binary = '';
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
+function decodeRendererCode(encoded: string): string {
+  try {
+    const binary = atob(encoded);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return encoded;
+  }
+}
+
+marked.use({
+  renderer: {
+    code(token) {
+      const language = token.lang || '';
+      const code = token.text;
+      const entry = findRenderer(language, code);
+      if (!entry) return false;
+
+      const encoded = encodeRendererCode(code);
+      const rendererType = language || entry.label;
+
+      return `<div ${RENDERER_ATTR}="${rendererType}" ${RENDERER_CODE_ATTR}="${encoded}" ${RENDERER_LANG_ATTR}="${language}" class="cw-renderer-placeholder"></div>`;
+    },
+  },
+});
+
 interface MarkdownContentProps {
   content: string;
 }
 
 const MarkdownContent: Component<MarkdownContentProps> = (props) => {
   let containerRef: HTMLDivElement | undefined;
+  const rendererDisposers: Array<() => void> = [];
   const [codeMenuPos, setCodeMenuPos] = createSignal<{ x: number; y: number } | null>(null);
   const [codeMenuTarget, setCodeMenuTarget] = createSignal<{ code: string; lang: string }>({
     code: '',
@@ -94,6 +140,11 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
     const _html = html(); // track reactive dependency
     if (!containerRef) return;
 
+    for (const dispose of rendererDisposers) {
+      dispose();
+    }
+    rendererDisposers.length = 0;
+
     // Use requestAnimationFrame to ensure DOM is updated
     const rafId = requestAnimationFrame(() => {
       containerRef!.querySelectorAll('pre').forEach((pre) => {
@@ -139,9 +190,27 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
           openCodeContextMenu(pre as HTMLElement, { code, lang });
         });
       });
+
+      containerRef!.querySelectorAll<HTMLElement>(`[${RENDERER_ATTR}]`).forEach((placeholder) => {
+        const encodedCode = placeholder.getAttribute(RENDERER_CODE_ATTR) || '';
+        const lang = placeholder.getAttribute(RENDERER_LANG_ATTR) || '';
+        const code = decodeRendererCode(encodedCode);
+        const entry = findRenderer(lang, code);
+        if (!entry) return;
+
+        const RendererComponent = entry.component;
+        const dispose = solidRender(() => <RendererComponent code={code} lang={lang} />, placeholder);
+        rendererDisposers.push(dispose);
+      });
     });
 
-    onCleanup(() => cancelAnimationFrame(rafId));
+    onCleanup(() => {
+      cancelAnimationFrame(rafId);
+      for (const dispose of rendererDisposers) {
+        dispose();
+      }
+      rendererDisposers.length = 0;
+    });
   });
 
   return (
