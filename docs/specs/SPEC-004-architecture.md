@@ -1,8 +1,8 @@
 # SPEC-004: Architecture Deep Dive
 
-**Version:** 3.2
-**Date:** 2026-02-25
-**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing + Theme/Onboarding/E2E follow-through + Test Infrastructure/Coverage Program foundations + Frontend Unit Coverage Track C
+**Version:** 3.3
+**Date:** 2026-02-26
+**Status:** Draft — Updated for Phase 2 + Agent SDK + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/i18n + Conversation Virtualization + Project Actions + Context Suggestions + Message Editing + Theme/Onboarding/E2E follow-through + Test Infrastructure/Coverage Program foundations + Frontend Unit Coverage Track C + Playwright E2E Coverage Track D
 **Parent:** SPEC-001 (Sections 4, 8, 9), ADR-001
 **Audience:** Backend developers, coding agents implementing Rust/SolidJS code
 
@@ -12,7 +12,7 @@
 
 This document specifies the internal module decomposition, IPC contracts, data flow patterns, and error handling strategies for Chief Wiggum. A coding agent implementing any feature should reference this spec to understand how modules communicate and where new code belongs.
 
-**Implementation status (2026-02-25):** Recent architecture follow-through now implemented includes CHI-81 onboarding persistence in the settings schema/IPC (`settings.onboarding.completed`), CHI-130 frontend theme system propagation (including reactive terminal theming), CHI-27 Playwright E2E infrastructure + CI integration (browser-safe TitleBar behavior in non-Tauri runtime, CI failure artifact reporter wiring), CHI-146 Track A/B foundation work (Vitest frontend unit-test infrastructure + IPC mock layer, CI frontend unit-test step, and Rust coverage expansion for `bridge/event_loop`, `commands/bridge`, `commands/session`, `files/scanner`, `actions/manager`, and `bridge/permission`), and CHI-146 Track C frontend unit-test expansion across stores/components/utilities (`conversationStore`, `ContextChip`, `CommandPalette`, `MessageInput` helpers, `logger`, plus additional store coverage). This test work also surfaced and fixed two frontend regressions (`contextStore` score-map stale merge behavior and `MessageInput` line-range mention parsing) with progress tracked in `docs/TESTING-MATRIX.md` under `GUIDE-003`.
+**Implementation status (2026-02-26):** Recent architecture follow-through now implemented includes CHI-81 onboarding persistence in the settings schema/IPC (`settings.onboarding.completed`), CHI-130 frontend theme system propagation (including reactive terminal theming), CHI-27 Playwright E2E infrastructure + CI integration (browser-safe TitleBar behavior in non-Tauri runtime, CI failure artifact reporter wiring), CHI-146 Track A/B foundation work (Vitest frontend unit-test infrastructure + IPC mock layer, CI frontend unit-test step, and Rust coverage expansion for `bridge/event_loop`, `commands/bridge`, `commands/session`, `files/scanner`, `actions/manager`, and `bridge/permission`), CHI-146 Track C frontend unit-test expansion across stores/components/utilities (`conversationStore`, `ContextChip`, `CommandPalette`, `MessageInput` helpers, `logger`, plus additional store coverage), and CHI-146 Track D Playwright E2E expansion across explorer, actions, settings/theme/i18n, permission/YOLO/developer mode, and split-pane/session/onboarding flows (70 total browser-mode Playwright tests in the suite after Track D). This test work surfaced and fixed test/runtime integration issues via test-only stabilization (e.g., browser-mode onboarding overlay interference in settings E2E and selector collisions for duplicated status/title-bar badges), with progress tracked in `docs/TESTING-MATRIX.md` under `GUIDE-003`.
 
 ---
 

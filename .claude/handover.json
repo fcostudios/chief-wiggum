@@ -2127,33 +2127,118 @@
         },
         "CHI-158": {
           "title": "E2E: File Explorer + @-Mention",
-          "status": "todo",
+          "status": "done",
           "priority": "high",
-          "track": "D1"
+          "track": "D1",
+          "notes": "Completed Track D1 browser-mode Playwright coverage for file explorer and @-mention workflows. Added file tree, file preview, @-mention, and context chip suites with resilient selectors/fallbacks for no-project and no-backend states.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 10,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "tests/e2e/explorer/file-tree.spec.ts",
+              "tests/e2e/explorer/file-preview.spec.ts",
+              "tests/e2e/explorer/at-mention.spec.ts",
+              "tests/e2e/explorer/context-chips.spec.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-159": {
           "title": "E2E: Actions Discovery + Run",
-          "status": "todo",
+          "status": "done",
           "priority": "high",
-          "track": "D2"
+          "track": "D2",
+          "notes": "Completed Track D2 Playwright coverage for project actions discovery/run/custom actions and command-palette actions access. Tests are browser-mode safe and tolerate missing backend/project state while still validating UI behavior.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 9,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "tests/e2e/actions/actions-discovery.spec.ts",
+              "tests/e2e/actions/actions-run.spec.ts",
+              "tests/e2e/actions/actions-custom.spec.ts",
+              "tests/e2e/actions/actions-palette.spec.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-160": {
           "title": "E2E: Settings + Theme + i18n",
-          "status": "todo",
+          "status": "done",
           "priority": "medium",
-          "track": "D3"
+          "track": "D3",
+          "notes": "Completed Track D3 Playwright coverage for settings open/close, theme, locale, and persistence flows. Added a test-only onboarding dismissal helper in settings specs to avoid browser-mode IPC save/load failures re-triggering onboarding and intercepting clicks; no compiled app code changes were needed.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 8,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "tests/e2e/settings/settings-open.spec.ts",
+              "tests/e2e/settings/settings-theme.spec.ts",
+              "tests/e2e/settings/settings-locale.spec.ts",
+              "tests/e2e/settings/settings-persistence.spec.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-161": {
           "title": "E2E: Permissions + YOLO + DevMode \ud83d\udd12",
-          "status": "todo",
+          "status": "done",
           "priority": "high",
-          "track": "D4"
+          "track": "D4",
+          "notes": "Completed Track D4 Playwright E2E coverage for permission-related UI flows. Added environment-tolerant permission dialog structure checks, comprehensive YOLO mode enable/cancel/Escape flows, and developer mode toggle coverage via keyboard shortcut and settings. YOLO/DEV badge assertions were scoped to the title bar to avoid strict-selector collisions with status-bar indicators.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 8,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "tests/e2e/permissions/yolo-mode.spec.ts",
+              "tests/e2e/permissions/permission-dialog.spec.ts",
+              "tests/e2e/permissions/yolo-mode-flow.spec.ts",
+              "tests/e2e/permissions/developer-mode.spec.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-162": {
           "title": "E2E: Split Panes + Sessions + Onboarding",
-          "status": "todo",
+          "status": "done",
           "priority": "medium",
-          "track": "D5"
+          "track": "D5",
+          "notes": "Completed Track D5 Playwright E2E coverage for split panes, session lifecycle UI, onboarding flow, and parallel-session indicators/quick-switcher. Tests are browser-mode safe and gracefully skip session-dependent assertions when the Tauri DB backend is unavailable in Vite E2E runs. The onboarding skip assertion was tightened to check onboarding controls/dialog disappearance instead of broad page text matches.",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 0,
+            "integration_tests": 0,
+            "e2e_tests": 11,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 0,
+            "test_files": [
+              "tests/e2e/integration/split-pane.spec.ts",
+              "tests/e2e/integration/session-lifecycle.spec.ts",
+              "tests/e2e/integration/onboarding.spec.ts",
+              "tests/e2e/integration/parallel-sessions.spec.ts"
+            ],
+            "regression_verified": true
+          }
         },
         "CHI-163": {
           "title": "CI Coverage Gates & Reporting",
@@ -2162,24 +2247,20 @@
           "track": "E"
         }
       },
-      "critical_path": "CHI-158/159/160/161/162 -> CHI-163",
-      "estimated_total_tests": "~200 new tests (75 Rust, 85 frontend unit, 40 E2E)"
+      "critical_path": "CHI-163",
+      "estimated_total_tests": "~200 new tests (75 Rust, 85 frontend unit, 40 E2E)",
+      "notes": "Tracks A-D (CHI-147..CHI-162) are complete with unit/integration/Playwright coverage recorded in TESTING-MATRIX.md and handover testing metadata. Track E (CHI-163) remains pending before CHI-146 can be closed."
     }
   },
   "recommended_next": [
-    "CHI-158",
-    "CHI-159",
-    "CHI-160",
-    "CHI-161",
-    "CHI-162",
     "CHI-163",
     "CHI-131",
     "CHI-134"
   ],
-  "critical_path": "CHI-146 (Test Coverage 90%+ epic) remains the primary work track, and Tracks A-C (CHI-147..CHI-157) are now complete. Critical path shifts to CHI-158/159/160/161/162 (remaining E2E coverage tracks) -> CHI-163 (CI coverage gates/reporting). CHI-121 context intelligence follow-up (CHI-131, CHI-134) remains secondary work.",
+  "critical_path": "CHI-146 (Test Coverage 90%+ epic) remains the primary work track, and Tracks A-D (CHI-147..CHI-162) are now complete. Critical path shifts to CHI-163 (CI coverage gates/reporting) for Track E completion. CHI-121 context intelligence follow-up (CHI-131, CHI-134) remains secondary work.",
   "ux_quick_wins": [
     "All originally scoped UX quick wins remain complete (CHI-78, CHI-82, CHI-83, CHI-130 follow-through) and are now protected by Playwright E2E plus Track C frontend unit-test coverage for key stores/components/utilities.",
-    "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage work should continue with remaining E2E tracks (CHI-158..CHI-162) and CI coverage gates/reporting (CHI-163)."
+    "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage work should continue with Track E (CHI-163) CI coverage gates/reporting."
   ],
   "spec_updates": {
     "completed_at": "2026-02-25T21:12:32Z",
@@ -2890,6 +2971,133 @@
       ],
       "tests": "Closure verification sweep passed in feature worktree: npm run format:check, npm run typecheck, npm run lint, npm run build, npm run test:unit (Vitest 22 files / 203 tests), cargo fmt --all -- --check, cargo check, cargo test (282 passed), cargo clippy -- -D warnings. Post-closure coverage run on main is planned per user request.",
       "verified": "All plan tasks 1-6 are complete and refined CHI-146 Track C is fully done (CHI-153..CHI-157). CHI-146 epic remains in progress with Tracks D/E (CHI-158..CHI-163) pending; TESTING-MATRIX is updated and ready for post-closure coverage/result verification."
+    },
+    "2026-02-25_chi158_chi162_batch1": {
+      "description": "Batch 1 for the CHI-158..162 E2E Track D plan: completed Tasks 1-3 (File Explorer/@-mention, Actions discovery/run, Settings/theme/i18n) with browser-mode Playwright suites and stabilized the settings tests by dismissing onboarding overlays after IPC load failures in browser-mode runs.",
+      "changes": [
+        {
+          "task": "Task 1 CHI-158 E2E suites for file explorer, preview, @-mention, and context chips",
+          "files_modified": [
+            "tests/e2e/explorer/file-tree.spec.ts",
+            "tests/e2e/explorer/file-preview.spec.ts",
+            "tests/e2e/explorer/at-mention.spec.ts",
+            "tests/e2e/explorer/context-chips.spec.ts"
+          ]
+        },
+        {
+          "task": "Task 2 CHI-159 E2E suites for actions discovery/run/custom actions and palette integration",
+          "files_modified": [
+            "tests/e2e/actions/actions-discovery.spec.ts",
+            "tests/e2e/actions/actions-run.spec.ts",
+            "tests/e2e/actions/actions-custom.spec.ts",
+            "tests/e2e/actions/actions-palette.spec.ts"
+          ]
+        },
+        {
+          "task": "Task 3 CHI-160 E2E suites for settings open/theme/locale/persistence plus browser-mode onboarding-dismiss helper in tests",
+          "files_modified": [
+            "tests/e2e/settings/settings-open.spec.ts",
+            "tests/e2e/settings/settings-theme.spec.ts",
+            "tests/e2e/settings/settings-locale.spec.ts",
+            "tests/e2e/settings/settings-persistence.spec.ts"
+          ]
+        },
+        {
+          "task": "Refined handover checkpoint sync for CHI-158/159/160 testing metadata",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "CHI-160 locale/settings test initially failed in browser-mode because settings IPC load fallback reset onboarding.completed to false and re-opened the onboarding overlay, intercepting category clicks. Resolved with a test-only dismissOnboardingIfVisible() helper in the settings spec files instead of modifying compiled app code."
+      ],
+      "tests": "Task 1: npx playwright test tests/e2e/explorer/ (10 passed). Task 2: npx playwright test tests/e2e/actions/ (9 passed). Task 3: npx playwright test tests/e2e/settings/ (8 passed after onboarding-overlay test fix). Batch checks: npx tsc --noEmit && npx eslint . and npm run format:check passed.",
+      "verified": "Batch 1 Tasks 1-3 are complete. Refined CHI-146 Track D progress: CHI-158, CHI-159, and CHI-160 are done; CHI-161 and CHI-162 remain pending for later batches."
+    },
+    "2026-02-25_chi158_chi162_batch2": {
+      "description": "Batch 2 for the CHI-158..162 E2E Track D plan: completed Tasks 4-5 (permission/YOLO/developer-mode flows and split-pane/session-lifecycle/onboarding/parallel-session flows) with Playwright specs only, avoiding compiled-app changes and stabilizing selectors/assertions for browser-mode runs.",
+      "changes": [
+        {
+          "task": "Task 4 CHI-161 permission, YOLO mode, and developer mode E2E suites",
+          "files_modified": [
+            "tests/e2e/permissions/permission-dialog.spec.ts",
+            "tests/e2e/permissions/yolo-mode-flow.spec.ts",
+            "tests/e2e/permissions/developer-mode.spec.ts"
+          ]
+        },
+        {
+          "task": "Task 5 CHI-162 split-pane, session lifecycle, onboarding, and parallel sessions E2E suites",
+          "files_modified": [
+            "tests/e2e/integration/split-pane.spec.ts",
+            "tests/e2e/integration/session-lifecycle.spec.ts",
+            "tests/e2e/integration/onboarding.spec.ts",
+            "tests/e2e/integration/parallel-sessions.spec.ts"
+          ]
+        },
+        {
+          "task": "Refined handover checkpoint sync for CHI-161 and CHI-162 testing metadata",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "CHI-161 initial YOLO/DEV badge assertions used broad text selectors and failed strict mode because the same labels also appear in the status bar. Fixed by scoping badge checks to the title bar (role=\"banner\").",
+        "CHI-162 onboarding skip assertion initially matched unrelated page text (e.g., project/open labels) after dismissal. Fixed by asserting onboarding controls/dialog disappearance instead of broad text absence."
+      ],
+      "tests": "Task 4: npx playwright test tests/e2e/permissions/ (8 passed, includes existing yolo-mode.spec.ts). Task 5: npx playwright test tests/e2e/integration/ (17 passed, including existing integration specs plus the new CHI-162 tests). Batch checks: npx tsc --noEmit && npx eslint . and npm run format:check passed.",
+      "verified": "Batch 2 Tasks 4-5 are complete. Refined CHI-146 Track D progress is now complete for issue tasks CHI-158, CHI-159, CHI-160, CHI-161, and CHI-162; plan Task 6 (full E2E sweep and final verification) remains for the next batch/closure step."
+    },
+    "2026-02-25_chi158_chi162_batch3": {
+      "description": "Batch 3 / Task 6 final verification for the CHI-158..162 E2E Track D plan: ran the full Playwright suite, verified test discovery/list count and TypeScript compile health, and updated TESTING-MATRIX to record Track D coverage completion under CHI-146.",
+      "changes": [
+        {
+          "task": "Task 6 final verification and CI-facing confirmation (Playwright full run + --list + tsc)",
+          "files_modified": []
+        },
+        {
+          "task": "Testing matrix sync for CHI-158..162 and summary totals",
+          "files_modified": [
+            "docs/TESTING-MATRIX.md"
+          ]
+        },
+        {
+          "task": "Refined handover verification checkpoint for Track D Task 6",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "No new blockers in Task 6. Full suite ran green after the earlier Batch 1/2 test-only fixes (settings onboarding dismiss helper, title-bar badge selector scoping, and onboarding skip assertion tightening)."
+      ],
+      "tests": "Task 6 verification passed: npx playwright test --list (70 tests in 30 files), npx tsc --noEmit, and npx playwright test (70 passed).",
+      "verified": "All plan tasks 1-6 are complete for Track D. Refined CHI-146 tasks CHI-158, CHI-159, CHI-160, CHI-161, and CHI-162 are done with testing metadata recorded. Track D is ready for closure batch (docs/spec/handover/Linear/push/merge)."
+    },
+    "2026-02-26_chi158_chi162_closure": {
+      "description": "Closure batch for CHI-158/159/160/161/162 (CHI-146 Track D): completed full closure verification, finalized docs/spec/handover updates, synced TESTING-MATRIX coverage rows/summaries, and prepared the branch for merge/cleanup with Track D marked complete in the refined handover flow.",
+      "changes": [
+        {
+          "task": "Closure docs/spec updates for Track D E2E coverage completion",
+          "files_modified": [
+            "CLAUDE.md",
+            "docs/specs/SPEC-004-architecture.md",
+            "docs/TESTING-MATRIX.md"
+          ]
+        },
+        {
+          "task": "Refined handover closure checkpoint and next-path summary refresh",
+          "files_modified": [
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "No new blockers in closure. Final verification remained green after the earlier test-only stabilizations for settings onboarding overlay interference and duplicate YOLO/DEV badge selectors in E2E assertions."
+      ],
+      "tests": "Closure verification sweep passed in feature worktree: npm run format:check, npm run typecheck, npm run lint, npm run build, npx playwright test (70 passed), cargo fmt --all -- --check, cargo check, cargo test (282 passed), cargo clippy -- -D warnings. Task 6 verification also confirmed npx playwright test --list reports 70 tests in 30 files.",
+      "verified": "All plan tasks 1-6 are complete and refined CHI-146 Track D is fully done (CHI-158..CHI-162). CHI-146 epic remains in progress with Track E (CHI-163) pending."
     }
   },
   "warnings": [],
@@ -2908,9 +3116,9 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. Current closure snapshot: frontend unit tests pass (Vitest 22 files/203 tests + coverage run: Stmts 13.70%, Branch 13.25%, Funcs 10.71%, Lines 15.92%), frontend format/typecheck/lint/build pass, Playwright E2E suite passes (25 tests), cargo fmt --check pass, cargo test --lib pass (282 Rust tests), cargo clippy -- -D warnings pass. GUIDE-003 protocol and docs/TESTING-MATRIX.md are active for feature verification. Primary remaining tracked follow-ups are CHI-146 coverage tracks D/E (CHI-158..CHI-163) and CHI-121 (CHI-131, CHI-134)."
+    "notes": "Full toolchain ready. Current closure snapshot: frontend format/typecheck/lint/build pass, Playwright E2E suite passes (70 tests), cargo fmt --check pass, cargo check pass, cargo test pass (282 Rust tests), cargo clippy -- -D warnings pass. GUIDE-003 protocol and docs/TESTING-MATRIX.md are active for coverage tracking. Primary remaining tracked follow-ups are CHI-146 Track E (CHI-163) and CHI-121 (CHI-131, CHI-134)."
   },
   "metadata": {
-    "last_updated": "2026-02-25T21:12:32Z"
+    "last_updated": "2026-02-26T13:41:17Z"
   }
 }

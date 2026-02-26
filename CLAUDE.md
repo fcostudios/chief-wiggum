@@ -1,7 +1,7 @@
 # Chief Wiggum — Agent Instructions
 
 > **Read this file first.** It is the auto-briefing for any Claude Code session.
-> Updated: 2026-02-25
+> Updated: 2026-02-26
 
 ---
 
@@ -126,6 +126,11 @@
 | CHI-155: Store Tests (UI + Settings + i18n + Toast) | **Done** | `ui/settings/i18n/toast` plus view/diagnostics/diffReview store unit coverage (50 tests)        |
 | CHI-156: Critical Component Tests | **Done** | `ContextChip`, `CommandPalette`, and `MessageInput` helper coverage (29 frontend unit tests)         |
 | CHI-157: Utility Tests            | **Done** | `typewriterBuffer`, `contextScoring`, `keybindings`, and `logger` unit coverage (44 frontend tests) |
+| CHI-158: E2E File Explorer + @-Mention | **Done** | Playwright explorer/context flows (`file-tree`, `file-preview`, `@`-mention, context chips) — 10 tests |
+| CHI-159: E2E Actions Discovery + Run | **Done** | Playwright actions discovery/run/custom/palette flows — 9 tests                                  |
+| CHI-160: E2E Settings + Theme + i18n | **Done** | Playwright settings open/theme/locale/persistence flows (test-only onboarding dismiss helper) — 8 tests |
+| CHI-161: E2E Permissions + YOLO + DevMode | **Done** | Playwright permission/YOLO/developer-mode flows — 8 tests (includes existing YOLO warning test) |
+| CHI-162: E2E Split Panes + Sessions + Onboarding | **Done** | Playwright split-pane/session lifecycle/onboarding/parallel-session UI flows — 11 tests         |
 
 ## Phase 1 Status
 
@@ -193,7 +198,7 @@
 
 ### Parallel: E2E Testing (Epic CHI-27) — DONE
 
-Playwright E2E infrastructure and CI integration are implemented. The browser-mode suite currently covers layout, conversation, permissions, terminal/model selector, and keyboard/session-flow integration paths (25 passing tests), plus CI artifact capture through a custom failure reporter.
+Playwright E2E infrastructure and CI integration are implemented. The browser-mode suite now covers layout, conversation, explorer/@-mention/context flows, actions, settings/theme/i18n, permissions/YOLO/developer mode, split panes/session lifecycle/onboarding/parallel-session UI, and terminal/model selector paths (70 passing tests), plus CI artifact capture through a custom failure reporter.
 
 | Task   | Priority | Status   | What to test                                                                  |
 | ------ | -------- | -------- | ----------------------------------------------------------------------------- |
