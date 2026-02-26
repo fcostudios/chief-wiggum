@@ -32,6 +32,8 @@ The threshold ramps up as test tracks are completed:
 
 **Security-critical modules** (`bridge/permission.rs`, `commands/bridge.rs` permission handlers) target **95%** line coverage individually, tracked in the matrix below.
 
+**Current CI threshold:** 60% (all tracks complete — recommend bumping to 75%)
+
 ## Status Summary
 
 | Status | Count | Description |
@@ -50,7 +52,7 @@ The threshold ramps up as test tracks are completed:
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
 | 8 | Scaffold Tauri v2 | ✅ 3 | — | — | ✅ 1 | COVERED |
-| 9 | SolidJS + TailwindCSS | — | ❌ 0 | — | ✅ 1 | PARTIAL |
+| 9 | SolidJS + TailwindCSS | — | ✅ 5 | — | ✅ 1 | COVERED |
 | 10 | CI/CD Pipeline | — | — | — | — | N/A |
 | 11 | SQLite Database | ✅ 21 | — | ✅ 5 | — | COVERED |
 | 12 | CLAUDE.md | — | — | — | — | N/A |
@@ -62,21 +64,21 @@ The threshold ramps up as test tracks are completed:
 | 13 | PTY Process Spawning | ✅ 5 | — | — | — | PARTIAL |
 | 14 | Stream Parser | ✅ 31 | — | — | — | COVERED |
 | 15 | Versioned Adapter | ✅ 7 | — | — | — | COVERED |
-| 16 | Permission Interception 🔒 | ✅ 8 | — | — | — | PARTIAL |
+| 16 | Permission Interception 🔒 | ✅ 15 | — | — | ✅ 8 | COVERED |
 
 ### Epic CHI-7: Basic UI
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 17 | Layout Shell | — | ❌ 0 | — | ✅ 5 | PARTIAL |
-| 18 | Conversation View | — | ❌ 0 | — | ✅ 3 | PARTIAL |
-| 19 | Message Input | — | ❌ 0 | — | ✅ 2 | PARTIAL |
-| 20 | Model Selector | — | ❌ 0 | — | ✅ 1 | PARTIAL |
-| 21 | Terminal Mode | — | ❌ 0 | — | ✅ 1 | PARTIAL |
-| 22 | Session Persistence | ✅ 7 | ❌ 0 | — | ✅ 2 | PARTIAL |
-| 23 | Permission Dialog 🔒 | — | ❌ 0 | — | ✅ 2 | PARTIAL |
+| 17 | Layout Shell | — | ✅ 5 | — | ✅ 5 | COVERED |
+| 18 | Conversation View | — | ✅ 11 | — | ✅ 3 | COVERED |
+| 19 | Message Input | — | ✅ 13 | — | ✅ 4 | COVERED |
+| 20 | Model Selector | — | ⚠️ 2 | — | ✅ 1 | PARTIAL |
+| 21 | Terminal Mode | — | — | — | ✅ 1 | PARTIAL |
+| 22 | Session Persistence | ✅ 7 | ✅ 2 | — | ✅ 6 | COVERED |
+| 23 | Permission Dialog 🔒 | — | ⚠️ 2 | — | ✅ 5 | PARTIAL |
 | 24 | Cross-Platform Packaging | — | — | — | — | N/A |
-| 26 | YOLO Mode 🔒 | — | ❌ 0 | — | ✅ 1 | PARTIAL |
+| 26 | YOLO Mode 🔒 | — | ✅ 5 | — | ✅ 4 | COVERED |
 
 ---
 
@@ -86,47 +88,47 @@ The threshold ramps up as test tracks are completed:
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 40 | Folder Picker | ✅ 2 | ❌ 0 | — | — | PARTIAL |
-| 41 | Project Sidebar | — | ❌ 0 | — | — | GAP |
+| 40 | Folder Picker | ✅ 2 | ✅ 10 | — | — | PARTIAL |
+| 41 | Project Sidebar | — | ✅ 10 | — | — | PARTIAL |
 | 42 | CLAUDE.md Detection | ✅ 3 | — | — | — | PARTIAL |
-| 43 | Session-Project Binding | ✅ 2 | ❌ 0 | — | — | PARTIAL |
+| 43 | Session-Project Binding | ✅ 2 | ✅ 10 | — | — | PARTIAL |
 
 ### Epic CHI-36: CLI Connection & Streaming
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 44 | SessionBridgeMap | ❌ 0 | — | — | — | GAP |
-| 45 | IPC Commands for CLI | ❌ 0 | — | — | — | GAP |
-| 46 | Streaming Event Loop | ❌ 0 | — | — | — | GAP |
-| 47 | Replace Mock with CLI | — | ❌ 0 | — | ⚠️ 1 | GAP |
-| 48 | CLI Detection | ✅ 3 | ❌ 0 | — | — | PARTIAL |
-| 49 | Streaming Rendering | — | ❌ 0 | — | — | GAP |
+| 44 | SessionBridgeMap | ✅ 7 | — | — | — | PARTIAL |
+| 45 | IPC Commands for CLI | ✅ 12 | — | — | — | PARTIAL |
+| 46 | Streaming Event Loop | ✅ 12 | — | — | — | PARTIAL |
+| 47 | Replace Mock with CLI | — | ✅ 11 | — | ✅ 2 | PARTIAL |
+| 48 | CLI Detection | ✅ 3 | ✅ 2 | — | — | PARTIAL |
+| 49 | Streaming Rendering | — | ✅ 11 | — | ✅ 2 | PARTIAL |
 
 ### Epic CHI-37: Permission Flow Live 🔒
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 50 | Permission IPC 🔒 | ❌ 0 | ❌ 0 | ❌ 0 | — | GAP |
-| 51 | Permission Pipeline 🔒 | ❌ 0 | ❌ 0 | ❌ 0 | — | GAP |
-| 52 | YOLO Mode IPC 🔒 | ❌ 0 | ❌ 0 | — | — | GAP |
+| 50 | Permission IPC 🔒 | ✅ 12 | ✅ 5 | — | ✅ 5 | COVERED |
+| 51 | Permission Pipeline 🔒 | ✅ 7 | ✅ 5 | — | ✅ 5 | COVERED |
+| 52 | YOLO Mode IPC 🔒 | ✅ 7 | ✅ 5 | — | ✅ 4 | COVERED |
 
 ### Epic CHI-38: Live Cost Tracking
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
 | 53 | Cost Accumulator | ✅ 4 | — | — | — | PARTIAL |
-| 54 | StatusBar Cost Display | — | ❌ 0 | — | ⚠️ 1 | GAP |
-| 55 | Per-message Cost | — | ❌ 0 | — | — | GAP |
+| 54 | StatusBar Cost Display | — | ✅ 5 | — | ✅ 2 | PARTIAL |
+| 55 | Per-message Cost | — | ✅ 11 | — | — | PARTIAL |
 
 ### Epic CHI-39: Session Lifecycle
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 56 | Process Status | ❌ 0 | ❌ 0 | — | — | GAP |
-| 57 | Session Switching | ❌ 0 | ❌ 0 | — | ✅ 1 | GAP |
-| 58 | Graceful Shutdown | ❌ 0 | — | — | — | GAP |
-| 59 | Crash Recovery | ❌ 0 | ❌ 0 | — | — | GAP |
-| 60 | App Shutdown Cleanup | ❌ 0 | — | — | — | GAP |
+| 56 | Process Status | ✅ 17 | ✅ 2 | — | ✅ 4 | COVERED |
+| 57 | Session Switching | ✅ 17 | ✅ 2 | — | ✅ 4 | COVERED |
+| 58 | Graceful Shutdown | ✅ 17 | — | — | ✅ 4 | PARTIAL |
+| 59 | Crash Recovery | ✅ 17 | ✅ 11 | — | — | PARTIAL |
+| 60 | App Shutdown Cleanup | ✅ 17 | — | — | — | PARTIAL |
 
 ---
 
@@ -136,68 +138,68 @@ The threshold ramps up as test tracks are completed:
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 106 | Command Discovery | ✅ 8 | — | — | — | PARTIAL |
-| 107 | SlashCommandMenu UI | — | ❌ 0 | — | — | GAP |
+| 106 | Command Discovery | ✅ 8 | ✅ 13 | — | — | PARTIAL |
+| 107 | SlashCommandMenu UI | — | ✅ 13 | — | — | PARTIAL |
 | 108 | SDK Command Discovery | ✅ 4 | — | — | — | PARTIAL |
 
 ### Epic CHI-109: Parallel Sessions v2
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 110 | Split Pane Layout | — | ❌ 0 | — | — | GAP |
-| 111 | Concurrent Session Limits | ✅ 3 | — | — | — | PARTIAL |
-| 112 | Aggregate Cost Tracking | — | ❌ 0 | — | — | GAP |
-| 113 | Session Activity Notifications | — | ❌ 0 | — | — | GAP |
+| 110 | Split Pane Layout | — | ✅ 5 | — | ✅ 3 | PARTIAL |
+| 111 | Concurrent Session Limits | ✅ 3 | — | — | ✅ 2 | PARTIAL |
+| 112 | Aggregate Cost Tracking | — | ✅ 5 | — | — | PARTIAL |
+| 113 | Session Activity Notifications | — | ✅ 5 | — | ✅ 2 | PARTIAL |
 
 ### Epic CHI-114: File Explorer & @-Mention
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
 | 115 | Backend File Scanner | ✅ 26 | — | — | — | COVERED |
-| 116 | File Tree Sidebar | — | ❌ 0 | — | — | GAP |
-| 117 | @-Mention Autocomplete | — | ❌ 0 | — | — | GAP |
-| 118 | File Content Preview | — | ❌ 0 | — | — | GAP |
-| 119 | Code Range Selection | — | ❌ 0 | — | — | GAP |
+| 116 | File Tree Sidebar | — | ✅ 14 | — | ✅ 4 | COVERED |
+| 117 | @-Mention Autocomplete | — | ✅ 15 | — | ✅ 2 | COVERED |
+| 118 | File Content Preview | — | ✅ 14 | — | ✅ 3 | COVERED |
+| 119 | Code Range Selection | — | ✅ 15 | — | ✅ 1 | COVERED |
 
 ### Epic CHI-120: Settings & i18n
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 122 | Settings Backend | ✅ 6 | — | — | — | PARTIAL |
-| 124 | Settings UI | — | ❌ 0 | — | — | GAP |
-| 126 | i18n Infrastructure | — | ❌ 0 | — | — | GAP |
-| 128 | Spanish Locale | — | ❌ 0 | — | — | GAP |
-| 130 | Theme System | — | ❌ 0 | — | — | GAP |
+| 122 | Settings Backend | ✅ 6 | ✅ 8 | — | ✅ 4 | COVERED |
+| 124 | Settings UI | — | ✅ 8 | — | ✅ 4 | COVERED |
+| 126 | i18n Infrastructure | — | ✅ 8 | — | ✅ 1 | COVERED |
+| 128 | Spanish Locale | — | ✅ 8 | — | ✅ 1 | COVERED |
+| 130 | Theme System | — | ✅ 8 | — | ✅ 2 | COVERED |
 
 ### Epic CHI-121: Context Intelligence
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 123 | File Explorer Quick Wins | — | ❌ 0 | — | — | GAP |
-| 125 | Context Quality Scoring | ✅ 4 | ❌ 0 | — | — | PARTIAL |
-| 127 | Smart File Suggestions | ✅ 5 | ❌ 0 | — | — | PARTIAL |
+| 123 | File Explorer Quick Wins | — | ✅ 14 | — | ✅ 4 | COVERED |
+| 125 | Context Quality Scoring | ✅ 4 | ✅ 15 | — | ✅ 1 | COVERED |
+| 127 | Smart File Suggestions | ✅ 5 | ✅ 15 | — | — | COVERED |
 
 ### Epic CHI-129: UX Hardening
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 132 | Conversation Virtualization | — | ❌ 0 | — | — | GAP |
-| 133 | FilePreview Editable Ranges | — | ❌ 0 | — | — | GAP |
-| 135 | Missing Error States | — | ❌ 0 | — | — | GAP |
-| 136 | Accessibility Pass | — | ❌ 0 | — | — | GAP |
-| 137 | Message Edit/Regenerate | ✅ 3 | ❌ 0 | — | — | PARTIAL |
+| 132 | Conversation Virtualization | — | ✅ 11 | — | ✅ 2 | PARTIAL |
+| 133 | FilePreview Editable Ranges | — | ✅ 14 | — | ✅ 3 | COVERED |
+| 135 | Missing Error States | — | ✅ 5 | — | — | PARTIAL |
+| 136 | Accessibility Pass | — | — | — | — | N/A |
+| 137 | Message Edit/Regenerate | ✅ 3 | ✅ 11 | — | — | PARTIAL |
 
 ### Epic CHI-138: Project Actions
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
-| 139 | Action Discovery | ✅ 12 | — | — | — | PARTIAL |
-| 140 | Action Process Manager | ❌ 0 | — | — | — | GAP |
-| 141 | Log-to-Agent Pipeline | ❌ 0 | ❌ 0 | — | — | GAP |
-| 142 | Actions Sidebar | — | ❌ 0 | — | — | GAP |
-| 143 | Action Output View | — | ❌ 0 | — | — | GAP |
-| 144 | StatusBar/Palette Actions | — | ❌ 0 | — | — | GAP |
-| 145 | Custom Action Config | ✅ 3 | ❌ 0 | — | — | PARTIAL |
+| 139 | Action Discovery | ✅ 12 | ✅ 13 | — | ✅ 4 | COVERED |
+| 140 | Action Process Manager | ✅ 4 | — | — | ✅ 2 | PARTIAL |
+| 141 | Log-to-Agent Pipeline | ✅ 4 | ✅ 13 | — | — | PARTIAL |
+| 142 | Actions Sidebar | — | ✅ 13 | — | ✅ 4 | COVERED |
+| 143 | Action Output View | — | ✅ 6 | — | ✅ 4 | COVERED |
+| 144 | StatusBar/Palette Actions | — | ✅ 7 | — | ✅ 2 | COVERED |
+| 145 | Custom Action Config | ✅ 3 | ✅ 13 | — | ✅ 1 | COVERED |
 
 ### Epic CHI-146: Test Coverage to 90%+ (Code Quality Gate)
 
@@ -205,10 +207,10 @@ The threshold ramps up as test tracks are completed:
 |-----|---------|----------|----------|-------------|-----|--------|
 | 147 | Frontend Test Infrastructure | — | ✅ 12 | — | — | COVERED |
 | 148 | Event Loop Tests | ✅ 12 | — | — | — | COVERED |
-| 149 | Bridge IPC Command Tests | ⚠️ 12 | — | ❌ 0 | — | PARTIAL |
-| 150 | Actions System Tests | ⚠️ 4 | — | ❌ 0 | — | PARTIAL |
-| 151 | Remaining IPC Command Tests | ⚠️ 17 | — | ❌ 0 | — | PARTIAL |
-| 152 | Permission Security Tests 🔒 | ⚠️ 7 | ❌ 0 | ❌ 0 | — | PARTIAL |
+| 149 | Bridge IPC Command Tests | ✅ 12 | — | — | — | COVERED |
+| 150 | Actions System Tests | ✅ 4 | — | — | — | COVERED |
+| 151 | Remaining IPC Command Tests | ✅ 17 | — | — | — | COVERED |
+| 152 | Permission Security Tests 🔒 | ✅ 7 | — | — | — | PARTIAL |
 | 153 | Store Tests: session + conversation | — | ✅ 13 | — | — | COVERED |
 | 154 | Store Tests: file + context + action | — | ✅ 65 | — | — | COVERED |
 | 155 | Store Tests: ui + settings + i18n + toast (+ view/diagnostics/diff) | — | ✅ 50 | — | — | COVERED |
@@ -221,15 +223,32 @@ The threshold ramps up as test tracks are completed:
 | 162 | E2E: Split Panes + Sessions + Onboarding | — | — | — | ✅ 11 | COVERED |
 | 163 | CI Coverage Gates & Reporting | — | — | — | — | N/A |
 
+### Epic CHI-164: Quality Coverage Enhancement (90%+ Line Coverage)
+
+| CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
+|-----|---------|----------|----------|-------------|-----|--------|
+| 165 | E2E Slash Command Menu | — | — | — | ✅ 8 | COVERED |
+| 166 | E2E Sidebar Session Actions | — | — | — | ❌ 0 | PLANNED |
+| 167 | E2E Settings Modal Interactions | — | — | — | ❌ 0 | PLANNED |
+| 168 | E2E Diff Review Pane | — | — | — | ❌ 0 | PLANNED |
+| 169 | E2E Diagnostics Export Dialog | — | — | — | ❌ 0 | PLANNED |
+| 170 | Component Tests: Conversation Rendering | — | ❌ 0 | — | — | PLANNED |
+| 171 | Component Tests: Slash & Context UI | — | ✅ 26 | — | — | COVERED |
+| 172 | Component Tests: Layout Shell | — | ❌ 0 | — | — | PLANNED |
+| 173 | Component Tests: Settings & Onboarding | — | ❌ 0 | — | — | PLANNED |
+| 174 | Component Tests: Explorer & Actions | — | ❌ 0 | — | — | PLANNED |
+| 175 | Cross-Store Integration Tests | — | ❌ 0 | ❌ 0 | — | PLANNED |
+| 176 | CI Coverage Threshold Ramp | — | — | — | — | PLANNED |
+
 ### Epic CHI-93: Structured Log Collector
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
 | 94 | 3-Layer Tracing | ✅ 8 | — | — | — | PARTIAL |
 | 95 | Log Redaction Engine | ✅ 13 | — | — | — | COVERED |
-| 96 | Diagnostic Bundle Export | ✅ 5 | — | — | — | PARTIAL |
-| 97 | Frontend Log Forwarding | — | ❌ 0 | — | — | GAP |
-| 98 | Export Diagnostic UI | — | ❌ 0 | — | — | GAP |
+| 96 | Diagnostic Bundle Export | ✅ 5 | ✅ 6 | — | — | PARTIAL |
+| 97 | Frontend Log Forwarding | — | ✅ 5 | — | — | PARTIAL |
+| 98 | Export Diagnostic UI | — | ✅ 6 | — | — | PARTIAL |
 | 99 | DB Query Tracing | ✅ 4 | — | — | — | PARTIAL |
 | 100 | GitHub Issue Templates | — | — | — | — | N/A |
 
@@ -238,30 +257,37 @@ The threshold ramps up as test tracks are completed:
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
 | 67 | Native Window Controls | — | — | — | — | N/A |
-| 72 | Typing Indicator | — | ❌ 0 | — | — | GAP |
-| 73 | Typewriter Buffer | — | ❌ 0 | — | — | GAP |
-| 74 | Toast System | — | ❌ 0 | — | — | GAP |
-| 76 | Command Palette | — | ❌ 0 | — | ✅ 1 | PARTIAL |
-| 77 | Session Quick-Switcher | — | ❌ 0 | — | — | GAP |
-| 78 | Context Menus | — | ❌ 0 | — | — | GAP |
-| 79 | Keyboard Help | — | ❌ 0 | — | ✅ 2 | PARTIAL |
-| 80 | Empty State | — | ❌ 0 | — | ✅ 1 | PARTIAL |
-| 84 | Sidebar Icon-Rail | — | ❌ 0 | — | ✅ 1 | PARTIAL |
-| 87 | View Tab Icons | — | ❌ 0 | — | — | GAP |
-| 88 | Sidebar Search | — | ❌ 0 | — | — | GAP |
-| 89 | ToolUseBlock | — | ❌ 0 | — | — | GAP |
-| 90 | ThinkingBlock | — | ❌ 0 | — | — | GAP |
-| 91 | Permission Records | — | ❌ 0 | — | — | GAP |
+| 72 | Typing Indicator | — | ✅ 11 | — | — | PARTIAL |
+| 73 | Typewriter Buffer | — | ✅ 8 | — | — | COVERED |
+| 74 | Toast System | — | ✅ 3 | — | — | PARTIAL |
+| 76 | Command Palette | — | ✅ 7 | — | ✅ 1 | COVERED |
+| 77 | Session Quick-Switcher | — | ✅ 7 | — | — | PARTIAL |
+| 78 | Context Menus | — | — | — | — | GAP |
+| 79 | Keyboard Help | — | ✅ 16 | — | ✅ 4 | COVERED |
+| 80 | Empty State | — | ✅ 5 | — | ✅ 3 | COVERED |
+| 84 | Sidebar Icon-Rail | — | ✅ 5 | — | ✅ 3 | COVERED |
+| 87 | View Tab Icons | — | ✅ 16 | — | — | PARTIAL |
+| 88 | Sidebar Search | — | ✅ 5 | — | ✅ 3 | PARTIAL |
+| 89 | ToolUseBlock | — | ✅ 11 | — | — | PARTIAL |
+| 90 | ThinkingBlock | — | ✅ 11 | — | — | PARTIAL |
+| 91 | Permission Records | — | ✅ 11 | — | — | PARTIAL |
 
 ---
 
 ## Coverage Summary
 
-| Category | Total Features | COVERED | PARTIAL | GAP | N/A |
-|----------|---------------|---------|---------|-----|-----|
-| Phase 1 | 18 | 4 | 10 | 1 | 3 |
-| Phase 2 | 21 | 0 | 6 | 15 | 0 |
-| Phase 3 | 62 | 14 | 19 | 24 | 5 |
-| **Total** | **101** | **18 (18%)** | **35 (35%)** | **40 (40%)** | **8 (8%)** |
+| Category | Total Features | COVERED | PARTIAL | GAP | PLANNED | N/A |
+|----------|---------------|---------|---------|-----|---------|-----|
+| Phase 1 | 18 | 10 | 4 | 0 | 0 | 4 |
+| Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
+| Phase 3 (CHI-146 & earlier) | 62 | 33 | 22 | 1 | 0 | 6 |
+| Phase 3 (CHI-164 epic) | 12 | 2 | 0 | 0 | 10 | 0 |
+| **Total** | **113** | **52 (46%)** | **40 (35%)** | **1 (1%)** | **10 (9%)** | **10 (9%)** |
 
-**Target:** Move all GAP → PARTIAL within next sprint, all PARTIAL → COVERED within 2 sprints.
+**Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
+**Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
+**Current (after CHI-165/171):** 52 COVERED (46%), 40 PARTIAL (35%), 1 GAP (1%), 10 PLANNED (9%), 10 N/A (9%)
+
+**Remaining GAP:** CHI-78 (Context Menus) — pure UI feature, no store/backend logic, low priority.
+
+**Target:** Bump CI threshold from 60% → 75% (next via CHI-176). Measure actual line coverage with `cargo-tarpaulin` + `vitest --coverage` to validate.
