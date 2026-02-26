@@ -194,7 +194,7 @@
 | 152 | Permission Security Tests 🔒 | ⚠️ 7 | ❌ 0 | ❌ 0 | — | PARTIAL |
 | 153 | Store Tests: session + conversation | — | ✅ 13 | — | — | COVERED |
 | 154 | Store Tests: file + context + action | — | ✅ 65 | — | — | COVERED |
-| 155 | Store Tests: ui + settings + i18n + toast | — | ✅ 24 | — | — | COVERED |
+| 155 | Store Tests: ui + settings + i18n + toast (+ view/diagnostics/diff) | — | ✅ 50 | — | — | COVERED |
 | 156 | Component Tests: critical UI | — | ✅ 29 | — | — | COVERED |
 | 157 | Utility Tests: typewriter, scoring, keys, logger | — | ✅ 44 | — | — | COVERED |
 | 158 | E2E: File Explorer + @-Mention | — | — | — | ✅ 10 | COVERED |
