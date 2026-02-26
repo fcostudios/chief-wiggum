@@ -1,8 +1,8 @@
 # SPEC-003: UX Design Specification
 
-**Version:** 2.5
-**Date:** 2026-02-25
-**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening + Context/i18n/Message Editing + Split/Onboarding/Theme/E2E follow-through
+**Version:** 2.6
+**Date:** 2026-02-26
+**Status:** Draft — Updated for Phase 2 + UX Polish + Slash Commands + Parallel Sessions v2 + File Explorer + Settings/UX Hardening + Context/i18n/Message Editing + Split/Onboarding/Theme/E2E follow-through + CHI-78 context-menu acceptance parity completion
 **Parent:** SPEC-001 (Section 6, 10), SPEC-002 (Design System)
 **Audience:** Frontend developers, coding agents, UX reviewers
 
@@ -12,7 +12,7 @@
 
 This document specifies every screen, interaction flow, and state transition in Chief Wiggum. Where SPEC-001 says "what" features exist and SPEC-002 says "how they look," this spec says "how they behave." A coding agent should be able to build any screen by reading only this document plus SPEC-002.
 
-**Implementation status (2026-02-25):** The UX follow-through covered here is now implemented for CHI-63 (CHI-78 context menus, CHI-79 keyboard help/focus trap), CHI-64 (CHI-81 onboarding, CHI-82 Agents placeholder, CHI-83 no-project guidance), CHI-109 follow-through (CHI-110 split panes, CHI-112 aggregate cost, CHI-113 background activity indicators), CHI-130 (light/dark/system theme system with reactive terminal theming), and CHI-27 (CHI-28..34 Playwright E2E + CI integration with failure artifacts).
+**Implementation status (2026-02-26):** The UX follow-through covered here is now implemented for CHI-63 (CHI-78 context menus with message delete/fork, code-block "Open in terminal," and keyboard-accessible custom menus; CHI-79 keyboard help/focus trap), CHI-64 (CHI-81 onboarding, CHI-82 Agents placeholder, CHI-83 no-project guidance), CHI-109 follow-through (CHI-110 split panes, CHI-112 aggregate cost, CHI-113 background activity indicators), CHI-130 (light/dark/system theme system with reactive terminal theming), and CHI-27 (CHI-28..34 Playwright E2E + CI integration with failure artifacts).
 
 ---
 
@@ -1105,7 +1105,7 @@ Slide in from right + fade, slide out left + fade.
 
 ### 10.3 Command Palette & Power User UX (CHI-63)
 
-**Implementation status (2026-02-25):** CHI-78 and CHI-79 are implemented. Current CHI-78 coverage includes custom context menus for conversation messages and file-tree items (message delete remains a disabled placeholder until a safe backend delete flow ships). CHI-79 includes a keyboard shortcuts help overlay (`Cmd+/`) and reusable focus trap.
+**Implementation status (2026-02-26):** CHI-78 and CHI-79 are implemented. CHI-78 now includes custom context menus for conversation messages, sidebar sessions, file-tree items, and markdown code blocks, with message delete/fork actions wired to backend IPC plus keyboard-accessible menu opening/navigation (`ContextMenu` key / `Shift+F10`, arrow keys, Home/End, Enter). CHI-79 includes a keyboard shortcuts help overlay (`Cmd+/`) and reusable focus trap.
 
 **CHI-76: Command Palette UI (High)**
 
