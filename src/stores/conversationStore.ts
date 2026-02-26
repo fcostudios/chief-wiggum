@@ -743,6 +743,19 @@ export async function regenerateResponse(
   }
 }
 
+/** Delete a single message from a session and refresh the message list. */
+export async function deleteMessage(messageId: string, sessionId: string): Promise<void> {
+  try {
+    await invoke('delete_single_message', { session_id: sessionId, message_id: messageId });
+    await loadMessages(sessionId);
+    addToast('Message deleted', 'success');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    setState('error', `Failed to delete message: ${message}`);
+    log.error('Failed to delete message: ' + message);
+  }
+}
+
 /** Check if a session has an active CLI bridge in the backend. */
 async function checkHasActiveBridge(sessionId: string): Promise<boolean> {
   try {

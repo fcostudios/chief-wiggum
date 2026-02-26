@@ -8,13 +8,15 @@ import { createVirtualizer } from '@tanstack/solid-virtual';
 import { ArrowDown, FolderOpen } from 'lucide-solid';
 import {
   conversationState,
+  deleteMessage,
   editMessage,
   regenerateResponse,
   retryLastMessage,
   sendMessage,
+  switchSession,
   typewriter,
 } from '@/stores/conversationStore';
-import { sessionState } from '@/stores/sessionStore';
+import { forkSession, setActiveSession, sessionState } from '@/stores/sessionStore';
 import { cliState } from '@/stores/cliStore';
 import { pickAndCreateProject, projectState } from '@/stores/projectStore';
 import MessageBubble from './MessageBubble';
@@ -76,6 +78,21 @@ function MessageRenderer(props: { message: Message }) {
             const sid = sessionState.activeSessionId;
             if (!sid) return;
             void regenerateResponse(id, sid);
+          }}
+          onDelete={(id) => {
+            const sid = sessionState.activeSessionId;
+            if (!sid) return;
+            void deleteMessage(id, sid);
+          }}
+          onFork={(id) => {
+            const currentSessionId = sessionState.activeSessionId;
+            if (!currentSessionId) return;
+            void (async () => {
+              const newSessionId = await forkSession(currentSessionId, id);
+              if (!newSessionId) return;
+              setActiveSession(newSessionId);
+              await switchSession(newSessionId, currentSessionId);
+            })();
           }}
         />
       )}

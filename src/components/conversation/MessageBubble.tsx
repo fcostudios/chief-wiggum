@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal } from 'solid-js';
-import { Copy, Check, Pencil, RefreshCw, Trash2 } from 'lucide-solid';
+import { Copy, Check, Pencil, RefreshCw, Trash2, GitFork } from 'lucide-solid';
 import type { Message } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
 import MarkdownContent from './MarkdownContent';
@@ -14,6 +14,8 @@ interface MessageBubbleProps {
   message: Message;
   onEdit?: (messageId: string, newContent: string) => void | Promise<void>;
   onRegenerate?: (messageId: string) => void | Promise<void>;
+  onDelete?: (messageId: string) => void | Promise<void>;
+  onFork?: (messageId: string) => void | Promise<void>;
 }
 
 /** Map role to display label */
@@ -183,10 +185,21 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
       : []),
     { separator: true, label: 'separator' },
     {
-      label: 'Delete (coming soon)',
+      label: 'Fork from here',
+      icon: GitFork,
+      onClick: () => {
+        void props.onFork?.(props.message.id);
+      },
+      disabled: !props.onFork,
+    },
+    {
+      label: 'Delete message',
       icon: Trash2,
       danger: true,
-      disabled: true,
+      onClick: () => {
+        void props.onDelete?.(props.message.id);
+      },
+      disabled: !props.onDelete,
     },
   ];
 

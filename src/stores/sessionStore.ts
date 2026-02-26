@@ -6,6 +6,7 @@ import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Session } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
+import { addToast } from '@/stores/toastStore';
 import { bindActiveSessionToFocusedPane, ensureMainPaneSession } from '@/stores/viewStore';
 
 const log = createLogger('ui/session');
@@ -130,6 +131,26 @@ export async function duplicateSession(sessionId: string): Promise<Session> {
   const session = await invoke<Session>('duplicate_session', { session_id: sessionId });
   setState('sessions', (prev) => [session, ...prev]);
   return session;
+}
+
+/** Fork a session from a specific message into a new session and refresh the list. */
+export async function forkSession(
+  sessionId: string,
+  upToMessageId: string,
+): Promise<string | null> {
+  try {
+    const session = await invoke<Session>('fork_session', {
+      session_id: sessionId,
+      up_to_message_id: upToMessageId,
+    });
+    await loadSessions();
+    addToast('Session forked', 'success');
+    return session.id;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    addToast(`Fork failed: ${message}`, 'error');
+    return null;
+  }
 }
 
 /** Check whether a session contains any messages (used for delete confirmation). */
