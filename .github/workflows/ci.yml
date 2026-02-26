@@ -205,3 +205,29 @@ jobs:
           name: coverage-rust-lcov
           path: coverage/lcov.info
           retention-days: 7
+
+  # ── Coverage: Frontend (vitest --coverage) ───────────────────
+  coverage-frontend:
+    name: Coverage (Frontend)
+    needs: [frontend]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run frontend coverage
+        run: npm run test:coverage
+
+      - name: Upload Frontend LCOV
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend-lcov
+          path: coverage/lcov.info
+          retention-days: 7
