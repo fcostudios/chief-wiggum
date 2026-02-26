@@ -227,10 +227,10 @@ export function getAttachmentCount(): number {
  * Called right before sending a message. Returns the context prefix to prepend.
  */
 export async function assembleContext(): Promise<string> {
-  if (state.attachments.length === 0) return '';
+  if (state.attachments.length === 0 && state.images.length === 0) return '';
 
   const projectId = projectState.activeProjectId;
-  if (!projectId) return '';
+  if (state.attachments.length > 0 && !projectId) return '';
 
   setState('isAssembling', true);
 
@@ -238,32 +238,43 @@ export async function assembleContext(): Promise<string> {
     const parts: string[] = [];
     parts.push('<context>');
 
-    for (const attachment of state.attachments) {
-      const ref = attachment.reference;
-      try {
-        const content = await invoke<FileContent>('read_project_file', {
-          project_id: projectId,
-          relative_path: ref.relative_path,
-          start_line: ref.start_line ?? null,
-          // Backend scanner uses end-exclusive ranges; chips store inclusive ranges.
-          end_line: ref.end_line ? ref.end_line + 1 : null,
-        });
+    if (state.attachments.length > 0) {
+      for (const attachment of state.attachments) {
+        const ref = attachment.reference;
+        try {
+          const content = await invoke<FileContent>('read_project_file', {
+            project_id: projectId,
+            relative_path: ref.relative_path,
+            start_line: ref.start_line ?? null,
+            // Backend scanner uses end-exclusive ranges; chips store inclusive ranges.
+            end_line: ref.end_line ? ref.end_line + 1 : null,
+          });
 
-        const lineAttr = ref.start_line ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"` : '';
-        parts.push(
-          `<file path="${ref.relative_path}"${lineAttr} tokens="~${content.estimated_tokens}">`,
-        );
-        parts.push(content.content);
-        parts.push('</file>');
-      } catch (err) {
-        log.error(
-          'Failed to read ' +
-            ref.relative_path +
-            ': ' +
-            (err instanceof Error ? err.message : String(err)),
-        );
-        parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
+          const lineAttr = ref.start_line ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"` : '';
+          parts.push(
+            `<file path="${ref.relative_path}"${lineAttr} tokens="~${content.estimated_tokens}">`,
+          );
+          parts.push(content.content);
+          parts.push('</file>');
+        } catch (err) {
+          log.error(
+            'Failed to read ' +
+              ref.relative_path +
+              ': ' +
+              (err instanceof Error ? err.message : String(err)),
+          );
+          parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
+        }
       }
+    }
+
+    for (const image of state.images) {
+      const base64Data = image.data_url.replace(/^data:[^;]+;base64,/, '');
+      parts.push(
+        `<image name="${image.file_name}" type="${image.mime_type}" tokens="~${image.estimated_tokens}">`,
+      );
+      parts.push(base64Data);
+      parts.push('</image>');
     }
 
     parts.push('</context>');
