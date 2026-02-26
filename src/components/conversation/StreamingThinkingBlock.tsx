@@ -80,7 +80,10 @@ export const StreamingThinkingBlock: Component<StreamingThinkingBlockProps> = (p
             {formatElapsed(elapsed())} · {tokenLabel()} tokens
           </span>
 
-          <span class="animate-thinking-shimmer text-[10px] shrink-0" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span
+            class="animate-thinking-shimmer text-[10px] shrink-0"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             ...
           </span>
 
