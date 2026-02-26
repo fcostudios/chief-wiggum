@@ -44,7 +44,9 @@ describe('searchMessages', () => {
   });
 
   it('finds multiple occurrences in a single message', () => {
-    const results = searchMessages('the', [makeMsg('1', 'the quick brown fox jumps over the lazy dog')]);
+    const results = searchMessages('the', [
+      makeMsg('1', 'the quick brown fox jumps over the lazy dog'),
+    ]);
     expect(results[0].ranges).toHaveLength(2);
     expect(results[0].ranges[0]).toEqual({ start: 0, end: 3 });
     expect(results[0].ranges[1]).toEqual({ start: 31, end: 34 });

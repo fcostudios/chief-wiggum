@@ -36,7 +36,9 @@ const ConversationSearch: Component<ConversationSearchProps> = (props) => {
     }
 
     searchTimer = setTimeout(() => {
-      const result = searchMessages(currentQuery, props.messages, { caseSensitive: isCaseSensitive });
+      const result = searchMessages(currentQuery, props.messages, {
+        caseSensitive: isCaseSensitive,
+      });
       setMatches(result);
       setActiveIndex(result.length > 0 ? 0 : -1);
       props.onMatchesChange(result);
@@ -102,7 +104,10 @@ const ConversationSearch: Component<ConversationSearchProps> = (props) => {
       />
 
       <Show when={query().length > 0}>
-        <span class="text-[10px] font-mono shrink-0" style={{ color: 'var(--color-text-tertiary)' }}>
+        <span
+          class="text-[10px] font-mono shrink-0"
+          style={{ color: 'var(--color-text-tertiary)' }}
+        >
           {matches().length > 0 ? `${activeIndex() + 1} of ${matches().length}` : 'No results'}
         </span>
       </Show>
@@ -144,7 +149,7 @@ const ConversationSearch: Component<ConversationSearchProps> = (props) => {
 
       <button
         class="p-1 rounded text-text-tertiary hover:text-text-primary transition-colors"
-        onClick={props.onClose}
+        onClick={() => props.onClose()}
         aria-label="Close search"
       >
         <X size={14} />

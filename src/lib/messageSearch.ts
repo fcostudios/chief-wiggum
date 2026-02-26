@@ -32,7 +32,11 @@ export function searchMessages(
 
   for (let index = 0; index < messages.length; index += 1) {
     const message = messages[index];
-    if (message.role === 'tool_use' || message.role === 'tool_result' || message.role === 'permission') {
+    if (
+      message.role === 'tool_use' ||
+      message.role === 'tool_result' ||
+      message.role === 'permission'
+    ) {
       continue;
     }
 
