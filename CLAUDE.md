@@ -132,6 +132,27 @@
 | CHI-161: E2E Permissions + YOLO + DevMode | **Done** | Playwright permission/YOLO/developer-mode flows — 8 tests (includes existing YOLO warning test) |
 | CHI-162: E2E Split Panes + Sessions + Onboarding | **Done** | Playwright split-pane/session lifecycle/onboarding/parallel-session UI flows — 11 tests         |
 | CHI-163: CI Coverage Gates & Reporting | **Done** | PR-only Rust+Frontend coverage jobs, LCOV merge gate, PR coverage comment, threshold ramp docs |
+| CHI-165: E2E Slash Command Menu | **Done** | Playwright slash menu discovery/filter/nav/selection/dismissal coverage — 8 tests |
+| CHI-171: Component Tests — Slash & Context UI | **Done** | `SlashCommandMenu`, `FileMentionMenu`, `ContextSuggestions`, `ContextBreakdownModal` — 26 frontend unit tests |
+
+### Epic CHI-164: Quality Coverage Enhancement (In Progress)
+
+| Task | Priority | Status | Description |
+|------|----------|--------|-------------|
+| CHI-165: E2E Slash Command Menu | Urgent | **Done** | Playwright slash trigger/menu visibility, categories, filtering, keyboard nav, selection, dismissal — 8 tests |
+| CHI-166: E2E Sidebar Session Actions | High | Planned | Playwright rename/pin/delete/context menu flows — 8-10 tests |
+| CHI-167: E2E Settings Modal Interactions | High | Planned | Playwright category nav, search, toggle, theme, locale, validation — 8-10 tests |
+| CHI-168: E2E Diff Review Pane | High | Planned | Playwright diff view switch, rendering, selection, copy — 5-7 tests |
+| CHI-169: E2E Diagnostics Export Dialog | High | Planned | Playwright export triggers, consent preview, copy, close — 5-7 tests |
+| CHI-170: Component Tests — Conversation | High | Planned | ConversationView, MessageBubble, MarkdownContent unit tests — 20-25 tests |
+| CHI-171: Component Tests — Slash & Context | Urgent | **Done** | `SlashCommandMenu`, `FileMentionMenu`, `ContextSuggestions`, `ContextBreakdownModal` — 26 frontend unit tests |
+| CHI-172: Component Tests — Layout Shell | High | Planned | Sidebar, StatusBar, DetailsPanel, TitleBar, MainLayout unit tests — 25-30 tests |
+| CHI-173: Component Tests — Settings & Onboarding | Medium | Planned | SettingsModal, OnboardingFlow, PermissionDialog unit tests — 20-25 tests |
+| CHI-174: Component Tests — Explorer & Actions | Medium | Planned | FileTree, FilePreview, ActionsPanel, TerminalPane unit tests — 25-30 tests |
+| CHI-175: Cross-Store Integration Tests | Medium | Planned | settings→theme, session→conversation, context→cost, slash→input — 15-20 tests |
+| CHI-176: CI Coverage Threshold Ramp | Medium | Planned | Bump 60%→75%, per-file thresholds, PR coverage comment, TESTING-MATRIX update |
+
+See `docs/tasks/TASKS-003-quality-coverage-enhancement.md` for full acceptance criteria per task.
 
 ## Phase 1 Status
 
