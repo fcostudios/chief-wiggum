@@ -199,7 +199,10 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
         if (!entry) return;
 
         const RendererComponent = entry.component;
-        const dispose = solidRender(() => <RendererComponent code={code} lang={lang} />, placeholder);
+        const dispose = solidRender(
+          () => <RendererComponent code={code} lang={lang} />,
+          placeholder,
+        );
         rendererDisposers.push(dispose);
       });
     });

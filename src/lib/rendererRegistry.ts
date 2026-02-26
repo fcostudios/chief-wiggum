@@ -16,7 +16,6 @@ export interface RendererEntry {
 type RendererRegistryMap = Map<string, RendererEntry>;
 
 declare global {
-  // eslint-disable-next-line no-var -- HMR-safe singleton storage on globalThis.
   var __cwRendererRegistry__: RendererRegistryMap | undefined;
 }
 
