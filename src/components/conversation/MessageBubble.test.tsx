@@ -16,7 +16,27 @@ vi.mock('./MarkdownContent', () => ({
 }));
 
 vi.mock('@/components/common/ContextMenu', () => ({
-  default: () => <div data-testid="context-menu" />,
+  default: (props: {
+    items: Array<{ label: string; onClick?: () => void; disabled?: boolean; separator?: boolean }>;
+    onClose: () => void;
+  }) => (
+    <div data-testid="context-menu" role="menu">
+      {props.items
+        .filter((item) => !item.separator)
+        .map((item) => (
+          <button
+            role="menuitem"
+            disabled={item.disabled}
+            onClick={() => {
+              item.onClick?.();
+              props.onClose();
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+    </div>
+  ),
 }));
 
 import MessageBubble from './MessageBubble';
@@ -151,5 +171,51 @@ describe('MessageBubble', () => {
     fireEvent.click(screen.getByLabelText('Copy message'));
     expect(mockClipboardWriteText).toHaveBeenCalledWith('Copy this');
     expect(mockAddToast).toHaveBeenCalledWith('Copied to clipboard', 'success');
+  });
+
+  describe('context menu', () => {
+    it('opens context menu on right-click', () => {
+      render(() => <MessageBubble message={makeMessage()} />);
+      const bubble = screen.getByText('Assistant').closest('[class*="rounded-lg"]');
+      expect(bubble).toBeTruthy();
+      fireEvent.contextMenu(bubble as Element);
+      expect(screen.getByTestId('context-menu')).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Copy message' })).toBeInTheDocument();
+    });
+
+    it('shows Edit and resend for user messages', () => {
+      render(() => (
+        <MessageBubble message={makeMessage({ role: 'user', content: 'User msg' })} onEdit={vi.fn()} />
+      ));
+      fireEvent.contextMenu(screen.getByText('User msg'));
+      expect(screen.getByRole('menuitem', { name: 'Edit and resend' })).toBeInTheDocument();
+    });
+
+    it('shows Regenerate for assistant messages', () => {
+      render(() => <MessageBubble message={makeMessage()} onRegenerate={vi.fn()} />);
+      const bubble = screen.getByText('Assistant').closest('[class*="rounded-lg"]');
+      expect(bubble).toBeTruthy();
+      fireEvent.contextMenu(bubble as Element);
+      expect(screen.getByRole('menuitem', { name: 'Regenerate' })).toBeInTheDocument();
+    });
+
+    it('shows Fork from here and Delete message actions', () => {
+      render(() => <MessageBubble message={makeMessage()} onDelete={vi.fn()} onFork={vi.fn()} />);
+      const bubble = screen.getByText('Assistant').closest('[class*="rounded-lg"]');
+      expect(bubble).toBeTruthy();
+      fireEvent.contextMenu(bubble as Element);
+      expect(screen.getByRole('menuitem', { name: 'Fork from here' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Delete message' })).toBeInTheDocument();
+    });
+
+    it('calls onDelete when Delete message is clicked', () => {
+      const onDelete = vi.fn();
+      render(() => <MessageBubble message={makeMessage({ id: 'del-1' })} onDelete={onDelete} />);
+      const bubble = screen.getByText('Assistant').closest('[class*="rounded-lg"]');
+      expect(bubble).toBeTruthy();
+      fireEvent.contextMenu(bubble as Element);
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete message' }));
+      expect(onDelete).toHaveBeenCalledWith('del-1');
+    });
   });
 });

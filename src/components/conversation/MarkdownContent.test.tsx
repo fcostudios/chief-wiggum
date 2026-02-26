@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, waitFor } from '@solidjs/testing-library';
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 
 const mockClipboardWriteText = vi.fn(() => Promise.resolve());
 
@@ -9,6 +9,33 @@ vi.mock('highlight.js', () => ({
     highlight: (code: string) => ({ value: code }),
     highlightAuto: (code: string) => ({ value: code }),
   },
+}));
+
+vi.mock('@/components/common/ContextMenu', () => ({
+  default: (props: {
+    items: Array<{ label: string; onClick?: () => void; separator?: boolean }>;
+    onClose: () => void;
+  }) => (
+    <div data-testid="code-context-menu" role="menu">
+      {props.items
+        .filter((item) => !item.separator)
+        .map((item) => (
+          <button
+            role="menuitem"
+            onClick={() => {
+              item.onClick?.();
+              props.onClose();
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+    </div>
+  ),
+}));
+
+vi.mock('@/stores/toastStore', () => ({
+  addToast: vi.fn(),
 }));
 
 import MarkdownContent from './MarkdownContent';
@@ -64,5 +91,55 @@ describe('MarkdownContent', () => {
 
     fireEvent.click(container.querySelector('pre .copy-btn') as HTMLButtonElement);
     expect(mockClipboardWriteText).toHaveBeenCalledWith('copy me\n');
+  });
+
+  describe('code block context menu', () => {
+    it('shows context menu on right-click of code block', async () => {
+      const { container } = render(() => <MarkdownContent content={'```ts\nconst x = 1;\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+
+      const pre = container.querySelector('pre');
+      expect(pre).toBeTruthy();
+      fireEvent.contextMenu(pre as Element);
+      await waitFor(() => {
+        expect(screen.getByTestId('code-context-menu')).toBeInTheDocument();
+      });
+      expect(screen.getByRole('menuitem', { name: 'Copy code' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Copy as markdown' })).toBeInTheDocument();
+    });
+
+    it('Copy code writes raw code to clipboard', async () => {
+      const { container } = render(() => <MarkdownContent content={'```\ncopy me\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+
+      const pre = container.querySelector('pre');
+      expect(pre).toBeTruthy();
+      fireEvent.contextMenu(pre as Element);
+      await waitFor(() => {
+        expect(screen.getByRole('menuitem', { name: 'Copy code' })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Copy code' }));
+      expect(mockClipboardWriteText).toHaveBeenCalledWith('copy me\n');
+    });
+
+    it('Copy as markdown wraps code in fenced block', async () => {
+      const { container } = render(() => <MarkdownContent content={'```ts\nconst x = 1;\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+
+      const pre = container.querySelector('pre');
+      expect(pre).toBeTruthy();
+      fireEvent.contextMenu(pre as Element);
+      await waitFor(() => {
+        expect(screen.getByRole('menuitem', { name: 'Copy as markdown' })).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Copy as markdown' }));
+      expect(mockClipboardWriteText).toHaveBeenCalledWith(expect.stringContaining('```ts'));
+    });
   });
 });
