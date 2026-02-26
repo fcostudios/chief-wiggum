@@ -281,12 +281,12 @@ The threshold ramps up as test tracks are completed:
 | Phase 1 | 18 | 10 | 4 | 0 | 0 | 4 |
 | Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
 | Phase 3 (CHI-146 & earlier) | 62 | 33 | 22 | 1 | 0 | 6 |
-| Phase 3 (CHI-164 epic) | 12 | 5 | 0 | 0 | 6 | 1 |
-| **Total** | **113** | **55 (49%)** | **40 (35%)** | **1 (1%)** | **6 (5%)** | **11 (10%)** |
+| Phase 3 (CHI-164 epic) | 12 | 11 | 0 | 0 | 0 | 1 |
+| **Total** | **113** | **61 (54%)** | **40 (35%)** | **1 (1%)** | **0 (0%)** | **11 (10%)** |
 
 **Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
 **Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
-**Current (after CHI-176):** 55 COVERED (49%), 40 PARTIAL (35%), 1 GAP (1%), 6 PLANNED (5%), 11 N/A (10%)
+**Current (after CHI-164 completion):** 61 COVERED (54%), 40 PARTIAL (35%), 1 GAP (1%), 0 PLANNED (0%), 11 N/A (10%)
 
 **Remaining GAP:** CHI-78 (Context Menus) — pure UI feature, no store/backend logic, low priority.
 
