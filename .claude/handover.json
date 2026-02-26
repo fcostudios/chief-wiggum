@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-26T22:06:22Z",
+  "last_updated": "2026-02-26T22:09:05Z",
   "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -956,7 +956,7 @@
     },
     "CHI-63": {
       "title": "Command Palette & Power User UX",
-      "status": "done",
+      "status": "in_progress",
       "priority": "Medium",
       "linear_id": "9d14f3a5-7f44-46a0-b468-05585446f09b",
       "tasks": {
@@ -987,11 +987,11 @@
         },
         "CHI-78": {
           "title": "Custom context menus (messages, sessions, code blocks)",
-          "status": "done",
+          "status": "in_progress",
           "priority": "Medium",
           "started_at": "2026-02-25T00:27:20Z",
           "assigned_to": "codex",
-          "notes": "Acceptance parity complete. Implemented backend delete_single_message + fork_session IPC, message delete/fork-from-here wiring, code-block right-click menu (Copy code, Copy as markdown), session right-click menu (Rename, Pin/Unpin, Duplicate, Delete), dedicated ContextMenu unit tests, consumer unit tests, and Playwright context-menu flows.",
+          "notes": "Acceptance parity progress complete for backend delete/fork IPC, message delete/fork wiring, session and code-block right-click menus, and test coverage (Rust/unit/E2E). Remaining acceptance gaps vs Linear issue: code-block \"Open in terminal\" action and keyboard-accessible context-menu interaction (context-menu key/navigation).",
           "testing": {
             "rust_unit_tests": 6,
             "frontend_unit_tests": 16,
@@ -1010,7 +1010,7 @@
             ],
             "regression_verified": true
           },
-          "completed_at": "2026-02-26T22:06:22Z"
+          "completed_at": null
         },
         "CHI-79": {
           "title": "Keyboard navigation audit + focus management",
@@ -1021,8 +1021,8 @@
           "assigned_to": "codex"
         }
       },
-      "notes": "Re-closed after CHI-78 acceptance parity completion. All subtasks complete: CHI-76 (Cmd+K palette), CHI-77 (session switcher), CHI-78 (context menus), CHI-79 (keyboard help).",
-      "completed_at": "2026-02-26T22:06:22Z"
+      "notes": "Reopened after CHI-78 acceptance audit. Batches 1-3 completed backend/UI/test coverage parity work and full validation, but CHI-78 still has remaining acceptance items not covered by the plan (code-block Open in terminal action, keyboard context-menu accessibility). CHI-76/77/79 remain complete; CHI-78 stays in progress pending a follow-up patch.",
+      "completed_at": null
     },
     "CHI-64": {
       "title": "Onboarding & Empty States",
@@ -2572,15 +2572,15 @@
     }
   },
   "recommended_next": [
-    "Raise PARTIAL rows in TESTING-MATRIX toward COVERED (highest impact: CHI-159/160/161/166/167 E2E and remaining UI/store coverage) and plan the next CI coverage ramp beyond 75%.",
-    "Continue context intelligence follow-through (CHI-131 / CHI-134)."
+    "Add the remaining CHI-78 acceptance items: code-block context menu \u201cOpen in terminal\u201d and keyboard-accessible context-menu interaction (context-menu key + navigation).",
+    "Rerun CHI-78 validation/TESTING-MATRIX consistency, then re-close CHI-78 and CHI-63."
   ],
   "critical_path": [
-    "Coverage improvement on PARTIAL rows to support future CI threshold ramp from 75% toward 85%+",
-    "Context intelligence follow-through (CHI-131/CHI-134)"
+    "Finish CHI-78 acceptance parity (Open in terminal + keyboard context-menu accessibility) to re-close CHI-63 epic.",
+    "Then resume PARTIAL-row coverage improvements and future CI threshold ramp beyond 75%."
   ],
   "ux_quick_wins": [
-    "All originally scoped UX quick wins remain complete (including CHI-78 context menus re-closure), with Playwright E2E and frontend unit coverage now added for the context-menu system.",
+    "Most UX quick wins remain complete and covered; CHI-78 context menus are now heavily tested but still in progress due two remaining acceptance-parity items (code-block terminal action + keyboard context-menu accessibility).",
     "Next UX/context focus remains CHI-131 and CHI-134, while CHI-146 coverage follow-through shifts from Track E implementation to post-Track-E gap remediation and threshold ramping."
   ],
   "spec_updates": {
@@ -3859,10 +3859,10 @@
       "verified": "CHI-78 Tasks 1-6 are complete and verified. Remaining work is Task 7 validation/closeout (full Rust/frontend/E2E sweep, TESTING-MATRIX row update to COVERED, handover finalization, and re-closing CHI-78/CHI-63 in Linear)."
     },
     "2026-02-26_chi78_context_menus_batch3": {
-      "description": "Batch 3 / Task 7 for CHI-78 context menus completion: ran full Rust/frontend/E2E validation, updated TESTING-MATRIX to mark CHI-78 COVERED, finalized handover status/testing metadata, and re-closed CHI-63 + CHI-78 readiness for Linear/doc closure.",
+      "description": "Batch 3 / Task 7 for CHI-78 context menus completion: ran full validation and prepared closeout updates, then identified a plan-vs-acceptance mismatch and kept CHI-78/CHI-63 open pending the remaining acceptance items.",
       "changes": [
         {
-          "task": "Task 7 validation + handover/matrix closeout checkpoint",
+          "task": "Task 7 validation + handover/matrix consistency pass",
           "files_modified": [
             ".claude/handover.json",
             "docs/TESTING-MATRIX.md"
@@ -3870,11 +3870,11 @@
         }
       ],
       "issues_encountered": [
-        "Plan Task 7 samples assume an older TESTING-MATRIX format with a coverage column and direct CHI-78 row replacement text. The current matrix format omits per-row coverage %, so CHI-78 was updated using the current columns (Unit R/F, Integration, E2E, Status) and summary totals were recalculated.",
-        "Full Playwright validation passes in this environment with browser-only skips still present for some state-dependent scenarios. The new CHI-78 context-menus spec contributes 8 scenarios that skip when no message/session/code-block state exists in browser mode."
+        "Critical plan gap discovered during closeout: the plan closes CHI-78/CHI-63, but CHI-78 Linear acceptance criteria still requires a code-block \"Open in terminal\" context-menu action and keyboard-accessible context-menu interaction (context-menu key/navigation), neither of which is implemented in this batch.",
+        "Task 7 matrix and handover were temporarily updated to a closed state before the acceptance mismatch was rechecked. They were corrected in the same batch: CHI-78 testing counts retained, status set to in_progress/PARTIAL, and summaries recalculated (0 GAP rows remain)."
       ],
       "tests": "Full validation passed: cargo fmt --all -- --check, cargo clippy --all-targets -- -D warnings, cargo test (288 passed); npm run typecheck, npm run lint, npm run format:check, npm run test:unit (51 files / 352 tests); npx playwright test (106 passed, 8 skipped).",
-      "verified": "CHI-78 implementation and coverage parity are complete. CHI-63 epic can be re-closed after Linear status updates and branch closure."
+      "verified": "CHI-78 Tasks 1-6 plus full validation are complete, but final issue closure is blocked on two remaining acceptance criteria not covered by the plan."
     }
   },
   "warnings": [],
@@ -3885,7 +3885,7 @@
     "version": "1.0",
     "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
-  "notes": "Phase 1/2 epics, CHI-146, CHI-164, and the reopened CHI-63/CHI-78 context-menu completion work are complete. The repository now includes expanded Playwright E2E coverage (114 scenarios: 106 passed, 8 skipped in browser-only gaps), frontend unit/integration coverage expansion (Vitest 51 files / 352 tests passing in this branch), and a 75% combined CI coverage gate with per-file store floors. Current TESTING-MATRIX totals after CHI-78 completion: 62 COVERED, 40 PARTIAL, 0 GAP, 0 PLANNED, 11 N/A. Repo-wide prettier --check . remains a known baseline issue outside the project script scope.",
+  "notes": "Phase 1/2 epics, CHI-146, and CHI-164 remain complete. The reopened CHI-63/CHI-78 context-menu completion work has added backend/UI parity plus Rust/unit/E2E coverage and passed full validation, but CHI-78 remains in progress pending two acceptance items (code-block Open in terminal action and keyboard context-menu accessibility). Playwright suite in this branch: 114 scenarios (106 passed, 8 skipped). Vitest suite: 51 files / 352 tests passing. Current TESTING-MATRIX totals: 61 COVERED, 41 PARTIAL, 0 GAP, 0 PLANNED, 11 N/A.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,

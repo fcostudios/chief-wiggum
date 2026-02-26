@@ -262,7 +262,7 @@ The threshold ramps up as test tracks are completed:
 | 74 | Toast System | — | ✅ 3 | — | — | PARTIAL |
 | 76 | Command Palette | — | ✅ 7 | — | ✅ 1 | COVERED |
 | 77 | Session Quick-Switcher | — | ✅ 7 | — | — | PARTIAL |
-| 78 | Context Menus | ✅ 6 | ✅ 16 | — | ✅ 8 | COVERED |
+| 78 | Context Menus | ✅ 6 | ✅ 16 | — | ✅ 8 | PARTIAL |
 | 79 | Keyboard Help | — | ✅ 16 | — | ✅ 4 | COVERED |
 | 80 | Empty State | — | ✅ 5 | — | ✅ 3 | COVERED |
 | 84 | Sidebar Icon-Rail | — | ✅ 5 | — | ✅ 3 | COVERED |
@@ -280,14 +280,14 @@ The threshold ramps up as test tracks are completed:
 |----------|---------------|---------|---------|-----|---------|-----|
 | Phase 1 | 18 | 10 | 4 | 0 | 0 | 4 |
 | Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
-| Phase 3 (CHI-146 & earlier) | 62 | 34 | 22 | 0 | 0 | 6 |
+| Phase 3 (CHI-146 & earlier) | 62 | 33 | 23 | 0 | 0 | 6 |
 | Phase 3 (CHI-164 epic) | 12 | 11 | 0 | 0 | 0 | 1 |
-| **Total** | **113** | **62 (55%)** | **40 (35%)** | **0 (0%)** | **0 (0%)** | **11 (10%)** |
+| **Total** | **113** | **61 (54%)** | **41 (36%)** | **0 (0%)** | **0 (0%)** | **11 (10%)** |
 
 **Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
 **Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
-**Current (after CHI-78 completion):** 62 COVERED (55%), 40 PARTIAL (35%), 0 GAP (0%), 0 PLANNED (0%), 11 N/A (10%)
+**Current (after CHI-78 context-menu parity progress):** 61 COVERED (54%), 41 PARTIAL (36%), 0 GAP (0%), 0 PLANNED (0%), 11 N/A (10%)
 
-**Remaining GAP:** None (0 GAP rows). Next quality focus is raising PARTIAL rows to COVERED and ramping the combined CI coverage gate beyond 75%.
+**Remaining GAP:** None (0 GAP rows). CHI-78 has moved from GAP to PARTIAL pending final acceptance parity (code-block “Open in terminal” and keyboard context-menu accessibility).
 
 **Target:** CI threshold is now 75% (via CHI-176). Next ramp target is 85% after additional gap closure and combined coverage growth.
