@@ -258,6 +258,18 @@ export interface ContextAttachment {
   actual_tokens?: number;
 }
 
+/** An image pasted from clipboard, stored in-memory as base64 data URL. */
+export interface ImageAttachment {
+  id: string;
+  data_url: string;
+  mime_type: string;
+  file_name: string;
+  size_bytes: number;
+  estimated_tokens: number;
+  width?: number;
+  height?: number;
+}
+
 /** Quality score for an attached file in the current conversation context. */
 export interface ContextQualityScore {
   /** Overall quality 0-100. Green >= 60, Yellow >= 30, Red < 30. */
