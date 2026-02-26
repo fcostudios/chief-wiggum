@@ -147,7 +147,6 @@ pub(crate) fn normalize_mcp_server_name(server_name: &str) -> String {
     format!("mcp__{}", normalized)
 }
 
-
 /// Extract the MCP server prefix from a full tool name.
 /// e.g., "mcp__plugin_context7_context7__query-docs" → "mcp__plugin_context7_context7"
 fn extract_mcp_prefix(tool_name: &str) -> Option<String> {

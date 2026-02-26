@@ -1,6 +1,6 @@
 # Feature Testing Matrix
 
-**Last Updated:** 2026-02-25
+**Last Updated:** 2026-02-26
 **Protocol:** See `docs/guides/GUIDE-003-development-protocol.md`
 
 ---
@@ -219,6 +219,7 @@ The threshold ramps up as test tracks are completed:
 | 160 | E2E: Settings + Theme + i18n | — | — | — | ✅ 8 | COVERED |
 | 161 | E2E: Permission + YOLO + Developer | — | — | — | ✅ 8 | COVERED |
 | 162 | E2E: Split Panes + Sessions + Onboarding | — | — | — | ✅ 11 | COVERED |
+| 163 | CI Coverage Gates & Reporting | — | — | — | — | N/A |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -260,7 +261,7 @@ The threshold ramps up as test tracks are completed:
 |----------|---------------|---------|---------|-----|-----|
 | Phase 1 | 18 | 4 | 10 | 1 | 3 |
 | Phase 2 | 21 | 0 | 6 | 15 | 0 |
-| Phase 3 | 61 | 14 | 19 | 24 | 4 |
-| **Total** | **100** | **18 (18%)** | **35 (35%)** | **40 (40%)** | **7 (7%)** |
+| Phase 3 | 62 | 14 | 19 | 24 | 5 |
+| **Total** | **101** | **18 (18%)** | **35 (35%)** | **40 (40%)** | **8 (8%)** |
 
 **Target:** Move all GAP → PARTIAL within next sprint, all PARTIAL → COVERED within 2 sprints.
