@@ -54,6 +54,7 @@ test.describe('Context Menus (CHI-78)', () => {
     await expect(menu).toBeVisible();
     await expect(menu.getByRole('menuitem', { name: 'Copy code' })).toBeVisible();
     await expect(menu.getByRole('menuitem', { name: 'Copy as markdown' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Open in terminal' })).toBeVisible();
   });
 
   test('menu renders with accessible menu/menuitem roles', async ({ page }) => {
@@ -64,9 +65,13 @@ test.describe('Context Menus (CHI-78)', () => {
     expect(await items.count()).toBeGreaterThan(0);
   });
 
-  test('Escape dismisses the context menu from session item flow', async ({ page }) => {
+  test('session context menu opens from keyboard shortcut (Shift+F10)', async ({ page }) => {
     await openSessionContextMenuOrSkip(page);
-    await page.keyboard.press('Escape');
-    await expect(page.locator('[role="menu"]')).toHaveCount(0);
+    await page.locator('[role="menu"]').press('Escape');
+
+    const sessionItem = page.getByTestId('session-item').first();
+    await sessionItem.focus();
+    await page.keyboard.press('Shift+F10');
+    await expect(page.locator('[role="menu"]')).toBeVisible();
   });
 });

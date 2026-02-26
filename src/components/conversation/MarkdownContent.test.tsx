@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import { For } from 'solid-js';
 
 const mockClipboardWriteText = vi.fn(() => Promise.resolve());
+const mockSetActiveView = vi.fn();
 
 vi.mock('highlight.js', () => ({
   default: {
@@ -39,11 +40,17 @@ vi.mock('@/stores/toastStore', () => ({
   addToast: vi.fn(),
 }));
 
+vi.mock('@/stores/uiStore', () => ({
+  setActiveView: (...args: unknown[]) =>
+    (mockSetActiveView as (...inner: unknown[]) => unknown)(...args),
+}));
+
 import MarkdownContent from './MarkdownContent';
 
 describe('MarkdownContent', () => {
   beforeEach(() => {
     mockClipboardWriteText.mockClear();
+    mockSetActiveView.mockClear();
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: mockClipboardWriteText },
@@ -109,6 +116,7 @@ describe('MarkdownContent', () => {
       });
       expect(screen.getByRole('menuitem', { name: 'Copy code' })).toBeInTheDocument();
       expect(screen.getByRole('menuitem', { name: 'Copy as markdown' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Open in terminal' })).toBeInTheDocument();
     });
 
     it('Copy code writes raw code to clipboard', async () => {
@@ -141,6 +149,38 @@ describe('MarkdownContent', () => {
       });
       fireEvent.click(screen.getByRole('menuitem', { name: 'Copy as markdown' }));
       expect(mockClipboardWriteText).toHaveBeenCalledWith(expect.stringContaining('```ts'));
+    });
+
+    it('Open in terminal switches to terminal view and copies code', async () => {
+      const { container } = render(() => <MarkdownContent content={'```\necho \"hi\"\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+
+      const pre = container.querySelector('pre');
+      expect(pre).toBeTruthy();
+      fireEvent.contextMenu(pre as Element);
+      await waitFor(() => {
+        expect(screen.getByRole('menuitem', { name: 'Open in terminal' })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Open in terminal' }));
+      expect(mockSetActiveView).toHaveBeenCalledWith('terminal');
+      expect(mockClipboardWriteText).toHaveBeenCalledWith('echo "hi"\n');
+    });
+
+    it('opens code context menu via keyboard shortcut on focused code block', async () => {
+      const { container } = render(() => <MarkdownContent content={'```ts\nconst x = 1;\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+
+      const pre = container.querySelector('pre') as HTMLElement;
+      expect(pre).toHaveAttribute('tabindex', '0');
+      fireEvent.keyDown(pre, { key: 'F10', shiftKey: true });
+      await waitFor(() => {
+        expect(screen.getByTestId('code-context-menu')).toBeInTheDocument();
+      });
     });
   });
 });

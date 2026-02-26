@@ -8,9 +8,10 @@ import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { Marked } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
-import { Copy, FileCode } from 'lucide-solid';
+import { Copy, FileCode, Terminal } from 'lucide-solid';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 import { addToast } from '@/stores/toastStore';
+import { setActiveView } from '@/stores/uiStore';
 
 // Configure marked with highlight.js integration
 const marked = new Marked(
@@ -39,6 +40,19 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
 
   const html = () => marked.parse(props.content) as string;
 
+  function isContextMenuShortcut(e: KeyboardEvent): boolean {
+    return e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10');
+  }
+
+  function openCodeContextMenu(target: HTMLElement, payload: { code: string; lang: string }): void {
+    const rect = target.getBoundingClientRect();
+    setCodeMenuTarget(payload);
+    setCodeMenuPos({
+      x: Math.round(rect.left + Math.min(24, Math.max(rect.width - 8, 8))),
+      y: Math.round(rect.top + Math.min(24, Math.max(rect.height - 8, 8))),
+    });
+  }
+
   function codeMenuItems(): ContextMenuItem[] {
     const { code, lang } = codeMenuTarget();
     return [
@@ -60,6 +74,15 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
             : `\`\`\`\n${withTrailingNewline}\`\`\``;
           navigator.clipboard.writeText(fence);
           addToast('Copied as markdown', 'success');
+        },
+      },
+      {
+        label: 'Open in terminal',
+        icon: Terminal,
+        onClick: () => {
+          setActiveView('terminal');
+          navigator.clipboard.writeText(code);
+          addToast('Opened Terminal view and copied code', 'info');
         },
       },
     ];
@@ -99,12 +122,21 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
           }, 2000);
         });
         pre.appendChild(btn);
+        pre.tabIndex = 0;
+        pre.setAttribute('aria-label', 'Code block');
 
         pre.addEventListener('contextmenu', (e: MouseEvent) => {
           e.preventDefault();
           e.stopPropagation();
           setCodeMenuTarget({ code, lang });
           setCodeMenuPos({ x: e.clientX, y: e.clientY });
+        });
+
+        pre.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (!isContextMenuShortcut(e)) return;
+          e.preventDefault();
+          e.stopPropagation();
+          openCodeContextMenu(pre as HTMLElement, { code, lang });
         });
       });
     });

@@ -221,5 +221,14 @@ describe('MessageBubble', () => {
       fireEvent.click(screen.getByRole('menuitem', { name: 'Delete message' }));
       expect(onDelete).toHaveBeenCalledWith('del-1');
     });
+
+    it('opens context menu via Shift+F10 on focused message bubble', () => {
+      render(() => <MessageBubble message={makeMessage()} />);
+      const bubble = screen.getByText('Assistant').closest('[class*="rounded-lg"]');
+      expect(bubble).toBeTruthy();
+      expect(bubble).toHaveAttribute('tabindex', '0');
+      fireEvent.keyDown(bubble as Element, { key: 'F10', shiftKey: true });
+      expect(screen.getByTestId('context-menu')).toBeInTheDocument();
+    });
   });
 });

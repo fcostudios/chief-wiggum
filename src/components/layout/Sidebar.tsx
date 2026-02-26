@@ -986,6 +986,16 @@ const SessionItem: Component<{
       tabindex="0"
       onKeyDown={(e) => {
         if (isRenaming()) return;
+        if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+          e.preventDefault();
+          e.stopPropagation();
+          const rect = e.currentTarget.getBoundingClientRect();
+          setSessionContextPos({
+            x: Math.round(rect.left + Math.min(24, Math.max(rect.width - 8, 8))),
+            y: Math.round(rect.top + Math.min(24, Math.max(rect.height - 8, 8))),
+          });
+          return;
+        }
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           props.onSelect(props.session.id);

@@ -241,4 +241,12 @@ describe('Sidebar', () => {
     expect(screen.getByText('Duplicate')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
   });
+
+  it('opens session context menu via keyboard shortcut on session row', async () => {
+    render(() => <Sidebar />);
+    const sessionRow = await screen.findByTestId('session-item');
+    fireEvent.keyDown(sessionRow, { key: 'F10', shiftKey: true });
+    expect(await screen.findByRole('menu')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument();
+  });
 });

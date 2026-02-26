@@ -157,6 +157,17 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
     setContextMenuPos({ x: e.clientX, y: e.clientY });
   }
 
+  function handleKeyboardContextMenu(e: KeyboardEvent & { currentTarget: HTMLDivElement }): void {
+    if (e.target !== e.currentTarget) return;
+    if (!(e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) return;
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContextMenuPos({
+      x: Math.round(rect.left + Math.min(24, Math.max(rect.width - 8, 8))),
+      y: Math.round(rect.top + Math.min(24, Math.max(rect.height - 8, 8))),
+    });
+  }
+
   const menuItems = (): ContextMenuItem[] => [
     {
       label: 'Copy message',
@@ -220,6 +231,8 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
               : '1px solid var(--color-border-secondary)',
         }}
         onContextMenu={handleContextMenu}
+        onKeyDown={handleKeyboardContextMenu}
+        tabindex="0"
       >
         {/* Left accent stripe for assistant messages */}
         <Show when={!isUser() && !isSystem()}>
