@@ -24,7 +24,15 @@
     "yolo": "YOLO",
     "dev": "DEV",
     "nActive": "{{ n }} active",
-    "exportDiagnostics": "Export Diagnostics"
+    "exportDiagnostics": "Export Diagnostics",
+    "taskProgress": "Task progress"
+  },
+  "todoBlock": {
+    "header": "Tasks",
+    "progress": "{{ done }}/{{ total }} done",
+    "allDone": "All {{ n }} done",
+    "empty": "No tasks",
+    "taskProgress": "Task progress"
   },
   "sidebar": {
     "projects": "Projects",
