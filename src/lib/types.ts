@@ -83,6 +83,18 @@ export interface PermissionRecordData {
 /** Tool classification category for color-coding. */
 export type ToolCategory = 'file' | 'bash' | 'neutral';
 
+/** A single todo item from a TodoWrite tool call. */
+export interface TodoItem {
+  content: string;
+  activeForm: string;
+  status: 'pending' | 'in_progress' | 'completed';
+}
+
+/** Parsed payload of a TodoWrite tool_input JSON string. */
+export interface TodoWriteData {
+  todos: TodoItem[];
+}
+
 /** Process lifecycle status (mirrors Rust ProcessStatus). */
 export type ProcessStatus =
   | 'not_started'
