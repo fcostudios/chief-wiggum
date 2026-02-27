@@ -1,6 +1,7 @@
 import { Component, Show, Switch, Match, createSignal } from 'solid-js';
 import { ChevronDown, ChevronRight, Wrench, Terminal, FileEdit } from 'lucide-solid';
 import type { Message, ToolUseData, ToolCategory } from '../../lib/types';
+import { TodoWriteBlock } from './TodoWriteBlock';
 
 interface ToolUseBlockProps {
   message: Message;
@@ -96,73 +97,75 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
   const toggleExpanded = () => setExpanded((prev) => !prev);
 
   return (
-    <div class="flex justify-start">
-      <div
-        class="max-w-[85%] w-full rounded-md overflow-hidden"
-        style={{
-          background: 'var(--color-bg-secondary)',
-          border: '1px solid var(--color-border-primary)',
-        }}
-      >
-        {/* Left color stripe + content */}
-        <div class="flex">
-          {/* Color stripe */}
-          <div class="w-[3px] shrink-0" style={{ background: color() }} />
+    <Show when={data().tool_name !== 'TodoWrite'} fallback={<TodoWriteBlock message={props.message} />}>
+      <div class="flex justify-start">
+        <div
+          class="max-w-[85%] w-full rounded-md overflow-hidden"
+          style={{
+            background: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border-primary)',
+          }}
+        >
+          {/* Left color stripe + content */}
+          <div class="flex">
+            {/* Color stripe */}
+            <div class="w-[3px] shrink-0" style={{ background: color() }} />
 
-          <div class="flex-1 min-w-0">
-            {/* Header row — always visible */}
-            <button
-              class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
-              style={{ 'transition-duration': 'var(--duration-fast)' }}
-              onClick={toggleExpanded}
-              aria-expanded={expanded()}
-              aria-label={`${expanded() ? 'Collapse' : 'Expand'} ${data().tool_name} tool use`}
-            >
-              <ToolIcon category={category()} color={color()} />
-              <span class="text-xs font-mono font-semibold" style={{ color: color() }}>
-                {data().tool_name}
-              </span>
-              <Show when={summary()}>
-                <span
-                  class="text-xs truncate flex-1"
-                  style={{ color: 'var(--color-text-tertiary)' }}
-                >
-                  {summary()}
+            <div class="flex-1 min-w-0">
+              {/* Header row — always visible */}
+              <button
+                class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
+                style={{ 'transition-duration': 'var(--duration-fast)' }}
+                onClick={toggleExpanded}
+                aria-expanded={expanded()}
+                aria-label={`${expanded() ? 'Collapse' : 'Expand'} ${data().tool_name} tool use`}
+              >
+                <ToolIcon category={category()} color={color()} />
+                <span class="text-xs font-mono font-semibold" style={{ color: color() }}>
+                  {data().tool_name}
                 </span>
-              </Show>
-              <Show
-                when={expanded()}
-                fallback={
-                  <ChevronRight size={14} color="var(--color-text-tertiary)" class="shrink-0" />
-                }
-              >
-                <ChevronDown size={14} color="var(--color-text-tertiary)" class="shrink-0" />
-              </Show>
-            </button>
-
-            {/* Expanded content — tool input */}
-            <Show when={expanded()}>
-              <div
-                class="px-3 pb-2 border-t"
-                style={{ 'border-color': 'var(--color-border-secondary)' }}
-              >
-                <pre
-                  class="mt-2 rounded overflow-x-auto text-xs leading-5"
-                  style={{
-                    'font-family': 'var(--font-mono)',
-                    background: 'var(--color-bg-inset)',
-                    padding: '8px 12px',
-                    color: 'var(--color-text-secondary)',
-                    border: '1px solid var(--color-border-secondary)',
-                  }}
+                <Show when={summary()}>
+                  <span
+                    class="text-xs truncate flex-1"
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  >
+                    {summary()}
+                  </span>
+                </Show>
+                <Show
+                  when={expanded()}
+                  fallback={
+                    <ChevronRight size={14} color="var(--color-text-tertiary)" class="shrink-0" />
+                  }
                 >
-                  <code>{data().tool_input}</code>
-                </pre>
-              </div>
-            </Show>
+                  <ChevronDown size={14} color="var(--color-text-tertiary)" class="shrink-0" />
+                </Show>
+              </button>
+
+              {/* Expanded content — tool input */}
+              <Show when={expanded()}>
+                <div
+                  class="px-3 pb-2 border-t"
+                  style={{ 'border-color': 'var(--color-border-secondary)' }}
+                >
+                  <pre
+                    class="mt-2 rounded overflow-x-auto text-xs leading-5"
+                    style={{
+                      'font-family': 'var(--font-mono)',
+                      background: 'var(--color-bg-inset)',
+                      padding: '8px 12px',
+                      color: 'var(--color-text-secondary)',
+                      border: '1px solid var(--color-border-secondary)',
+                    }}
+                  >
+                    <code>{data().tool_input}</code>
+                  </pre>
+                </div>
+              </Show>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Show>
   );
 };
