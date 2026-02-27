@@ -79,6 +79,58 @@ export function addFileReference(ref: FileReference): void {
   }
 }
 
+/** Add an external text file dropped from the OS into prompt context memory. */
+export function addExternalFileAttachment(
+  fileName: string,
+  content: string,
+  extension: string | null,
+): void {
+  const normalizedName = fileName.trim();
+  if (!normalizedName) return;
+
+  const relativePath = `[external] ${normalizedName}`;
+  const estimatedTokens = Math.max(1, Math.round(content.length / 4));
+  const ref: FileReference = {
+    relative_path: relativePath,
+    name: normalizedName,
+    extension,
+    estimated_tokens: estimatedTokens,
+    is_directory: false,
+  };
+
+  const exists = state.attachments.some(
+    (a) =>
+      a.reference.relative_path === ref.relative_path &&
+      a.reference.start_line === ref.start_line &&
+      a.reference.end_line === ref.end_line,
+  );
+  if (exists) return;
+
+  const newTotal = getTotalEstimatedTokens() + estimatedTokens;
+  if (newTotal > TOKEN_HARD_CAP) {
+    addToast(
+      `Cannot attach: would exceed ${(TOKEN_HARD_CAP / 1000).toFixed(0)}K token limit`,
+      'error',
+    );
+    return;
+  }
+
+  setState('attachments', (prev) => [
+    ...prev,
+    {
+      id: crypto.randomUUID(),
+      reference: ref,
+      content,
+      actual_tokens: estimatedTokens,
+    },
+  ]);
+  recalculateScores();
+
+  if (newTotal > TOKEN_WARNING_THRESHOLD) {
+    addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
+  }
+}
+
 /** Remove an attachment by ID. */
 export function removeAttachment(id: string): void {
   setState(
@@ -244,7 +296,8 @@ export async function assembleContext(): Promise<string> {
   if (state.attachments.length === 0) return '';
 
   const projectId = projectState.activeProjectId;
-  if (state.attachments.length > 0 && !projectId) return '';
+  const hasInMemoryAttachment = state.attachments.some((attachment) => !!attachment.content);
+  if (state.attachments.length > 0 && !projectId && !hasInMemoryAttachment) return '';
 
   setState('isAssembling', true);
 
@@ -255,7 +308,19 @@ export async function assembleContext(): Promise<string> {
     if (state.attachments.length > 0) {
       for (const attachment of state.attachments) {
         const ref = attachment.reference;
+        if (attachment.content != null) {
+          parts.push(
+            `<file path="${ref.relative_path}" tokens="~${attachment.actual_tokens ?? ref.estimated_tokens}">`,
+          );
+          parts.push(attachment.content);
+          parts.push('</file>');
+          continue;
+        }
+
         try {
+          if (!projectId) {
+            throw new Error('No active project');
+          }
           const content = await invoke<FileContent>('read_project_file', {
             project_id: projectId,
             relative_path: ref.relative_path,

@@ -10,6 +10,11 @@ import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js';
 import { Send, Square, Paperclip, Image as ImageIcon, X } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type { SlashCommand, FileSearchResult, FileReference, PromptImageInput } from '@/lib/types';
+import {
+  SUPPORTED_IMAGE_MIMES,
+  SUPPORTED_TEXT_EXTENSIONS,
+  SUPPORTED_TEXT_MIMES,
+} from '@/lib/types';
 import SlashCommandMenu from './SlashCommandMenu';
 import FileMentionMenu from './FileMentionMenu';
 import ContextChip from './ContextChip';
@@ -27,6 +32,7 @@ import {
 import {
   contextState,
   addFileReference,
+  addExternalFileAttachment,
   removeAttachment,
   addImageAttachment,
   removeImageAttachment,
@@ -58,6 +64,12 @@ interface MentionRange {
 interface ParsedMentionQuery {
   fileQuery: string;
   range: MentionRange | null;
+}
+
+function getFileExtension(fileName: string): string | null {
+  const dotIndex = fileName.lastIndexOf('.');
+  if (dotIndex === -1) return null;
+  return fileName.slice(dotIndex).toLowerCase();
 }
 
 export function parseMentionQuery(rawQuery: string): ParsedMentionQuery {
@@ -343,8 +355,15 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   function handleDragOver(e: DragEvent) {
     e.preventDefault();
-    if (e.dataTransfer?.types.includes('application/x-chief-wiggum-file')) {
-      e.dataTransfer.dropEffect = 'copy';
+    const types = e.dataTransfer?.types ?? [];
+    if (
+      types.includes('application/x-chief-wiggum-file') ||
+      types.includes('Files') ||
+      types.includes('files')
+    ) {
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'copy';
+      }
       setIsDragOver(true);
     }
   }
@@ -356,12 +375,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     setIsDragOver(false);
   }
 
-  async function handleDrop(e: DragEvent) {
-    e.preventDefault();
-    setIsDragOver(false);
-    const data = e.dataTransfer?.getData('application/x-chief-wiggum-file');
-    if (!data) return;
-
+  async function handleInternalFileDrop(data: string): Promise<void> {
     try {
       const fileData = JSON.parse(data) as {
         relative_path: string;
@@ -401,6 +415,79 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       addToast(`Added ${fileData.name} to prompt`, 'success');
     } catch {
       addToast('Failed to attach file', 'error');
+    }
+  }
+
+  async function handleExternalFileDrop(files: FileList): Promise<void> {
+    const dropped = Array.from(files);
+    if (dropped.length === 0) return;
+
+    let addedCount = 0;
+    let unsupportedCount = 0;
+    let imageCount = 0;
+    let failedCount = 0;
+
+    for (const file of dropped) {
+      const mimeType = (file.type || '').toLowerCase();
+      const extension = getFileExtension(file.name);
+      const isTextMime = SUPPORTED_TEXT_MIMES.has(mimeType);
+      const isTextExt = extension ? SUPPORTED_TEXT_EXTENSIONS.has(extension) : false;
+      const isImage = SUPPORTED_IMAGE_MIMES.has(mimeType);
+
+      if (isImage) {
+        imageCount += 1;
+        continue;
+      }
+
+      if (!isTextMime && !isTextExt) {
+        unsupportedCount += 1;
+        continue;
+      }
+
+      try {
+        const content = await file.text();
+        addExternalFileAttachment(file.name, content, extension);
+        addedCount += 1;
+      } catch {
+        failedCount += 1;
+      }
+    }
+
+    if (addedCount > 0) {
+      addToast(`Added ${addedCount} file${addedCount > 1 ? 's' : ''} to prompt`, 'success');
+    }
+    if (unsupportedCount > 0) {
+      addToast(
+        `Unsupported file type${unsupportedCount > 1 ? 's' : ''} skipped (${unsupportedCount})`,
+        'warning',
+      );
+    }
+    if (imageCount > 0) {
+      addToast(
+        `Image drop is not supported yet (${imageCount}). Use clipboard paste (Cmd/Ctrl+V).`,
+        'info',
+      );
+    }
+    if (failedCount > 0) {
+      addToast(`Failed to read ${failedCount} dropped file${failedCount > 1 ? 's' : ''}`, 'error');
+    }
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const dataTransfer = e.dataTransfer;
+    if (!dataTransfer) return;
+
+    const internalData = dataTransfer.getData('application/x-chief-wiggum-file');
+    if (internalData) {
+      await handleInternalFileDrop(internalData);
+      return;
+    }
+
+    if (dataTransfer.files.length > 0) {
+      await handleExternalFileDrop(dataTransfer.files);
     }
   }
 

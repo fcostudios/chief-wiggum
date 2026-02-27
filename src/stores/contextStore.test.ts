@@ -5,6 +5,7 @@ import { clearMessages } from './conversationStore';
 import {
   addImageAttachment,
   addFileReference,
+  addExternalFileAttachment,
   assembleContext,
   clearAttachments,
   contextState,
@@ -147,6 +148,14 @@ describe('contextStore', () => {
     expect(result).toBe('');
   });
 
+  it('assembleContext includes external dropped text without active project', async () => {
+    addExternalFileAttachment('notes.ts', 'const x = 1;', '.ts');
+
+    const result = await assembleContext();
+    expect(result).toContain('<file path="[external] notes.ts"');
+    expect(result).toContain('const x = 1;');
+  });
+
   it('assembleContext builds XML context when active project exists', async () => {
     setActiveProject('proj-1');
     addFileReference(makeRef({ start_line: 2, end_line: 4 }));
@@ -215,6 +224,20 @@ describe('contextStore', () => {
       expect(result).toContain('<file path="src/main.ts"');
       expect(result).not.toContain('<image');
       expect(result).not.toContain('YWJj');
+    });
+  });
+
+  describe('external attachments', () => {
+    it('adds external dropped text attachment', () => {
+      addExternalFileAttachment('scratch.py', 'print("hello")', '.py');
+      expect(getAttachmentCount()).toBe(1);
+      expect(contextState.attachments[0].reference.relative_path).toBe('[external] scratch.py');
+    });
+
+    it('deduplicates external files by generated external path', () => {
+      addExternalFileAttachment('scratch.py', 'print("one")', '.py');
+      addExternalFileAttachment('scratch.py', 'print("two")', '.py');
+      expect(getAttachmentCount()).toBe(1);
     });
   });
 });

@@ -280,6 +280,92 @@ export interface PromptImageInput {
   height?: number;
 }
 
+/** MIME types accepted for external file drag-drop and paste. */
+export const SUPPORTED_TEXT_MIMES = new Set([
+  'text/plain',
+  'text/html',
+  'text/css',
+  'text/javascript',
+  'text/typescript',
+  'text/markdown',
+  'text/x-python',
+  'text/x-java',
+  'text/x-c',
+  'text/x-c++',
+  'text/x-rust',
+  'text/x-go',
+  'text/x-ruby',
+  'text/x-yaml',
+  'text/xml',
+  'text/csv',
+  'application/json',
+  'application/xml',
+  'application/javascript',
+  'application/typescript',
+  'application/x-yaml',
+  'application/toml',
+]);
+
+/** File extensions accepted regardless of MIME type. */
+export const SUPPORTED_TEXT_EXTENSIONS = new Set([
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.py',
+  '.rb',
+  '.rs',
+  '.go',
+  '.java',
+  '.kt',
+  '.swift',
+  '.c',
+  '.cpp',
+  '.h',
+  '.hpp',
+  '.cs',
+  '.html',
+  '.css',
+  '.scss',
+  '.less',
+  '.json',
+  '.yaml',
+  '.yml',
+  '.toml',
+  '.xml',
+  '.md',
+  '.txt',
+  '.sh',
+  '.bash',
+  '.zsh',
+  '.sql',
+  '.graphql',
+  '.gql',
+  '.env',
+  '.gitignore',
+  '.dockerfile',
+  '.lua',
+  '.vim',
+  '.el',
+  '.clj',
+  '.r',
+  '.jl',
+  '.m',
+  '.tf',
+  '.hcl',
+]);
+
+/** Image MIME types accepted for paste/drop. */
+export const SUPPORTED_IMAGE_MIMES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+]);
+
 /** Quality score for an attached file in the current conversation context. */
 export interface ContextQualityScore {
   /** Overall quality 0-100. Green >= 60, Yellow >= 30, Red < 30. */
