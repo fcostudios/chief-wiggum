@@ -14,6 +14,8 @@ pub enum CommandCategory {
     Project,
     User,
     Sdk,
+    /// Claude Code skills from `~/.claude/skills/`.
+    Skill,
 }
 
 /// A discovered slash command.

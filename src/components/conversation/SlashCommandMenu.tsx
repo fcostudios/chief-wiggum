@@ -19,6 +19,7 @@ interface SlashCommandMenuProps {
 function groupByCategory(commands: SlashCommand[]): { label: string; commands: SlashCommand[] }[] {
   const groups: { label: string; category: string; commands: SlashCommand[] }[] = [
     { label: 'Built-in', category: 'Builtin', commands: [] },
+    { label: 'Skills', category: 'Skill', commands: [] },
     { label: 'Actions', category: 'Action', commands: [] },
     { label: 'SDK / MCP', category: 'Sdk', commands: [] },
     { label: 'Project', category: 'Project', commands: [] },

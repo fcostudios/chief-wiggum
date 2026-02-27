@@ -325,10 +325,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         // Flush any remaining typewriter buffer before checking accumulated content
         typewriter.flush();
 
-        // Safety net: if CLI exited cleanly but message:complete never fired,
-        // save any accumulated streaming content as the assistant response.
         const accumulated = state.streamingContent;
+
         if (accumulated && state.isStreaming) {
+          // Safety net: CLI exited while streaming text — save what was accumulated.
           const msgId = crypto.randomUUID();
           const assistantMsg: Message = {
             id: msgId,
@@ -364,6 +364,47 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
                 (err instanceof Error ? err.message : String(err)),
             ),
           );
+        } else if (state.isLoading && !accumulated) {
+          // CLI exited during tool-use (no text was streamed). The last user message
+          // has no response — most likely a context-limit exit. Show a clear error so
+          // the user knows to retry, and persist a sentinel assistant message so the
+          // orphaned user message is visible on reload.
+          const lastMsg = state.messages[state.messages.length - 1];
+          if (lastMsg?.role === 'user') {
+            const msgId = crypto.randomUUID();
+            const errContent =
+              'Response interrupted — the session ended before a reply was generated. ' +
+              'The context window may have been exhausted. Use Retry or rephrase your message to continue.';
+            const errMsg: Message = {
+              id: msgId,
+              session_id: sessionId,
+              role: 'assistant',
+              content: errContent,
+              model: null,
+              input_tokens: null,
+              output_tokens: null,
+              thinking_tokens: null,
+              cost_cents: null,
+              is_compacted: false,
+              created_at: new Date().toISOString(),
+            };
+            setState('messages', (prev) => [...prev, errMsg]);
+            invoke('save_message', {
+              session_id: sessionId,
+              id: msgId,
+              role: 'assistant',
+              content: errContent,
+              model: null,
+              input_tokens: null,
+              output_tokens: null,
+              cost_cents: null,
+            }).catch((err) =>
+              log.error(
+                'Failed to persist interrupted-session message: ' +
+                  (err instanceof Error ? err.message : String(err)),
+              ),
+            );
+          }
         }
 
         setState('isLoading', false);
@@ -950,15 +991,33 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
   if (activeSessionId) {
     const activeBridge = activeBridges.find((b) => b.session_id === activeSessionId);
     if (activeBridge) {
+      // Reload persisted messages from DB first — catches anything saved before the
+      // HMR reload that might not be in the ring buffer (e.g. buffer full, saved then reloaded).
+      try {
+        const dbMessages = await invoke<Message[]>('list_messages', {
+          session_id: activeSessionId,
+        });
+        if (dbMessages.length > 0) {
+          setState('messages', dbMessages);
+        }
+      } catch (err) {
+        log.error(
+          'Failed to reload messages from DB after HMR: ' +
+            (err instanceof Error ? err.message : String(err)),
+        );
+      }
+
       // Set up listeners FIRST (catches live events during drain)
       await setupEventListeners(activeSessionId);
 
-      // Drain and replay buffered events
+      // Drain and replay buffered events (adds anything not yet in DB)
+      let replayedCount = 0;
       if (activeBridge.has_buffered_events) {
         try {
           const buffered = await invoke<BufferedEvent[]>('drain_session_buffer', {
             session_id: activeSessionId,
           });
+          replayedCount = buffered.length;
           for (const event of buffered) {
             replayBufferedEvent(event, activeSessionId);
           }
@@ -972,6 +1031,24 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
       // Restore UI streaming state only when buffered events suggest work was in progress.
       if (activeBridge.has_buffered_events) {
         setState('isLoading', true);
+      }
+
+      // Surface reconnection to the user so they know what happened.
+      if (replayedCount > 0) {
+        addToast(
+          `Reconnected after reload — ${replayedCount} event${replayedCount === 1 ? '' : 's'} replayed`,
+          'info',
+        );
+      } else {
+        // Check for orphaned user message (session ended without a response before reload)
+        const msgs = state.messages;
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg?.role === 'user') {
+          addToast(
+            'Last response may have been lost. Use Retry to resend your message.',
+            'warning',
+          );
+        }
       }
     }
   }

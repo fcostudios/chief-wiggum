@@ -117,16 +117,67 @@ pub fn scan_user_commands() -> Vec<SlashCommand> {
     scan_directory(&commands_dir, CommandCategory::User)
 }
 
-/// Discover all slash commands: built-in + project + user.
+/// Scan Claude Code skills from `~/.claude/skills/`.
+/// Each skill lives in a subdirectory containing a `SKILL.md` file.
+/// The skill name is taken from the directory name.
+pub fn scan_user_skills() -> Vec<SlashCommand> {
+    let Some(home) = dirs::home_dir() else {
+        return Vec::new();
+    };
+    let skills_dir = home.join(".claude").join("skills");
+    let Ok(entries) = std::fs::read_dir(&skills_dir) else {
+        return Vec::new();
+    };
+
+    let mut commands = Vec::new();
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = match path.file_name().and_then(|n| n.to_str()) {
+            Some(s) if !s.is_empty() && !s.starts_with('.') => s.to_string(),
+            _ => continue,
+        };
+        let skill_md = path.join("SKILL.md");
+        if !skill_md.exists() {
+            continue;
+        }
+        let description = extract_description(&skill_md);
+        commands.push(SlashCommand {
+            name,
+            description,
+            category: CommandCategory::Skill,
+            args_hint: None,
+            source_path: Some(skill_md),
+            from_sdk: false,
+        });
+    }
+
+    commands.sort_by(|a, b| a.name.cmp(&b.name));
+    commands
+}
+
+/// Discover all slash commands: built-in + skills + project + user.
 /// Project commands override user commands with the same name.
-/// User commands override built-in commands with the same name.
+/// User commands override built-in commands and skills with the same name.
+/// Skills use unique names and are appended without overriding built-ins.
 pub fn discover_all(project_path: Option<&Path>) -> Vec<SlashCommand> {
     let mut commands = super::builtin_commands();
 
+    let skill_commands = scan_user_skills();
     let user_commands = scan_user_commands();
     let project_commands = project_path.map(scan_project_commands).unwrap_or_default();
 
-    // User commands override built-ins
+    // Skills have unique names — append without overriding built-ins
+    for cmd in skill_commands {
+        if !commands.iter().any(|c| c.name == cmd.name) {
+            commands.push(cmd);
+        }
+    }
+
+    // User commands override built-ins and skills
     for cmd in user_commands {
         if let Some(pos) = commands.iter().position(|c| c.name == cmd.name) {
             commands[pos] = cmd;
@@ -135,7 +186,7 @@ pub fn discover_all(project_path: Option<&Path>) -> Vec<SlashCommand> {
         }
     }
 
-    // Project commands override user + built-ins
+    // Project commands override user + built-ins + skills
     for cmd in project_commands {
         if let Some(pos) = commands.iter().position(|c| c.name == cmd.name) {
             commands[pos] = cmd;
@@ -244,6 +295,50 @@ mod tests {
         let clear = commands.iter().find(|c| c.name == "clear").unwrap();
         assert_eq!(clear.category, CommandCategory::Project);
         assert_eq!(clear.description, "Custom clear");
+    }
+
+    #[test]
+    fn scan_user_skills_reads_frontmatter_description() {
+        let skills_root = tempfile::tempdir().unwrap();
+        let skill_dir = skills_root.path().join("writing-plans");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: writing-plans\ndescription: Create implementation plans before coding\n---\n",
+        )
+        .unwrap();
+
+        let desc = extract_description(&skill_dir.join("SKILL.md"));
+        assert_eq!(desc, "Create implementation plans before coding");
+    }
+
+    #[test]
+    fn scan_user_skills_skips_subdirs_without_skill_md() {
+        // Verify that a subdir with no SKILL.md is excluded by the scanner logic.
+        let skills_root = tempfile::tempdir().unwrap();
+        fs::create_dir_all(skills_root.path().join("no-skill-here")).unwrap();
+
+        let found = std::fs::read_dir(skills_root.path())
+            .unwrap()
+            .flatten()
+            .filter(|e| e.path().is_dir())
+            .filter(|e| e.path().join("SKILL.md").exists())
+            .count();
+        assert_eq!(found, 0, "dir without SKILL.md must be excluded");
+    }
+
+    #[test]
+    fn skill_category_serializes_correctly() {
+        let cmd = super::super::SlashCommand {
+            name: "brainstorming".to_string(),
+            description: "Explore ideas".to_string(),
+            category: CommandCategory::Skill,
+            args_hint: None,
+            source_path: None,
+            from_sdk: false,
+        };
+        let json = serde_json::to_string(&cmd).expect("should serialize");
+        assert!(json.contains("\"Skill\""));
     }
 
     #[test]

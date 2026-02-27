@@ -534,7 +534,7 @@ listen<CliInitPayload>('cli:init', (event) => {
 interface SlashCommand {
   name: string;           // e.g., "review", "test"
   description: string;    // Human-readable description
-  category: 'Builtin' | 'Project' | 'User' | 'Sdk' | 'Action';
+  category: 'Builtin' | 'Project' | 'User' | 'Sdk' | 'Action' | 'Skill';
   args_hint: string | null;
   source_path: string | null;
   from_sdk: boolean;

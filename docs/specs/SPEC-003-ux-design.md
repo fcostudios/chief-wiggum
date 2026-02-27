@@ -632,6 +632,8 @@ User types "/" as first character in MessageInput
     │ Built-in                            │
     │  /review   Review code changes      │
     │  /test     Run test suite           │
+    │ Skills (~/.claude/skills/)          │
+    │  /writing-plans  Plan implementation│
     │ Project (.claude/commands/)          │
     │  /deploy   Deploy to staging        │
     │  /lint     Run linter               │
@@ -1352,6 +1354,8 @@ User types "/" →
 │ Built-in                                │
 │  /review    Review current changes  [↵] │  ← highlighted
 │  /test      Run test suite              │
+│ Skills                                  │
+│  /writing-plans  Create an implementation plan │
 │ Project                                 │
 │  /deploy    Deploy to staging           │
 │  /lint      Run project linter          │
