@@ -103,6 +103,98 @@ describe('MarkdownContent', () => {
     expect(mockClipboardWriteText).toHaveBeenCalledWith('copy me\n');
   });
 
+  describe('GFM table rendering', () => {
+    it('renders markdown table as HTML table', () => {
+      const md = '| Name | Age |\n| --- | --- |\n| Alice | 30 |\n| Bob | 25 |';
+      const { container } = render(() => <MarkdownContent content={md} />);
+      expect(container.querySelector('table')).toBeTruthy();
+      expect(container.querySelectorAll('th').length).toBe(2);
+      expect(container.querySelectorAll('td').length).toBe(4);
+    });
+
+    it('wraps table in horizontal scroll wrapper', async () => {
+      const md = '| Name | Age |\n| --- | --- |\n| Alice | 30 |';
+      const { container } = render(() => <MarkdownContent content={md} />);
+      await waitFor(() => {
+        expect(container.querySelector('.table-scroll-wrapper')).toBeTruthy();
+      });
+      expect(container.querySelector('.table-scroll-wrapper table')).toBeTruthy();
+    });
+
+    it('adds table copy button and copies table markdown', async () => {
+      const md = '| Name | Age |\n| --- | --- |\n| Alice | 30 |';
+      const { container } = render(() => <MarkdownContent content={md} />);
+      await waitFor(() => {
+        expect(container.querySelector('.table-scroll-wrapper .copy-btn')).toBeTruthy();
+      });
+      fireEvent.click(
+        container.querySelector('.table-scroll-wrapper .copy-btn') as HTMLButtonElement,
+      );
+      expect(mockClipboardWriteText).toHaveBeenCalledWith(
+        expect.stringContaining('| Name | Age |'),
+      );
+    });
+  });
+
+  describe('enhanced code blocks', () => {
+    it('shows language badge when language is provided', async () => {
+      const { container } = render(() => (
+        <MarkdownContent content={'```typescript\nconst x = 1;\n```'} />
+      ));
+      await waitFor(() => {
+        expect(container.querySelector('.code-lang-badge')).toBeTruthy();
+      });
+      expect(container.querySelector('.code-lang-badge')?.textContent).toBe('typescript');
+    });
+
+    it('does not show language badge for plain fenced code', async () => {
+      const { container } = render(() => <MarkdownContent content={'```\nplain code\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+      expect(container.querySelector('.code-lang-badge')).toBeNull();
+    });
+
+    it('adds line number and word-wrap toggle buttons', async () => {
+      const { container } = render(() => <MarkdownContent content={'```ts\nline1\nline2\n```'} />);
+      await waitFor(() => {
+        expect(container.querySelector('.lines-toggle-btn')).toBeTruthy();
+        expect(container.querySelector('.wrap-toggle-btn')).toBeTruthy();
+      });
+    });
+
+    it('toggles wrapped class on code element', async () => {
+      const { container } = render(() => (
+        <MarkdownContent content={'```ts\nconst longLine = "a".repeat(200);\n```'} />
+      ));
+      await waitFor(() => {
+        expect(container.querySelector('.wrap-toggle-btn')).toBeTruthy();
+      });
+      const wrapBtn = container.querySelector('.wrap-toggle-btn') as HTMLButtonElement;
+      const code = container.querySelector('pre code') as HTMLElement;
+      expect(code.classList.contains('code-wrapped')).toBe(false);
+      fireEvent.click(wrapBtn);
+      expect(code.classList.contains('code-wrapped')).toBe(true);
+      fireEvent.click(wrapBtn);
+      expect(code.classList.contains('code-wrapped')).toBe(false);
+    });
+
+    it('toggles line number gutter', async () => {
+      const { container } = render(() => (
+        <MarkdownContent content={'```ts\nline1\nline2\nline3\n```'} />
+      ));
+      await waitFor(() => {
+        expect(container.querySelector('.lines-toggle-btn')).toBeTruthy();
+      });
+      const linesBtn = container.querySelector('.lines-toggle-btn') as HTMLButtonElement;
+      expect(container.querySelector('.code-line-numbers')).toBeNull();
+      fireEvent.click(linesBtn);
+      expect(container.querySelector('.code-line-numbers')).toBeTruthy();
+      const lineNums = container.querySelectorAll('.code-line-numbers span');
+      expect(lineNums.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
   describe('code block context menu', () => {
     it('shows context menu on right-click of code block', async () => {
       const { container } = render(() => <MarkdownContent content={'```ts\nconst x = 1;\n```'} />);

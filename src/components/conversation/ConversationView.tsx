@@ -30,6 +30,7 @@ import { StreamingThinkingBlock } from './StreamingThinkingBlock';
 import { PermissionRecordBlock } from './PermissionRecordBlock';
 import type { Message } from '@/lib/types';
 import type { SearchMatch } from '@/lib/messageSearch';
+import { stabilizeStreamingMarkdown } from '@/lib/streamingMarkdown';
 import { t } from '@/stores/i18nStore';
 
 const SAMPLE_PROMPTS = [
@@ -570,7 +571,9 @@ const ConversationView: Component = () => {
                       {t('conversation.assistant')}
                     </span>
                   </div>
-                  <MarkdownContent content={typewriter.rendered()} />
+                  <div class="streaming-markdown">
+                    <MarkdownContent content={stabilizeStreamingMarkdown(typewriter.rendered())} />
+                  </div>
                   <span
                     class="inline-block w-[3px] h-4 rounded-[1px] animate-cursor-blink ml-0.5"
                     style={{ background: 'var(--color-accent)' }}

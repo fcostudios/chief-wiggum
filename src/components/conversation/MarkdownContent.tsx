@@ -33,6 +33,35 @@ const marked = new Marked(
   }),
 );
 
+const COPY_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+const CHECK_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+const LINES_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="4" y2="6.01"/><line x1="4" y1="12" x2="4" y2="12.01"/><line x1="4" y1="18" x2="4" y2="18.01"/><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/></svg>';
+const WRAP_ICON =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><path d="M3 12h15a3 3 0 1 1 0 6h-4"/><polyline points="13 16 11 18 13 20"/><line x1="3" y1="18" x2="7" y2="18"/></svg>';
+
+function tableToMarkdown(tbl: HTMLTableElement): string {
+  const rows: string[][] = [];
+  tbl.querySelectorAll('tr').forEach((tr) => {
+    const cells: string[] = [];
+    tr.querySelectorAll('th, td').forEach((cell) => {
+      cells.push(cell.textContent?.trim() ?? '');
+    });
+    rows.push(cells);
+  });
+
+  if (rows.length === 0) return '';
+  const header = `| ${rows[0].join(' | ')} |`;
+  const separator = `| ${rows[0].map(() => '---').join(' | ')} |`;
+  const body = rows
+    .slice(1)
+    .map((r) => `| ${r.join(' | ')} |`)
+    .join('\n');
+  return [header, separator, body].filter(Boolean).join('\n');
+}
+
 function encodeRendererCode(code: string): string {
   const bytes = new TextEncoder().encode(code);
   let binary = '';
@@ -148,33 +177,85 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
     // Use requestAnimationFrame to ensure DOM is updated
     const rafId = requestAnimationFrame(() => {
       containerRef!.querySelectorAll('pre').forEach((pre) => {
-        if (pre.querySelector('.copy-btn')) return; // already has button
+        if (pre.querySelector('.code-toolbar')) return;
 
         const codeEl = pre.querySelector('code');
         const code = codeEl?.textContent || '';
         const langMatch = codeEl?.className.match(/language-([A-Za-z0-9_+-]+)/);
         const lang = langMatch ? langMatch[1] : '';
+        pre.style.position = 'relative';
 
-        const copyIcon =
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
-        const checkIcon =
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-        const btn = document.createElement('button');
-        btn.className = 'copy-btn press-feedback';
-        btn.innerHTML = copyIcon;
-        btn.addEventListener('click', () => {
-          const code = pre.querySelector('code')?.textContent || '';
-          navigator.clipboard.writeText(code);
-          btn.innerHTML = checkIcon;
-          btn.style.color = 'var(--color-success)';
+        const toolbar = document.createElement('div');
+        toolbar.className = 'code-toolbar';
+
+        if (lang) {
+          const badge = document.createElement('span');
+          badge.className = 'code-lang-badge';
+          badge.textContent = lang;
+          toolbar.appendChild(badge);
+        }
+
+        const linesBtn = document.createElement('button');
+        linesBtn.className = 'toolbar-btn lines-toggle-btn';
+        linesBtn.type = 'button';
+        linesBtn.title = 'Toggle line numbers';
+        linesBtn.innerHTML = LINES_ICON;
+        linesBtn.addEventListener('click', () => {
+          const existing = pre.querySelector('.code-line-numbers');
+          if (existing) {
+            existing.remove();
+            pre.classList.remove('has-line-numbers');
+            linesBtn.classList.remove('active');
+            return;
+          }
+
+          const normalized = code.replace(/\n$/, '');
+          const lines = normalized.length > 0 ? normalized.split('\n') : [''];
+          const gutter = document.createElement('div');
+          gutter.className = 'code-line-numbers';
+          lines.forEach((_, i) => {
+            const num = document.createElement('span');
+            num.textContent = String(i + 1);
+            gutter.appendChild(num);
+          });
+          pre.appendChild(gutter);
+          pre.classList.add('has-line-numbers');
+          linesBtn.classList.add('active');
+        });
+        toolbar.appendChild(linesBtn);
+
+        const wrapBtn = document.createElement('button');
+        wrapBtn.className = 'toolbar-btn wrap-toggle-btn';
+        wrapBtn.type = 'button';
+        wrapBtn.title = 'Toggle word wrap';
+        wrapBtn.innerHTML = WRAP_ICON;
+        wrapBtn.addEventListener('click', () => {
+          if (!codeEl) return;
+          codeEl.classList.toggle('code-wrapped');
+          wrapBtn.classList.toggle('active');
+        });
+        toolbar.appendChild(wrapBtn);
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'toolbar-btn copy-btn press-feedback';
+        copyBtn.type = 'button';
+        copyBtn.title = 'Copy code';
+        copyBtn.innerHTML = COPY_ICON;
+        copyBtn.addEventListener('click', () => {
+          const freshCode = pre.querySelector('code')?.textContent || '';
+          navigator.clipboard.writeText(freshCode);
+          copyBtn.innerHTML = CHECK_ICON;
+          copyBtn.style.color = 'var(--color-success)';
           setTimeout(() => {
-            btn.innerHTML = copyIcon;
-            btn.style.color = '';
+            copyBtn.innerHTML = COPY_ICON;
+            copyBtn.style.color = '';
           }, 2000);
         });
-        pre.appendChild(btn);
+        toolbar.appendChild(copyBtn);
+
+        pre.appendChild(toolbar);
         pre.tabIndex = 0;
-        pre.setAttribute('aria-label', 'Code block');
+        pre.setAttribute('aria-label', `Code block${lang ? ` (${lang})` : ''}`);
 
         pre.addEventListener('contextmenu', (e: MouseEvent) => {
           e.preventDefault();
@@ -189,6 +270,33 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
           e.stopPropagation();
           openCodeContextMenu(pre as HTMLElement, { code, lang });
         });
+      });
+
+      // Wrap tables in a horizontal container and add markdown copy.
+      containerRef!.querySelectorAll('table').forEach((table) => {
+        if (table.parentElement?.classList.contains('table-scroll-wrapper')) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-scroll-wrapper';
+        table.parentNode?.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+
+        const btn = document.createElement('button');
+        btn.className = 'copy-btn press-feedback';
+        btn.type = 'button';
+        btn.title = 'Copy table as markdown';
+        btn.innerHTML = COPY_ICON;
+        btn.addEventListener('click', () => {
+          const md = tableToMarkdown(table as HTMLTableElement);
+          navigator.clipboard.writeText(md);
+          btn.innerHTML = CHECK_ICON;
+          btn.style.color = 'var(--color-success)';
+          setTimeout(() => {
+            btn.innerHTML = COPY_ICON;
+            btn.style.color = '';
+          }, 2000);
+        });
+        wrapper.appendChild(btn);
       });
 
       containerRef!.querySelectorAll<HTMLElement>(`[${RENDERER_ATTR}]`).forEach((placeholder) => {

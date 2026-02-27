@@ -244,10 +244,17 @@ The threshold ramps up as test tracks are completed:
 
 | CHI | Feature | Unit (R) | Unit (F) | Integration | E2E | Status |
 |-----|---------|----------|----------|-------------|-----|--------|
+| 181 | GFM Table Rendering | — | ✅ 3 | — | — | COVERED |
+| 183 | Enhanced Code Blocks | — | ✅ 5 | — | — | COVERED |
 | 186 | Renderer Registry & Content Detection | — | ✅ 13 | — | — | COVERED |
 | 187 | Compact Streaming Thinking Indicator | — | ✅ 8 | — | — | PARTIAL |
 | 190 | Clipboard Image Paste | — | ✅ 5 | — | — | PARTIAL |
+| 191 | External File Drag-Drop | — | — | — | — | PLANNED |
+| 194 | Streaming Code Block Stability | — | ✅ 8 | — | — | COVERED |
 | 200 | In-Session Message Search | — | ✅ 14 | — | — | PARTIAL |
+| 204 | Unit Test: Renderer Registry | — | — | — | — | PLANNED |
+| 207 | Unit Test: Streaming Thinking UI | — | — | — | — | PLANNED |
+| 208 | Unit Test: File Attachment UI | — | — | — | — | PLANNED |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -291,12 +298,12 @@ The threshold ramps up as test tracks are completed:
 | Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
 | Phase 3 (CHI-146 & earlier) | 62 | 33 | 23 | 0 | 0 | 6 |
 | Phase 3 (CHI-164 epic) | 12 | 11 | 0 | 0 | 0 | 1 |
-| Phase 3 (Conversation Experience) | 4 | 1 | 3 | 0 | 0 | 0 |
-| **Total** | **117** | **63 (54%)** | **43 (37%)** | **0 (0%)** | **0 (0%)** | **11 (9%)** |
+| Phase 3 (Conversation Experience) | 11 | 4 | 3 | 0 | 4 | 0 |
+| **Total** | **124** | **66 (53%)** | **43 (35%)** | **0 (0%)** | **4 (3%)** | **11 (9%)** |
 
 **Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
 **Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
-**Current (after CHI-186/187/190/200 conversation-experience closure batch):** 63 COVERED (54%), 43 PARTIAL (37%), 0 GAP (0%), 0 PLANNED (0%), 11 N/A (9%)
+**Current (after CHI-181/183/194 adapted batch 1):** 66 COVERED (53%), 43 PARTIAL (35%), 0 GAP (0%), 4 PLANNED (3%), 11 N/A (9%)
 
 **Remaining GAP:** None (0 GAP rows). CHI-78 is now fully covered/implemented, including code-block "Open in terminal" and keyboard-accessible context-menu interaction.
 

@@ -555,7 +555,136 @@
   border: none;
 }
 
-.markdown-content pre .copy-btn {
+.markdown-content pre .code-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+
+.markdown-content pre:hover .code-toolbar {
+  opacity: 1;
+}
+
+.markdown-content pre .code-lang-badge {
+  font-size: 10px;
+  font-family: var(--font-ui);
+  color: var(--color-text-tertiary);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
+.markdown-content pre .toolbar-btn {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  color: var(--color-text-tertiary);
+  background-color: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    color 200ms,
+    background-color 100ms;
+}
+
+.markdown-content pre .toolbar-btn:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
+}
+
+.markdown-content pre .toolbar-btn.active {
+  color: var(--color-accent);
+  border-color: rgba(232, 130, 90, 0.35);
+}
+
+.markdown-content pre code.code-wrapped {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.markdown-content pre .code-line-numbers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  pointer-events: none;
+  border-right: 1px solid var(--color-border-secondary);
+  background-color: var(--color-bg-inset);
+}
+
+.markdown-content pre .code-line-numbers span {
+  display: block;
+  min-width: 28px;
+  padding: 0 8px;
+  text-align: right;
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--color-text-tertiary);
+  opacity: 0.55;
+}
+
+.markdown-content pre.has-line-numbers code {
+  padding-left: 44px;
+}
+
+/* GFM tables (CHI-181) */
+.markdown-content .table-scroll-wrapper {
+  position: relative;
+  overflow-x: auto;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-secondary);
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+}
+
+.markdown-content thead th {
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  background-color: var(--color-bg-elevated);
+  border-bottom: 2px solid var(--color-border-primary);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.markdown-content tbody td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border-secondary);
+  color: var(--color-text-secondary);
+}
+
+.markdown-content tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.markdown-content tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.markdown-content .table-scroll-wrapper .copy-btn {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -577,13 +706,26 @@
     background-color 100ms;
 }
 
-.markdown-content pre:hover .copy-btn {
+.markdown-content .table-scroll-wrapper:hover .copy-btn {
   opacity: 1;
 }
 
-.markdown-content pre .copy-btn:hover {
+.markdown-content .table-scroll-wrapper .copy-btn:hover {
   color: var(--color-text-primary);
   background-color: var(--color-bg-secondary);
+}
+
+/* Streaming code block cursor hint (CHI-194) */
+.streaming-markdown .markdown-content pre:last-child code::after {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 14px;
+  margin-left: 2px;
+  vertical-align: middle;
+  border-radius: 1px;
+  background: var(--color-accent);
+  animation: cursor-blink 1s step-end infinite;
 }
 
 .markdown-content strong {
