@@ -14,6 +14,7 @@ import type {
   BufferedEvent,
   CliLocation,
   PromptImageInput,
+  ToolOutputEvent,
 } from '@/lib/types';
 import {
   updateSessionTitle,
@@ -30,6 +31,7 @@ const log = createLogger('ui/conversation');
 
 interface ConversationState {
   messages: Message[];
+  toolOutputs: Record<string, string>;
   isLoading: boolean;
   streamingContent: string;
   thinkingContent: string;
@@ -43,6 +45,7 @@ interface ConversationState {
 
 const [state, setState] = createStore<ConversationState>({
   messages: [],
+  toolOutputs: {},
   isLoading: false,
   streamingContent: '',
   thinkingContent: '',
@@ -462,6 +465,19 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
   );
 
   listeners.push(
+    await listen<ToolOutputEvent>('tool:output', (event) => {
+      if (event.payload.session_id !== sessionId) return;
+      const activeId = getActiveSession()?.id;
+      if (sessionId !== activeId) return;
+
+      setState('toolOutputs', (prev) => ({
+        ...prev,
+        [event.payload.tool_use_id]: event.payload.content,
+      }));
+    }),
+  );
+
+  listeners.push(
     await listen<{
       session_id: string;
       tool_use_id: string;
@@ -835,6 +851,7 @@ async function checkSdkSupport(): Promise<boolean> {
 /** Clear all messages (e.g., on session change). */
 export function clearMessages(): void {
   setState('messages', []);
+  setState('toolOutputs', {});
   setState('isLoading', false);
   setState('streamingContent', '');
   setState('thinkingContent', '');
@@ -857,6 +874,7 @@ export async function switchSession(
   // Clear UI-only state (streaming content, thinking, etc.)
   setState('streamingContent', '');
   setState('thinkingContent', '');
+  setState('toolOutputs', {});
   setState('isStreaming', false);
   setState('isLoading', false);
   setState('error', null);
@@ -1217,6 +1235,17 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
       }
       break;
     }
+
+    case 'ToolOutput':
+      if (event.tool_use_id && typeof event.content === 'string') {
+        const toolUseId = event.tool_use_id;
+        const outputContent = event.content;
+        setState('toolOutputs', (prev) => ({
+          ...prev,
+          [toolUseId]: outputContent,
+        }));
+      }
+      break;
 
     case 'Thinking':
       setState('thinkingContent', (prev) => prev + (event.content ?? ''));

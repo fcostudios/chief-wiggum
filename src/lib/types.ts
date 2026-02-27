@@ -148,6 +148,7 @@ export interface BufferedEvent {
     | 'CliInit'
     | 'CliExited'
     | 'ToolUse'
+    | 'ToolOutput'
     | 'ToolResult'
     | 'Thinking'
     | 'PermissionRequest';
@@ -180,6 +181,14 @@ export interface BufferedEvent {
   command?: string;
   file_path?: string | null;
   risk_level?: string;
+}
+
+/** Payload from `tool:output` Tauri event — emitted just before tool:result. */
+export interface ToolOutputEvent {
+  session_id: string;
+  tool_use_id: string;
+  content: string;
+  is_error: boolean;
 }
 
 /** CLI location info from backend (mirrors Rust CliLocation) */
