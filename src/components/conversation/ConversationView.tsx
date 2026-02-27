@@ -19,14 +19,17 @@ import {
 import { forkSession, setActiveSession, sessionState } from '@/stores/sessionStore';
 import { cliState } from '@/stores/cliStore';
 import { pickAndCreateProject, projectState } from '@/stores/projectStore';
+import { closeMessageSearch, uiState } from '@/stores/uiStore';
 import MessageBubble from './MessageBubble';
 import MarkdownContent from './MarkdownContent';
+import ConversationSearch from './ConversationSearch';
 import { ToolUseBlock } from './ToolUseBlock';
 import { ToolResultBlock } from './ToolResultBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { StreamingThinkingBlock } from './StreamingThinkingBlock';
 import { PermissionRecordBlock } from './PermissionRecordBlock';
 import type { Message } from '@/lib/types';
+import type { SearchMatch } from '@/lib/messageSearch';
 import { t } from '@/stores/i18nStore';
 
 const SAMPLE_PROMPTS = [
@@ -149,6 +152,7 @@ function VirtualMessageRow(props: {
   return (
     <div
       data-index={props.virtualItem.index}
+      data-message-index={props.virtualItem.index}
       ref={rowRef}
       style={{
         position: 'absolute',
@@ -172,6 +176,7 @@ const ConversationView: Component = () => {
   let measureRaf: number | null = null;
   const [isAutoScroll, setIsAutoScroll] = createSignal(true);
   const [showJumpButton, setShowJumpButton] = createSignal(false);
+  const [searchMatches, setSearchMatches] = createSignal<SearchMatch[]>([]);
 
   const messages = () => conversationState.messages;
   const hasActiveTurnLayout = () => conversationState.isLoading || conversationState.isStreaming;
@@ -333,8 +338,36 @@ const ConversationView: Component = () => {
     setShowJumpButton(false);
   }
 
+  function scrollToMessage(messageIndex: number): void {
+    if (!scrollRef) return;
+    if (messageIndex < 0 || messageIndex >= messages().length) return;
+
+    if (useVirtualization()) {
+      virtualizer.scrollToIndex(messageIndex, { align: 'center', behavior: 'smooth' });
+      return;
+    }
+
+    const target = scrollRef.querySelector<HTMLElement>(`[data-message-index="${messageIndex}"]`);
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   return (
     <div class="relative flex-1 min-h-0">
+      <Show when={uiState.messageSearchVisible}>
+        <div class="absolute top-2 left-1/2 -translate-x-1/2 z-30 w-[400px] max-w-[90%]">
+          <ConversationSearch
+            messages={messages()}
+            onNavigate={scrollToMessage}
+            onMatchesChange={setSearchMatches}
+            onClose={() => {
+              closeMessageSearch();
+              if (searchMatches().length > 0) {
+                setSearchMatches([]);
+              }
+            }}
+          />
+        </div>
+      </Show>
       <div ref={scrollRef} class="h-full overflow-y-auto" onScroll={handleScroll}>
         <Show
           when={messages().length > 0}
@@ -482,6 +515,7 @@ const ConversationView: Component = () => {
                   <For each={messages()}>
                     {(msg, index) => (
                       <div
+                        data-message-index={index()}
                         class="animate-fade-in-up"
                         style={{
                           'animation-delay': `${Math.min(index() * 30, 200)}ms`,

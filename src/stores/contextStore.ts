@@ -10,6 +10,7 @@ import type {
   FileReference,
   FileContent,
   FileSuggestion,
+  ImageAttachment,
 } from '@/lib/types';
 import { extractConversationKeywords, scoreAllAttachments } from '@/lib/contextScoring';
 import { getActiveProject, projectState } from '@/stores/projectStore';
@@ -23,9 +24,12 @@ const log = createLogger('ui/context');
 const TOKEN_WARNING_THRESHOLD = 50_000;
 /** Hard cap on total tokens. */
 const TOKEN_HARD_CAP = 100_000;
+/** Max image size accepted from clipboard paste. */
+const IMAGE_MAX_SIZE = 5 * 1024 * 1024;
 
 interface ContextState {
   attachments: ContextAttachment[];
+  images: ImageAttachment[];
   scores: Record<string, ContextQualityScore>;
   suggestions: FileSuggestion[];
   isAssembling: boolean;
@@ -33,6 +37,7 @@ interface ContextState {
 
 const [state, setState] = createStore<ContextState>({
   attachments: [],
+  images: [],
   scores: {},
   suggestions: [],
   isAssembling: false,
@@ -83,6 +88,57 @@ export function removeAttachment(id: string): void {
   void refreshSuggestions();
 }
 
+function estimateImageTokens(width: number, height: number): number {
+  const tiles = Math.ceil(width / 512) * Math.ceil(height / 512);
+  return Math.max(85, tiles * 85);
+}
+
+/** Add a pasted image attachment held in frontend memory. */
+export function addImageAttachment(
+  dataUrl: string,
+  mimeType: string,
+  sizeBytes: number,
+  width?: number,
+  height?: number,
+): string | null {
+  if (sizeBytes > IMAGE_MAX_SIZE) {
+    addToast(`Image too large (${(sizeBytes / 1024 / 1024).toFixed(1)}MB). Max is 5MB.`, 'error');
+    return null;
+  }
+
+  const index = state.images.length + 1;
+  const extension = mimeType.split('/')[1] || 'png';
+  const id = crypto.randomUUID();
+
+  setState('images', (prev) => [
+    ...prev,
+    {
+      id,
+      data_url: dataUrl,
+      mime_type: mimeType,
+      file_name: `paste-${index}.${extension}`,
+      size_bytes: sizeBytes,
+      estimated_tokens: estimateImageTokens(width ?? 512, height ?? 512),
+      width,
+      height,
+    },
+  ]);
+
+  return id;
+}
+
+export function removeImageAttachment(id: string): void {
+  setState('images', (prev) => prev.filter((img) => img.id !== id));
+}
+
+export function getImageTokenEstimate(): number {
+  return state.images.reduce((sum, image) => sum + image.estimated_tokens, 0);
+}
+
+export function getImageCount(): number {
+  return state.images.length;
+}
+
 /** Update the line range of an existing attachment and recalculate token estimate. */
 export function updateAttachmentRange(
   attachmentId: string,
@@ -115,6 +171,7 @@ export function updateAttachmentRange(
 /** Clear all attachments. */
 export function clearAttachments(): void {
   setState('attachments', []);
+  setState('images', []);
   setState('scores', reconcile({}, { merge: false }));
   setState('suggestions', []);
 }
@@ -154,7 +211,10 @@ export async function refreshSuggestions(): Promise<void> {
 
 /** Get total estimated tokens across all attachments. */
 export function getTotalEstimatedTokens(): number {
-  return state.attachments.reduce((sum, a) => sum + a.reference.estimated_tokens, 0);
+  return (
+    state.attachments.reduce((sum, a) => sum + a.reference.estimated_tokens, 0) +
+    state.images.reduce((sum, image) => sum + image.estimated_tokens, 0)
+  );
 }
 
 /** Get attachment count. */
@@ -167,10 +227,10 @@ export function getAttachmentCount(): number {
  * Called right before sending a message. Returns the context prefix to prepend.
  */
 export async function assembleContext(): Promise<string> {
-  if (state.attachments.length === 0) return '';
+  if (state.attachments.length === 0 && state.images.length === 0) return '';
 
   const projectId = projectState.activeProjectId;
-  if (!projectId) return '';
+  if (state.attachments.length > 0 && !projectId) return '';
 
   setState('isAssembling', true);
 
@@ -178,32 +238,43 @@ export async function assembleContext(): Promise<string> {
     const parts: string[] = [];
     parts.push('<context>');
 
-    for (const attachment of state.attachments) {
-      const ref = attachment.reference;
-      try {
-        const content = await invoke<FileContent>('read_project_file', {
-          project_id: projectId,
-          relative_path: ref.relative_path,
-          start_line: ref.start_line ?? null,
-          // Backend scanner uses end-exclusive ranges; chips store inclusive ranges.
-          end_line: ref.end_line ? ref.end_line + 1 : null,
-        });
+    if (state.attachments.length > 0) {
+      for (const attachment of state.attachments) {
+        const ref = attachment.reference;
+        try {
+          const content = await invoke<FileContent>('read_project_file', {
+            project_id: projectId,
+            relative_path: ref.relative_path,
+            start_line: ref.start_line ?? null,
+            // Backend scanner uses end-exclusive ranges; chips store inclusive ranges.
+            end_line: ref.end_line ? ref.end_line + 1 : null,
+          });
 
-        const lineAttr = ref.start_line ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"` : '';
-        parts.push(
-          `<file path="${ref.relative_path}"${lineAttr} tokens="~${content.estimated_tokens}">`,
-        );
-        parts.push(content.content);
-        parts.push('</file>');
-      } catch (err) {
-        log.error(
-          'Failed to read ' +
-            ref.relative_path +
-            ': ' +
-            (err instanceof Error ? err.message : String(err)),
-        );
-        parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
+          const lineAttr = ref.start_line ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"` : '';
+          parts.push(
+            `<file path="${ref.relative_path}"${lineAttr} tokens="~${content.estimated_tokens}">`,
+          );
+          parts.push(content.content);
+          parts.push('</file>');
+        } catch (err) {
+          log.error(
+            'Failed to read ' +
+              ref.relative_path +
+              ': ' +
+              (err instanceof Error ? err.message : String(err)),
+          );
+          parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
+        }
       }
+    }
+
+    for (const image of state.images) {
+      const base64Data = image.data_url.replace(/^data:[^;]+;base64,/, '');
+      parts.push(
+        `<image name="${image.file_name}" type="${image.mime_type}" tokens="~${image.estimated_tokens}">`,
+      );
+      parts.push(base64Data);
+      parts.push('</image>');
     }
 
     parts.push('</context>');

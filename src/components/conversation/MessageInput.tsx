@@ -7,7 +7,7 @@
 
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js';
-import { Send, Square, Paperclip } from 'lucide-solid';
+import { Send, Square, Paperclip, Image as ImageIcon, X } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type { SlashCommand, FileSearchResult, FileReference } from '@/lib/types';
 import SlashCommandMenu from './SlashCommandMenu';
@@ -28,8 +28,11 @@ import {
   contextState,
   addFileReference,
   removeAttachment,
+  addImageAttachment,
+  removeImageAttachment,
   clearAttachments,
   getAttachmentCount,
+  getImageCount,
   getTotalEstimatedTokens,
   assembleContext,
 } from '@/stores/contextStore';
@@ -399,6 +402,41 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     }
   }
 
+  function handlePaste(e: ClipboardEvent & { currentTarget: HTMLTextAreaElement }): void {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    let hasImage = false;
+    for (const item of Array.from(items)) {
+      if (!item.type.startsWith('image/')) continue;
+      hasImage = true;
+
+      const blob = item.getAsFile();
+      if (!blob) continue;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const sizeBytes = blob.size;
+        const mimeType = blob.type;
+
+        const image = new window.Image();
+        image.onload = () => {
+          addImageAttachment(dataUrl, mimeType, sizeBytes, image.width, image.height);
+        };
+        image.onerror = () => {
+          addImageAttachment(dataUrl, mimeType, sizeBytes);
+        };
+        image.src = dataUrl;
+      };
+      reader.readAsDataURL(blob);
+    }
+
+    if (hasImage) {
+      e.preventDefault();
+    }
+  }
+
   function handleSlashSelect(cmd: SlashCommand) {
     if (!textareaRef) return;
     const value = textareaRef.value;
@@ -598,6 +636,50 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         </div>
       </Show>
 
+      {/* Image attachment thumbnails (CHI-190) */}
+      <Show when={getImageCount() > 0}>
+        <div class="flex flex-wrap items-center gap-2 mb-2 max-w-4xl mx-auto">
+          <ImageIcon size={10} style={{ color: 'var(--color-text-tertiary)' }} />
+          <For each={contextState.images}>
+            {(image) => (
+              <div
+                class="relative group rounded-md overflow-hidden"
+                style={{
+                  border: '1px solid var(--color-border-secondary)',
+                  background: 'var(--color-bg-inset)',
+                }}
+              >
+                <img
+                  src={image.data_url}
+                  alt={image.file_name}
+                  class="h-12 w-auto max-w-[80px] object-cover"
+                />
+                <button
+                  class="absolute -top-1 -right-1 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: 'var(--color-bg-elevated)',
+                    border: '1px solid var(--color-border-primary)',
+                  }}
+                  onClick={() => removeImageAttachment(image.id)}
+                  aria-label={`Remove ${image.file_name}`}
+                >
+                  <X size={8} />
+                </button>
+                <div
+                  class="absolute bottom-0 left-0 right-0 px-1 py-0.5 text-[8px] font-mono"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
+                  ~{image.estimated_tokens} tok
+                </div>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+
       {/* Suggested related files (CHI-127) */}
       <ContextSuggestions />
 
@@ -636,6 +718,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           placeholder={props.isDisabled ? t('input.noBridge') : t('input.placeholder')}
           disabled={props.isDisabled}
           onInput={handleInput}
+          onPaste={handlePaste}
           on:keydown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => {
