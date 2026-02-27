@@ -210,4 +210,138 @@ describe('ConversationView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'common.retry' }));
     expect(mockRetryLastMessage).toHaveBeenCalledWith('session-1');
   });
+
+  it('hides successful TodoWrite tool_result echoes to avoid duplicate status rows', () => {
+    mockMessages = [
+      makeMessage({
+        id: 'todo-use-1',
+        role: 'tool_use',
+        content: JSON.stringify({
+          tool_name: 'TodoWrite',
+          tool_use_id: 'todo-1',
+          tool_input: JSON.stringify({ todos: [] }),
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+      makeMessage({
+        id: 'todo-result-1',
+        role: 'tool_result',
+        content: JSON.stringify({
+          tool_use_id: 'todo-1',
+          content:
+            'Todos have been modified successfully. Ensure that you continue to use the todo list.',
+          is_error: false,
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+      makeMessage({
+        id: 'todo-use-2',
+        role: 'tool_use',
+        content: JSON.stringify({
+          tool_name: 'TodoWrite',
+          tool_use_id: 'todo-2',
+          tool_input: JSON.stringify({ todos: [] }),
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+      makeMessage({
+        id: 'todo-result-2',
+        role: 'tool_result',
+        content: JSON.stringify({
+          tool_use_id: 'todo-2',
+          content:
+            'Todos have been modified successfully. Ensure that you continue to use the todo list.',
+          is_error: false,
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+    ];
+
+    render(() => <ConversationView />);
+
+    expect(screen.getAllByTestId('tool-use')).toHaveLength(2);
+    expect(screen.queryByTestId('tool-result')).not.toBeInTheDocument();
+  });
+
+  it('still renders tool_result for non-TodoWrite tools', () => {
+    mockMessages = [
+      makeMessage({
+        id: 'bash-use',
+        role: 'tool_use',
+        content: JSON.stringify({
+          tool_name: 'Bash',
+          tool_use_id: 'bash-1',
+          tool_input: JSON.stringify({ command: 'echo ok' }),
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+      makeMessage({
+        id: 'bash-result',
+        role: 'tool_result',
+        content: JSON.stringify({
+          tool_use_id: 'bash-1',
+          content: 'ok',
+          is_error: false,
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+    ];
+
+    render(() => <ConversationView />);
+
+    expect(screen.getByTestId('tool-result')).toBeInTheDocument();
+  });
+
+  it('still renders TodoWrite tool_result when it is an error', () => {
+    mockMessages = [
+      makeMessage({
+        id: 'todo-use-err',
+        role: 'tool_use',
+        content: JSON.stringify({
+          tool_name: 'TodoWrite',
+          tool_use_id: 'todo-err',
+          tool_input: JSON.stringify({ todos: [] }),
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+      makeMessage({
+        id: 'todo-result-err',
+        role: 'tool_result',
+        content: JSON.stringify({
+          tool_use_id: 'todo-err',
+          content: 'Failed to update todos',
+          is_error: true,
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+    ];
+
+    render(() => <ConversationView />);
+
+    expect(screen.getByTestId('tool-result')).toBeInTheDocument();
+  });
 });

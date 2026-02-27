@@ -59,13 +59,75 @@ const VIRTUALIZATION_THRESHOLD = 50;
 const OVERSCAN = 5;
 
 /** Render the correct component for a message by role. */
+function parseToolUse(content: string): { tool_name: string; tool_use_id: string } | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof parsed.tool_name === 'string' &&
+      typeof parsed.tool_use_id === 'string'
+    ) {
+      return { tool_name: parsed.tool_name, tool_use_id: parsed.tool_use_id };
+    }
+  } catch {
+    // Best-effort parsing only.
+  }
+  return null;
+}
+
+function parseToolResult(
+  content: string,
+): { tool_use_id: string; content: string; is_error: boolean } | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof parsed.tool_use_id === 'string' &&
+      typeof parsed.content === 'string' &&
+      typeof parsed.is_error === 'boolean'
+    ) {
+      return {
+        tool_use_id: parsed.tool_use_id,
+        content: parsed.content,
+        is_error: parsed.is_error,
+      };
+    }
+  } catch {
+    // Best-effort parsing only.
+  }
+  return null;
+}
+
+function isTodoWriteSuccessEcho(message: Message): boolean {
+  if (message.role !== 'tool_result') return false;
+  const parsedResult = parseToolResult(message.content);
+  if (!parsedResult || parsedResult.is_error) return false;
+  if (!parsedResult.content.toLowerCase().includes('todos have been modified successfully')) {
+    return false;
+  }
+
+  const relatedToolUse = conversationState.messages.find((msg) => {
+    if (msg.role !== 'tool_use') return false;
+    const parsedToolUse = parseToolUse(msg.content);
+    return parsedToolUse?.tool_use_id === parsedResult.tool_use_id;
+  });
+
+  if (!relatedToolUse) return false;
+  const parsedToolUse = parseToolUse(relatedToolUse.content);
+  return parsedToolUse?.tool_name === 'TodoWrite';
+}
+
 function MessageRenderer(props: { message: Message }) {
   return (
     <>
       {props.message.role === 'tool_use' ? (
         <ToolUseBlock message={props.message} />
       ) : props.message.role === 'tool_result' ? (
-        <ToolResultBlock message={props.message} />
+        isTodoWriteSuccessEcho(props.message) ? null : (
+          <ToolResultBlock message={props.message} />
+        )
       ) : props.message.role === 'thinking' ? (
         <ThinkingBlock message={props.message} />
       ) : props.message.role === 'permission' ? (
