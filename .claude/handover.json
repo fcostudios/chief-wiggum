@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-27T14:32:57Z",
+  "last_updated": "2026-02-27T15:14:49Z",
   "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -2573,11 +2573,11 @@
     }
   },
   "recommended_next": [
-    "Continue rendering/attachments test plan with CHI-191 (external drag/drop) and CHI-204 (renderer registry tests) in the next batch.",
-    "Finish remaining plan tasks CHI-207 and CHI-208, then run full closure verification and sync Linear + TESTING-MATRIX."
+    "Complete the remaining plan task CHI-208 (file attachment test coverage) and then run full closure verification.",
+    "After CHI-208, execute closure sync across handover + TESTING-MATRIX + Linear and prepare merge-to-main."
   ],
   "critical_path": [
-    "Complete pending conversation-experience tasks CHI-191, CHI-204, CHI-207, CHI-208 with passing frontend unit coverage.",
+    "Finish CHI-208 to complete the 2026-02-26 rendering/attachments test plan implementation set.",
     "Run closure checks and keep handover/TESTING-MATRIX/Linear states aligned to avoid reopening this plan."
   ],
   "ux_quick_wins": [
@@ -4023,7 +4023,7 @@
     "version": "1.0",
     "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
-  "notes": "Batch 1 of the CHI-181/183/191/194/204/207/208 plan is complete: CHI-181 (GFM table rendering), CHI-183 (enhanced code-block toolbar), and CHI-194 (streaming fence stabilization) are implemented with focused frontend test coverage. Remaining tasks for this plan are CHI-191, CHI-204, CHI-207, and CHI-208 before closure.",
+  "notes": "Batch 2 of the CHI-181/183/191/194/204/207/208 plan is complete: CHI-191 (external file drag-drop), CHI-204 (renderer/table test coverage expansion), and CHI-207 (streaming thinking test coverage extension) are implemented and verified. Remaining task before closure is CHI-208.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -4031,10 +4031,10 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Full toolchain ready. Latest batch verification (CHI-181/183/194): npx vitest run src/components/conversation/MarkdownContent.test.tsx src/lib/streamingMarkdown.test.ts (29 tests), npm run typecheck, npm run lint, npm run format:check."
+    "notes": "Full toolchain ready. Latest batch verification (CHI-191/204/207): npx vitest run src/components/conversation/ExternalDragDrop.test.tsx src/lib/rendererRegistry.test.ts src/components/conversation/MarkdownContent.test.tsx src/components/conversation/StreamingThinkingBlock.test.tsx src/stores/contextStore.test.ts (72 tests), plus npm run typecheck, npm run lint, npm run format:check."
   },
   "metadata": {
-    "last_updated": "2026-02-27T14:32:57Z"
+    "last_updated": "2026-02-27T15:14:49Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
@@ -4042,7 +4042,7 @@
       "status": "done",
       "linear_id": "1d932448-fa84-4008-af3b-30b62128a639",
       "linear_url": "https://linear.app/chief-wiggum/issue/CHI-177/epic-a-rich-content-rendering",
-      "notes": "Epic A now includes renderer registry + markdown rendering follow-through: CHI-186, CHI-181, and CHI-183 are implemented and verified in this branch.",
+      "notes": "Epic A now includes renderer registry + markdown rendering follow-through: CHI-186, CHI-181, CHI-183, and CHI-204 are implemented and verified in this branch.",
       "tasks": {
         "CHI-186": {
           "title": "A6: Renderer Registry & Content Detection",
@@ -4110,6 +4110,29 @@
             "regression_verified": true
           },
           "notes": "Expanded code block controls with language badge, line-number toggle, wrap toggle, and toolbar copy action backed by updated code-block styles."
+        },
+        "CHI-204": {
+          "title": "Unit Test: Renderer Registry & GFM Tables",
+          "status": "done",
+          "completed_at": "2026-02-27T15:14:49Z",
+          "priority": "high",
+          "track": "C",
+          "linear_id": "fde6e60c-8883-452e-9ba4-142183ff7029",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 14,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 90,
+            "test_files": [
+              "src/lib/rendererRegistry.test.ts",
+              "src/components/conversation/MarkdownContent.test.tsx"
+            ],
+            "regression_verified": true
+          },
+          "notes": "Expanded renderer/table unit coverage with GFM table edge-case tests and existing HMR-safe renderer registry assertions."
         }
       }
     },
@@ -4118,7 +4141,7 @@
       "status": "done",
       "linear_id": "07887438-a8a9-4e6b-a925-7907731d25ad",
       "linear_url": "https://linear.app/chief-wiggum/issue/CHI-178/epic-b-streaming-and-thinking-ux",
-      "notes": "Epic B now includes streaming rendering stability follow-through: CHI-187 and CHI-194 are implemented and verified in this branch.",
+      "notes": "Epic B now includes streaming rendering and test follow-through: CHI-187, CHI-194, and CHI-207 are implemented and verified in this branch.",
       "tasks": {
         "CHI-187": {
           "title": "B1: Compact Streaming Thinking Indicator",
@@ -4163,6 +4186,28 @@
             "regression_verified": true
           },
           "notes": "Added streaming markdown stabilization utility for unterminated fences and wired ConversationView streaming content through it, with streaming code cursor styling scoped via .streaming-markdown."
+        },
+        "CHI-207": {
+          "title": "Unit Test: Streaming & Thinking UX",
+          "status": "done",
+          "completed_at": "2026-02-27T15:14:49Z",
+          "priority": "high",
+          "track": "C",
+          "linear_id": "2f043aaf-1590-4cff-88b3-04fe7ba91ef6",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 9,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 90,
+            "test_files": [
+              "src/components/conversation/StreamingThinkingBlock.test.tsx"
+            ],
+            "regression_verified": true
+          },
+          "notes": "Extended StreamingThinkingBlock unit coverage with animated streaming indicator assertion while preserving elapsed timer and compact/expand behavior tests."
         }
       }
     },
@@ -4171,7 +4216,7 @@
       "status": "done",
       "linear_id": "326c59fc-4f29-48e2-a944-ecc81dc452ce",
       "linear_url": "https://linear.app/chief-wiggum/issue/CHI-179/epic-c-file-attachments-and-input",
-      "notes": "Epic C closure for this plan is complete with clipboard image paste, thumbnail chips, and context XML image inclusion.",
+      "notes": "Epic C now includes clipboard image paste and external file-drop support for prompt context assembly.",
       "tasks": {
         "CHI-190": {
           "title": "C1: Clipboard Image Paste",
@@ -4194,6 +4239,29 @@
             "regression_verified": true
           },
           "notes": "Completed image paste flow foundation: ImageAttachment type, contextStore image APIs and token accounting, MessageInput paste handler with thumbnail chips/removal UI, and image tags in context assembly XML."
+        },
+        "CHI-191": {
+          "title": "C2: External File Drag-Drop",
+          "status": "done",
+          "completed_at": "2026-02-27T15:14:49Z",
+          "priority": "high",
+          "track": "B",
+          "linear_id": "fbcf81b1-6d18-4935-9bcd-9657ce670415",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 6,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 85,
+            "test_files": [
+              "src/components/conversation/ExternalDragDrop.test.tsx",
+              "src/stores/contextStore.test.ts"
+            ],
+            "regression_verified": true
+          },
+          "notes": "MessageInput now accepts external Files drags, validates MIME/extension, and stores dropped text as in-memory external attachments so assembleContext can include content without backend file reads."
         }
       }
     },
