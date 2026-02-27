@@ -6,6 +6,7 @@ import { extractInlineDiffPreview } from '@/lib/inlineDiff';
 import { setActiveInlineDiff } from '@/stores/diffReviewStore';
 import { setActiveView } from '@/stores/uiStore';
 import InlineDiff from './InlineDiff';
+import { LiveToolOutput } from './LiveToolOutput';
 
 interface ToolResultBlockProps {
   message: Message;
@@ -68,6 +69,7 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   const preview = () => resultPreview(data().content);
   const relatedToolUse = () => findRelatedToolUse(data().tool_use_id);
   const relatedToolName = () => relatedToolUse()?.tool_name ?? 'Tool';
+  const toolOutput = () => conversationState.toolOutputs[data().tool_use_id] ?? null;
   const exitCode = () => (isError() ? extractExitCode(data().content) : null);
   const inlineDiff = () => {
     if (isError()) return null;
@@ -91,6 +93,12 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
           'border-top-right-radius': '0',
         }}
       >
+        <Show when={toolOutput()}>
+          {(output) => (
+            <LiveToolOutput content={output()} toolName={relatedToolName()} isError={isError()} />
+          )}
+        </Show>
+
         {/* Header row */}
         <button
           class="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-white/[0.02] transition-colors"

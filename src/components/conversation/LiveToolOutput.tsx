@@ -63,7 +63,8 @@ export const LiveToolOutput: Component<LiveToolOutputProps> = (props) => {
           <span
             class="text-[10px] font-mono px-1.5 py-0.5 rounded ml-1"
             style={{
-              background: exitCodeNum() === 0 ? 'rgba(63, 185, 80, 0.15)' : 'rgba(248, 81, 73, 0.12)',
+              background:
+                exitCodeNum() === 0 ? 'rgba(63, 185, 80, 0.15)' : 'rgba(248, 81, 73, 0.12)',
               color:
                 exitCodeNum() === 0
                   ? 'var(--color-tool-bash)'
@@ -88,7 +89,9 @@ export const LiveToolOutput: Component<LiveToolOutputProps> = (props) => {
           class="text-[11px] leading-relaxed overflow-x-auto overflow-y-auto px-3 pb-2 pt-1"
           style={{
             'font-family': 'var(--font-mono)',
-            color: props.isError ? 'var(--color-tool-permission-deny)' : 'var(--color-text-secondary)',
+            color: props.isError
+              ? 'var(--color-tool-permission-deny)'
+              : 'var(--color-text-secondary)',
             'max-height': '250px',
             'border-top': '1px solid var(--color-border-secondary)',
           }}
