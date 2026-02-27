@@ -256,6 +256,7 @@ The threshold ramps up as test tracks are completed:
 | 207 | Unit Test: Streaming Thinking UI | — | ✅ 9 | — | — | COVERED |
 | 208 | Unit Test: File Attachment UI | — | ✅ 4 | — | — | COVERED |
 | 214 | TodoWrite Rich Checklist Block | — | ✅ 20 | — | — | COVERED |
+| 215 | Unit Tests: TodoWrite + StatusBar Badge | — | ✅ 20 | — | — | COVERED |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -299,12 +300,12 @@ The threshold ramps up as test tracks are completed:
 | Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
 | Phase 3 (CHI-146 & earlier) | 62 | 33 | 23 | 0 | 0 | 6 |
 | Phase 3 (CHI-164 epic) | 12 | 11 | 0 | 0 | 0 | 1 |
-| Phase 3 (Conversation Experience) | 12 | 8 | 4 | 0 | 0 | 0 |
-| **Total** | **125** | **70 (56%)** | **44 (35%)** | **0 (0%)** | **0 (0%)** | **11 (9%)** |
+| Phase 3 (Conversation Experience) | 13 | 9 | 4 | 0 | 0 | 0 |
+| **Total** | **126** | **71 (56%)** | **44 (35%)** | **0 (0%)** | **0 (0%)** | **11 (9%)** |
 
 **Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
 **Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
-**Current (after CHI-214):** 70 COVERED (56%), 44 PARTIAL (35%), 0 GAP (0%), 0 PLANNED (0%), 11 N/A (9%)
+**Current (after CHI-215):** 71 COVERED (56%), 44 PARTIAL (35%), 0 GAP (0%), 0 PLANNED (0%), 11 N/A (9%)
 
 **Remaining GAP:** None (0 GAP rows). CHI-78 is now fully covered/implemented, including code-block "Open in terminal" and keyboard-accessible context-menu interaction.
 
