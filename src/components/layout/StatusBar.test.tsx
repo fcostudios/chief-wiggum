@@ -202,7 +202,9 @@ describe('StatusBar', () => {
 
   it('does not show task badge when process is not running', () => {
     mockProcessStatus = 'not_started';
-    mockMessages = [makeTodoMsg([{ content: 'Fix bug', status: 'completed', activeForm: 'Fixing' }])];
+    mockMessages = [
+      makeTodoMsg([{ content: 'Fix bug', status: 'completed', activeForm: 'Fixing' }]),
+    ];
     render(() => <StatusBar />);
     expect(screen.queryByText(/✓ \d+\/\d+/)).not.toBeInTheDocument();
   });
