@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
-import type { Session } from '@/lib/types';
+import type { Message, Session } from '@/lib/types';
 
 let mockYoloMode = false;
 let mockDeveloperMode = false;
@@ -16,6 +16,7 @@ let mockRecentActionEvents: Array<{
   status: string;
   finished_at: string | null;
 }> = [];
+let mockMessages: Message[] = [];
 
 const mockOpenExportDialog = vi.fn();
 
@@ -45,6 +46,9 @@ vi.mock('@/stores/conversationStore', () => ({
     },
     get sessionStatuses() {
       return mockSessionStatuses;
+    },
+    get messages() {
+      return mockMessages;
     },
   },
 }));
@@ -78,6 +82,7 @@ vi.mock('@/stores/i18nStore', () => ({
     if (key === 'statusBar.cliNotFound') return 'CLI not found';
     if (key === 'statusBar.dev') return 'DEV';
     if (key === 'statusBar.yolo') return 'YOLO';
+    if (key === 'statusBar.taskProgress') return 'Task progress';
     if (key === 'statusBar.nActive' && vars?.n != null) return `${vars.n} active`;
     return key;
   },
@@ -116,6 +121,7 @@ describe('StatusBar', () => {
     mockActiveSessionId = 's1';
     mockRunningActions = [];
     mockRecentActionEvents = [];
+    mockMessages = [];
     mockOpenExportDialog.mockClear();
   });
 
@@ -158,5 +164,83 @@ describe('StatusBar', () => {
     expect(screen.getByText('YOLO')).toBeInTheDocument();
     expect(screen.queryByText('DEV')).toBeNull();
     expect(screen.getByText(/∑ \$3\.50/)).toBeInTheDocument();
+  });
+
+  function makeTodoMsg(
+    todos: Array<{ content: string; status: string; activeForm: string }>,
+  ): Message {
+    return {
+      id: 'msg-todo',
+      session_id: 's1',
+      role: 'tool_use',
+      content: JSON.stringify({
+        tool_name: 'TodoWrite',
+        tool_input: JSON.stringify({ todos }),
+      }),
+      model: null,
+      input_tokens: null,
+      output_tokens: null,
+      thinking_tokens: null,
+      cost_cents: null,
+      is_compacted: false,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  it('shows task badge "✓ 1/3" when process is running and TodoWrite messages exist', () => {
+    mockProcessStatus = 'running';
+    mockMessages = [
+      makeTodoMsg([
+        { content: 'Fix bug', status: 'completed', activeForm: 'Fixing' },
+        { content: 'Run tests', status: 'in_progress', activeForm: 'Running' },
+        { content: 'Update docs', status: 'pending', activeForm: 'Updating' },
+      ]),
+    ];
+    render(() => <StatusBar />);
+    expect(screen.getByText('✓ 1/3')).toBeInTheDocument();
+  });
+
+  it('does not show task badge when process is not running', () => {
+    mockProcessStatus = 'not_started';
+    mockMessages = [makeTodoMsg([{ content: 'Fix bug', status: 'completed', activeForm: 'Fixing' }])];
+    render(() => <StatusBar />);
+    expect(screen.queryByText(/✓ \d+\/\d+/)).not.toBeInTheDocument();
+  });
+
+  it('does not show task badge when no TodoWrite messages exist', () => {
+    mockProcessStatus = 'running';
+    mockMessages = [];
+    render(() => <StatusBar />);
+    expect(screen.queryByText(/✓ \d+\/\d+/)).not.toBeInTheDocument();
+  });
+
+  it('shows "✓ 3/3" badge when all tasks completed and process running', () => {
+    mockProcessStatus = 'running';
+    mockMessages = [
+      makeTodoMsg([
+        { content: 'Step 1', status: 'completed', activeForm: 'Doing 1' },
+        { content: 'Step 2', status: 'completed', activeForm: 'Doing 2' },
+        { content: 'Step 3', status: 'completed', activeForm: 'Doing 3' },
+      ]),
+    ];
+    render(() => <StatusBar />);
+    expect(screen.getByText('✓ 3/3')).toBeInTheDocument();
+  });
+
+  it('uses the LAST TodoWrite message when multiple exist', () => {
+    mockProcessStatus = 'running';
+    mockMessages = [
+      makeTodoMsg([
+        { content: 'Task A', status: 'pending', activeForm: 'Doing A' },
+        { content: 'Task B', status: 'pending', activeForm: 'Doing B' },
+      ]),
+      makeTodoMsg([
+        { content: 'Task A', status: 'completed', activeForm: 'Did A' },
+        { content: 'Task B', status: 'pending', activeForm: 'Doing B' },
+      ]),
+    ];
+    render(() => <StatusBar />);
+    expect(screen.getByText('✓ 1/2')).toBeInTheDocument();
+    expect(screen.queryByText('✓ 0/2')).not.toBeInTheDocument();
   });
 });

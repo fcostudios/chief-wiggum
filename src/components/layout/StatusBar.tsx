@@ -10,7 +10,7 @@ import { conversationState } from '@/stores/conversationStore';
 import { sessionState } from '@/stores/sessionStore';
 import { openExportDialog } from '@/stores/diagnosticsStore';
 import { t } from '@/stores/i18nStore';
-import type { ProcessStatus } from '@/lib/types';
+import type { ProcessStatus, TodoItem } from '@/lib/types';
 import {
   getRecentActionEvents,
   getRunningActions,
@@ -83,6 +83,39 @@ const StatusBar: Component = () => {
   const runningActions = createMemo(() => getRunningActions());
   const recentActions = createMemo(() => getRecentActionEvents().slice(0, 3));
   const runningActionCount = () => runningActions().length;
+  const latestTodos = createMemo<TodoItem[] | null>(() => {
+    const messages = conversationState.messages;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.role !== 'tool_use') {
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(message.content) as { tool_name?: string; tool_input?: string };
+        if (parsed.tool_name !== 'TodoWrite' || typeof parsed.tool_input !== 'string') {
+          continue;
+        }
+        const input = JSON.parse(parsed.tool_input) as { todos?: unknown };
+        if (Array.isArray(input.todos) && input.todos.length > 0) {
+          return input.todos as TodoItem[];
+        }
+      } catch {
+        // Ignore malformed tool payloads.
+      }
+    }
+    return null;
+  });
+  const todoBadge = createMemo<{ done: number; total: number } | null>(() => {
+    if (conversationState.processStatus !== 'running') {
+      return null;
+    }
+    const todos = latestTodos();
+    if (!todos) {
+      return null;
+    }
+    const done = todos.filter((item) => item.status === 'completed').length;
+    return { done, total: todos.length };
+  });
 
   function toggleActionsPopover() {
     setActionsPopoverOpen((prev) => !prev);
@@ -185,6 +218,20 @@ const StatusBar: Component = () => {
             }}
           >
             {t('statusBar.nActive', { n: backgroundRunningCount() })}
+          </span>
+        </Show>
+        <Show when={todoBadge()}>
+          <span
+            class="font-mono px-1 py-0.5 rounded"
+            style={{
+              'font-size': '9px',
+              color: 'var(--color-text-secondary)',
+              background: 'var(--color-bg-elevated)',
+            }}
+            title={t('statusBar.taskProgress')}
+            aria-label={`Task progress: ${todoBadge()!.done} of ${todoBadge()!.total} done`}
+          >
+            {`✓ ${todoBadge()!.done}/${todoBadge()!.total}`}
           </span>
         </Show>
         <Show when={runningActionCount() > 0 || recentActions().length > 0}>
