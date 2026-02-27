@@ -97,7 +97,9 @@ export const TodoWriteBlock: Component<{ message: Message }> = (props) => {
               aria-expanded={expanded()}
               aria-label={`${expanded() ? 'Collapse' : 'Expand'} task list`}
             >
-              <span style={{ color: 'var(--color-accent)', 'font-size': '10px', 'flex-shrink': '0' }}>
+              <span
+                style={{ color: 'var(--color-accent)', 'font-size': '10px', 'flex-shrink': '0' }}
+              >
                 ✦
               </span>
 
@@ -109,7 +111,10 @@ export const TodoWriteBlock: Component<{ message: Message }> = (props) => {
               </span>
 
               <Show when={progressLabel()}>
-                <span class="text-xs flex-1 truncate" style={{ color: 'var(--color-text-tertiary)' }}>
+                <span
+                  class="text-xs flex-1 truncate"
+                  style={{ color: 'var(--color-text-tertiary)' }}
+                >
                   {progressLabel()}
                 </span>
               </Show>
@@ -132,7 +137,9 @@ export const TodoWriteBlock: Component<{ message: Message }> = (props) => {
 
               <Show
                 when={expanded()}
-                fallback={<ChevronRight size={14} color="var(--color-text-tertiary)" class="shrink-0" />}
+                fallback={
+                  <ChevronRight size={14} color="var(--color-text-tertiary)" class="shrink-0" />
+                }
               >
                 <ChevronDown size={14} color="var(--color-text-tertiary)" class="shrink-0" />
               </Show>
@@ -147,11 +154,18 @@ export const TodoWriteBlock: Component<{ message: Message }> = (props) => {
               >
                 <For each={todos()}>
                   {(item) => (
-                    <div class="flex items-start gap-2.5 py-1.5" role="listitem" data-status={item.status}>
+                    <div
+                      class="flex items-start gap-2.5 py-1.5"
+                      role="listitem"
+                      data-status={item.status}
+                    >
                       <div class="mt-0.5 shrink-0">
                         <StatusIcon status={item.status} />
                       </div>
-                      <span class="text-xs leading-relaxed" style={{ color: statusColor(item.status) }}>
+                      <span
+                        class="text-xs leading-relaxed"
+                        style={{ color: statusColor(item.status) }}
+                      >
                         {item.content}
                       </span>
                     </div>

@@ -97,7 +97,10 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
   const toggleExpanded = () => setExpanded((prev) => !prev);
 
   return (
-    <Show when={data().tool_name !== 'TodoWrite'} fallback={<TodoWriteBlock message={props.message} />}>
+    <Show
+      when={data().tool_name !== 'TodoWrite'}
+      fallback={<TodoWriteBlock message={props.message} />}
+    >
       <div class="flex justify-start">
         <div
           class="max-w-[85%] w-full rounded-md overflow-hidden"
