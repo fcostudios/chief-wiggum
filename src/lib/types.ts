@@ -270,6 +270,16 @@ export interface ImageAttachment {
   height?: number;
 }
 
+/** Image payload sent to the backend for SDK vision input blocks. */
+export interface PromptImageInput {
+  file_name: string;
+  mime_type: string;
+  data_base64: string;
+  size_bytes: number;
+  width?: number;
+  height?: number;
+}
+
 /** Quality score for an attached file in the current conversation context. */
 export interface ContextQualityScore {
   /** Overall quality 0-100. Green >= 60, Yellow >= 30, Red < 30. */

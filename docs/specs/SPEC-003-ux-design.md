@@ -1504,7 +1504,8 @@ Inline file reference system in MessageInput:
 - Multiple files can be attached (each gets a chip)
 - ContextChip is removable (click ✕ or Backspace when focused)
 - `contextStore.ts` manages attached files array
-- On send: context XML assembled and prepended to user message
+- On send: file attachments are assembled into context XML and prepended to user message
+- Image attachments are sent separately as structured SDK image blocks (not inline base64 text in context XML)
 - Token budget display: "~2.4K tokens attached" in StatusBar
 - Warning toast at 50K tokens, hard cap at 100K tokens
 - Reuses SlashCommandMenu trigger pattern from CHI-107

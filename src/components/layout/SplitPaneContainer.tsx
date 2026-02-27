@@ -3,7 +3,7 @@ import { For, Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { X } from 'lucide-solid';
-import type { Message } from '@/lib/types';
+import type { Message, PromptImageInput } from '@/lib/types';
 import ConversationView from '@/components/conversation/ConversationView';
 import MessageInput from '@/components/conversation/MessageInput';
 import MessageBubble from '@/components/conversation/MessageBubble';
@@ -118,6 +118,7 @@ const SplitPaneContainer: Component = () => {
   async function sendFromPane(
     pane: { id: string; sessionId: string | null },
     text: string,
+    images?: PromptImageInput[],
   ): Promise<void> {
     if (!isPaneFocused(pane)) {
       await handleFocusPane(pane);
@@ -135,7 +136,7 @@ const SplitPaneContainer: Component = () => {
       setPaneSession(pane.id, sessionId);
     }
 
-    await sendMessage(text, sessionId);
+    await sendMessage(text, sessionId, images);
   }
 
   function startDrag(e: MouseEvent): void {
@@ -278,8 +279,8 @@ const SplitPaneContainer: Component = () => {
 
                 <div class="shrink-0" onClick={(e) => e.stopPropagation()}>
                   <MessageInput
-                    onSend={(text) => {
-                      void sendFromPane(pane, text);
+                    onSend={(text, images) => {
+                      void sendFromPane(pane, text, images);
                     }}
                     isLoading={isPaneLive(pane) ? conversationState.isLoading : false}
                     isDisabled={!cliState.isDetected || !isPaneFocused(pane)}

@@ -9,7 +9,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout};
 use tokio::sync::{mpsc, oneshot, watch, Mutex, RwLock};
 
-use super::control::{self, ControlRequest, ControlResponse, UserMessage};
+use super::control::{self, ControlRequest, ControlResponse, UserImageInput, UserMessage};
 use super::process::{BridgeConfig, BridgeInterface, ProcessStatus};
 use super::{BridgeOutput, PermissionRequest, StreamParser};
 use crate::{AppError, AppResult};
@@ -168,6 +168,18 @@ impl AgentSdkBridge {
     /// Send a user message (follow-up prompt) to the CLI.
     pub async fn send_user_message(&self, content: &str) -> AppResult<()> {
         let msg = UserMessage::new(content.to_string());
+        let value = serde_json::to_value(&msg)
+            .map_err(|e| AppError::Bridge(format!("Failed to serialize user message: {}", e)))?;
+        self.write_jsonl_value(&value).await
+    }
+
+    /// Send a multimodal user message (text + images) to the CLI.
+    pub async fn send_user_multimodal_message(
+        &self,
+        content: String,
+        images: Vec<UserImageInput>,
+    ) -> AppResult<()> {
+        let msg = UserMessage::new_with_images(content, images);
         let value = serde_json::to_value(&msg)
             .map_err(|e| AppError::Bridge(format!("Failed to serialize user message: {}", e)))?;
         self.write_jsonl_value(&value).await
@@ -450,6 +462,14 @@ impl BridgeInterface for AgentSdkBridge {
 
     async fn send(&self, input: &str) -> AppResult<()> {
         self.send_user_message(input).await
+    }
+
+    async fn send_user_message_with_images(
+        &self,
+        input: String,
+        images: Vec<UserImageInput>,
+    ) -> AppResult<()> {
+        self.send_user_multimodal_message(input, images).await
     }
 
     async fn send_control_request(&self, request: ControlRequest) -> AppResult<()> {

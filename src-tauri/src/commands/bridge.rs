@@ -12,6 +12,8 @@ use crate::bridge::{control, ControlRequest};
 use crate::AppError;
 use tauri::State;
 
+const MAX_PROMPT_IMAGE_BYTES: u64 = 5 * 1024 * 1024;
+
 fn parse_permission_action(action: &str) -> Result<PermissionAction, AppError> {
     match action {
         "Approve" => Ok(PermissionAction::Approve),
@@ -22,6 +24,44 @@ fn parse_permission_action(action: &str) -> Result<PermissionAction, AppError> {
             other
         ))),
     }
+}
+
+fn is_supported_image_mime(mime: &str) -> bool {
+    matches!(
+        mime,
+        "image/png" | "image/jpeg" | "image/webp" | "image/gif"
+    )
+}
+
+fn validate_message_images(images: &[control::UserImageInput]) -> Result<(), AppError> {
+    for image in images {
+        if image.data_base64.trim().is_empty() {
+            return Err(AppError::Validation(format!(
+                "Image '{}' has no payload data",
+                image.file_name
+            )));
+        }
+        if !is_supported_image_mime(&image.mime_type) {
+            return Err(AppError::Validation(format!(
+                "Unsupported image mime type '{}' for '{}'",
+                image.mime_type, image.file_name
+            )));
+        }
+        if image.size_bytes == 0 {
+            return Err(AppError::Validation(format!(
+                "Image '{}' has invalid size 0 bytes",
+                image.file_name
+            )));
+        }
+        if image.size_bytes > MAX_PROMPT_IMAGE_BYTES {
+            return Err(AppError::Validation(format!(
+                "Image '{}' exceeds max size of {} bytes",
+                image.file_name, MAX_PROMPT_IMAGE_BYTES
+            )));
+        }
+    }
+
+    Ok(())
 }
 
 /// Start a persistent CLI session using the Agent SDK control protocol.
@@ -118,15 +158,27 @@ pub async fn send_to_cli(
     project_path: String,
     model: String,
     message: String,
+    message_images: Option<Vec<control::UserImageInput>>,
     is_follow_up: bool,
     cli_session_id: Option<String>,
 ) -> Result<(), AppError> {
+    let message_images = message_images.unwrap_or_default();
+    if !message_images.is_empty() {
+        validate_message_images(&message_images)?;
+    }
+
     // SDK mode: if this session already has a persistent SDK bridge, write the
     // follow-up message to stdin instead of spawning a new process.
     if bridge_map.has(&session_id).await {
         if let Some(bridge) = bridge_map.get(&session_id).await {
             if bridge.supports_sdk_protocol() {
-                bridge.send(&message).await?;
+                if message_images.is_empty() {
+                    bridge.send(&message).await?;
+                } else {
+                    bridge
+                        .send_user_message_with_images(message, message_images)
+                        .await?;
+                }
                 tracing::info!(
                     "send_to_cli [{}]: wrote message to SDK bridge stdin (follow_up: {})",
                     session_id,
@@ -134,6 +186,13 @@ pub async fn send_to_cli(
                 );
                 return Ok(());
             }
+        }
+
+        if !message_images.is_empty() {
+            return Err(AppError::Validation(
+                "Image attachments require Agent SDK mode. Upgrade Claude Code CLI and reconnect."
+                    .to_string(),
+            ));
         }
 
         // Legacy mode: remove the previous per-message process bridge.
@@ -150,6 +209,13 @@ pub async fn send_to_cli(
     let cli_path = cli.binary_path()?.to_string();
     let yolo = permission_manager.is_yolo_mode().await;
     let developer = permission_manager.is_developer_mode().await;
+
+    if !message_images.is_empty() {
+        return Err(AppError::Validation(
+            "Image attachments are not supported in legacy prompt mode. Start an SDK session first."
+                .to_string(),
+        ));
+    }
 
     let mut extra_args = vec!["--verbose".to_string(), "-p".to_string(), message];
 
@@ -469,6 +535,39 @@ mod tests {
         let err = parse_permission_action("approve").expect_err("lowercase should fail");
         match err {
             AppError::Validation(message) => assert!(message.contains("approve")),
+            other => panic!("expected validation error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn validate_message_images_accepts_supported_image() {
+        let images = vec![control::UserImageInput {
+            file_name: "paste-1.png".to_string(),
+            mime_type: "image/png".to_string(),
+            data_base64: "YWJj".to_string(),
+            size_bytes: 3,
+            width: Some(1),
+            height: Some(1),
+        }];
+        let result = validate_message_images(&images);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn validate_message_images_rejects_unsupported_mime() {
+        let images = vec![control::UserImageInput {
+            file_name: "paste-1.bmp".to_string(),
+            mime_type: "image/bmp".to_string(),
+            data_base64: "YWJj".to_string(),
+            size_bytes: 3,
+            width: Some(1),
+            height: Some(1),
+        }];
+        let err = validate_message_images(&images).expect_err("unsupported mime should fail");
+        match err {
+            AppError::Validation(message) => {
+                assert!(message.contains("Unsupported image mime type"))
+            }
             other => panic!("expected validation error, got {:?}", other),
         }
     }

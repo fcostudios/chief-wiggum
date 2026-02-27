@@ -434,8 +434,20 @@ export const listProjects = () => invoke<Project[]>('list_projects');
 export const startSessionCli = (session_id: string, project_path: string, model: string) =>
   invoke<void>('start_session_cli', { session_id, project_path, model });
 
-export const sendToCli = (session_id: string, message: string) =>
-  invoke<void>('send_to_cli', { session_id, message });
+interface PromptImageInput {
+  file_name: string;
+  mime_type: string;
+  data_base64: string;
+  size_bytes: number;
+  width?: number;
+  height?: number;
+}
+
+export const sendToCli = (
+  session_id: string,
+  message: string,
+  message_images?: PromptImageInput[] | null,
+) => invoke<void>('send_to_cli', { session_id, message, message_images: message_images ?? null });
 
 export const stopSessionCli = (session_id: string) =>
   invoke<void>('stop_session_cli', { session_id });
@@ -808,7 +820,7 @@ Claude Code CLI          Rust Backend (bridge)          Frontend
      │                         │                           │
 ```
 
-**Legacy Fallback Limitation:** In legacy `-p` mode (used when the installed Claude Code CLI does not support Agent SDK, e.g. < 2.1), the CLI auto-denies tools not in `--allowedTools`. The permission response path (`respond_permission` → CLI stdin) does NOT work in `-p` mode because the CLI does not read stdin for runtime permission responses. Full interactive permissions are available in Agent SDK mode (§5.6, CHI-101).
+**Legacy Fallback Limitation:** In legacy `-p` mode (used when the installed Claude Code CLI does not support Agent SDK, e.g. < 2.1), the CLI auto-denies tools not in `--allowedTools`. The permission response path (`respond_permission` → CLI stdin) does NOT work in `-p` mode because the CLI does not read stdin for runtime permission responses. Image attachments are also SDK-only: `send_to_cli` rejects `message_images` in legacy mode and requires an active SDK bridge for structured image content blocks. Full interactive permissions and image input support are available in Agent SDK mode (§5.6, CHI-101).
 
 **Interim (CHI-102):** Developer Mode pre-authorizes common Bash patterns via `--allowedTools`, bypassing the need for runtime permission responses. See §5.6.8.
 
@@ -1148,9 +1160,11 @@ MessageInput               contextStore              conversationStore
    │                              │ assembleContext()         │
    │                              │ → read_project_file()    │
    │                              │ → format XML context     │
-   │                              │ → prepend to prompt      │
+   │                              │ → files only (no image base64 inline)
+   │                              │ getPromptImages()        │
+   │                              │ → structured image inputs │
    │                              ├────────────────────────→ │
-   │                              │                  sendMessage(contextifiedPrompt)
+   │                              │ sendMessage(contextifiedPrompt, promptImages)
 ```
 
 ---

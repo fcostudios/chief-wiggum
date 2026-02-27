@@ -13,6 +13,7 @@ import type {
   ActiveBridgeInfo,
   BufferedEvent,
   CliLocation,
+  PromptImageInput,
 } from '@/lib/types';
 import {
   updateSessionTitle,
@@ -590,7 +591,11 @@ export async function cleanupAllListeners(): Promise<void> {
 export const cleanupEventListeners = cleanupAllListeners;
 
 /** Send a user message: persist to DB, start CLI if needed, send via PTY. */
-export async function sendMessage(content: string, sessionId: string): Promise<void> {
+export async function sendMessage(
+  content: string,
+  sessionId: string,
+  images: PromptImageInput[] = [],
+): Promise<void> {
   clearSessionUnread(sessionId);
   const msgId = crypto.randomUUID();
   const userMsg: Message = {
@@ -640,7 +645,7 @@ export async function sendMessage(content: string, sessionId: string): Promise<v
     );
   }
 
-  await dispatchMessageToCli(content, sessionId);
+  await dispatchMessageToCli(content, sessionId, images);
 }
 
 /** Send an already-persisted user message to the CLI without creating a duplicate DB/UI entry. */
@@ -652,11 +657,15 @@ async function resendExistingUserMessage(content: string, sessionId: string): Pr
   setState('error', null);
   setState('lastUserMessage', content);
   typewriter.reset();
-  await dispatchMessageToCli(content, sessionId);
+  await dispatchMessageToCli(content, sessionId, []);
 }
 
 /** Shared CLI dispatch for a user turn (used by send, edit-resend, regenerate). */
-async function dispatchMessageToCli(content: string, sessionId: string): Promise<void> {
+async function dispatchMessageToCli(
+  content: string,
+  sessionId: string,
+  images: PromptImageInput[],
+): Promise<void> {
   // Spawn CLI process with `-p "prompt"` for each message.
   // Follow-up messages use `--continue` to resume the conversation.
   const session = getActiveSession();
@@ -692,6 +701,7 @@ async function dispatchMessageToCli(content: string, sessionId: string): Promise
         project_path: projectPath,
         model,
         message: content,
+        message_images: images.length > 0 ? images : null,
         is_follow_up: hasActiveBridge,
         cli_session_id: session?.cli_session_id || null,
       });
@@ -702,6 +712,7 @@ async function dispatchMessageToCli(content: string, sessionId: string): Promise
         project_path: projectPath,
         model,
         message: content,
+        message_images: images.length > 0 ? images : null,
         is_follow_up: isFollowUp,
         cli_session_id: session?.cli_session_id || null,
       });

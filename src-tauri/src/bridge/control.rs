@@ -69,10 +69,48 @@ pub struct UserMessage {
     pub message: UserMessageBody,
 }
 
+/// Frontend image input payload for SDK user messages.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserImageInput {
+    pub file_name: String,
+    pub mime_type: String,
+    pub data_base64: String,
+    pub size_bytes: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<u32>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserMessageBody {
     pub role: String,
-    pub content: String,
+    pub content: UserMessageContent,
+}
+
+/// `content` can be plain text or multimodal blocks (text + image).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum UserMessageContent {
+    Text(String),
+    Blocks(Vec<UserContentBlock>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum UserContentBlock {
+    #[serde(rename = "text")]
+    Text { text: String },
+    #[serde(rename = "image")]
+    Image { source: UserImageSource },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserImageSource {
+    #[serde(rename = "type")]
+    pub source_type: String,
+    pub media_type: String,
+    pub data: String,
 }
 
 impl ControlRequest {
@@ -154,7 +192,37 @@ impl UserMessage {
             msg_type: "user".to_string(),
             message: UserMessageBody {
                 role: "user".to_string(),
-                content,
+                content: UserMessageContent::Text(content),
+            },
+        }
+    }
+
+    /// Create a multimodal user message (text + images).
+    pub fn new_with_images(content: String, images: Vec<UserImageInput>) -> Self {
+        if images.is_empty() {
+            return Self::new(content);
+        }
+
+        let mut blocks = Vec::with_capacity(images.len() + 1);
+        if !content.trim().is_empty() {
+            blocks.push(UserContentBlock::Text { text: content });
+        }
+
+        for image in images {
+            blocks.push(UserContentBlock::Image {
+                source: UserImageSource {
+                    source_type: "base64".to_string(),
+                    media_type: image.mime_type,
+                    data: image.data_base64,
+                },
+            });
+        }
+
+        Self {
+            msg_type: "user".to_string(),
+            message: UserMessageBody {
+                role: "user".to_string(),
+                content: UserMessageContent::Blocks(blocks),
             },
         }
     }
@@ -255,6 +323,31 @@ mod tests {
         assert!(json.contains("\"type\":\"user\""));
         assert!(json.contains("\"role\":\"user\""));
         assert!(json.contains("Hello Claude"));
+    }
+
+    #[test]
+    fn user_message_with_images_serializes_as_blocks() {
+        let msg = UserMessage::new_with_images(
+            "See screenshot".to_string(),
+            vec![UserImageInput {
+                file_name: "paste-1.png".to_string(),
+                mime_type: "image/png".to_string(),
+                data_base64: "YWJj".to_string(),
+                size_bytes: 3,
+                width: Some(1),
+                height: Some(1),
+            }],
+        );
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.contains("\"type\":\"user\""));
+        assert!(json.contains("\"role\":\"user\""));
+        assert!(json.contains("\"content\":["));
+        assert!(json.contains("\"type\":\"text\""));
+        assert!(json.contains("\"text\":\"See screenshot\""));
+        assert!(json.contains("\"type\":\"image\""));
+        assert!(json.contains("\"media_type\":\"image/png\""));
+        assert!(json.contains("\"type\":\"base64\""));
+        assert!(json.contains("\"data\":\"YWJj\""));
     }
 
     #[test]

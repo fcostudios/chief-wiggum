@@ -190,13 +190,13 @@ const MainLayout: Component = () => {
           {/* Message input — only visible in conversation view */}
           <Show when={uiState.activeView === 'conversation' && viewState.layoutMode === 'single'}>
             <MessageInput
-              onSend={(text) => {
+              onSend={(text, images) => {
                 const sessionId = sessionState.activeSessionId;
                 if (sessionId) {
-                  sendMessage(text, sessionId);
+                  sendMessage(text, sessionId, images);
                 } else {
                   createNewSession('claude-sonnet-4-6').then((session) => {
-                    sendMessage(text, session.id);
+                    sendMessage(text, session.id, images);
                   });
                 }
               }}

@@ -11,6 +11,7 @@ import {
   getAttachmentCount,
   getImageCount,
   getImageTokenEstimate,
+  getPromptImages,
   getTotalEstimatedTokens,
   refreshSuggestions,
   removeAttachment,
@@ -194,6 +195,26 @@ describe('contextStore', () => {
     it('getTotalEstimatedTokens includes image tokens', () => {
       addImageAttachment('data:image/png;base64,YWJj', 'image/png', 1024, 512, 512);
       expect(getTotalEstimatedTokens()).toBeGreaterThan(0);
+    });
+
+    it('getPromptImages strips data URL prefix', () => {
+      addImageAttachment('data:image/png;base64,YWJj', 'image/png', 3, 1, 1);
+      const images = getPromptImages();
+      expect(images).toHaveLength(1);
+      expect(images[0].mime_type).toBe('image/png');
+      expect(images[0].data_base64).toBe('YWJj');
+    });
+
+    it('assembleContext keeps file context and excludes image payload blocks', async () => {
+      setActiveProject('proj-1');
+      addFileReference(makeRef());
+      addImageAttachment('data:image/png;base64,YWJj', 'image/png', 3, 1, 1);
+
+      const result = await assembleContext();
+
+      expect(result).toContain('<file path="src/main.ts"');
+      expect(result).not.toContain('<image');
+      expect(result).not.toContain('YWJj');
     });
   });
 });

@@ -9,7 +9,7 @@ import type { Component } from 'solid-js';
 import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js';
 import { Send, Square, Paperclip, Image as ImageIcon, X } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
-import type { SlashCommand, FileSearchResult, FileReference } from '@/lib/types';
+import type { SlashCommand, FileSearchResult, FileReference, PromptImageInput } from '@/lib/types';
 import SlashCommandMenu from './SlashCommandMenu';
 import FileMentionMenu from './FileMentionMenu';
 import ContextChip from './ContextChip';
@@ -35,6 +35,7 @@ import {
   getImageCount,
   getTotalEstimatedTokens,
   assembleContext,
+  getPromptImages,
 } from '@/stores/contextStore';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
@@ -43,7 +44,7 @@ import { selectFileForEditing } from '@/stores/fileStore';
 import { t } from '@/stores/i18nStore';
 
 interface MessageInputProps {
-  onSend: (content: string) => void;
+  onSend: (content: string, images?: PromptImageInput[]) => void;
   onCancel?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
@@ -326,7 +327,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const contextPrefix = await assembleContext();
     const fullMessage = contextPrefix ? contextPrefix + finalText : finalText;
 
-    props.onSend(fullMessage);
+    const promptImages = getPromptImages();
+    props.onSend(fullMessage, promptImages.length > 0 ? promptImages : undefined);
     setContent('');
     clearAttachments();
     if (textareaRef) {

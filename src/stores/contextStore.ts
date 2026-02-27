@@ -11,6 +11,7 @@ import type {
   FileContent,
   FileSuggestion,
   ImageAttachment,
+  PromptImageInput,
 } from '@/lib/types';
 import { extractConversationKeywords, scoreAllAttachments } from '@/lib/contextScoring';
 import { getActiveProject, projectState } from '@/stores/projectStore';
@@ -139,6 +140,18 @@ export function getImageCount(): number {
   return state.images.length;
 }
 
+/** Return image attachments as SDK-ready prompt payload blocks. */
+export function getPromptImages(): PromptImageInput[] {
+  return state.images.map((image) => ({
+    file_name: image.file_name,
+    mime_type: image.mime_type,
+    data_base64: image.data_url.replace(/^data:[^;]+;base64,/, ''),
+    size_bytes: image.size_bytes,
+    width: image.width,
+    height: image.height,
+  }));
+}
+
 /** Update the line range of an existing attachment and recalculate token estimate. */
 export function updateAttachmentRange(
   attachmentId: string,
@@ -227,7 +240,8 @@ export function getAttachmentCount(): number {
  * Called right before sending a message. Returns the context prefix to prepend.
  */
 export async function assembleContext(): Promise<string> {
-  if (state.attachments.length === 0 && state.images.length === 0) return '';
+  // Image attachments are sent as structured SDK image blocks, not inline base64 text.
+  if (state.attachments.length === 0) return '';
 
   const projectId = projectState.activeProjectId;
   if (state.attachments.length > 0 && !projectId) return '';
@@ -266,15 +280,6 @@ export async function assembleContext(): Promise<string> {
           parts.push(`<file path="${ref.relative_path}" error="failed to read" />`);
         }
       }
-    }
-
-    for (const image of state.images) {
-      const base64Data = image.data_url.replace(/^data:[^;]+;base64,/, '');
-      parts.push(
-        `<image name="${image.file_name}" type="${image.mime_type}" tokens="~${image.estimated_tokens}">`,
-      );
-      parts.push(base64Data);
-      parts.push('</image>');
     }
 
     parts.push('</context>');

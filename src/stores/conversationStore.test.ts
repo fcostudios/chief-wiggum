@@ -174,4 +174,30 @@ describe('conversationStore', () => {
     expect(unlisten).toHaveBeenCalled();
     expect(unlisten.mock.calls.length).toBeGreaterThan(1);
   });
+
+  it('sendMessage forwards image payloads via message_images', async () => {
+    const sendToCli = vi.fn((_args: Record<string, unknown>) => undefined);
+    mockIpcCommand('send_to_cli', sendToCli);
+    mockIpcCommand('list_active_bridges', () => []);
+    mockIpcCommand('start_session_cli', () => undefined);
+
+    await mod.sendMessage('check this screenshot', 'test-session-1', [
+      {
+        file_name: 'paste-1.png',
+        mime_type: 'image/png',
+        data_base64: 'YWJj',
+        size_bytes: 3,
+        width: 1,
+        height: 1,
+      },
+    ]);
+
+    expect(sendToCli).toHaveBeenCalledTimes(1);
+    const args = sendToCli.mock.calls[0]?.[0] as
+      | { message_images?: Array<{ data_base64: string }> }
+      | undefined;
+    expect(args).toBeDefined();
+    expect(args?.message_images).toHaveLength(1);
+    expect(args?.message_images?.[0]?.data_base64).toBe('YWJj');
+  });
 });

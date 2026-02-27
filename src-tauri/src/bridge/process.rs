@@ -87,6 +87,22 @@ pub trait BridgeInterface: Send + Sync {
     /// Send input text to the CLI process (stdin).
     async fn send(&self, input: &str) -> AppResult<()>;
 
+    /// Send a user message that includes structured image blocks.
+    ///
+    /// Default behavior supports text-only bridges and rejects image payloads.
+    async fn send_user_message_with_images(
+        &self,
+        input: String,
+        images: Vec<crate::bridge::control::UserImageInput>,
+    ) -> AppResult<()> {
+        if !images.is_empty() {
+            return Err(AppError::Bridge(
+                "Structured image messages are not supported by this bridge".to_string(),
+            ));
+        }
+        self.send(&input).await
+    }
+
     /// Send a control protocol request to the CLI (SDK mode only).
     async fn send_control_request(
         &self,
