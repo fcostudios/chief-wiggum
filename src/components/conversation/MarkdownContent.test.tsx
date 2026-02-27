@@ -136,6 +136,40 @@ describe('MarkdownContent', () => {
     });
   });
 
+  describe('GFM table edge cases (CHI-204)', () => {
+    it('renders an empty single-column table without crashing', async () => {
+      const md = '| |\n| --- |';
+      const { container } = render(() => <MarkdownContent content={md} />);
+      await waitFor(() => {
+        expect(container.querySelector('table')).toBeTruthy();
+      });
+    });
+
+    it('renders a single-column table', async () => {
+      const md = '| Name |\n| --- |\n| Alice |';
+      const { container } = render(() => <MarkdownContent content={md} />);
+      await waitFor(() => {
+        expect(container.querySelector('.table-scroll-wrapper')).toBeTruthy();
+      });
+      expect(container.querySelectorAll('th').length).toBe(1);
+      expect(container.querySelectorAll('td').length).toBe(1);
+    });
+
+    it('wraps wide tables with many columns in a scroll container', async () => {
+      const columns = Array.from({ length: 10 }, (_, i) => `Col${i}`);
+      const header = `| ${columns.join(' | ')} |`;
+      const separator = `| ${columns.map(() => '---').join(' | ')} |`;
+      const row = `| ${columns.map((_, i) => `val${i}`).join(' | ')} |`;
+      const md = `${header}\n${separator}\n${row}`;
+
+      const { container } = render(() => <MarkdownContent content={md} />);
+      await waitFor(() => {
+        expect(container.querySelector('.table-scroll-wrapper')).toBeTruthy();
+      });
+      expect(container.querySelector('.table-scroll-wrapper table')).toBeTruthy();
+    });
+  });
+
   describe('enhanced code blocks', () => {
     it('shows language badge when language is provided', async () => {
       const { container } = render(() => (
