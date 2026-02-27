@@ -66,6 +66,11 @@ describe('StreamingThinkingBlock', () => {
     expect(screen.getByText(/~25 tokens/)).toBeInTheDocument();
   });
 
+  it('shows animated dots indicator while streaming', () => {
+    render(() => <StreamingThinkingBlock content="Thinking..." />);
+    expect(screen.getByText('...')).toBeInTheDocument();
+  });
+
   it('displays K notation for large token counts', () => {
     render(() => <StreamingThinkingBlock content={'x'.repeat(8000)} />);
     expect(screen.getByText(/~2\.0K tokens/)).toBeInTheDocument();
