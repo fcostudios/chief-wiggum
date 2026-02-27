@@ -254,7 +254,7 @@ The threshold ramps up as test tracks are completed:
 | 200 | In-Session Message Search | — | ✅ 14 | — | — | PARTIAL |
 | 204 | Unit Test: Renderer Registry | — | ✅ 14 | — | — | COVERED |
 | 207 | Unit Test: Streaming Thinking UI | — | ✅ 9 | — | — | COVERED |
-| 208 | Unit Test: File Attachment UI | — | — | — | — | PLANNED |
+| 208 | Unit Test: File Attachment UI | — | ✅ 4 | — | — | COVERED |
 
 ### Epic CHI-93: Structured Log Collector
 
@@ -298,12 +298,12 @@ The threshold ramps up as test tracks are completed:
 | Phase 2 | 21 | 7 | 14 | 0 | 0 | 0 |
 | Phase 3 (CHI-146 & earlier) | 62 | 33 | 23 | 0 | 0 | 6 |
 | Phase 3 (CHI-164 epic) | 12 | 11 | 0 | 0 | 0 | 1 |
-| Phase 3 (Conversation Experience) | 11 | 6 | 4 | 0 | 1 | 0 |
-| **Total** | **124** | **68 (55%)** | **44 (35%)** | **0 (0%)** | **1 (1%)** | **11 (9%)** |
+| Phase 3 (Conversation Experience) | 11 | 7 | 4 | 0 | 0 | 0 |
+| **Total** | **124** | **69 (56%)** | **44 (35%)** | **0 (0%)** | **0 (0%)** | **11 (9%)** |
 
 **Previous (pre-CHI-146):** 18 COVERED (18%), 35 PARTIAL (35%), 40 GAP (40%), 8 N/A (8%)
 **Post-CHI-146:** 50 COVERED (50%), 40 PARTIAL (40%), 1 GAP (1%), 10 N/A (10%)
-**Current (after CHI-191/204/207 batch 2):** 68 COVERED (55%), 44 PARTIAL (35%), 0 GAP (0%), 1 PLANNED (1%), 11 N/A (9%)
+**Current (after CHI-208 batch 3):** 69 COVERED (56%), 44 PARTIAL (35%), 0 GAP (0%), 0 PLANNED (0%), 11 N/A (9%)
 
 **Remaining GAP:** None (0 GAP rows). CHI-78 is now fully covered/implemented, including code-block "Open in terminal" and keyboard-accessible context-menu interaction.
 
