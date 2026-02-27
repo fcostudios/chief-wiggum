@@ -14,8 +14,7 @@ const MermaidRenderer: Component<RendererComponentProps> = (props) => {
       const theme = settingsState.settings.appearance.theme;
       const isDark =
         theme === 'dark' ||
-        (theme === 'system' &&
-          window.matchMedia('(prefers-color-scheme: dark)').matches);
+        (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
       mermaid.initialize({
         startOnLoad: false,

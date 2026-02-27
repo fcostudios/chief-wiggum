@@ -4,7 +4,9 @@ import { hasRenderer } from '@/lib/rendererRegistry';
 import MermaidRenderer from './MermaidRenderer';
 
 const initializeMock = vi.fn();
-const renderMock = vi.fn().mockResolvedValue({ svg: '<svg data-testid="mermaid-svg">diagram</svg>' });
+const renderMock = vi
+  .fn()
+  .mockResolvedValue({ svg: '<svg data-testid="mermaid-svg">diagram</svg>' });
 
 vi.mock('mermaid', () => ({
   default: {
@@ -29,7 +31,9 @@ describe('MermaidRenderer (CHI-182)', () => {
   });
 
   it('renders SVG after mermaid resolves', async () => {
-    const { container } = render(() => <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />);
+    const { container } = render(() => (
+      <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />
+    ));
 
     await waitFor(() => {
       expect(container.querySelector('[data-testid="mermaid-svg"]')).toBeTruthy();
@@ -37,7 +41,9 @@ describe('MermaidRenderer (CHI-182)', () => {
   });
 
   it('shows loading state before mermaid resolves', () => {
-    const { getByText } = render(() => <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />);
+    const { getByText } = render(() => (
+      <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />
+    ));
 
     expect(getByText('Rendering diagram…')).toBeInTheDocument();
   });
@@ -55,7 +61,9 @@ describe('MermaidRenderer (CHI-182)', () => {
   });
 
   it('shows fullscreen button after SVG renders', async () => {
-    const { getByLabelText } = render(() => <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />);
+    const { getByLabelText } = render(() => (
+      <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />
+    ));
 
     await waitFor(() => {
       expect(getByLabelText('Open diagram fullscreen')).toBeInTheDocument();
