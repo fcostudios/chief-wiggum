@@ -77,6 +77,14 @@ pub struct ToolResultPayload {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolOutputPayload {
+    pub session_id: String,
+    pub tool_use_id: String,
+    pub content: String,
+    pub is_error: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThinkingPayload {
     pub session_id: String,
     pub content: String,
@@ -356,6 +364,23 @@ async fn emit_bridge_output(
                     session_id,
                     is_error
                 );
+                // Emit tool:output first so the frontend terminal widget has content
+                // before the tool:result block arrives.
+                let output_payload = ToolOutputPayload {
+                    session_id: session_id.to_string(),
+                    tool_use_id: tool_use_id.clone(),
+                    content: content.clone(),
+                    is_error,
+                };
+                if let Err(e) = app.emit("tool:output", &output_payload) {
+                    tracing::warn!("Failed to emit tool:output: {}", e);
+                }
+                {
+                    let mut rts = runtimes.write().await;
+                    if let Some(rt) = rts.get_mut(session_id) {
+                        rt.buffer_event(BufferedEvent::ToolOutput(output_payload.clone()));
+                    }
+                }
                 let payload = ToolResultPayload {
                     session_id: session_id.to_string(),
                     tool_use_id,
@@ -683,6 +708,20 @@ mod tests {
         };
         let json = serde_json::to_string(&error_result).expect("serialize errored tool result");
         assert!(json.contains("\"is_error\":true"));
+    }
+
+    #[test]
+    fn tool_output_payload_serializes() {
+        let payload = ToolOutputPayload {
+            session_id: "sess-1".to_string(),
+            tool_use_id: "tool-abc".to_string(),
+            content: "stdout line\n".to_string(),
+            is_error: false,
+        };
+        let json = serde_json::to_string(&payload).expect("serialize tool output payload");
+        assert!(json.contains("\"session_id\":\"sess-1\""));
+        assert!(json.contains("\"tool_use_id\":\"tool-abc\""));
+        assert!(json.contains("\"is_error\":false"));
     }
 
     #[test]

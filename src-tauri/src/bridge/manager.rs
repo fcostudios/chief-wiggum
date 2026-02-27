@@ -10,7 +10,8 @@ use tokio::sync::RwLock;
 
 use super::event_loop::{
     ChunkPayload, CliExitedPayload, CliInitPayload, MessageCompletePayload,
-    PermissionRequestPayload, ThinkingPayload, ToolResultPayload, ToolUsePayload,
+    PermissionRequestPayload, ThinkingPayload, ToolOutputPayload, ToolResultPayload,
+    ToolUsePayload,
 };
 use super::process::{BridgeConfig, BridgeInterface, CliBridge};
 use super::sdk_bridge::AgentSdkBridge;
@@ -31,6 +32,7 @@ pub enum BufferedEvent {
     CliInit(CliInitPayload),
     CliExited(CliExitedPayload),
     ToolUse(ToolUsePayload),
+    ToolOutput(ToolOutputPayload),
     ToolResult(ToolResultPayload),
     Thinking(ThinkingPayload),
     PermissionRequest(PermissionRequestPayload),
@@ -503,5 +505,17 @@ mod tests {
         assert_eq!(events.len(), 1);
         let events2 = map.drain_session_buffer("s1").await;
         assert_eq!(events2.len(), 0);
+    }
+
+    #[test]
+    fn buffered_event_tool_output_roundtrips() {
+        let ev = BufferedEvent::ToolOutput(ToolOutputPayload {
+            session_id: "s".to_string(),
+            tool_use_id: "t".to_string(),
+            content: "output".to_string(),
+            is_error: false,
+        });
+        let json = serde_json::to_string(&ev).expect("serialize buffered tool output");
+        assert!(json.contains("\"type\":\"ToolOutput\""));
     }
 }
