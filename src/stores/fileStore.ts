@@ -530,6 +530,11 @@ export function exitEditMode(): void {
   });
 }
 
+/** Dismiss the on-disk conflict banner (user chose "Keep my edits"). */
+export function clearConflict(): void {
+  setState('conflictDetected', false);
+}
+
 /** Update the editor buffer (called on every CodeMirror doc change). */
 export function setEditBuffer(content: string): void {
   setState({ fullContent: content, isDirty: true });
