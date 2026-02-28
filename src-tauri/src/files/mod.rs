@@ -51,6 +51,8 @@ pub struct FileContent {
     pub estimated_tokens: usize,
     /// Whether content was truncated due to size limits.
     pub truncated: bool,
+    /// Whether the file is read-only on disk (permissions check).
+    pub is_readonly: bool,
 }
 
 /// Search result for file name matching.
@@ -96,6 +98,7 @@ mod tests {
             language: Some("rust".to_string()),
             estimated_tokens: 3,
             truncated: false,
+            is_readonly: false,
         };
         let json = serde_json::to_string(&content).expect("should serialize");
         assert!(json.contains("\"estimated_tokens\":3"));

@@ -46,6 +46,25 @@ pub fn read_project_file(
     scanner::read_file(project_root, &relative_path, start_line, end_line)
 }
 
+/// Write content to a project file (inline editor save).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db, content), fields(
+    project_id = %project_id,
+    relative_path = %relative_path,
+    content_bytes = content.len()
+))]
+pub fn write_file_content(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+    content: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let project_root = std::path::Path::new(&project.path);
+    scanner::write_file(project_root, &relative_path, &content)
+}
+
 /// Search for files by name within a project.
 #[tauri::command(rename_all = "snake_case")]
 #[tracing::instrument(skip(db), fields(project_id = %project_id, query_len = query.len(), max_results = ?max_results))]

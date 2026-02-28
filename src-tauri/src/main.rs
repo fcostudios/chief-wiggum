@@ -137,6 +137,7 @@ fn main() {
             chief_wiggum_lib::commands::files::open_project_file_in_system,
             chief_wiggum_lib::commands::files::start_project_file_watcher,
             chief_wiggum_lib::commands::files::stop_project_file_watcher,
+            chief_wiggum_lib::commands::files::write_file_content,
         ])
         .setup(|app| {
             use tauri::Manager;

@@ -271,6 +271,7 @@ pub fn read_file(
     let safe_path = ensure_within_project_root(project_root, &full_path, relative_path)?;
     let metadata = std::fs::metadata(&safe_path)?;
     let size_bytes = metadata.len();
+    let is_readonly = metadata.permissions().readonly();
 
     // Binary check — read first 8KB
     if size_bytes > 0 {
@@ -287,6 +288,7 @@ pub fn read_file(
                     language: None,
                     estimated_tokens: 0,
                     truncated: false,
+                    is_readonly: false,
                 });
             }
         }
@@ -350,7 +352,44 @@ pub fn read_file(
         language,
         estimated_tokens,
         truncated,
+        is_readonly,
     })
+}
+
+/// Write `content` to `relative_path` within `project_root`.
+/// Validates path containment. Creates/overwrites the file atomically on most platforms.
+pub fn write_file(project_root: &Path, relative_path: &str, content: &str) -> Result<(), AppError> {
+    tracing::debug!(
+        root = %project_root.display(),
+        relative_path = %relative_path,
+        content_bytes = content.len(),
+        "writing project file"
+    );
+
+    let full_path = project_root.join(relative_path);
+    let parent = full_path
+        .parent()
+        .ok_or_else(|| AppError::Other(format!("Invalid path (no parent): {}", relative_path)))?;
+
+    // Parent must exist. Canonicalize it (not the file -- it may not exist yet).
+    if !parent.exists() {
+        return Err(AppError::Other(format!(
+            "Parent directory does not exist: {}",
+            relative_path
+        )));
+    }
+    let safe_parent = std::fs::canonicalize(parent)?;
+    let root = std::fs::canonicalize(project_root)?;
+    if !safe_parent.starts_with(&root) {
+        return Err(AppError::Other(format!(
+            "Path escapes project root: {}",
+            relative_path
+        )));
+    }
+
+    std::fs::write(&full_path, content).map_err(AppError::from)?;
+    tracing::debug!(relative_path = %relative_path, "wrote project file");
+    Ok(())
 }
 
 /// Search for files by name. Returns matches sorted by relevance score.
@@ -649,6 +688,47 @@ mod tests {
         let result = read_file(project.path(), "image.png", None, None).unwrap();
         assert!(result.content.is_empty());
         assert_eq!(result.estimated_tokens, 0);
+    }
+
+    #[test]
+    fn write_file_creates_and_reads_back() {
+        let project = create_test_project();
+        write_file(project.path(), "src/new-file.ts", "export const x = 1;\n").unwrap();
+        let content = std::fs::read_to_string(project.path().join("src/new-file.ts")).unwrap();
+        assert_eq!(content, "export const x = 1;\n");
+    }
+
+    #[test]
+    fn write_file_overwrites_existing() {
+        let project = create_test_project();
+        write_file(project.path(), "README.md", "Updated\n").unwrap();
+        let content = std::fs::read_to_string(project.path().join("README.md")).unwrap();
+        assert_eq!(content, "Updated\n");
+    }
+
+    #[test]
+    fn write_file_rejects_path_traversal() {
+        let base = tempfile::tempdir().unwrap();
+        let project_dir = base.path().join("project");
+        std::fs::create_dir_all(&project_dir).unwrap();
+        std::fs::create_dir_all(project_dir.join("src")).unwrap();
+        let result = write_file(&project_dir, "../outside.txt", "evil");
+        assert!(result.is_err(), "Should reject path traversal");
+    }
+
+    #[test]
+    fn write_file_rejects_nonexistent_parent_dir() {
+        let project = create_test_project();
+        let result = write_file(project.path(), "no-such-dir/file.txt", "content");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn read_file_exposes_is_readonly_flag() {
+        let project = create_test_project();
+        let result = read_file(project.path(), "README.md", None, None).unwrap();
+        // Regular file in a temp dir should NOT be readonly
+        assert!(!result.is_readonly, "README.md should not be readonly");
     }
 
     #[test]

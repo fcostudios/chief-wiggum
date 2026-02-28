@@ -245,6 +245,8 @@ export interface FileContent {
   language: string | null;
   estimated_tokens: number;
   truncated: boolean;
+  /** Whether the file is read-only on disk. */
+  is_readonly: boolean;
 }
 
 /** Search result for file name matching. */
