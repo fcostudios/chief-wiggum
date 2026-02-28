@@ -9,6 +9,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type { FileNode, FileContent, FileSearchResult, GitFileStatus } from '@/lib/types';
 import { projectState } from '@/stores/projectStore';
 import { createLogger } from '@/lib/logger';
+import { addToast } from '@/stores/toastStore';
 
 const log = createLogger('ui/files');
 
@@ -43,6 +44,21 @@ interface FileState {
   selectedRange: { start: number; end: number } | null;
   /** Attachment currently being edited from ContextChip click, if any. */
   editingAttachmentId: string | null;
+  // ── Inline editing (CHI-217) ──────────────────────
+  /** Whether the file is currently open in the inline editor. */
+  isEditing: boolean;
+  /** Whether the editor buffer differs from the saved file. */
+  isDirty: boolean;
+  /** Current editor save lifecycle status. */
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  /** Full file content loaded for editing (may be larger than the 50-line preview). */
+  fullContent: string | null;
+  /** Path of the file currently being edited. */
+  editingFilePath: string | null;
+  /** Whether the file on disk changed while editing (conflict detected). */
+  conflictDetected: boolean;
+  /** Whether the file is read-only on disk. */
+  isReadonly: boolean;
 }
 
 const [state, setState] = createStore<FileState>({
@@ -61,6 +77,13 @@ const [state, setState] = createStore<FileState>({
   isVisible: true,
   selectedRange: null,
   editingAttachmentId: null,
+  isEditing: false,
+  isDirty: false,
+  saveStatus: 'idle',
+  fullContent: null,
+  editingFilePath: null,
+  conflictDetected: false,
+  isReadonly: false,
 });
 
 export { state as fileState };
@@ -167,7 +190,11 @@ async function handleFilesChanged(
 
   // Refresh the selected preview if its file changed.
   if (state.selectedPath && changedPaths.includes(state.selectedPath)) {
-    await selectFile(payload.project_id, state.selectedPath);
+    if (state.isEditing) {
+      setState('conflictDetected', true);
+    } else {
+      await selectFile(payload.project_id, state.selectedPath);
+    }
   }
 
   // Keep search results fresh while searching.
@@ -311,10 +338,22 @@ export async function selectFile(projectId: string, relativePath: string): Promi
       start_line: null,
       end_line: 50,
     });
+    // Exit any active edit session when switching files
+    setState({
+      isEditing: false,
+      isDirty: false,
+      saveStatus: 'idle',
+      fullContent: null,
+      editingFilePath: null,
+      conflictDetected: false,
+    });
+    // Set read-only flag from file metadata
+    setState('isReadonly', content.is_readonly ?? false);
     setState('previewContent', content);
   } catch (err) {
     log.error('Failed to load preview: ' + (err instanceof Error ? err.message : String(err)));
     setState('previewContent', null);
+    setState('isReadonly', false);
   } finally {
     setState('isPreviewLoading', false);
   }
@@ -437,6 +476,13 @@ export function clearFileState(): void {
     isGitLoading: false,
     selectedRange: null,
     editingAttachmentId: null,
+    isEditing: false,
+    isDirty: false,
+    saveStatus: 'idle',
+    fullContent: null,
+    editingFilePath: null,
+    conflictDetected: false,
+    isReadonly: false,
   });
 }
 
@@ -458,6 +504,58 @@ export function getRootNodes(): FileNode[] {
 /** Set the selected line range. */
 export function setSelectedRange(range: { start: number; end: number } | null): void {
   setState('selectedRange', range);
+}
+
+/** Enter inline edit mode for the currently previewed file. Loads full content first. */
+export async function enterEditMode(content: string, relativePath: string): Promise<void> {
+  setState({
+    isEditing: true,
+    isDirty: false,
+    saveStatus: 'idle',
+    fullContent: content,
+    editingFilePath: relativePath,
+    conflictDetected: false,
+  });
+}
+
+/** Exit inline edit mode, discarding any unsaved buffer reference. */
+export function exitEditMode(): void {
+  setState({
+    isEditing: false,
+    isDirty: false,
+    saveStatus: 'idle',
+    fullContent: null,
+    editingFilePath: null,
+    conflictDetected: false,
+  });
+}
+
+/** Update the editor buffer (called on every CodeMirror doc change). */
+export function setEditBuffer(content: string): void {
+  setState({ fullContent: content, isDirty: true });
+}
+
+/** Persist the current edit buffer to disk. Shows toast on completion. */
+export async function saveFileEdit(projectId: string, relativePath: string): Promise<void> {
+  const content = state.fullContent;
+  if (content == null) return;
+  setState('saveStatus', 'saving');
+  try {
+    await invoke('write_file_content', {
+      project_id: projectId,
+      relative_path: relativePath,
+      content,
+    });
+    setState({ saveStatus: 'saved', isDirty: false });
+    addToast('File saved', 'success');
+    // Reset to idle after 2s so the status label clears
+    setTimeout(() => setState('saveStatus', 'idle'), 2000);
+  } catch (err) {
+    setState('saveStatus', 'error');
+    const msg = err instanceof Error ? err.message : String(err);
+    log.error('Failed to save file: ' + msg);
+    addToast('Failed to save: ' + msg, 'error');
+  }
 }
 
 /** Get estimated tokens for the selected range. */
