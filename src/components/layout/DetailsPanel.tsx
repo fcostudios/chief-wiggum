@@ -16,7 +16,7 @@ import ActionOutputPanel from '@/components/actions/ActionOutputPanel';
 
 interface SectionProps {
   id: string;
-  title: string;
+  title: JSX.Element;
   children: JSX.Element;
   open: boolean;
   focused: boolean;
@@ -117,6 +117,21 @@ const DetailsPanel: Component = () => {
 
   const isSectionOpen = (id: string, fallback = true) => sectionOpenState()[id] ?? fallback;
   const isFocused = (id: string) => focusedSectionId() === id;
+  const filePreviewTitle = (
+    <>
+      File Preview
+      <Show when={fileState.isDirty && fileState.editingFilePath === fileState.selectedPath}>
+        <span
+          class="ml-1 text-[8px]"
+          style={{ color: 'var(--color-warning)' }}
+          title="Unsaved changes"
+          aria-label="Unsaved changes"
+        >
+          ●
+        </span>
+      </Show>
+    </>
+  );
 
   function handleSectionHeaderClick(id: string, fallback = true) {
     const currentlyOpen = isSectionOpen(id, fallback);
@@ -170,7 +185,7 @@ const DetailsPanel: Component = () => {
       <Show when={actionState.selectedActionId}>
         <CollapsibleSection
           id="actionOutput"
-          title="Action Output"
+          title={<>Action Output</>}
           open={isSectionOpen('actionOutput')}
           focused={isFocused('actionOutput')}
           onHeaderClick={() => handleSectionHeaderClick('actionOutput')}
@@ -192,7 +207,7 @@ const DetailsPanel: Component = () => {
       <Show when={fileState.selectedPath && fileState.previewContent}>
         <CollapsibleSection
           id="filePreview"
-          title="File Preview"
+          title={filePreviewTitle}
           open={isSectionOpen('filePreview')}
           focused={isFocused('filePreview')}
           onHeaderClick={() => handleSectionHeaderClick('filePreview')}
@@ -212,7 +227,7 @@ const DetailsPanel: Component = () => {
       <Show when={!fileState.selectedPath && fileState.isVisible && projectState.activeProjectId}>
         <CollapsibleSection
           id="filePreview"
-          title="File Preview"
+          title={filePreviewTitle}
           open={isSectionOpen('filePreview', false)}
           focused={isFocused('filePreview')}
           onHeaderClick={() => handleSectionHeaderClick('filePreview', false)}
@@ -226,7 +241,7 @@ const DetailsPanel: Component = () => {
       <Show when={projectState.claudeMdContent}>
         <CollapsibleSection
           id="projectContext"
-          title="Project Context"
+          title={<>Project Context</>}
           open={isSectionOpen('projectContext', false)}
           focused={isFocused('projectContext')}
           onHeaderClick={() => handleSectionHeaderClick('projectContext', false)}
@@ -247,7 +262,7 @@ const DetailsPanel: Component = () => {
 
       <CollapsibleSection
         id="context"
-        title="Context"
+        title={<>Context</>}
         open={isSectionOpen('context')}
         focused={isFocused('context')}
         onHeaderClick={() => handleSectionHeaderClick('context')}
@@ -276,7 +291,7 @@ const DetailsPanel: Component = () => {
 
       <CollapsibleSection
         id="cost"
-        title="Cost"
+        title={<>Cost</>}
         open={isSectionOpen('cost')}
         focused={isFocused('cost')}
         onHeaderClick={() => handleSectionHeaderClick('cost')}
