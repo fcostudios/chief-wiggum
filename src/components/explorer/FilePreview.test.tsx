@@ -8,15 +8,15 @@ const mockUpdateAttachmentRange = vi.fn();
 const mockNavigateToFolder = vi.fn();
 const mockSetSelectedRange = vi.fn();
 const mockClearConflict = vi.fn();
-const mockEnterEditMode = vi.fn<(content: string, relativePath: string) => Promise<void>>(
-  () => Promise.resolve(),
+const mockEnterEditMode = vi.fn<(content: string, relativePath: string) => Promise<void>>(() =>
+  Promise.resolve(),
 );
 const mockExitEditMode = vi.fn();
-const mockSaveFileEdit = vi.fn<(projectId: string, relativePath: string) => Promise<void>>(
-  () => Promise.resolve(),
+const mockSaveFileEdit = vi.fn<(projectId: string, relativePath: string) => Promise<void>>(() =>
+  Promise.resolve(),
 );
-const mockSelectFile = vi.fn<(projectId: string, relativePath: string) => Promise<void>>(
-  () => Promise.resolve(),
+const mockSelectFile = vi.fn<(projectId: string, relativePath: string) => Promise<void>>(() =>
+  Promise.resolve(),
 );
 const mockSetEditBuffer = vi.fn<(content: string) => void>();
 const mockAddToast = vi.fn();

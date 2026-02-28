@@ -283,7 +283,8 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     !isBinaryFile() &&
     activeContent().content.length === 0 &&
     activeContent().size_bytes === 0;
-  const isLargeFile = () => props.content.size_bytes > 100 * 1024 || props.content.line_count > 5000;
+  const isLargeFile = () =>
+    props.content.size_bytes > 100 * 1024 || props.content.line_count > 5000;
   const canEdit = () => !isBinaryFile() && !props.content.is_readonly;
   const saveStatusLabel = () => {
     switch (fileState.saveStatus) {
@@ -547,7 +548,9 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
         </Show>
 
         {/* Dirty/save status indicator */}
-        <Show when={fileState.isEditing && fileState.editingFilePath === props.content.relative_path}>
+        <Show
+          when={fileState.isEditing && fileState.editingFilePath === props.content.relative_path}
+        >
           <span class="text-[10px] font-mono ml-1 shrink-0" style={{ color: saveStatusColor() }}>
             {saveStatusLabel() || (fileState.isDirty ? '●' : '')}
           </span>
@@ -725,7 +728,15 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
       </Show>
 
       {/* ── READ-ONLY MODE: existing static table view ── */}
-      <Show when={!fileState.isEditing && !props.isLoading && !isBinaryFile() && !isEmptyTextFile() && displayContent()}>
+      <Show
+        when={
+          !fileState.isEditing &&
+          !props.isLoading &&
+          !isBinaryFile() &&
+          !isEmptyTextFile() &&
+          displayContent()
+        }
+      >
         <div
           ref={codeViewportRef}
           class="overflow-auto rounded focus-ring"

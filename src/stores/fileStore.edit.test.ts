@@ -55,9 +55,8 @@ describe('fileStore editing state (CHI-217)', () => {
 
   it('saveFileEdit calls write_file_content IPC and shows toast on success', async () => {
     vi.mocked(invoke).mockResolvedValueOnce(undefined);
-    const { enterEditMode, setEditBuffer, saveFileEdit, fileState } = await import(
-      '@/stores/fileStore'
-    );
+    const { enterEditMode, setEditBuffer, saveFileEdit, fileState } =
+      await import('@/stores/fileStore');
     await enterEditMode('original', 'src/a.ts');
     setEditBuffer('updated');
     await saveFileEdit('proj-1', 'src/a.ts');
@@ -72,9 +71,8 @@ describe('fileStore editing state (CHI-217)', () => {
 
   it('saveFileEdit sets saveStatus=error on IPC failure', async () => {
     vi.mocked(invoke).mockRejectedValueOnce(new Error('disk full'));
-    const { enterEditMode, setEditBuffer, saveFileEdit, fileState } = await import(
-      '@/stores/fileStore'
-    );
+    const { enterEditMode, setEditBuffer, saveFileEdit, fileState } =
+      await import('@/stores/fileStore');
     await enterEditMode('original', 'src/a.ts');
     setEditBuffer('modified');
     await saveFileEdit('proj-1', 'src/a.ts');
