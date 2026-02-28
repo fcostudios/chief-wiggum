@@ -7,6 +7,12 @@ const mockAddFileReference = vi.fn();
 const mockUpdateAttachmentRange = vi.fn();
 const mockNavigateToFolder = vi.fn();
 const mockSetSelectedRange = vi.fn();
+const mockClearConflict = vi.fn();
+const mockEnterEditMode = vi.fn(() => Promise.resolve());
+const mockExitEditMode = vi.fn();
+const mockSaveFileEdit = vi.fn(() => Promise.resolve());
+const mockSelectFile = vi.fn(() => Promise.resolve());
+const mockSetEditBuffer = vi.fn();
 const mockAddToast = vi.fn();
 const mockClipboardWriteText = vi.fn(() => Promise.resolve());
 
@@ -40,9 +46,36 @@ vi.mock('@/stores/fileStore', () => ({
     get editingAttachmentId() {
       return null;
     },
+    get isEditing() {
+      return false;
+    },
+    get isDirty() {
+      return false;
+    },
+    get saveStatus() {
+      return 'idle';
+    },
+    get editingFilePath() {
+      return null;
+    },
+    get conflictDetected() {
+      return false;
+    },
+    get isReadonly() {
+      return false;
+    },
   },
-  navigateToFolder: (...args: unknown[]) => mockNavigateToFolder(...args),
-  setSelectedRange: (...args: unknown[]) => mockSetSelectedRange(...args),
+  clearConflict: () => mockClearConflict(),
+  enterEditMode: (content: string, relativePath: string) =>
+    mockEnterEditMode(content, relativePath),
+  exitEditMode: () => mockExitEditMode(),
+  navigateToFolder: (projectId: string, folderPath: string) =>
+    mockNavigateToFolder(projectId, folderPath),
+  saveFileEdit: (projectId: string, relativePath: string) =>
+    mockSaveFileEdit(projectId, relativePath),
+  selectFile: (projectId: string, relativePath: string) => mockSelectFile(projectId, relativePath),
+  setEditBuffer: (content: string) => mockSetEditBuffer(content),
+  setSelectedRange: (range: { start: number; end: number } | null) => mockSetSelectedRange(range),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
@@ -67,6 +100,7 @@ const content: FileContent = {
   language: 'typescript',
   estimated_tokens: 7,
   truncated: false,
+  is_readonly: false,
 };
 
 describe('FilePreview', () => {
