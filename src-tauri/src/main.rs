@@ -108,6 +108,8 @@ fn main() {
             chief_wiggum_lib::commands::actions::stop_action,
             chief_wiggum_lib::commands::actions::restart_action,
             chief_wiggum_lib::commands::actions::list_running_actions,
+            chief_wiggum_lib::commands::actions::list_all_running_actions,
+            chief_wiggum_lib::commands::actions::get_action_history,
             chief_wiggum_lib::commands::cli::get_cli_info,
             chief_wiggum_lib::commands::diagnostic::export_diagnostic_bundle,
             chief_wiggum_lib::commands::logging::log_from_frontend,

@@ -54,6 +54,7 @@ struct ActionRuntime {
     category: ActionCategory,
     is_long_running: bool,
     started_at: Instant,
+    started_at_iso: String,
     last_output_line: Option<String>,
     output_tail: VecDeque<String>,
 }
@@ -70,8 +71,17 @@ pub struct ActionRuntimeSnapshot {
     pub category: ActionCategory,
     pub is_long_running: bool,
     pub started_at: Instant,
+    pub started_at_iso: String,
     pub last_output_line: Option<String>,
     pub output_tail: Vec<String>,
+}
+
+/// Runtime snapshot enriched with current status + elapsed time.
+#[derive(Debug, Clone)]
+pub struct ActionRuntimeWithStatus {
+    pub snapshot: ActionRuntimeSnapshot,
+    pub status: ActionStatus,
+    pub elapsed_ms: u64,
 }
 
 /// Tracks concurrent action processes.
@@ -135,6 +145,7 @@ impl ActionBridgeMap {
             category: metadata.category,
             is_long_running: metadata.is_long_running,
             started_at: Instant::now(),
+            started_at_iso: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true),
             last_output_line: None,
             output_tail: VecDeque::with_capacity(3),
         };
@@ -147,7 +158,9 @@ impl ActionBridgeMap {
     /// Get a bridge by action ID.
     pub async fn get(&self, action_id: &str) -> Option<Arc<ActionBridge>> {
         let runtimes = self.runtimes.read().await;
-        runtimes.get(action_id).map(|runtime| runtime.bridge.clone())
+        runtimes
+            .get(action_id)
+            .map(|runtime| runtime.bridge.clone())
     }
 
     /// Check if an action is tracked.
@@ -190,9 +203,50 @@ impl ActionBridgeMap {
             category: runtime.category.clone(),
             is_long_running: runtime.is_long_running,
             started_at: runtime.started_at,
+            started_at_iso: runtime.started_at_iso.clone(),
             last_output_line: runtime.last_output_line.clone(),
             output_tail: runtime.output_tail.iter().cloned().collect(),
         })
+    }
+
+    /// List runtime snapshots with status + elapsed for all active actions.
+    pub async fn list_runtime_with_status(&self) -> Vec<ActionRuntimeWithStatus> {
+        let entries: Vec<(ActionRuntimeSnapshot, Arc<ActionBridge>)> = {
+            let runtimes = self.runtimes.read().await;
+            runtimes
+                .iter()
+                .map(|(id, runtime)| {
+                    (
+                        ActionRuntimeSnapshot {
+                            action_id: id.clone(),
+                            command: runtime.command.clone(),
+                            working_dir: runtime.working_dir.clone(),
+                            action_name: runtime.action_name.clone(),
+                            project_id: runtime.project_id.clone(),
+                            project_name: runtime.project_name.clone(),
+                            category: runtime.category.clone(),
+                            is_long_running: runtime.is_long_running,
+                            started_at: runtime.started_at,
+                            started_at_iso: runtime.started_at_iso.clone(),
+                            last_output_line: runtime.last_output_line.clone(),
+                            output_tail: runtime.output_tail.iter().cloned().collect(),
+                        },
+                        runtime.bridge.clone(),
+                    )
+                })
+                .collect()
+        };
+
+        let mut out = Vec::with_capacity(entries.len());
+        for (snapshot, bridge) in entries {
+            let status = bridge.status().await;
+            out.push(ActionRuntimeWithStatus {
+                elapsed_ms: snapshot.started_at.elapsed().as_millis() as u64,
+                snapshot,
+                status,
+            });
+        }
+        out
     }
 
     /// Remove runtime without sending stop signal to the bridge (used after process exit).
@@ -314,6 +368,36 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn list_runtime_with_status_includes_metadata() {
+        let map = ActionBridgeMap::new();
+        let config = ActionBridgeConfig {
+            command: sleep_command(),
+            working_dir: temp_workdir(),
+            ..Default::default()
+        };
+        let metadata = ActionRuntimeMetadata {
+            action_name: "dev".to_string(),
+            project_id: "proj-1".to_string(),
+            project_name: "Project One".to_string(),
+            category: ActionCategory::Dev,
+            is_long_running: true,
+        };
+
+        map.spawn_action("test:runtime", config, metadata)
+            .await
+            .expect("spawn action");
+
+        let list = map.list_runtime_with_status().await;
+        assert_eq!(list.len(), 1);
+        let item = &list[0];
+        assert_eq!(item.snapshot.action_id, "test:runtime");
+        assert_eq!(item.snapshot.project_id, "proj-1");
+        assert_eq!(item.snapshot.project_name, "Project One");
+        assert_eq!(item.snapshot.action_name, "dev");
+        assert!(item.elapsed_ms <= 10_000);
+    }
+
+    #[tokio::test]
     async fn stop_removes_from_map() {
         let map = ActionBridgeMap::new();
         let config = ActionBridgeConfig {
@@ -349,8 +433,8 @@ mod tests {
                 config,
                 ActionRuntimeMetadata::default(),
             )
-                .await
-                .expect("spawn action");
+            .await
+            .expect("spawn action");
         }
         assert_eq!(map.active_count().await, 3);
         map.shutdown_all().await.expect("shutdown actions");
