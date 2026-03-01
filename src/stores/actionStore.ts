@@ -388,19 +388,18 @@ export async function subscribeToActionStatusChanged(): Promise<UnlistenFn> {
         return idx >= 0 ? [...prev.slice(0, idx), ...prev.slice(idx + 1)] : prev;
       }
 
-      const action = getActionById(payload.action_id);
       const existing = idx >= 0 ? prev[idx] : null;
       const updated: CrossProjectRunningAction = {
         action_id: payload.action_id,
         project_id: payload.project_id,
         project_name: payload.project_name,
-        action_name: existing?.action_name ?? action?.name ?? payload.action_id,
+        action_name: existing?.action_name ?? payload.action_id,
         status: incomingStatus,
         elapsed_ms: payload.elapsed_ms,
         last_output_line: existing?.last_output_line ?? null,
-        command: existing?.command ?? action?.command ?? '',
-        category: existing?.category ?? action?.category ?? 'custom',
-        is_long_running: existing?.is_long_running ?? action?.is_long_running ?? false,
+        command: existing?.command ?? '',
+        category: existing?.category ?? 'custom',
+        is_long_running: existing?.is_long_running ?? false,
       };
       if (idx >= 0) {
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];

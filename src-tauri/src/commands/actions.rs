@@ -46,6 +46,7 @@ pub async fn discover_actions(project_path: String) -> Result<Vec<ActionDefiniti
 
 /// Start an action process.
 #[tauri::command(rename_all = "snake_case")]
+#[allow(clippy::too_many_arguments)]
 pub async fn start_action(
     app: tauri::AppHandle,
     action_map: tauri::State<'_, ActionBridgeMap>,
@@ -97,6 +98,7 @@ pub async fn stop_action(
 
 /// Restart an action (stop + start).
 #[tauri::command(rename_all = "snake_case")]
+#[allow(clippy::too_many_arguments)]
 pub async fn restart_action(
     app: tauri::AppHandle,
     action_map: tauri::State<'_, ActionBridgeMap>,
