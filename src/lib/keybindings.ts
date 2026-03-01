@@ -96,6 +96,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
     return;
   }
 
+  // Cmd+Shift+A — open Actions Center view
+  if (e.code === 'KeyA' && e.shiftKey) {
+    e.preventDefault();
+    setActiveView('actions_center');
+    return;
+  }
+
   // Cmd+Shift+. — stop all running actions
   if (e.code === 'Period' && e.shiftKey) {
     e.preventDefault();

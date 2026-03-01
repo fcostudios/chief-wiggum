@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 
-let mockActiveView: 'conversation' | 'agents' | 'diff' | 'terminal' = 'conversation';
+let mockActiveView: 'conversation' | 'agents' | 'diff' | 'terminal' | 'actions_center' =
+  'conversation';
 let mockSidebarState: 'expanded' | 'collapsed' | 'hidden' = 'expanded';
 let mockSidebarWidth = 240;
 let mockDetailsPanelVisible = true;
@@ -14,7 +15,13 @@ let mockKeyboardHelpVisible = false;
 let mockSettingsVisible = false;
 let mockContextBreakdownVisible = false;
 let mockCommandPaletteMode: 'commands' | 'sessions' = 'commands';
-let mockViewBadges: Record<string, number> = { conversation: 0, agents: 0, diff: 0, terminal: 0 };
+let mockViewBadges: Record<string, number> = {
+  conversation: 0,
+  agents: 0,
+  diff: 0,
+  terminal: 0,
+  actions_center: 0,
+};
 let mockLayoutMode: 'single' | 'split' = 'single';
 let mockActivePaneId = 'main';
 let mockCliDetected = true;
@@ -158,6 +165,9 @@ vi.mock('@/components/permissions/YoloWarningDialog', () => ({
 vi.mock('@/components/terminal/TerminalPane', () => ({
   default: () => <div data-testid="terminal-pane">TerminalPane</div>,
 }));
+vi.mock('@/components/actions/ActionsCenter', () => ({
+  default: () => <div data-testid="actions-center">ActionsCenter</div>,
+}));
 vi.mock('@/components/common/CommandPalette', () => ({
   default: () => <div data-testid="command-palette">CommandPalette</div>,
 }));
@@ -200,7 +210,7 @@ describe('MainLayout', () => {
     mockSettingsVisible = false;
     mockContextBreakdownVisible = false;
     mockCommandPaletteMode = 'commands';
-    mockViewBadges = { conversation: 0, agents: 0, diff: 0, terminal: 0 };
+    mockViewBadges = { conversation: 0, agents: 0, diff: 0, terminal: 0, actions_center: 0 };
     mockLayoutMode = 'single';
     mockActivePaneId = 'main';
     mockCliDetected = true;
@@ -238,6 +248,7 @@ describe('MainLayout', () => {
     expect(screen.getByRole('button', { name: 'Agents' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Diff' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Terminal' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Center' })).toBeInTheDocument();
     expect(mockEnsureMainPaneSession).toHaveBeenCalledWith('session-1');
   });
 

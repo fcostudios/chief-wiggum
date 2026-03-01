@@ -39,6 +39,7 @@ import {
 } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
+import ActionsCenter from '@/components/actions/ActionsCenter';
 import CommandPalette from '@/components/common/CommandPalette';
 import KeyboardHelp from '@/components/common/KeyboardHelp';
 import ExportDialog from '@/components/diagnostics/ExportDialog';
@@ -193,6 +194,7 @@ const MainLayout: Component = () => {
             <ViewTab label="Agents" view="agents" />
             <ViewTab label="Diff" view="diff" />
             <ViewTab label="Terminal" view="terminal" />
+            <ViewTab label="Center" view="actions_center" />
           </div>
 
           {/* View content area */}
@@ -210,6 +212,9 @@ const MainLayout: Component = () => {
             </Show>
             <Show when={uiState.activeView === 'terminal'}>
               <TerminalPane />
+            </Show>
+            <Show when={uiState.activeView === 'actions_center'}>
+              <ActionsCenter />
             </Show>
           </div>
 
