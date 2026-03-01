@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-01T02:58:28Z",
-  "last_updated_by": "codex",
+  "last_updated": "2026-03-01T05:19:55Z",
+  "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
     "linear_project_id": "63e009bd-5e43-4575-a7be-2e3b1cface5f",
@@ -4443,7 +4443,7 @@
           "notes": "MessageInput now accepts external Files drags, validates MIME/extension, and stores dropped text as in-memory external attachments so assembleContext can include content without backend file reads."
         },
         "CHI-208": {
-          "title": "F5: Unit Tests — File Attachments",
+          "title": "F5: Unit Tests \u2014 File Attachments",
           "status": "done",
           "completed_at": "2026-02-27T15:26:55Z",
           "priority": "high",
@@ -4532,14 +4532,14 @@
       }
     },
     "CHI-199": {
-      "title": "Epic F: QA Test Coverage — Conversation Experience",
+      "title": "Epic F: QA Test Coverage \u2014 Conversation Experience",
       "status": "in_progress",
       "linear_id": "61a238d6-7ec0-4596-9c68-f564ab69ecfa",
       "linear_url": "https://linear.app/chief-wiggum/issue/CHI-199/epic-f-qa-test-coverage-conversation-experience",
       "notes": "CHI-215 coverage follow-through is complete in this branch.",
       "tasks": {
         "CHI-215": {
-          "title": "F11: Unit Tests — TodoWrite Block & StatusBar Badge",
+          "title": "F11: Unit Tests \u2014 TodoWrite Block & StatusBar Badge",
           "status": "done",
           "completed_at": "2026-02-27T17:36:48Z",
           "priority": "high",

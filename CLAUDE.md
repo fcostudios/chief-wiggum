@@ -1,567 +1,108 @@
-# Chief Wiggum — Agent Instructions
+# Chief Wiggum — Agent Briefing
 
-> **Read this file first.** It is the auto-briefing for any Claude Code session.
-> Updated: 2026-02-26
+> **Read this first.** Auto-loaded by Claude Code at session start. Keep under 150 lines.
+> Full completed task history → `.claude/COMPLETED.md`
+> Updated: 2026-02-28
 
 ---
 
 ## What Is This Project?
 
-**Chief Wiggum** is a cross-platform desktop app (Tauri v2 + Rust + SolidJS) that wraps Claude Code CLI in a polished GUI. It gives professional developers visual multi-agent orchestration, real-time cost tracking, and intelligent context management — without leaving the desktop.
+**Chief Wiggum** is a cross-platform desktop app (Tauri v2 + Rust + SolidJS) that wraps Claude Code CLI in a polished GUI — visual multi-agent orchestration, real-time cost tracking, intelligent context management.
+
+- **GitHub:** `github.com/fcostudios/chief-wiggum`
+- **Linear workspace:** `linear.app/chief-wiggum` · Team: **CHI**
+- **Current phase:** Phase 3 (ongoing) — Phase 1 & 2 complete
 
 ---
 
-## Current Phase
-
-**Phase 2: Make It Real**
-
-- Linear project: https://linear.app/chief-wiggum/project/phase-2-make-it-real-951a81a3c66b
-- Team identifier: CHI
-- Workspace: https://linear.app/chief-wiggum
-- Previous: Phase 1 Foundation — COMPLETE (https://linear.app/chief-wiggum/project/phase-1-foundation-ba6f471a516b)
-
----
-
-## What's Done
-
-| Epic / Task                         | Status   | Notes                                                                                               |
-| ----------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
-| CHI-6: CLI Bridge                   | **Done** | `src-tauri/src/bridge/` — all 4 sub-tasks (CHI-13, CHI-14, CHI-15, CHI-16)                          |
-| CHI-8: Scaffold Tauri v2            | **Done** | `main.rs`, `tauri.conf.json`, `capabilities/`, icons, Vite, `package.json`                          |
-| CHI-9: SolidJS + TailwindCSS        | **Done** | `src/` frontend with SPEC-002 tokens, Prettier, ESLint, 55 tests pass                               |
-| CHI-11: SQLite Database             | **Done** | `src-tauri/src/db/` — migrations, queries, WAL mode, 12 db tests                                    |
-| CHI-10: CI/CD Pipeline              | **Done** | `.github/workflows/ci.yml` — matrix builds, clippy, fmt, tests                                      |
-| CHI-12: CLAUDE.md                   | **Done** | Agent auto-briefing file                                                                            |
-| CHI-25: Push to GitHub              | **Done** | `github.com/fcostudios/chief-wiggum`                                                                |
-| CHI-17: Layout Shell                | **Done** | 5-zone layout, TitleBar, Sidebar, StatusBar, DetailsPanel, MainLayout                               |
-| CHI-19: Message Input               | **Done** | Auto-expanding textarea, send/stop controls, keyboard shortcuts                                     |
-| CHI-23: Permission Dialog           | **Done** | Modal dialog, risk coloring, timeout, focus trap, keyboard shortcuts                                |
-| CHI-18: Conversation View           | **Done** | Markdown/code rendering (marked + highlight.js), message bubbles, auto-scroll                       |
-| CHI-21: Terminal Mode               | **Done** | xterm.js v5 + WebGL addon, SPEC-002 themed, Cmd+` toggle                                            |
-| CHI-26: YOLO Mode                   | **Done** | Auto-approve permissions, warning dialog, TitleBar/StatusBar indicators, Cmd+Shift+Y                |
-| CHI-22: Session Persistence         | **Done** | IPC commands module, session CRUD, sidebar navigation, conversationStore rewrite                    |
-| CHI-20: Model Selector              | **Done** | ModelSelector dropdown, Cmd+M cycling, TitleBar integration                                         |
-| CHI-24: Cross-Platform Packaging    | **Done** | Bundle metadata, release workflow (.dmg, .msi, .AppImage)                                           |
-| CHI-48: CLI Detection               | **Done** | `commands/cli.rs`, `cliStore.ts`, StatusBar status, ConversationView guidance                       |
-| CHI-40: Project & Folder Management | **Done** | `tauri-plugin-dialog`, `commands/project.rs`, `projectStore.ts`, Sidebar folder picker              |
-| CHI-44: SessionBridgeMap            | **Done** | `bridge/manager.rs` — session→process manager, 7 unit tests (71 total)                              |
-| CHI-45: IPC Commands for CLI        | **Done** | `commands/bridge.rs` — start_session_cli, send_to_cli, stop_session_cli, get_cli_status             |
-| CHI-46: Streaming Event Loop        | **Done** | `bridge/event_loop.rs` — BridgeOutput → Tauri events (chunk, complete, exited, permission)          |
-| CHI-47: Replace Mock with Real CLI  | **Done** | `conversationStore.ts` rewrite — real IPC + event listeners, mock removed                           |
-| CHI-49: Streaming Message Rendering | **Done** | ConversationView streaming bubble, blinking cursor, error display, auto-scroll                      |
-| CHI-50: Permission IPC              | **Done** | `respond_permission`, `toggle_yolo_mode` commands, PermissionManager state                          |
-| CHI-51: Permission Event Pipeline   | **Done** | `permission:request` listener → PermissionDialog → IPC response flow                                |
-| CHI-52: YOLO Mode IPC               | **Done** | Frontend toggle wired to `invoke('toggle_yolo_mode')`                                               |
-| CHI-60: App Shutdown Cleanup        | **Done** | Window close handler calls `shutdown_all()` on SessionBridgeMap                                     |
-| CHI-67: Native Window Controls      | **Done** | `titleBarStyle: overlay`, platform detection, macOS traffic lights                                  |
-| CHI-89: ToolUseBlock                | **Done** | Collapsible, color-coded tool blocks (file=blue, bash=green, neutral=gray), structured JSON storage |
-| CHI-90: ThinkingBlock               | **Done** | Collapsible thinking display, streaming + persisted, ~80 char preview when collapsed                |
-| CHI-56: Process Status              | **Done** | ProcessStatus tracking in conversationStore, StatusBar indicator                                    |
-| CHI-57: Session Switching           | **Done** | switchSession() stops CLI, cleans listeners, loads messages                                         |
-| CHI-58: Graceful Shutdown           | **Done** | stopSessionCli() before delete, auto-switch to next session                                         |
-| CHI-59: Crash Recovery              | **Done** | retryLastMessage(), Retry button in error display                                                   |
-| CHI-80: Empty State                 | **Done** | CW branding, 3 clickable sample prompt cards                                                        |
-| CHI-41: Project Sidebar             | **Done** | Recent projects list (max 5), click-to-switch                                                       |
-| CHI-42: CLAUDE.md Detection         | **Done** | Detect and display CLAUDE.md from project folder                                                    |
-| CHI-43: Session-Project Binding     | **Done** | Bind sessions to projects with inherited settings                                                   |
-| CHI-53: Cost Accumulator            | **Done** | Cost accumulator service with SQLite persistence                                                    |
-| CHI-54: StatusBar Cost Display      | **Done** | Bind StatusBar + DetailsPanel to live cost events                                                   |
-| CHI-55: Per-message Cost            | **Done** | K-formatted tokens, dollar cost, copy button in MessageBubble                                       |
-| CHI-68: Titlebar Redesign           | **Done** | Settings gear, removed sidebar toggle, cleaner layout                                               |
-| CHI-72: Typing Indicator            | **Done** | Premium animated dots with shimmer effect                                                           |
-| CHI-73: Typewriter Buffer           | **Done** | Smooth streaming text via adaptive character buffer                                                 |
-| CHI-74: Toast System                | **Done** | `toastStore.ts`, `ToastContainer.tsx`, slide animations, max 3, auto-dismiss                        |
-| CHI-75: Micro-interactions          | **Done** | Copy icon swap, hover-lift, session border slide, press feedback                                    |
-| CHI-76: Command Palette             | **Done** | Cmd+K, fuzzy search, categorized actions                                                            |
-| CHI-77: Session Quick-Switcher      | **Done** | Cmd+Shift+P, filtered CommandPalette mode                                                           |
-| CHI-84: Sidebar Icon-Rail           | **Done** | 48px collapsed mode with tooltips                                                                   |
-| CHI-85: Session Sections            | **Done** | Pinned/Recent/Older collapsible sections, DB migration v3                                           |
-| CHI-91: Permission Records          | **Done** | Inline allowed/denied/YOLO blocks in conversation                                                   |
-| CHI-102: Developer Mode             | **Done** | Three-tier permission model, Bash allowedTools patterns                                             |
-| CHI-103: HMR Resilience             | **Done** | SessionRuntime event buffer (200-event ring), reconnectAfterReload(), dedup replay                  |
-| CHI-104: Parallel Sessions          | **Done** | Per-session processStatus, per-session listeners, non-destructive switching, sidebar indicators     |
-| CHI-94: 3-Layer Tracing             | **Done** | `logging/` module — console + rolling file (JSON) + ring buffer (36K entries), platform-aware paths |
-| CHI-96: Diagnostic Bundle Export    | **Done** | Redacted ZIP export (`logs.jsonl`, system info, redaction summary) + StatusBar export action         |
-| CHI-106: Slash Command Discovery    | **Done** | `slash/` module — 11 built-in + project + user `.md` scanning, IPC commands                         |
-| CHI-107: SlashCommandMenu UI        | **Done** | Inline autocomplete dropdown, categorized, fuzzy search, keyboard nav (Arrow/Enter/Esc/Tab)         |
-| CHI-108: SDK Command Discovery      | **Done** | `system:init` tools/mcp_servers → SDK slash commands merged into slash IPC + auto-refresh listener   |
-| CHI-95: Log Redaction Engine        | **Done** | `logging/redactor.rs` — 7 regex rules, export-time redaction, RedactionSummary, 13 tests            |
-| CHI-111: Concurrent Session Limits  | **Done** | `can_spawn()` guard (default 4), ResourceLimit error, StatusBar running count badge                 |
-| CHI-115: Backend File Scanner       | **Done** | `files/` module — gitignore-aware scanner + notify watcher + 4 IPC commands, 142 tests              |
-| CHI-116: File Tree Sidebar          | **Done** | `explorer/FileTree.tsx` + `FileTreeNode.tsx`, `fileStore.ts`, lazy loading, search                  |
-| CHI-117: @-Mention Autocomplete     | **Done** | `FileMentionMenu.tsx`, `ContextChip.tsx`, `contextStore.ts`, XML context assembly                   |
-| CHI-118: File Content Preview       | **Done** | `FilePreview.tsx` in DetailsPanel, syntax highlighting, paginated expansion, copy path              |
-| CHI-119: Code Range Selection       | **Done** | Click/drag/shift+click line selection, token estimates, `@file:start-end` shorthand                 |
-| CHI-122: Settings Backend & Types   | **Done** | `settings/` module + validation + IPC persistence (`tauri-plugin-store`) + TS settings types        |
-| CHI-123: File Explorer Quick Wins   | **Done** | Git status indicators, drag-drop attach, hover preview tooltip, breadcrumb navigation                |
-| CHI-124: Settings UI                | **Done** | Settings overlay shell + controls, autosave/retry store, Cmd+, shortcut, TitleBar gear, startup load |
-| CHI-133: FilePreview Editable Ranges| **Done** | Resizable preview, sticky gutter, ContextChip click-to-edit, update attachment ranges                |
-| CHI-135: Missing Error States       | **Done** | File tree/preview error UI + retry, project/slash/settings failure toasts, store error flags         |
-| CHI-136: Accessibility Pass         | **Done** | Skip link, ARIA labels/roles, keyboard tree nav, text alternatives for status indicators             |
-| CHI-125: Context Quality Scoring    | **Done** | Context scoring engine, chip quality badges, breakdown modal (Cmd+Shift+T)                           |
-| CHI-127: Smart File Suggestions     | **Done** | Rust import/test suggestion engine + `get_file_suggestions` IPC + inline suggestion chips            |
-| CHI-126: i18n Infrastructure        | **Done** | `i18nStore` with lazy locale loading, extracted UI strings, locale sync from settings                |
-| CHI-128: Spanish Locale             | **Done** | `src/locales/es.json` translations for current UI chrome and common interaction strings               |
-| CHI-137: Message Edit/Regenerate    | **Done** | Backend edit/delete-after IPC + frontend edit/regenerate UX without duplicate resend                  |
-| CHI-130: Theme System               | **Done** | Light/dark/system theme mode with reactive CSS variables + terminal theme sync                        |
-| CHI-63: Power User UX Epic          | **Done** | CHI-78 context menus + CHI-79 keyboard help/focus trap completed                                      |
-| CHI-64: Onboarding & Empty States   | **Done** | CHI-81 onboarding flow, CHI-82 Agents placeholder, CHI-83 no-project guidance                        |
-| CHI-109: Parallel Sessions v2 Epic  | **Done** | CHI-110 split panes, CHI-112 aggregate cost, CHI-113 activity notifications complete                  |
-| CHI-27: Playwright E2E Epic         | **Done** | CHI-28..34 complete: Playwright suite + CI workflow/reporter integration                              |
-| CHI-132: Conversation Virtualization| **Done** | `ConversationView` virtual scrolling with `@tanstack/solid-virtual` + jump-to-latest                |
-| CHI-97: Frontend Log Forwarding    | **Done** | `src/lib/logger.ts` IPC forwarding, replaced all `console.*` in stores, unified log stream          |
-| CHI-98: Export Diagnostic UI        | **Done** | `ExportDialog.tsx`, consent preview, Cmd+Shift+D copy debug info, toast notifications               |
-| CHI-99: DB Query Tracing           | **Done** | `#[tracing::instrument]` on all `queries.rs` functions, structured spans, no user data logged        |
-| CHI-100: GitHub Issue Templates    | **Done** | `.github/ISSUE_TEMPLATE/` bug report + feature request + config with diagnostic bundle guidance     |
-| CHI-144: StatusBar/Palette Actions | **Done** | Actions in CommandPalette, Cmd+Shift+R runner, StatusBar running count popover, lifecycle toasts    |
-| CHI-145: Custom Action Config      | **Done** | Inline ActionEditor, `.claude/actions.json` CRUD, argument templates, pin/customize discovered      |
-| CHI-147: Frontend Test Infrastructure | **Done** | Vitest + jsdom + solid-testing-library, IPC mock layer, test helpers, 4 store smoke test files (12 tests) |
-| CHI-148: Event Loop Tests          | **Done** | `bridge/event_loop.rs` payload serialization + mapping tests (12 Rust unit tests)                    |
-| CHI-149: Bridge IPC Command Tests  | **Done** | `commands/bridge.rs` validation + delegate flow tests (12 Rust unit tests)                           |
-| CHI-150: Actions System Tests      | **Done** | `actions/manager.rs` lifecycle/error-safe path tests (4 new Rust unit tests; 7 total in module)     |
-| CHI-151: Remaining IPC Command Tests | **Done** | `commands/session.rs` + `files/scanner.rs` test coverage additions (17 Rust unit tests total)      |
-| CHI-152: Permission Security Tests | **Done** | `bridge/permission.rs` security-edge tests (timeouts, YOLO toggles, resolution safety; 7 Rust tests) |
-| CHI-153: Store Tests (Session + Conversation) | **Done** | `sessionStore` + `conversationStore` frontend unit coverage (13 tests, includes listener lifecycle) |
-| CHI-154: Store Tests (File + Context + Action) | **Done** | `context/project/slash/action/file` store frontend unit coverage (65 tests)                        |
-| CHI-155: Store Tests (UI + Settings + i18n + Toast) | **Done** | `ui/settings/i18n/toast` plus view/diagnostics/diffReview store unit coverage (50 tests)        |
-| CHI-156: Critical Component Tests | **Done** | `ContextChip`, `CommandPalette`, and `MessageInput` helper coverage (29 frontend unit tests)         |
-| CHI-157: Utility Tests            | **Done** | `typewriterBuffer`, `contextScoring`, `keybindings`, and `logger` unit coverage (44 frontend tests) |
-| CHI-158: E2E File Explorer + @-Mention | **Done** | Playwright explorer/context flows (`file-tree`, `file-preview`, `@`-mention, context chips) — 10 tests |
-| CHI-159: E2E Actions Discovery + Run | **Done** | Playwright actions discovery/run/custom/palette flows — 9 tests                                  |
-| CHI-160: E2E Settings + Theme + i18n | **Done** | Playwright settings open/theme/locale/persistence flows (test-only onboarding dismiss helper) — 8 tests |
-| CHI-161: E2E Permissions + YOLO + DevMode | **Done** | Playwright permission/YOLO/developer-mode flows — 8 tests (includes existing YOLO warning test) |
-| CHI-162: E2E Split Panes + Sessions + Onboarding | **Done** | Playwright split-pane/session lifecycle/onboarding/parallel-session UI flows — 11 tests         |
-| CHI-163: CI Coverage Gates & Reporting | **Done** | PR-only Rust+Frontend coverage jobs, LCOV merge gate, PR coverage comment, threshold ramp docs |
-| CHI-164: Quality Coverage Enhancement | **Done** | Tracks F/G/H complete: 36 Playwright E2E + 115 frontend unit + 18 integration tests; CI coverage gate ramped 60%→75% |
-| CHI-165: E2E Slash Command Menu | **Done** | Playwright slash menu discovery/filter/nav/selection/dismissal coverage — 8 tests |
-| CHI-171: Component Tests — Slash & Context UI | **Done** | `SlashCommandMenu`, `FileMentionMenu`, `ContextSuggestions`, `ContextBreakdownModal` — 26 frontend unit tests |
-
-### Epic CHI-164: Quality Coverage Enhancement (Done)
-
-| Task | Priority | Status | Description |
-|------|----------|--------|-------------|
-| CHI-165: E2E Slash Command Menu | Urgent | **Done** | Playwright slash trigger/menu visibility, categories, filtering, keyboard nav, selection, dismissal — 8 tests |
-| CHI-166: E2E Sidebar Session Actions | High | **Done** | Playwright rename/pin/switch/session-menu flows — 8 tests |
-| CHI-167: E2E Settings Modal Interactions | High | **Done** | Playwright category nav, search/filter, theme toggle, escape close, About content — 8 tests |
-| CHI-168: E2E Diff Review Pane | High | **Done** | Playwright diff view tab/shortcut/switch/back/details toggle flows — 6 tests |
-| CHI-169: E2E Diagnostics Export Dialog | High | **Done** | Playwright export dialog open/content/actions/cancel/escape/backdrop close — 6 tests |
-| CHI-170: Component Tests — Conversation | High | **Done** | `ConversationView`, `MessageBubble`, `MarkdownContent` unit coverage — 22 tests |
-| CHI-171: Component Tests — Slash & Context | Urgent | **Done** | `SlashCommandMenu`, `FileMentionMenu`, `ContextSuggestions`, `ContextBreakdownModal` — 26 frontend unit tests |
-| CHI-172: Component Tests — Layout Shell | High | **Done** | Sidebar/StatusBar/TitleBar/DetailsPanel/MainLayout unit coverage — 25 tests |
-| CHI-173: Component Tests — Settings & Onboarding | Medium | **Done** | SettingsModal/Onboarding/Permission dialogs unit coverage — 20 tests |
-| CHI-174: Component Tests — Explorer & Actions | Medium | **Done** | Explorer/actions/terminal component unit coverage — 22 tests |
-| CHI-175: Cross-Store Integration Tests | Medium | **Done** | settings→theme, session→conversation, context→cost, slash/action/permission flows — 18 tests |
-| CHI-176: CI Coverage Threshold Ramp | Medium | **Done** | Combined gate 60%→75% + Vitest per-file store thresholds + TESTING-MATRIX ramp notes |
-
-See `docs/tasks/TASKS-003-quality-coverage-enhancement.md` for full acceptance criteria per task.
-
-## Phase 1 Status
-
-**Phase 1: Foundation is COMPLETE.** All 3 epics done:
-
-- **CHI-5: Core Scaffolding** — 5/5 tasks
-- **CHI-6: CLI Bridge** — 4/4 tasks
-- **CHI-7: Basic UI** — 9/9 tasks
-
----
-
-## Phase 2: Make It Real
-
-**Goal:** Wire the existing CliBridge, StreamParser, and PermissionManager to the frontend. Replace the mock conversation flow with real Claude Code CLI interaction. Add project/folder management.
-
-**The Gap:** `CliBridge`, `StreamParser`, `PermissionManager` exist as standalone Rust modules but nothing connects them to IPC commands or the frontend. `conversationStore.ts` lines 73-106 use `setTimeout` + a canned response. Phase 2 closes every gap.
-
-**Critical Path:** CHI-40 → CHI-44 → CHI-45 → CHI-46 → CHI-47 = minimum to "it actually works"
-
-### Epic CHI-35: Project & Folder Management (P0) — DONE
-
-| Task   | Priority | Status   | Description                                        |
-| ------ | -------- | -------- | -------------------------------------------------- |
-| CHI-40 | P0       | **Done** | Folder picker + project creation via native dialog |
-| CHI-41 | P1       | **Done** | Project sidebar section with recent projects       |
-| CHI-42 | P2       | **Done** | Detect and display CLAUDE.md from project folder   |
-| CHI-43 | P1       | **Done** | Bind sessions to projects with inherited settings  |
-
-### Epic CHI-36: CLI Connection & Streaming (P0) — DONE
-
-| Task   | Priority | Status   | Description                                                         |
-| ------ | -------- | -------- | ------------------------------------------------------------------- |
-| CHI-44 | P0       | **Done** | SessionBridgeMap — session→process manager                          |
-| CHI-45 | P0       | **Done** | IPC commands for CLI (start_cli, send_to_cli, stop_cli, cli_status) |
-| CHI-46 | P0       | **Done** | Streaming event loop (bridge output → Tauri events)                 |
-| CHI-47 | P0       | **Done** | Replace mock sendMessage with real CLI streaming                    |
-| CHI-48 | P1       | **Done** | Detect Claude Code CLI on startup with error UI                     |
-| CHI-49 | P1       | **Done** | Streaming message rendering (incremental chunks)                    |
-
-### Epic CHI-37: Permission Flow Live (P1) — DONE
-
-| Task   | Priority | Status   | Description                                                         |
-| ------ | -------- | -------- | ------------------------------------------------------------------- |
-| CHI-50 | P0       | **Done** | Wire permission IPC commands (respond_permission, toggle_yolo_mode) |
-| CHI-51 | P0       | **Done** | Build full permission event pipeline (frontend→backend)             |
-| CHI-52 | P1       | **Done** | Wire YOLO mode frontend toggle to backend IPC                       |
-
-### Epic CHI-38: Live Cost Tracking (P2) — DONE
-
-| Task   | Priority | Status   | Description                                       |
-| ------ | -------- | -------- | ------------------------------------------------- |
-| CHI-53 | P1       | **Done** | Cost accumulator service with SQLite persistence  |
-| CHI-54 | P1       | **Done** | Bind StatusBar + DetailsPanel to live cost events |
-| CHI-55 | P2       | **Done** | Per-message token/cost display in MessageBubble   |
-
-### Epic CHI-39: Session Lifecycle Management (P1) — DONE
-
-| Task   | Priority | Status   | Description                               |
-| ------ | -------- | -------- | ----------------------------------------- |
-| CHI-56 | P0       | **Done** | Process lifecycle state machine           |
-| CHI-57 | P0       | **Done** | Handle session switching (suspend/resume) |
-| CHI-58 | P1       | **Done** | Graceful shutdown on session delete/close |
-| CHI-59 | P1       | **Done** | Crash recovery with error UI              |
-| CHI-60 | P0       | **Done** | Shutdown all CLI processes on app quit    |
-
-### Parallel: E2E Testing (Epic CHI-27) — DONE
-
-Playwright E2E infrastructure and CI integration are implemented. The browser-mode suite now covers layout, conversation, explorer/@-mention/context flows, actions, settings/theme/i18n, permissions/YOLO/developer mode, split panes/session lifecycle/onboarding/parallel-session UI, and terminal/model selector paths (70 passing tests), plus CI artifact capture through a custom failure reporter.
-
-| Task   | Priority | Status   | What to test                                                                  |
-| ------ | -------- | -------- | ----------------------------------------------------------------------------- |
-| CHI-28 | P0       | **Done** | Playwright + Tauri WebDriver setup, smoke test                                |
-| CHI-29 | P0       | **Done** | Layout shell (MainLayout, Sidebar, TitleBar, StatusBar, DetailsPanel)         |
-| CHI-30 | P0       | **Done** | Conversation (ConversationView, MessageInput, MessageBubble, MarkdownContent) |
-| CHI-31 | P1       | **Done** | Permissions (PermissionDialog, YoloWarningDialog)                             |
-| CHI-32 | P1       | **Done** | Terminal (TerminalPane) + Model selector (ModelSelector)                      |
-| CHI-33 | P1       | **Done** | Integration tests (keyboard shortcuts, session flow)                          |
-| CHI-34 | P0       | **Done** | CI integration + failure→issue pipeline (JSON reporter, screenshots)          |
-
-### UX Polish Epics (Parallel with Phase 2)
-
-CX/UX investigation identified 6 improvement areas. These can be worked on alongside the core Phase 2 tasks.
-
-#### Epic CHI-61: Native Window Chrome & Platform Feel (High)
-
-| Task   | Priority | Status   | Description                                                     |
-| ------ | -------- | -------- | --------------------------------------------------------------- |
-| CHI-67 | Urgent   | **Done** | Native window controls (macOS traffic lights + Windows buttons) |
-| CHI-68 | High     | **Done** | Titlebar redesign with platform-aware layout                    |
-| CHI-69 | Low      | **Done** | macOS vibrancy effects on sidebar and titlebar                  |
-| CHI-70 | Medium   | **Done** | Custom scrollbar styling for dark theme                         |
-
-#### Epic CHI-62: Delightful Interactions & Micro-animations (High)
-
-| Task   | Priority | Status   | Description                                         |
-| ------ | -------- | -------- | --------------------------------------------------- |
-| CHI-71 | Medium   | **Done** | Message enter/exit animations (slide + fade)        |
-| CHI-72 | High     | **Done** | Premium typing indicator (animated dots, shimmer)   |
-| CHI-73 | High     | **Done** | Smooth streaming text rendering (typewriter buffer) |
-| CHI-74 | Medium   | **Done** | Toast notification system                           |
-| CHI-75 | Medium   | **Done** | Copy feedback animations + hover micro-interactions |
-
-#### Epic CHI-63: Command Palette & Power User UX (Medium)
-
-| Task   | Priority | Status                                                 | Description                                                   |
-| ------ | -------- | ------------------------------------------------------ | ------------------------------------------------------------- |
-| CHI-76 | High     | **Done**                                               | Command palette UI (Cmd+K, fuzzy search, categorized actions) |
-| CHI-77 | Medium   | **Done**                                               | Session quick-switcher (Cmd+Shift+P)                          |
-| CHI-78 | Medium   | **Done**                                               | Custom context menus (messages/sessions/files/code blocks) + keyboard access |
-| CHI-79 | Medium   | **Done**                                               | Keyboard help overlay + focus trap / keyboard navigation audit |
-
-#### Epic CHI-64: Onboarding & Empty States (Medium)
-
-| Task   | Priority | Status   | Description                                                   |
-| ------ | -------- | -------- | ------------------------------------------------------------- |
-| CHI-80 | High     | **Done** | Conversation empty state redesign (sample prompts, personality) |
-| CHI-81 | Low      | **Done** | First-launch onboarding flow (3-5 step walkthrough)           |
-| CHI-82 | Medium   | **Done** | Placeholder views for Agents/Diff (informative, not broken)   |
-| CHI-83 | Medium   | **Done** | "No project selected" guidance state                          |
-
-#### Epic CHI-65: Sidebar & Navigation Polish (Medium)
-
-| Task   | Priority | Status                                       | Description                                           |
-| ------ | -------- | -------------------------------------------- | ----------------------------------------------------- |
-| CHI-84 | High     | **Done**                                     | Sidebar collapsed icon-rail mode (48px with tooltips) |
-| CHI-85 | Medium   | **Done**                                     | Session sections (Pinned, Recent, Older)              |
-| CHI-86 | Medium   | **Done** | Session rename inline + session actions menu                    |
-| CHI-87 | Medium   | **Done**                                     | View tabs with icons + count badges          |
-| CHI-88 | Low      | **Done**                                     | Sidebar search/filter                        |
-
-#### Epic CHI-66: Tool Use Visualization & Inline Activity (High)
-
-| Task   | Priority | Status   | Description                                             |
-| ------ | -------- | -------- | ------------------------------------------------------- |
-| CHI-89 | High     | **Done** | ToolUseBlock component (collapsible, color-coded)       |
-| CHI-90 | Medium   | **Done** | ThinkingBlock component (muted reasoning display)       |
-| CHI-91 | Medium   | **Done** | Permission inline record (approved/denied after dialog) |
-| CHI-92 | Low      | **Done** | File diff preview within conversation                   |
-
-**Quick wins completed:** CHI-72 (typing indicator), CHI-84 (sidebar collapsed), CHI-76 (command palette) — all done
-
-### Phase 3: Agent SDK Integration (In Progress)
-
-| Task    | Priority | Status   | Description                                                                     |
-| ------- | -------- | -------- | ------------------------------------------------------------------------------- |
-| CHI-101 | High     | **Done** | Migrate CLI bridge from `-p` mode to Agent SDK control protocol (SPEC-004 §5.6) |
-| CHI-102 | Urgent   | **Done** | Add granular Bash allowedTools patterns (Developer Mode — interim fix)          |
-
-**CHI-101** is now implemented: the bridge supports persistent Agent SDK sessions with bidirectional JSONL control protocol (`--input-format stream-json`), true interactive permissions, runtime model switching, and clean interruption. The app also retains legacy `-p` fallback for older Claude Code CLI versions (< 2.1). See SPEC-004 §5.6 for protocol details.
-
-**CHI-102** is the quick fix: pre-authorize common Bash patterns (`git *`, `gh *`, `npm *`, etc.) via `--allowedTools` so developers can use shell commands without YOLO mode.
-
-**Recent Phase 3 completions:** CHI-108 (SDK slash discovery integration), CHI-96 (diagnostic bundle ZIP export + frontend trigger), CHI-122/124/126/128/130 (settings + i18n + locale + theme system), CHI-123 (file explorer quick wins), CHI-125/127 (context scoring + smart suggestions), CHI-132/133 (conversation virtualization + FilePreview editable ranges), CHI-135 (missing error states), CHI-136 (accessibility pass), CHI-137 (message edit/regenerate), CHI-109 follow-through (CHI-110/112/113 split panes + aggregate cost + activity indicators), **CHI-63 COMPLETE** (CHI-78/79, including CHI-78 acceptance-parity follow-through for message delete/fork, code-block "Open in terminal", and keyboard context-menu access), **CHI-64 COMPLETE** (CHI-81/82/83), **CHI-27 E2E epic COMPLETE** (CHI-28..34 Playwright + CI reporter), **CHI-146 Tracks A-E implementation COMPLETE** (CHI-147..163: frontend test infra, backend coverage expansion, frontend unit tests, Playwright Track D expansion, and CI coverage gates/reporting), and CHI-138 (Project Actions epic complete: discovery, process manager, `/run`, sidebar, output panel, Ask AI pipeline, statusbar/palette integration, custom action configuration). **CHI-93 Structured Log Collector epic COMPLETE** (CHI-97 frontend log forwarding, CHI-98 export UI, CHI-99 DB query tracing, CHI-100 GitHub issue templates). **CHI-65 Sidebar Polish epic COMPLETE** (CHI-87 view tab icons, CHI-88 sidebar search). Current validation snapshot: 288 Rust tests pass; frontend unit tests pass (Vitest 51 files / 359 tests); frontend typecheck/lint/build/format pass; Playwright e2e suite passes (114 scenarios: 106 passed / 8 skipped).
-
-### Epic CHI-105: Slash Commands & Skill Invocation (Phase 3)
-
-| Task    | Priority | Status   | Description                                                                       |
-| ------- | -------- | -------- | --------------------------------------------------------------------------------- |
-| CHI-106 | Urgent   | **Done** | Command Discovery Backend — file scanning `.claude/commands/` + IPC               |
-| CHI-107 | High     | **Done** | SlashCommandMenu UI Component — inline autocomplete on `/`                        |
-| CHI-108 | Medium   | **Done** | SDK Command Discovery Integration (Phase B) — `system:init` tools/MCP merged into slash menu |
-
-Two-phase architecture is now fully implemented: Phase A (CHI-106/107) file scanning remains the fallback/base discovery path, and Phase B (CHI-108) augments slash discovery from Agent SDK `system:init` (`tools`, `mcp_servers`) with backend merge + frontend `cli:init` refresh. See SPEC-003 §4.13, §10.7 and SPEC-004 §4.4.7, §5.7.
-
-### Epic CHI-109: Parallel Sessions v2 — Split Panes & Resource Management (Phase 3)
-
-| Task    | Priority | Status   | Description                                                                 |
-| ------- | -------- | -------- | --------------------------------------------------------------------------- |
-| CHI-110 | High     | **Done** | Split Pane Layout System — Cmd+\\, draggable divider, dual ConversationView |
-| CHI-111 | High     | **Done** | Concurrent Session Resource Limits — configurable max (default 4)           |
-| CHI-112 | Medium   | **Done** | Aggregate Cost Tracking Across Sessions                                     |
-| CHI-113 | Medium   | **Done** | Session Activity Notifications — unread badges, background toasts           |
-
-Builds on CHI-104's per-session state and non-destructive switching. Split panes, aggregate cost, and activity indicators are now implemented. See SPEC-003 §4.14, §10.8 and SPEC-004 §4.4.8, §5.8.
-
-### Epic CHI-114: File Explorer & @-Mention Context System (Phase 3) — DONE
-
-| Task    | Priority | Status   | Description                                                                    |
-| ------- | -------- | -------- | ------------------------------------------------------------------------------ |
-| CHI-115 | Urgent   | **Done** | Backend File Scanner — Rust IPC for directory walking (ignore + notify crates) |
-| CHI-116 | High     | **Done** | File Tree Sidebar Component — visual file browser with lazy loading            |
-| CHI-117 | High     | **Done** | @-Mention Autocomplete — type `@` in MessageInput to reference files           |
-| CHI-118 | Medium   | **Done** | File Content Preview — syntax-highlighted viewer in DetailsPanel               |
-| CHI-119 | Medium   | **Done** | Code Range Selection — select lines/ranges to attach to prompt                 |
-
-Five incremental layers: backend scanner → file tree → @-mention → preview → range selection. Token-aware context assembly, gitignore-respecting, reuses CommandPalette fuzzy search. See SPEC-003 §4.15, §10.9 and SPEC-004 §4.4.9, §5.9.
-
-### Epic CHI-138: Project Actions — AI-Aware Command Runner (Phase 3) — DONE
-
-| Task    | Priority | Status   | Description                                                        |
-| ------- | -------- | -------- | ------------------------------------------------------------------ |
-| CHI-139 | Urgent   | **Done** | Action Discovery Engine (Backend) — scan scripts/tasks across files |
-| CHI-140 | Urgent   | **Done** | Action Process Manager (Backend) — concurrent PTY action runners    |
-| CHI-141 | Urgent   | **Done** | Log-to-Agent Pipeline — `/run` and Ask AI output → conversation     |
-| CHI-142 | High     | **Done** | Actions Sidebar Panel — discovery, start/stop/restart, live status  |
-| CHI-143 | High     | **Done** | Action Output View — streaming logs in DetailsPanel                 |
-| CHI-144 | Medium   | **Done** | StatusBar & Command Palette Integration                             |
-| CHI-145 | Medium   | **Done** | Custom Action Configuration                                         |
-
-The Project Actions epic is now usable end-to-end: backend multi-format discovery (`package.json`, `Makefile`, `Cargo.toml`, `docker-compose`, `.claude/actions.json`), concurrent action process management, `/run` slash command integration, sidebar controls, StatusBar + Command Palette quick controls, a DetailsPanel output stream with an `Ask AI` handoff path, and inline custom action configuration (advanced fields + argument prompt support).
-
-Post-merge UI stability follow-up (local/main bugfix batch): Chief Wiggum fixed focused-pane scrolling by propagating full-height layout wrappers in `MainLayout.tsx` and switching focused `Files` / `Actions` panes to a single-scroll-container mode (avoids nested scroll traps). Conversation overlap regressions on older tool-heavy chats were reduced by disabling `ConversationView` virtualization for active turns and complex/very long message layouts, plus forcing mode-switch reflow. A stale `--resume` CLI session error (`No conversation found with session ID`) is now treated as a recoverable case (clear stale `cli_session_id`, stop stale bridge, show friendly retry message).
-
----
-
-## Document Map (Read Before Coding)
-
-```
-docs/
-├── reference/INDEX.md          ← START HERE: project overview, reading order
-├── specs/
-│   ├── SPEC-001-*.md           ← Combined PRD (the "what")
-│   ├── SPEC-002-*.md           ← Design system tokens
-│   ├── SPEC-003-*.md           ← UX design, screens, flows
-│   ├── SPEC-004-*.md           ← Architecture, modules, IPC, types
-│   └── SPEC-005-*.md           ← Data export/migration
-├── adr/
-│   ├── ADR-001-*.md            ← Technology choices
-│   └── ADR-002-*.md            ← Monorepo structure
-├── guides/
-│   ├── GUIDE-001-*.md          ← Coding standards (MUST READ)
-│   └── GUIDE-002-*.md          ← Workflow, Linear, agent process
-└── tasks/
-    └── TASKS-001-*.md          ← Phase 1 task breakdown + Linear URLs
-```
-
-### Minimum Reading Before Any Code
-
-1. `GUIDE-001-coding-standards.md` — naming, patterns, forbidden practices
-2. `SPEC-004-architecture.md` — module structure, IPC contracts, types
-3. The specific spec section referenced by your Linear issue
+## Active / Backlog Tasks
+
+All in **Backlog** state. No task is currently `in_progress`. Check `.claude/handover.json` for latest.
+
+| Task | Priority | Depends on | Spec |
+|------|----------|-----------|------|
+| CHI-226: Session Resume Persistence | High | — | TASKS-006 §5 |
+| CHI-227: Agents Tab Scaffolding v2 | Medium | — | TASKS-006 §6 |
+| CHI-230: Inline Diff Accept/Reject | High | **none** (CHI-217 done ✓) | TASKS-006 §9 |
+| CHI-229: Info Hierarchy Redesign (TitleBar/StatusBar) | Medium | — | TASKS-006 §8 |
+| CHI-225: Session History & Artifact Index | High | — | TASKS-006 §4 |
+| CHI-228: Contextual Onboarding Hints | Medium | CHI-220 | TASKS-006 §7 |
+| CHI-218..223: Actions Center v2 | High/Med | CHI-138 ✓ | TASKS-005 |
+
+**Also in backlog (Conversation Experience project):** CHI-216 (gitignore toggle), CHI-179 (file attachments), CHI-180 (polish), CHI-198 (utility: search/export/voice), CHI-199 (QA coverage). See Linear for full list.
+
+**Suggested start order:** CHI-226 → CHI-227 → CHI-230 → CHI-229 → CHI-225
 
 ---
 
 ## Non-Negotiable Rules
 
-- **Framework:** Tauri v2 + Rust backend. No Electron. No wry alternatives.
+- **Framework:** Tauri v2 + Rust. No Electron. No wry alternatives.
 - **Frontend:** SolidJS 2.x. Not React.
 - **Styling:** TailwindCSS v4 with SPEC-002 tokens only. No hardcoded colors.
 - **Rust:** All functions return `Result`. No `.unwrap()` in production code. No `println!` (use `tracing`).
-- **Error handling:** `thiserror` for enums, typed variants per GUIDE-001 §2.4.
+- **Error handling:** `thiserror` enums, typed variants per GUIDE-001 §2.4.
 - **Async:** `tokio` runtime. PTY I/O on dedicated OS threads, mpsc to async (GUIDE-001 §2.5).
-- **Testing:** All new business logic must have unit tests. MockBridge for bridge tests.
+- **Testing:** All new business logic must have unit tests.
 - **Accessibility:** WCAG 2.1 AA minimum (SPEC-002 §12).
+- **No:** `unwrap()`, `expect()`, `panic!()`, `println!()` in production code.
 
 ---
 
-## File Locations
+## Key File Locations
 
 ```
-src-tauri/
-├── Cargo.toml                  # Rust dependencies
-├── build.rs                    # Tauri build script
-├── tauri.conf.json             # Tauri app config
-└── src/
-    ├── lib.rs                  # Crate root, AppError, AppResult
-    ├── bridge/                 # CLI Bridge (DONE)
-    │   ├── mod.rs              # BridgeOutput, CliLocation
-    │   ├── process.rs          # CliBridge, MockBridge, BridgeInterface
-    │   ├── parser.rs           # StreamParser, BridgeEvent, MessageChunk
-    │   ├── adapter.rs          # AdapterRegistry, CliVersion
-    │   ├── permission.rs       # PermissionManager, PermissionRequest
-    │   ├── manager.rs          # SessionBridgeMap — session→process manager (CHI-44)
-    │   └── event_loop.rs       # Streaming event loop — bridge→Tauri events (CHI-46)
-    ├── capabilities/
-    │   └── default.json        # Tauri v2 permissions (core, shell)
-    ├── icons/                  # App icons (.icns, .ico, .png)
-    ├── commands/               # Tauri IPC command handlers
-    │   ├── mod.rs              # Module root
-    │   ├── session.rs          # 8 session/message IPC commands (CHI-22)
-    │   ├── cli.rs              # get_cli_info IPC command (CHI-48)
-    │   ├── project.rs          # pick_project_folder, create_project, list_projects (CHI-40)
-    │   ├── bridge.rs           # start_session_cli, send_to_cli, stop/status (CHI-45)
-    │   ├── slash.rs            # list_slash_commands, refresh_slash_commands (CHI-106)
-    │   └── files.rs            # list_files, read_file_content, search_files, estimate_tokens (CHI-115)
-    ├── files/                  # File explorer backend (CHI-115)
-    │   ├── mod.rs              # Module root, FileNode, FileContent types
-    │   ├── scanner.rs          # Gitignore-aware directory walker (ignore crate)
-    │   └── watcher.rs          # File system watcher (notify crate, debounced events)
-    ├── logging/                # 3-layer tracing system (CHI-94)
-    │   ├── mod.rs              # Module root, re-exports
-    │   ├── init.rs             # init_logging(), get_ring_buffer(), log cleanup
-    │   └── ring_buffer.rs      # RingBufferLayer, LogEntry, 36K capacity
-    ├── slash/                  # Slash command discovery (CHI-106)
-    │   ├── mod.rs              # SlashCommand, CommandCategory, builtin_commands()
-    │   └── scanner.rs          # Filesystem scanner, discover_all(), YAML parsing
-    ├── db/                     # SQLite database layer (DONE)
-    │   ├── mod.rs              # Module root, re-exports Database
-    │   ├── connection.rs       # Database struct, Mutex<Connection>, WAL mode
-    │   ├── migrations.rs       # Forward-only migration system, schema_version
-    │   └── queries.rs          # Typed query functions, row types
-    └── main.rs                 # Tauri app entry point (DONE) — initializes DB
+src-tauri/src/
+├── bridge/       # CLI Bridge — manager.rs, event_loop.rs, permission.rs
+├── commands/     # IPC handlers — session, cli, project, bridge, slash, files
+├── db/           # SQLite — connection.rs, migrations.rs, queries.rs
+├── files/        # File scanner + watcher (CHI-115)
+├── logging/      # 3-layer tracing (CHI-94)
+├── slash/        # Slash command discovery (CHI-106)
+└── settings/     # Settings backend (CHI-122)
 
-package.json                    # Root: Vite + SolidJS + Tailwind + ESLint + Prettier
-index.html                      # Vite entry — loads SolidJS via /src/index.tsx
-vite.config.ts                  # Vite + vite-plugin-solid + @tailwindcss/vite
-tsconfig.json                   # TypeScript strict, JSX preserve, @/ path aliases
-.prettierrc                     # Prettier config per GUIDE-001 §3.1
-eslint.config.js                # ESLint flat config with solid + typescript plugins
-.gitignore                      # Rust + Node + Tauri patterns
-.github/workflows/ci.yml       # CI/CD pipeline (DONE — CHI-10)
-.github/workflows/release.yml  # Release workflow (DONE — CHI-24)
-
-src/                            # SolidJS frontend
-├── index.tsx                   # SolidJS render entry point
-├── App.tsx                     # Root component → renders MainLayout
+src/
 ├── components/
-│   ├── layout/                 # 5-zone layout (DONE — CHI-17)
-│   │   ├── MainLayout.tsx      # Layout orchestrator, view tabs, panel transitions
-│   │   ├── TitleBar.tsx        # Custom title bar with window controls
-│   │   ├── Sidebar.tsx         # Left panel (real session list, CRUD)
-│   │   ├── StatusBar.tsx       # Bottom bar (status, tokens, cost)
-│   │   └── DetailsPanel.tsx    # Right panel (context, cost sections)
-│   ├── common/                 # Shared UI components (DONE — CHI-20)
-│   │   ├── ModelSelector.tsx   # Model dropdown (Sonnet/Opus/Haiku)
-│   │   ├── CommandPalette.tsx  # Command palette + session switcher (CHI-76, CHI-77)
-│   │   └── ToastContainer.tsx  # Toast notifications (CHI-74)
-│   ├── conversation/           # Conversation UI (DONE — CHI-18, CHI-19)
-│   │   ├── ConversationView.tsx # Message list, auto-scroll, empty state
-│   │   ├── MessageBubble.tsx   # Role labels, model badges, markdown content
-│   │   ├── MarkdownContent.tsx # marked + highlight.js rendering, copy buttons
-│   │   ├── MessageInput.tsx    # Auto-expanding textarea + send controls + @-mention (CHI-117)
-│   │   ├── FileMentionMenu.tsx # @-mention file autocomplete dropdown (CHI-117)
-│   │   ├── ContextChip.tsx     # Removable file reference pills (CHI-117)
-│   │   ├── ToolUseBlock.tsx    # Collapsible tool use display, color-coded (CHI-89)
-│   │   ├── ToolResultBlock.tsx # Tool result display with error state (CHI-89)
-│   │   ├── ThinkingBlock.tsx   # Collapsible thinking display (CHI-90)
-│   │   ├── StreamingThinkingBlock.tsx # Live thinking with cursor blink (CHI-90)
-│   │   └── PermissionRecordBlock.tsx # Inline permission records (CHI-91)
-│   ├── explorer/               # File explorer (CHI-116, CHI-118)
-│   │   ├── FileTree.tsx        # Tree container with search (CHI-116)
-│   │   ├── FileTreeNode.tsx    # Recursive tree node component (CHI-116)
-│   │   └── FilePreview.tsx     # Syntax-highlighted file viewer (CHI-118)
-│   ├── terminal/               # Terminal Mode (DONE — CHI-21)
-│   │   └── TerminalPane.tsx    # xterm.js v5 + WebGL + FitAddon
-│   └── permissions/            # Permission system UI (DONE — CHI-23, CHI-26)
-│       ├── PermissionDialog.tsx # Modal permission dialog
-│       └── YoloWarningDialog.tsx # YOLO mode confirmation warning
-├── stores/
-│   ├── uiStore.ts              # UI state (sidebar, panels, views, permissions, yolo, command palette)
-│   ├── sessionStore.ts         # Session state (CRUD, model cycling, active session, pin)
-│   ├── conversationStore.ts    # Conversation state (real CLI streaming, event listeners, typewriter)
-│   ├── toastStore.ts           # Toast notification state (max 3, auto-dismiss) (CHI-74)
-│   ├── cliStore.ts             # CLI detection state (isDetected, location) (CHI-48)
-│   ├── projectStore.ts         # Project state (folder picker, active project) (CHI-40)
-│   ├── fileStore.ts            # File tree state (lazy loading, search, preview) (CHI-116)
-│   └── contextStore.ts         # Context attachment management (token budgets, XML assembly) (CHI-117)
-├── lib/
-│   ├── types.ts                # TypeScript IPC types (Message, PermissionRequest, etc.)
-│   ├── keybindings.ts          # Global keyboard shortcuts (Cmd+B, Cmd+`, Cmd+Shift+Y, Cmd+Shift+P)
-│   └── typewriterBuffer.ts     # Smooth streaming character buffer (CHI-73)
-└── styles/
-    └── tokens.css              # SPEC-002 design tokens + TailwindCSS v4 @theme
+│   ├── layout/       # MainLayout, TitleBar, Sidebar, StatusBar, DetailsPanel
+│   ├── conversation/ # ConversationView, MessageBubble, MessageInput, ToolUseBlock, ThinkingBlock
+│   ├── explorer/     # FileTree, FileTreeNode, FilePreview
+│   ├── common/       # ModelSelector, CommandPalette, ToastContainer
+│   └── permissions/  # PermissionDialog, YoloWarningDialog
+├── stores/           # uiStore, sessionStore, conversationStore, fileStore, contextStore, etc.
+└── lib/              # types.ts, keybindings.ts, typewriterBuffer.ts, logger.ts
 ```
 
 ---
 
-## Do Not
+## Document Map
 
-- Do not add dependencies without checking if an existing one covers the use case.
-- Do not modify the database schema without updating `SPEC-005`.
-- Do not introduce new design tokens without adding them to `SPEC-002` first.
-- Do not skip tests for new business logic.
-- Do not use `unwrap()`, `expect()`, or `panic!()` in production code.
-- Do not use `println!()` — use `tracing::info!()`, `tracing::warn!()`, etc.
-- Do not auto-approve permissions. Permission system is security-critical.
+| When | Read |
+|------|------|
+| First time | `docs/reference/INDEX.md` → `SPEC-001` → `ADR-001/002` |
+| Backend work | `SPEC-004` (architecture) → `GUIDE-001` (coding standards) |
+| Frontend work | `SPEC-002` (design system) → `SPEC-003` (UX) → `GUIDE-001` |
+| Any task | Spec sections referenced in the Linear issue description |
+| DB changes | `SPEC-005` (data/migration) — current: v4=action_history, v5=artifacts |
+| Completed history | `.claude/COMPLETED.md` |
 
 ---
 
-## Handover Protocol
+## Handover Protocol (Summary)
 
-This project uses a **Cowork ↔ Claude Code handover system**. Both tools read and write to:
+Full protocol: `.claude/HANDOVER-PROTOCOL.md`
 
-- **`.claude/handover.json`** — Machine-readable status file. Updated after every task.
-- **This file (`CLAUDE.md`)** — Human-readable briefing. Updated by Cowork when assigning work.
+**Before writing `handover.json`:** Check for `.claude/handover.lock`. If locked → write a delta file to `.claude/deltas/` instead. See protocol for format.
 
-### When You Start a Task
+**After finishing:** Release lock + reconcile any delta files in `.claude/deltas/`.
 
-1. Read `.claude/handover.json` to see current status
-2. Read the Linear issue description for acceptance criteria
-3. Read the relevant spec sections
-4. Update `handover.json`: set your task to `"in_progress"`
-5. Implement the task
-6. Update `handover.json`: set your task to `"done"`, add notes
-7. Run `cargo check` and `cargo test` to verify
-
-### When You Finish
-
-Update `.claude/handover.json` with:
-
-- What was completed (files created/modified)
-- Any issues encountered
-- What should be done next
-- Set status to `"done"`
-
-This lets Cowork (or another Claude Code session) pick up exactly where you left off.
+**When you start:** Read `.claude/handover.json` → check `recommended_next` and any `warnings`.
 
 ---
 
 ## Linear Integration
 
-**Workspace:** `linear.app/chief-wiggum`
-**Team:** Chief Wiggum (CHI)
-
-When working on a Linear issue:
-
-- Branch name: `chi-{number}-{slug}` (e.g., `chi-8-scaffold-tauri-v2`)
-- Commit format: `CHI-{number}: {description}` (e.g., `CHI-8: scaffold Tauri v2 project`)
-- Reference the issue ID in PR descriptions
-
-You do NOT need to update Linear directly — Cowork handles that. Just update `handover.json`.
+- Branch: `chi-{number}-{slug}` e.g. `chi-230-inline-diff`
+- Commit: `CHI-N: description`
+- PR: reference the issue ID
+- Cowork handles Linear status updates — just update `handover.json`
