@@ -13,7 +13,7 @@ const mockUpdateSetting = vi.fn();
 const mockCloseSettings = vi.fn();
 
 const mockSettings: UserSettings = {
-  version: 1,
+  version: 2,
   appearance: {
     theme: 'dark',
     font_size: 13,
@@ -32,6 +32,7 @@ const mockSettings: UserSettings = {
   sessions: {
     max_concurrent: 4,
     auto_save_interval_secs: 0,
+    resume_inactivity_minutes: 5,
   },
   onboarding: {
     completed: false,
@@ -114,6 +115,15 @@ describe('SettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /About/i }));
     expect(screen.getByText(/Schema version:/i)).toBeInTheDocument();
     expect(screen.getByText(/Open settings:/i)).toBeInTheDocument();
+  });
+
+  it('changing resume inactivity window calls updateSetting', () => {
+    render(() => <SettingsModal />);
+    fireEvent.click(screen.getByRole('button', { name: /Sessions/i }));
+    fireEvent.input(screen.getByLabelText('Resume Card Inactivity Window'), {
+      target: { value: '12' },
+    });
+    expect(mockUpdateSetting).toHaveBeenCalledWith('sessions', 'resume_inactivity_minutes', 12);
   });
 
   it('Escape closes settings', async () => {

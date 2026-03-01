@@ -34,9 +34,11 @@ describe('settingsStore', () => {
   });
 
   it('has sensible defaults before loading', () => {
+    expect(mod.settingsState.settings.version).toBe(2);
     expect(mod.settingsState.settings.appearance.theme).toBe('dark');
     expect(mod.settingsState.settings.cli.default_model).toBe('claude-sonnet-4-6');
     expect(mod.settingsState.settings.sessions.max_concurrent).toBe(4);
+    expect(mod.settingsState.settings.sessions.resume_inactivity_minutes).toBe(5);
     expect(mod.settingsState.isLoaded).toBe(false);
   });
 

@@ -6,6 +6,7 @@ import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type { Session } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
+import { settingsState } from '@/stores/settingsStore';
 import { addToast } from '@/stores/toastStore';
 import { bindActiveSessionToFocusedPane, ensureMainPaneSession } from '@/stores/viewStore';
 
@@ -29,7 +30,18 @@ const [state, setState] = createStore<SessionState>({
   sessionLastActiveAt: {},
 });
 
-const RESUME_THRESHOLD_MS = 5 * 60 * 1000;
+const DEFAULT_RESUME_THRESHOLD_MINUTES = 5;
+const MIN_RESUME_THRESHOLD_MINUTES = 1;
+
+function getResumeThresholdMinutes(): number {
+  const raw = settingsState.settings.sessions.resume_inactivity_minutes;
+  if (!Number.isFinite(raw)) return DEFAULT_RESUME_THRESHOLD_MINUTES;
+  return Math.max(MIN_RESUME_THRESHOLD_MINUTES, Math.floor(raw));
+}
+
+export function getResumeThresholdMs(): number {
+  return getResumeThresholdMinutes() * 60 * 1000;
+}
 
 function sessionTimestampMs(session: Session | undefined): number | null {
   if (!session) return null;
@@ -215,7 +227,7 @@ export function shouldShowResumeCard(sessionId: string, messageCount: number): b
   if (state.dismissedResumeSessions.has(sessionId)) return false;
   const lastActive = getSessionLastActiveAt(sessionId);
   if (lastActive == null) return false;
-  return Date.now() - lastActive > RESUME_THRESHOLD_MS;
+  return Date.now() - lastActive > getResumeThresholdMs();
 }
 
 /** Dismiss resume card for current inactivity gap. */

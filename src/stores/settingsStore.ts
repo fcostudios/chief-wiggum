@@ -23,7 +23,7 @@ interface SettingsStoreState {
 
 /** Mirrors Rust defaults (CHI-122) so the UI still renders if backend load fails. */
 const DEFAULTS: UserSettings = {
-  version: 1,
+  version: 2,
   appearance: {
     theme: 'dark',
     font_size: 13,
@@ -42,6 +42,7 @@ const DEFAULTS: UserSettings = {
   sessions: {
     max_concurrent: 4,
     auto_save_interval_secs: 0,
+    resume_inactivity_minutes: 5,
   },
   onboarding: {
     completed: false,

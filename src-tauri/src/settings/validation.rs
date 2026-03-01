@@ -110,6 +110,12 @@ fn validate_sessions(s: &UserSettings) -> Result<(), AppError> {
             s.sessions.max_concurrent
         )));
     }
+    if !(1..=120).contains(&s.sessions.resume_inactivity_minutes) {
+        return Err(AppError::Validation(format!(
+            "resume_inactivity_minutes must be 1–120, got {}",
+            s.sessions.resume_inactivity_minutes
+        )));
+    }
     Ok(())
 }
 
@@ -200,6 +206,26 @@ mod tests {
     }
 
     #[test]
+    fn resume_inactivity_zero_rejected() {
+        let mut settings = UserSettings::default();
+        settings.sessions.resume_inactivity_minutes = 0;
+        let err = validate(&settings).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("resume_inactivity_minutes must be 1–120"));
+    }
+
+    #[test]
+    fn resume_inactivity_121_rejected() {
+        let mut settings = UserSettings::default();
+        settings.sessions.resume_inactivity_minutes = 121;
+        let err = validate(&settings).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("resume_inactivity_minutes must be 1–120"));
+    }
+
+    #[test]
     fn invalid_redaction_level_rejected() {
         let mut settings = UserSettings::default();
         settings.privacy.log_redaction_level = "extreme".to_string();
@@ -208,9 +234,11 @@ mod tests {
     }
 
     #[test]
-    fn migration_from_v1_is_noop() {
+    fn migration_from_v1_updates_version() {
         let mut settings = UserSettings::default();
-        assert!(!settings.migrate());
+        settings.version = 1;
+        assert!(settings.migrate());
+        assert_eq!(settings.version, 2);
     }
 
     #[test]

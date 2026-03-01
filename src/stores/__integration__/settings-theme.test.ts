@@ -4,11 +4,11 @@ import type { UserSettings } from '@/lib/types';
 
 function makeSettings(): UserSettings {
   return {
-    version: 1,
+    version: 2,
     appearance: { theme: 'dark', font_size: 13, code_font_size: 12, sidebar_default: 'expanded' },
     i18n: { locale: 'en', date_format: 'relative', number_format: 'standard' },
     cli: { default_model: 'claude-sonnet-4-6', default_effort: 'high' },
-    sessions: { max_concurrent: 4, auto_save_interval_secs: 0 },
+    sessions: { max_concurrent: 4, auto_save_interval_secs: 0, resume_inactivity_minutes: 5 },
     onboarding: { completed: false },
     keybindings: {},
     privacy: { log_redaction_level: 'standard' },

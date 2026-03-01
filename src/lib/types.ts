@@ -448,6 +448,7 @@ export interface CliSettings {
 export interface SessionSettings {
   max_concurrent: number;
   auto_save_interval_secs: number;
+  resume_inactivity_minutes: number;
 }
 
 export interface OnboardingSettings {

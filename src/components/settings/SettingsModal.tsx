@@ -69,7 +69,7 @@ const CATEGORIES: CategoryDef[] = [
     id: 'sessions',
     label: 'Sessions',
     icon: MessageSquare,
-    description: 'Concurrency and autosave behavior',
+    description: 'Concurrency, autosave, and resume behavior',
   },
   {
     id: 'keybindings',
@@ -116,6 +116,10 @@ const SEARCH_INDEX: Record<SettingsCategory, Array<{ label: string; description:
   sessions: [
     { label: 'Max Concurrent Sessions', description: 'Maximum number of parallel CLI sessions' },
     { label: 'Auto Save Interval', description: 'Automatic draft save interval in seconds' },
+    {
+      label: 'Resume Card Inactivity Window',
+      description: 'Minutes before showing the session resume summary card',
+    },
   ],
   keybindings: [{ label: 'Keybindings JSON', description: 'Custom shortcut overrides' }],
   privacy: [
@@ -600,6 +604,23 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
                   <span class="text-xs text-text-tertiary">seconds</span>
                 </div>
               </SettingCard>
+            </Show>
+
+            <Show
+              when={visible(
+                'Resume Card Inactivity Window',
+                'Minutes before showing the session resume summary card',
+              )}
+            >
+              <RangeCard
+                label="Resume Card Inactivity Window"
+                description="Show a resume summary after this many idle minutes"
+                value={settings().sessions.resume_inactivity_minutes}
+                min={1}
+                max={120}
+                unit="min"
+                onChange={(value) => updateSetting('sessions', 'resume_inactivity_minutes', value)}
+              />
             </Show>
           </Match>
 

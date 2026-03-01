@@ -9,7 +9,13 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Current schema version. Bump when adding/removing/renaming fields.
-pub const SETTINGS_VERSION: u32 = 1;
+pub const SETTINGS_VERSION: u32 = 2;
+/// Default inactivity window before showing "resume session" UI.
+pub const DEFAULT_RESUME_INACTIVITY_MINUTES: u32 = 5;
+
+fn default_resume_inactivity_minutes() -> u32 {
+    DEFAULT_RESUME_INACTIVITY_MINUTES
+}
 
 /// Root settings structure persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -62,6 +68,9 @@ pub struct SessionSettings {
     pub max_concurrent: u32,
     /// Auto-save interval in seconds (0 = disabled).
     pub auto_save_interval_secs: u32,
+    /// Minutes of inactivity before showing a resume summary card.
+    #[serde(default = "default_resume_inactivity_minutes")]
+    pub resume_inactivity_minutes: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -108,6 +117,7 @@ impl Default for UserSettings {
             sessions: SessionSettings {
                 max_concurrent: 4,
                 auto_save_interval_secs: 0,
+                resume_inactivity_minutes: default_resume_inactivity_minutes(),
             },
             onboarding: OnboardingSettings::default(),
             keybindings: HashMap::new(),
