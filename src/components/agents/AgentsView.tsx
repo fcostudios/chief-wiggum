@@ -2,7 +2,8 @@
 // Parallel session manager grid for the Agents tab (CHI-227).
 
 import type { Component } from 'solid-js';
-import { For, Show, createMemo, createSignal } from 'solid-js';
+import { For, Show, createEffect, createMemo, createSignal } from 'solid-js';
+import { invoke } from '@tauri-apps/api/core';
 import { Users } from 'lucide-solid';
 import { sessionState, createNewSession, setActiveSession } from '@/stores/sessionStore';
 import {
@@ -12,10 +13,10 @@ import {
   switchSession,
 } from '@/stores/conversationStore';
 import { setActiveView, uiState } from '@/stores/uiStore';
-import { getActiveProject } from '@/stores/projectStore';
+import { getActiveProject, projectState } from '@/stores/projectStore';
 import { focusPane, setPaneSession, splitView, viewState } from '@/stores/viewStore';
 import SessionCard from './SessionCard';
-import type { ProcessStatus } from '@/lib/types';
+import type { Message, ProcessStatus } from '@/lib/types';
 
 const SHORTCUTS_KEY = 'cw:agents-shortcuts-hidden';
 
@@ -35,8 +36,31 @@ function persistShortcutsHidden(hidden: boolean): void {
   }
 }
 
+interface SessionSummary {
+  messageCount: number;
+  lastAssistantPreview: string;
+}
+
+function summarizeMessages(messages: Message[]): SessionSummary {
+  let lastAssistantPreview = '';
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== 'assistant') continue;
+    const normalized = msg.content.replace(/\s+/g, ' ').trim();
+    if (normalized.length === 0) continue;
+    lastAssistantPreview = normalized;
+    break;
+  }
+  return {
+    messageCount: messages.length,
+    lastAssistantPreview,
+  };
+}
+
 const AgentsView: Component = () => {
   const [shortcutsHidden, setShortcutsHidden] = createSignal(isShortcutsHiddenPersisted());
+  const [sessionSummaries, setSessionSummaries] = createSignal<Record<string, SessionSummary>>({});
+  let summaryLoadSeq = 0;
   const sessions = () => sessionState.sessions;
   const activeId = () => sessionState.activeSessionId;
   const resolveCardStatus = (sessionId: string): ProcessStatus | 'waiting' => {
@@ -53,9 +77,46 @@ const AgentsView: Component = () => {
 
   const activeSession = () => sessions().find((s) => s.id === activeId());
   const activePreview = () => {
-    const last = conversationState.messages[conversationState.messages.length - 1];
-    return last?.content?.slice(0, 80) ?? '';
+    const messages = conversationState.messages;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const message = messages[i];
+      if (message.role !== 'assistant') continue;
+      const normalized = message.content.replace(/\s+/g, ' ').trim();
+      if (normalized.length === 0) continue;
+      return normalized.slice(0, 80);
+    }
+    return '';
   };
+
+  async function loadSessionSummaries(sessionIds: string[]): Promise<void> {
+    const seq = ++summaryLoadSeq;
+    const next: Record<string, SessionSummary> = {};
+
+    await Promise.all(
+      sessionIds.map(async (sessionId) => {
+        try {
+          const messages = await invoke<Message[]>('list_messages', { session_id: sessionId });
+          next[sessionId] = summarizeMessages(messages);
+        } catch {
+          next[sessionId] = { messageCount: 0, lastAssistantPreview: '' };
+        }
+      }),
+    );
+
+    if (seq !== summaryLoadSeq) return;
+    setSessionSummaries(next);
+  }
+
+  createEffect(() => {
+    const ids = visibleSessions()
+      .map((session) => session.id)
+      .join('|');
+    if (!ids) {
+      setSessionSummaries({});
+      return;
+    }
+    void loadSessionSummaries(ids.split('|'));
+  });
 
   function closeShortcuts(): void {
     setShortcutsHidden(true);
@@ -131,9 +192,27 @@ const AgentsView: Component = () => {
       const preview = activePreview();
       if (preview.length > 0) return preview;
     }
+    const summaries = sessionSummaries();
+    const fetchedPreview = summaries[sessionId]?.lastAssistantPreview;
+    if (fetchedPreview && fetchedPreview.length > 0) {
+      return fetchedPreview;
+    }
     const session = sessions().find((s) => s.id === sessionId);
     const title = session?.title ?? '';
     return title.length > 0 ? title : undefined;
+  }
+
+  function sessionMessageCount(sessionId: string): number {
+    if (sessionId === activeId() && conversationState.messages.length > 0) {
+      return conversationState.messages.length;
+    }
+    return sessionSummaries()[sessionId]?.messageCount ?? 0;
+  }
+
+  function projectNameForSession(sessionId: string): string | undefined {
+    const projectId = sessions().find((session) => session.id === sessionId)?.project_id;
+    if (!projectId) return undefined;
+    return projectState.projects.find((project) => project.id === projectId)?.name;
   }
 
   return (
@@ -250,6 +329,8 @@ const AgentsView: Component = () => {
                 status={resolveCardStatus(session.id)}
                 isActive={session.id === activeId()}
                 lastMessage={sessionPreview(session.id)}
+                messageCount={sessionMessageCount(session.id)}
+                projectName={projectNameForSession(session.id)}
                 onFocus={() => void handleFocus(session.id)}
                 onStop={() => void handleStop(session.id)}
                 onSplit={() => void handleSplit(session.id)}

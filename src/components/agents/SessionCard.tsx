@@ -12,6 +12,8 @@ interface SessionCardProps {
   status: SessionCardStatus;
   isActive: boolean;
   lastMessage?: string;
+  messageCount?: number;
+  projectName?: string;
   onFocus: () => void;
   onStop: () => void;
   onSplit: () => void;
@@ -50,6 +52,7 @@ function formatAge(updatedAt: string | null): string {
 
 const SessionCard: Component<SessionCardProps> = (props) => {
   const dot = () => statusDot(props.status);
+  const messageCount = () => Math.max(0, props.messageCount ?? 0);
   const costDisplay = () =>
     props.session.total_cost_cents != null
       ? `$${(props.session.total_cost_cents / 100).toFixed(2)}`
@@ -105,6 +108,7 @@ const SessionCard: Component<SessionCardProps> = (props) => {
           {props.session.title || 'New Session'}
         </p>
         <p class="text-[10px] font-mono truncate" style={{ color: 'var(--color-text-tertiary)' }}>
+          {props.projectName ? `${props.projectName} · ` : ''}
           {props.session.model}
         </p>
       </div>
@@ -130,6 +134,8 @@ const SessionCard: Component<SessionCardProps> = (props) => {
         }}
       >
         <span class="font-mono">{costDisplay()}</span>
+        <span aria-hidden="true">·</span>
+        <span>{messageCount()} msgs</span>
         <span aria-hidden="true">·</span>
         <span>{formatAge(props.session.updated_at)}</span>
       </div>

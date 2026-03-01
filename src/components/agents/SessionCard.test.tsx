@@ -27,6 +27,8 @@ describe('SessionCard', () => {
         session={baseSession}
         status="running"
         isActive={false}
+        messageCount={47}
+        projectName="my-app"
         onFocus={() => {}}
         onStop={() => {}}
         onSplit={() => {}}
@@ -41,6 +43,8 @@ describe('SessionCard', () => {
         session={baseSession}
         status="running"
         isActive={false}
+        messageCount={47}
+        projectName="my-app"
         onFocus={() => {}}
         onStop={() => {}}
         onSplit={() => {}}
@@ -55,12 +59,16 @@ describe('SessionCard', () => {
         session={baseSession}
         status="not_started"
         isActive={false}
+        messageCount={47}
+        projectName="my-app"
         onFocus={() => {}}
         onStop={() => {}}
         onSplit={() => {}}
       />
     ));
     expect(getByText('$4.63')).toBeTruthy();
+    expect(getByText('47 msgs')).toBeTruthy();
+    expect(getByText(/my-app · claude-sonnet-4-6/)).toBeTruthy();
   });
 
   it('calls onFocus when Focus button clicked', () => {
@@ -70,6 +78,8 @@ describe('SessionCard', () => {
         session={baseSession}
         status="not_started"
         isActive={false}
+        messageCount={47}
+        projectName="my-app"
         onFocus={onFocus}
         onStop={() => {}}
         onSplit={() => {}}
@@ -86,6 +96,8 @@ describe('SessionCard', () => {
         session={baseSession}
         status="running"
         isActive={false}
+        messageCount={47}
+        projectName="my-app"
         onFocus={() => {}}
         onStop={onStop}
         onSplit={() => {}}

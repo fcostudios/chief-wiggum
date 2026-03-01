@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@solidjs/testing-library';
+import { render, waitFor } from '@solidjs/testing-library';
 import type { Message, ProcessStatus, Session } from '@/lib/types';
+import { clearIpcMocks, mockIpcCommand } from '@/test/mockIPC';
 
 interface MockPane {
   id: string;
@@ -12,6 +13,8 @@ const mocks = vi.hoisted(() => {
     sessions: [] as Session[],
     activeSessionId: null as string | null,
     messages: [] as Message[],
+    messagesBySession: {} as Record<string, Message[]>,
+    projects: [] as Array<{ id: string; name: string }>,
     permissionRequest: null as { request_id: string } | null,
     viewState: {
       layoutMode: 'single' as 'single' | 'split-horizontal' | 'split-vertical',
@@ -53,7 +56,6 @@ const mocks = vi.hoisted(() => {
   });
   const setPaneSession = vi.fn();
   const focusPane = vi.fn();
-
   return {
     state,
     createNewSession,
@@ -104,6 +106,11 @@ vi.mock('@/stores/uiStore', () => ({
 
 vi.mock('@/stores/projectStore', () => ({
   getActiveProject: mocks.getActiveProject,
+  projectState: {
+    get projects() {
+      return mocks.state.projects;
+    },
+  },
 }));
 
 vi.mock('@/stores/viewStore', () => ({
@@ -145,6 +152,52 @@ describe('AgentsView', () => {
     ];
     mocks.state.activeSessionId = 'sess-1';
     mocks.state.messages = [];
+    mocks.state.messagesBySession = {
+      'sess-1': [
+        {
+          id: 'm1',
+          session_id: 'sess-1',
+          role: 'assistant',
+          content: 'Refactoring auth flow with JWT refresh tokens.',
+          model: null,
+          input_tokens: null,
+          output_tokens: null,
+          thinking_tokens: null,
+          cost_cents: null,
+          is_compacted: false,
+          created_at: new Date().toISOString(),
+        },
+      ],
+      'sess-2': [
+        {
+          id: 'm2',
+          session_id: 'sess-2',
+          role: 'assistant',
+          content: 'Reviewing PR #47 and flagging migration edge cases.',
+          model: null,
+          input_tokens: null,
+          output_tokens: null,
+          thinking_tokens: null,
+          cost_cents: null,
+          is_compacted: false,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: 'm3',
+          session_id: 'sess-2',
+          role: 'user',
+          content: 'Thanks',
+          model: null,
+          input_tokens: null,
+          output_tokens: null,
+          thinking_tokens: null,
+          cost_cents: null,
+          is_compacted: false,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
+    mocks.state.projects = [{ id: 'proj-1', name: 'my-app' }];
     mocks.state.permissionRequest = null;
     mocks.state.viewState.layoutMode = 'single';
     mocks.state.viewState.panes = [{ id: 'main', sessionId: 'sess-1' }];
@@ -161,6 +214,11 @@ describe('AgentsView', () => {
     mocks.splitView.mockClear();
     mocks.setPaneSession.mockClear();
     mocks.focusPane.mockClear();
+    clearIpcMocks();
+    mockIpcCommand('list_messages', (args) => {
+      const sessionId = String((args as { session_id?: string }).session_id ?? '');
+      return mocks.state.messagesBySession[sessionId] ?? [];
+    });
   });
 
   it('renders session cards and count', () => {
@@ -169,6 +227,15 @@ describe('AgentsView', () => {
     expect(getByText('2')).toBeTruthy();
     expect(getByText('Session one', { selector: 'p' })).toBeTruthy();
     expect(getByText('Session two', { selector: 'p' })).toBeTruthy();
+  });
+
+  it('shows per-session preview and message count metadata', async () => {
+    const { getAllByText, getByText } = render(() => <AgentsView />);
+    await waitFor(() => {
+      expect(getByText(/Reviewing PR #47 and flagging migration edge cases/)).toBeTruthy();
+      expect(getByText('2 msgs')).toBeTruthy();
+      expect(getAllByText(/my-app · claude-sonnet-4-6/).length).toBeGreaterThan(0);
+    });
   });
 
   it('shows empty state when there are no sessions', () => {
