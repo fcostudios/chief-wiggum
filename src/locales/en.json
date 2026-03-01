@@ -24,8 +24,27 @@
     "yolo": "YOLO",
     "dev": "DEV",
     "nActive": "{{ n }} active",
+    "tokens": "{{ value }} tokens",
+    "costBreakdown": "Cost breakdown",
+    "sessionCost": "Session cost",
+    "todayCost": "Today",
+    "weekCost": "This week",
+    "runningAggregate": "Running total",
+    "runningSessions": "Running sessions",
+    "noRunningSessions": "No running sessions",
+    "recent": "Recent",
     "exportDiagnostics": "Export Diagnostics",
     "taskProgress": "Task progress"
+  },
+  "status": {
+    "idle": "Idle",
+    "responding": "Responding…",
+    "permission_needed": "Permission needed",
+    "cli_not_found": "CLI not found",
+    "running_count": "{{ count }} running"
+  },
+  "titlebar": {
+    "project_none": "No Project"
   },
   "todoBlock": {
     "header": "Tasks",

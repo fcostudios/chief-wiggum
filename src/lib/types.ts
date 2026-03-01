@@ -234,6 +234,7 @@ export interface FileNode {
   extension: string | null;
   children: FileNode[] | null;
   is_binary: boolean;
+  is_git_ignored?: boolean;
 }
 
 /** File content returned by read_project_file. */

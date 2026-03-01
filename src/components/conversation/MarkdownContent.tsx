@@ -292,7 +292,10 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
         buttonContainer.setAttribute('data-cw-diff-buttons', 'true');
         pre.parentNode?.insertBefore(buttonContainer, pre.nextSibling);
 
-        const dispose = solidRender(() => <InlineDiffBlock code={code} diffKey={diffKey} />, buttonContainer);
+        const dispose = solidRender(
+          () => <InlineDiffBlock code={code} diffKey={diffKey} />,
+          buttonContainer,
+        );
         rendererDisposers.push(dispose);
       });
 

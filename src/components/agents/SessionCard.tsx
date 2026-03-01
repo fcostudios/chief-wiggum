@@ -51,7 +51,9 @@ function formatAge(updatedAt: string | null): string {
 const SessionCard: Component<SessionCardProps> = (props) => {
   const dot = () => statusDot(props.status);
   const costDisplay = () =>
-    props.session.total_cost_cents != null ? `$${(props.session.total_cost_cents / 100).toFixed(2)}` : '$0.00';
+    props.session.total_cost_cents != null
+      ? `$${(props.session.total_cost_cents / 100).toFixed(2)}`
+      : '$0.00';
 
   return (
     <article
@@ -132,7 +134,10 @@ const SessionCard: Component<SessionCardProps> = (props) => {
         <span>{formatAge(props.session.updated_at)}</span>
       </div>
 
-      <div class="flex items-center gap-1.5 px-3 py-2" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
+      <div
+        class="flex items-center gap-1.5 px-3 py-2"
+        style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
+      >
         <button
           class="flex-1 px-2 py-1 rounded text-[11px] font-medium transition-colors"
           style={{

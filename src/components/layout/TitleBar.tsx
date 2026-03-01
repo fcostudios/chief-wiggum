@@ -1,37 +1,56 @@
 // src/components/layout/TitleBar.tsx
 // Custom title bar (40px) per SPEC-003 §2 Z1.
-// macOS: native traffic lights via titleBarStyle overlay (70px spacer).
-// Windows/Linux: minimize, maximize, close buttons on the right.
+// CHI-229: reduced chrome density, project-centered context, status-driven model chip.
 
 import type { Component } from 'solid-js';
-import { Show, createSignal, onMount } from 'solid-js';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Minus,
-  Maximize2,
-  X,
-  Zap,
-  Shield,
-  ShieldCheck,
-  Settings,
-} from 'lucide-solid';
+import { Show, createMemo, createSignal, onMount } from 'solid-js';
+import { ChevronDown, Minus, Maximize2, X, Settings } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
-import {
-  uiState,
-  cyclePermissionTier,
-  getPermissionTier,
-  openSettings,
-  toggleDetailsPanel,
-} from '@/stores/uiStore';
+import { uiState, openSettings } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
+import { cliState } from '@/stores/cliStore';
+import { getActiveProject } from '@/stores/projectStore';
+import { t } from '@/stores/i18nStore';
 import ModelSelector from '@/components/common/ModelSelector';
 
 const TitleBar: Component = () => {
   const [isMac, setIsMac] = createSignal(false);
   const isAgentBusy = () =>
     conversationState.processStatus === 'running' || conversationState.isStreaming;
+  const projectName = createMemo(() => getActiveProject()?.name ?? t('titlebar.project_none'));
+  const chipStatus = createMemo(() => {
+    if (!cliState.isDetected) {
+      return {
+        text: t('status.cli_not_found'),
+        color: 'var(--color-error)',
+        pulse: false,
+        showModel: false,
+      };
+    }
+    if (uiState.permissionRequest) {
+      return {
+        text: t('status.permission_needed'),
+        color: 'var(--color-warning)',
+        pulse: false,
+        showModel: true,
+      };
+    }
+    if (isAgentBusy()) {
+      return {
+        text: t('status.responding'),
+        color: 'var(--color-success)',
+        pulse: true,
+        showModel: true,
+      };
+    }
+    return {
+      text: null,
+      color: 'var(--color-text-tertiary)',
+      pulse: false,
+      showModel: false,
+    };
+  });
 
   function withCurrentWindow(
     action: (appWindow: ReturnType<typeof getCurrentWindow>) => void,
@@ -83,63 +102,42 @@ const TitleBar: Component = () => {
         <div class="w-[70px] shrink-0" />
       </Show>
 
-      {/* Left: app name */}
-      <div class="flex items-center gap-2.5 px-3">
-        <span
-          class="text-sm font-semibold tracking-tight text-text-primary"
-          style={{ 'letter-spacing': '-0.02em' }}
+      <div class="flex-1 min-w-0 flex items-center">
+        <div class="flex-1 h-full" data-tauri-drag-region />
+
+        <div
+          class="flex items-center gap-1.5 px-2 py-1 rounded-full min-w-0 max-w-[40%]"
+          style={{
+            background: 'rgba(28, 33, 40, 0.5)',
+            border: '1px solid var(--color-border-secondary)',
+          }}
+          data-tauri-drag-region
+          title={projectName()}
         >
-          Chief Wiggum
-        </span>
-        <Show when={uiState.yoloMode}>
-          <span
-            class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-            style={{
-              background: 'rgba(210, 153, 34, 0.15)',
-              color: 'var(--color-warning)',
-              border: '1px solid rgba(210, 153, 34, 0.3)',
-              animation: 'glow-pulse 2s ease-in-out infinite',
-            }}
-          >
-            YOLO
-          </span>
-        </Show>
-        <Show when={!uiState.yoloMode && uiState.developerMode}>
-          <span
-            class="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
-            style={{
-              background: 'rgba(232, 130, 90, 0.15)',
-              color: 'var(--color-accent)',
-              border: '1px solid rgba(232, 130, 90, 0.3)',
-            }}
-          >
-            DEV
-          </span>
-        </Show>
+          <span class="text-xs text-text-secondary truncate">{projectName()}</span>
+          <ChevronDown size={11} class="text-text-tertiary shrink-0" />
+        </div>
+
+        <div
+          class="mx-2 rounded-full"
+          style={{
+            background: 'rgba(28, 33, 40, 0.45)',
+            border: '1px solid var(--color-border-secondary)',
+          }}
+        >
+          <ModelSelector
+            statusText={chipStatus().text}
+            statusColor={chipStatus().color}
+            statusPulse={chipStatus().pulse}
+            showModelWhenStatus={chipStatus().showModel}
+          />
+        </div>
+
+        <div class="flex-1 h-full" data-tauri-drag-region />
       </div>
 
-      {/* Center: model selector + drag region */}
-      <div class="flex-1 h-full flex items-center justify-center" data-tauri-drag-region>
-        <ModelSelector />
-      </div>
-
-      {/* Right: details panel toggle + settings + permission tier toggle + window controls */}
-      <div class="flex items-center">
-        {/* Details panel toggle — restore right panel collapse control */}
-        <button
-          class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={toggleDetailsPanel}
-          aria-label={`${uiState.detailsPanelVisible ? 'Hide' : 'Show'} details panel`}
-          aria-pressed={uiState.detailsPanelVisible}
-          title={`${uiState.detailsPanelVisible ? 'Hide' : 'Show'} details panel (Cmd+Shift+B)`}
-        >
-          <Show when={uiState.detailsPanelVisible} fallback={<ChevronLeft size={13} />}>
-            <ChevronRight size={13} />
-          </Show>
-        </button>
-
-        {/* Settings gear — opens full-screen settings overlay */}
+      {/* Right: settings + window controls */}
+      <div class="flex items-center shrink-0">
         <button
           class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
           style={{ 'transition-duration': 'var(--duration-fast)' }}
@@ -148,50 +146,6 @@ const TitleBar: Component = () => {
           title="Open settings (Cmd+,)"
         >
           <Settings size={13} />
-        </button>
-
-        {/* Permission tier cycle: Safe → Developer → YOLO */}
-        <button
-          class="flex items-center justify-center w-10 h-full transition-colors"
-          style={{
-            'transition-duration': 'var(--duration-fast)',
-            color: uiState.yoloMode
-              ? 'var(--color-warning)'
-              : uiState.developerMode
-                ? 'var(--color-accent)'
-                : 'var(--color-text-tertiary)',
-            background: uiState.yoloMode
-              ? 'rgba(210, 153, 34, 0.1)'
-              : uiState.developerMode
-                ? 'rgba(232, 130, 90, 0.1)'
-                : 'transparent',
-            opacity: isAgentBusy() ? '0.4' : '1',
-            cursor: isAgentBusy() ? 'not-allowed' : 'pointer',
-          }}
-          onClick={() => {
-            if (!isAgentBusy()) cyclePermissionTier();
-          }}
-          disabled={isAgentBusy()}
-          aria-label={`Permission: ${getPermissionTier()} — ${isAgentBusy() ? 'locked while agent is responding' : 'click to cycle'}`}
-          title={
-            isAgentBusy()
-              ? 'Cannot change mode while agent is responding'
-              : uiState.yoloMode
-                ? 'YOLO Mode — click for Safe mode'
-                : uiState.developerMode
-                  ? 'Developer Mode — click for YOLO mode (Cmd+Shift+Y)'
-                  : 'Safe Mode — click for Developer mode'
-          }
-        >
-          <Show when={uiState.yoloMode}>
-            <Zap size={13} />
-          </Show>
-          <Show when={!uiState.yoloMode && uiState.developerMode}>
-            <ShieldCheck size={13} />
-          </Show>
-          <Show when={!uiState.yoloMode && !uiState.developerMode}>
-            <Shield size={13} />
-          </Show>
         </button>
 
         {/* Windows/Linux: right-side window controls */}

@@ -17,17 +17,23 @@ pub struct GitFileStatus {
 
 /// List files/directories under a project path.
 #[tauri::command(rename_all = "snake_case")]
-#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = ?relative_path, max_depth = ?max_depth))]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = ?relative_path, max_depth = ?max_depth, show_ignored = ?show_ignored))]
 pub fn list_project_files(
     db: State<'_, Database>,
     project_id: String,
     relative_path: Option<String>,
     max_depth: Option<usize>,
+    show_ignored: Option<bool>,
 ) -> Result<Vec<FileNode>, AppError> {
     let project = queries::get_project(&db, &project_id)?
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
     let project_root = std::path::Path::new(&project.path);
-    scanner::list_files(project_root, relative_path.as_deref(), max_depth)
+    scanner::list_files(
+        project_root,
+        relative_path.as_deref(),
+        max_depth,
+        show_ignored.unwrap_or(false),
+    )
 }
 
 /// Read file content with optional line range.

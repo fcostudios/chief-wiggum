@@ -5,7 +5,12 @@ import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal } from 'solid-js';
 import { Users } from 'lucide-solid';
 import { sessionState, createNewSession, setActiveSession } from '@/stores/sessionStore';
-import { conversationState, getSessionStatus, stopSessionCli, switchSession } from '@/stores/conversationStore';
+import {
+  conversationState,
+  getSessionStatus,
+  stopSessionCli,
+  switchSession,
+} from '@/stores/conversationStore';
 import { setActiveView, uiState } from '@/stores/uiStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { focusPane, setPaneSession, splitView, viewState } from '@/stores/viewStore';

@@ -1,32 +1,44 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
+import { fireEvent, render, screen } from '@solidjs/testing-library';
 
-let mockYoloMode = false;
-let mockDeveloperMode = false;
-let mockDetailsPanelVisible = true;
+let mockProjectName: string | null = 'chief-wiggum';
+let mockCliDetected = true;
+let mockPermissionRequest: object | null = null;
 let mockProcessStatus: string = 'not_started';
 let mockIsStreaming = false;
 
-const mockCyclePermissionTier = vi.fn();
 const mockOpenSettings = vi.fn();
-const mockToggleDetailsPanel = vi.fn();
 
 vi.mock('@/stores/uiStore', () => ({
   uiState: {
-    get yoloMode() {
-      return mockYoloMode;
-    },
-    get developerMode() {
-      return mockDeveloperMode;
-    },
-    get detailsPanelVisible() {
-      return mockDetailsPanelVisible;
+    get permissionRequest() {
+      return mockPermissionRequest;
     },
   },
-  cyclePermissionTier: () => mockCyclePermissionTier(),
-  getPermissionTier: () => 'Safe',
   openSettings: () => mockOpenSettings(),
-  toggleDetailsPanel: () => mockToggleDetailsPanel(),
+}));
+
+vi.mock('@/stores/cliStore', () => ({
+  cliState: {
+    get isDetected() {
+      return mockCliDetected;
+    },
+  },
+}));
+
+vi.mock('@/stores/projectStore', () => ({
+  getActiveProject: () =>
+    mockProjectName
+      ? {
+          id: 'proj-1',
+          name: mockProjectName,
+          path: '/tmp/chief-wiggum',
+          default_model: null,
+          default_effort: null,
+          created_at: null,
+          last_opened_at: null,
+        }
+      : undefined,
 }));
 
 vi.mock('@/stores/conversationStore', () => ({
@@ -40,8 +52,31 @@ vi.mock('@/stores/conversationStore', () => ({
   },
 }));
 
+vi.mock('@/stores/i18nStore', () => ({
+  t: (key: string) => {
+    if (key === 'titlebar.project_none') return 'No Project';
+    if (key === 'status.responding') return 'Responding…';
+    if (key === 'status.permission_needed') return 'Permission needed';
+    if (key === 'status.cli_not_found') return 'CLI not found';
+    return key;
+  },
+}));
+
 vi.mock('@/components/common/ModelSelector', () => ({
-  default: () => <div data-testid="model-selector">ModelSelector</div>,
+  default: (props: {
+    statusText?: string | null;
+    showModelWhenStatus?: boolean;
+    statusPulse?: boolean;
+  }) => (
+    <div
+      data-testid="model-selector"
+      data-status={props.statusText ?? ''}
+      data-show-model={props.showModelWhenStatus ? 'true' : 'false'}
+      data-pulse={props.statusPulse ? 'true' : 'false'}
+    >
+      ModelSelector
+    </div>
+  ),
 }));
 
 vi.mock('@tauri-apps/plugin-os', () => ({ platform: () => 'macos' }));
@@ -57,23 +92,41 @@ import TitleBar from './TitleBar';
 
 describe('TitleBar', () => {
   beforeEach(() => {
-    mockYoloMode = false;
-    mockDeveloperMode = false;
-    mockDetailsPanelVisible = true;
+    mockProjectName = 'chief-wiggum';
+    mockCliDetected = true;
+    mockPermissionRequest = null;
     mockProcessStatus = 'not_started';
     mockIsStreaming = false;
-    vi.clearAllMocks();
+    mockOpenSettings.mockClear();
   });
 
-  it('renders app name and model selector', () => {
+  it('renders centered project context and model selector', () => {
     render(() => <TitleBar />);
-    expect(screen.getByText('Chief Wiggum')).toBeInTheDocument();
+    expect(screen.getByText('chief-wiggum')).toBeInTheDocument();
     expect(screen.getByTestId('model-selector')).toBeInTheDocument();
   });
 
-  it('renders drag region container', () => {
+  it('renders fallback project label when no project is active', () => {
+    mockProjectName = null;
     render(() => <TitleBar />);
-    expect(document.querySelector('[data-tauri-drag-region]')).toBeTruthy();
+    expect(screen.getByText('No Project')).toBeInTheDocument();
+  });
+
+  it('forwards responding state to model status chip', () => {
+    mockProcessStatus = 'running';
+    render(() => <TitleBar />);
+    const selector = screen.getByTestId('model-selector');
+    expect(selector).toHaveAttribute('data-status', 'Responding…');
+    expect(selector).toHaveAttribute('data-show-model', 'true');
+    expect(selector).toHaveAttribute('data-pulse', 'true');
+  });
+
+  it('forwards permission-needed state to model status chip', () => {
+    mockPermissionRequest = { request_id: 'req-1' };
+    render(() => <TitleBar />);
+    const selector = screen.getByTestId('model-selector');
+    expect(selector).toHaveAttribute('data-status', 'Permission needed');
+    expect(selector).toHaveAttribute('data-show-model', 'true');
   });
 
   it('settings gear button opens settings', () => {
@@ -82,23 +135,8 @@ describe('TitleBar', () => {
     expect(mockOpenSettings).toHaveBeenCalled();
   });
 
-  it('details toggle button reflects state and toggles panel', () => {
+  it('renders drag regions for native window movement', () => {
     render(() => <TitleBar />);
-    const toggle = screen.getByLabelText(/Hide details panel/i);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(toggle);
-    expect(mockToggleDetailsPanel).toHaveBeenCalled();
-  });
-
-  it('permission button cycles when idle and is disabled while agent is busy', () => {
-    render(() => <TitleBar />);
-    const permissionButton = screen.getByLabelText(/Permission: Safe/i);
-    fireEvent.click(permissionButton);
-    expect(mockCyclePermissionTier).toHaveBeenCalled();
-
-    mockProcessStatus = 'running';
-    cleanup();
-    render(() => <TitleBar />);
-    expect(screen.getByLabelText(/Permission: Safe/i)).toBeDisabled();
+    expect(document.querySelector('[data-tauri-drag-region]')).toBeTruthy();
   });
 });

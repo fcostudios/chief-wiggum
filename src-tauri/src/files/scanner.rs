@@ -1,6 +1,7 @@
 //! Gitignore-aware filesystem scanner using the `ignore` crate.
 //! Provides directory listing, file reading, and fuzzy name search.
 
+use std::collections::HashSet;
 use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
 
@@ -109,11 +110,13 @@ pub fn list_files(
     project_root: &Path,
     relative_path: Option<&str>,
     max_depth: Option<usize>,
+    show_ignored: bool,
 ) -> Result<Vec<FileNode>, AppError> {
     tracing::debug!(
         root = %project_root.display(),
         relative_path = ?relative_path,
         max_depth = ?max_depth,
+        show_ignored,
         "listing project files"
     );
     let scan_root = match relative_path {
@@ -130,13 +133,47 @@ pub fn list_files(
     let depth = max_depth.unwrap_or(1);
     let mut entries: Vec<FileNode> = Vec::new();
 
+    let non_ignored_set: HashSet<String> = if show_ignored {
+        let clean_walker = ignore::WalkBuilder::new(&scan_root)
+            .max_depth(Some(depth))
+            .hidden(false)
+            .git_ignore(true)
+            .git_global(true)
+            .git_exclude(true)
+            .filter_entry(|entry| {
+                if let Some(name) = entry.file_name().to_str() {
+                    if entry.file_type().is_some_and(|ft| ft.is_dir())
+                        && ALWAYS_SKIP.contains(&name)
+                    {
+                        return false;
+                    }
+                }
+                true
+            })
+            .build();
+
+        clean_walker
+            .filter_map(|result| result.ok())
+            .filter(|entry| entry.path() != scan_root)
+            .filter_map(|entry| {
+                entry
+                    .path()
+                    .strip_prefix(project_root)
+                    .ok()
+                    .map(|relative| relative.to_string_lossy().replace('\\', "/"))
+            })
+            .collect()
+    } else {
+        HashSet::new()
+    };
+
     // Build a walker that respects .gitignore from the project root
     let walker = ignore::WalkBuilder::new(&scan_root)
         .max_depth(Some(depth))
         .hidden(false)
-        .git_ignore(true)
-        .git_global(true)
-        .git_exclude(true)
+        .git_ignore(!show_ignored)
+        .git_global(!show_ignored)
+        .git_exclude(!show_ignored)
         .filter_entry(|entry| {
             if let Some(name) = entry.file_name().to_str() {
                 if entry.file_type().is_some_and(|ft| ft.is_dir()) && ALWAYS_SKIP.contains(&name) {
@@ -206,6 +243,7 @@ pub fn list_files(
         } else {
             None
         };
+        let is_ignored = show_ignored && !non_ignored_set.contains(&rel_path);
 
         // Binary detection — only read first 8KB for the check
         let is_bin = if node_type == FileNodeType::File && metadata.len() > 0 {
@@ -228,6 +266,7 @@ pub fn list_files(
             extension,
             children: None,
             is_binary: is_bin,
+            is_git_ignored: is_ignored,
         });
 
         if entries.len() >= MAX_ENTRIES {
@@ -569,7 +608,7 @@ mod tests {
     #[test]
     fn list_files_returns_project_root_entries() {
         let project = create_test_project();
-        let result = list_files(project.path(), None, Some(1)).unwrap();
+        let result = list_files(project.path(), None, Some(1), false).unwrap();
         let names: Vec<&str> = result.iter().map(|n| n.name.as_str()).collect();
         assert!(names.contains(&"src"), "Should contain src/");
         assert!(names.contains(&"README.md"), "Should contain README.md");
@@ -585,9 +624,38 @@ mod tests {
     }
 
     #[test]
+    fn list_files_show_ignored_reveals_gitignored_files_and_marks_them() {
+        let project = create_test_project();
+
+        let default_result = list_files(project.path(), None, Some(1), false).unwrap();
+        assert!(!default_result.iter().any(|node| node.name == "debug.log"));
+
+        let show_ignored_result = list_files(project.path(), None, Some(1), true).unwrap();
+        let ignored_node = show_ignored_result
+            .iter()
+            .find(|node| node.name == "debug.log");
+        assert!(
+            ignored_node.is_some(),
+            "debug.log should appear when show_ignored=true"
+        );
+        assert!(
+            ignored_node
+                .expect("debug.log should be present")
+                .is_git_ignored,
+            "debug.log should be marked as gitignored"
+        );
+
+        let readme = show_ignored_result
+            .iter()
+            .find(|node| node.name == "README.md")
+            .expect("README should be present");
+        assert!(!readme.is_git_ignored);
+    }
+
+    #[test]
     fn list_files_subdirectory() {
         let project = create_test_project();
-        let result = list_files(project.path(), Some("src"), Some(1)).unwrap();
+        let result = list_files(project.path(), Some("src"), Some(1), false).unwrap();
         let names: Vec<&str> = result.iter().map(|n| n.name.as_str()).collect();
         assert!(names.contains(&"main.rs"));
         assert!(names.contains(&"lib"));
@@ -596,7 +664,7 @@ mod tests {
     #[test]
     fn list_files_nonexistent_returns_empty() {
         let project = create_test_project();
-        let result = list_files(project.path(), Some("nonexistent"), Some(1)).unwrap();
+        let result = list_files(project.path(), Some("nonexistent"), Some(1), false).unwrap();
         assert!(result.is_empty());
     }
 
@@ -607,14 +675,14 @@ mod tests {
         fs::create_dir_all(&project_dir).unwrap();
         fs::write(base.path().join("outside.txt"), "secret").unwrap();
 
-        let result = list_files(&project_dir, Some(".."), Some(1));
+        let result = list_files(&project_dir, Some(".."), Some(1), false);
         assert!(result.is_err());
     }
 
     #[test]
     fn list_files_directories_sorted_first() {
         let project = create_test_project();
-        let result = list_files(project.path(), None, Some(1)).unwrap();
+        let result = list_files(project.path(), None, Some(1), false).unwrap();
         let first_dir_idx = result
             .iter()
             .position(|n| n.node_type == FileNodeType::Directory);

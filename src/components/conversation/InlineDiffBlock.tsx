@@ -112,7 +112,10 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
   }
 
   return (
-    <div class="my-2 rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border-secondary)' }}>
+    <div
+      class="my-2 rounded-lg overflow-hidden"
+      style={{ border: '1px solid var(--color-border-secondary)' }}
+    >
       <Show when={filePath()}>
         <div
           class="flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono"
@@ -127,7 +130,10 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
         </div>
       </Show>
 
-      <pre class="overflow-x-auto text-xs font-mono p-3" style={{ background: 'var(--color-bg-inset)', margin: 0 }}>
+      <pre
+        class="overflow-x-auto text-xs font-mono p-3"
+        style={{ background: 'var(--color-bg-inset)', margin: 0 }}
+      >
         <For each={lines()}>
           {(line) => (
             <div style={{ background: line.bg, color: line.color, 'white-space': 'pre' }}>
@@ -176,8 +182,12 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
           <button
             class="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors"
             style={{
-              background: filePath() && projectId() ? 'var(--color-success)' : 'var(--color-bg-elevated)',
-              color: filePath() && projectId() ? 'var(--color-bg-primary)' : 'var(--color-text-tertiary)',
+              background:
+                filePath() && projectId() ? 'var(--color-success)' : 'var(--color-bg-elevated)',
+              color:
+                filePath() && projectId()
+                  ? 'var(--color-bg-primary)'
+                  : 'var(--color-text-tertiary)',
               cursor: filePath() && projectId() ? 'pointer' : 'not-allowed',
               opacity: isApplying() ? '0.6' : '1',
             }}

@@ -36,7 +36,10 @@ const SessionResumeCard: Component<SessionResumeCardProps> = (props) => {
           'border-bottom': '1px solid var(--color-border-secondary)',
         }}
       >
-        <div class="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+        <div
+          class="flex items-center gap-2 text-xs"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
           <span>📋</span>
           <span class="font-medium" style={{ color: 'var(--color-accent)' }}>
             Resumed

@@ -13,13 +13,20 @@ interface ModelOption {
   color: string;
 }
 
+interface ModelSelectorProps {
+  statusText?: string | null;
+  statusColor?: string;
+  statusPulse?: boolean;
+  showModelWhenStatus?: boolean;
+}
+
 const MODELS: ModelOption[] = [
   { id: 'claude-sonnet-4-6', label: 'Sonnet 4.6', color: 'var(--color-model-sonnet)' },
   { id: 'claude-opus-4-6', label: 'Opus 4.6', color: 'var(--color-model-opus)' },
   { id: 'claude-haiku-4-5', label: 'Haiku 4.5', color: 'var(--color-model-haiku)' },
 ];
 
-const ModelSelector: Component = () => {
+const ModelSelector: Component<ModelSelectorProps> = (props) => {
   const [isOpen, setIsOpen] = createSignal(false);
   let dropdownRef: HTMLDivElement | undefined;
 
@@ -49,7 +56,7 @@ const ModelSelector: Component = () => {
   return (
     <div ref={dropdownRef} class="relative">
       <button
-        class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors hover:bg-bg-elevated/50"
+        class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors hover:bg-bg-elevated/50"
         style={{ 'transition-duration': 'var(--duration-fast)' }}
         onClick={(e) => {
           e.stopPropagation();
@@ -62,11 +69,21 @@ const ModelSelector: Component = () => {
         <span
           class="inline-block w-2 h-2 rounded-full"
           style={{
-            'background-color': currentModel().color,
-            'box-shadow': `0 0 4px ${currentModel().color}40`,
+            'background-color': props.statusColor ?? currentModel().color,
+            'box-shadow': props.statusPulse
+              ? '0 0 6px rgba(63, 185, 80, 0.45)'
+              : `0 0 4px ${currentModel().color}40`,
           }}
+          classList={{ 'animate-pulse': !!props.statusPulse }}
         />
-        <span class="text-text-primary font-medium tracking-tight">{currentModel().label}</span>
+        <span class="text-text-primary font-medium tracking-tight">
+          {props.statusText ?? currentModel().label}
+        </span>
+        <Show when={props.statusText && props.showModelWhenStatus}>
+          <span class="text-text-tertiary" style={{ 'font-size': '11px' }}>
+            — {currentModel().label}
+          </span>
+        </Show>
         <ChevronDown size={11} class="text-text-tertiary" />
       </button>
 

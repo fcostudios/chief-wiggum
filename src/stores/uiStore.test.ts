@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  closeStatusCostPopover,
+  openStatusCostPopover,
   setActiveView,
+  toggleStatusCostPopover,
   toggleDetailsPanel,
   toggleKeyboardHelp,
   toggleSidebar,
@@ -40,5 +43,16 @@ describe('uiStore', () => {
     toggleKeyboardHelp();
     expect(uiState.keyboardHelpVisible).toBe(!initial);
     toggleKeyboardHelp();
+  });
+
+  it('opens, closes, and toggles status cost popover', () => {
+    closeStatusCostPopover();
+    expect(uiState.statusCostPopoverVisible).toBe(false);
+
+    openStatusCostPopover();
+    expect(uiState.statusCostPopoverVisible).toBe(true);
+
+    toggleStatusCostPopover();
+    expect(uiState.statusCostPopoverVisible).toBe(false);
   });
 });

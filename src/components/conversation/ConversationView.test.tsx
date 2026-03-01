@@ -20,9 +20,7 @@ const mockSendMessage = vi.fn();
 const mockRetryLastMessage = vi.fn();
 const mockPickAndCreateProject = vi.fn(() => Promise.resolve());
 const mockCloseMessageSearch = vi.fn();
-const mockShouldShowResumeCard = vi.fn(
-  (_sessionId: string, _messageCount: number) => false,
-);
+const mockShouldShowResumeCard = vi.fn((_sessionId: string, _messageCount: number) => false);
 const mockDismissResume = vi.fn((_sessionId: string) => undefined);
 const mockGetSessionLastActiveAt = vi.fn((_sessionId: string) => null as number | null);
 

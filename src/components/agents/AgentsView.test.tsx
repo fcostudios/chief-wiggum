@@ -139,7 +139,10 @@ function makeSession(id: string, title: string): Session {
 describe('AgentsView', () => {
   beforeEach(() => {
     localStorage.clear();
-    mocks.state.sessions = [makeSession('sess-1', 'Session one'), makeSession('sess-2', 'Session two')];
+    mocks.state.sessions = [
+      makeSession('sess-1', 'Session one'),
+      makeSession('sess-2', 'Session two'),
+    ];
     mocks.state.activeSessionId = 'sess-1';
     mocks.state.messages = [];
     mocks.state.permissionRequest = null;

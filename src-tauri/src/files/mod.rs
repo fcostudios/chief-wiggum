@@ -32,6 +32,8 @@ pub struct FileNode {
     pub children: Option<Vec<FileNode>>,
     /// Whether this is a binary file.
     pub is_binary: bool,
+    /// Whether this file/directory is excluded by .gitignore.
+    pub is_git_ignored: bool,
 }
 
 /// File content returned by `read_file`.
@@ -82,6 +84,7 @@ mod tests {
             extension: Some("rs".to_string()),
             children: None,
             is_binary: false,
+            is_git_ignored: false,
         };
         let json = serde_json::to_string(&node).expect("should serialize");
         assert!(json.contains("\"name\":\"test.rs\""));

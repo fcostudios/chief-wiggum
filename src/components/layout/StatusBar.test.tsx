@@ -4,21 +4,28 @@ import type { Message, Session } from '@/lib/types';
 
 let mockYoloMode = false;
 let mockDeveloperMode = false;
+let mockPermissionRequest: object | null = null;
+let mockStatusCostPopoverVisible = false;
 let mockCliDetected = true;
 let mockProcessStatus: 'not_started' | 'running' | 'starting' | 'error' = 'not_started';
 let mockSessionStatuses: Record<string, string> = {};
 let mockSessions: Session[] = [];
 let mockActiveSessionId: string | null = null;
-let mockRunningActions: Array<{ id: string }> = [];
+let mockRunningActions: Array<{ id: string; name: string; command: string }> = [];
 let mockRecentActionEvents: Array<{
   action_id: string;
   name: string;
   status: string;
+  exit_code: number | null;
   finished_at: string | null;
 }> = [];
 let mockMessages: Message[] = [];
 
 const mockOpenExportDialog = vi.fn();
+const mockSetActiveSession = vi.fn();
+const mockSelectAction = vi.fn();
+const mockStopAction = vi.fn();
+const mockRestartAction = vi.fn();
 
 vi.mock('@/stores/uiStore', () => ({
   uiState: {
@@ -28,6 +35,18 @@ vi.mock('@/stores/uiStore', () => ({
     get developerMode() {
       return mockDeveloperMode;
     },
+    get permissionRequest() {
+      return mockPermissionRequest;
+    },
+    get statusCostPopoverVisible() {
+      return mockStatusCostPopoverVisible;
+    },
+  },
+  toggleStatusCostPopover: () => {
+    mockStatusCostPopoverVisible = !mockStatusCostPopoverVisible;
+  },
+  closeStatusCostPopover: () => {
+    mockStatusCostPopoverVisible = false;
   },
 }));
 
@@ -62,6 +81,7 @@ vi.mock('@/stores/sessionStore', () => ({
       return mockActiveSessionId;
     },
   },
+  setActiveSession: (id: string) => mockSetActiveSession(id),
 }));
 
 vi.mock('@/stores/diagnosticsStore', () => ({
@@ -71,19 +91,32 @@ vi.mock('@/stores/diagnosticsStore', () => ({
 vi.mock('@/stores/actionStore', () => ({
   getRunningActions: () => mockRunningActions,
   getRecentActionEvents: () => mockRecentActionEvents,
-  stopAction: vi.fn(),
-  restartAction: vi.fn(),
-  selectAction: vi.fn(),
+  stopAction: (id: string) => mockStopAction(id),
+  restartAction: (action: unknown) => mockRestartAction(action),
+  selectAction: (id: string) => mockSelectAction(id),
 }));
 
 vi.mock('@/stores/i18nStore', () => ({
-  t: (key: string, vars?: Record<string, number>) => {
+  t: (key: string, vars?: Record<string, string | number>) => {
+    if (key === 'status.idle') return 'Idle';
+    if (key === 'status.running_count') return `${vars?.count ?? 0} running`;
+    if (key === 'status.permission_needed') return 'Permission needed';
+    if (key === 'status.cli_not_found') return 'CLI not found';
+    if (key === 'statusBar.tokens') return `${vars?.value ?? '\u2013'} tokens`;
+    if (key === 'statusBar.costBreakdown') return 'Cost breakdown';
+    if (key === 'statusBar.sessionCost') return 'Session cost';
+    if (key === 'statusBar.todayCost') return 'Today';
+    if (key === 'statusBar.weekCost') return 'This week';
+    if (key === 'statusBar.runningAggregate') return 'Running total';
+    if (key === 'statusBar.runningSessions') return 'Running sessions';
+    if (key === 'statusBar.noRunningSessions') return 'No running sessions';
     if (key === 'statusBar.exportDiagnostics') return 'Export Diagnostics';
-    if (key === 'statusBar.cliNotFound') return 'CLI not found';
+    if (key === 'statusBar.recent') return 'Recent';
+    if (key === 'statusBar.running') return 'Running';
     if (key === 'statusBar.dev') return 'DEV';
     if (key === 'statusBar.yolo') return 'YOLO';
-    if (key === 'statusBar.taskProgress') return 'Task progress';
-    if (key === 'statusBar.nActive' && vars?.n != null) return `${vars.n} active`;
+    if (key === 'common.stop') return 'Stop';
+    if (key === 'common.retry') return 'Retry';
     return key;
   },
 }));
@@ -102,8 +135,8 @@ function makeSession(overrides?: Partial<Session>): Session {
     total_input_tokens: 2000,
     total_output_tokens: 1000,
     total_cost_cents: 123,
-    created_at: null,
-    updated_at: null,
+    created_at: '2026-02-28T12:00:00.000Z',
+    updated_at: '2026-02-28T12:00:00.000Z',
     cli_session_id: null,
     pinned: false,
     ...overrides,
@@ -114,6 +147,8 @@ describe('StatusBar', () => {
   beforeEach(() => {
     mockYoloMode = false;
     mockDeveloperMode = false;
+    mockPermissionRequest = null;
+    mockStatusCostPopoverVisible = false;
     mockCliDetected = true;
     mockProcessStatus = 'not_started';
     mockSessionStatuses = { s1: 'not_started' };
@@ -123,47 +158,54 @@ describe('StatusBar', () => {
     mockRecentActionEvents = [];
     mockMessages = [];
     mockOpenExportDialog.mockClear();
+    mockSetActiveSession.mockClear();
+    mockSelectAction.mockClear();
+    mockStopAction.mockClear();
+    mockRestartAction.mockClear();
   });
 
-  it('renders status footer with token and cost displays', () => {
+  it('renders 3-zone summary: status, tokens, and session cost', () => {
     render(() => <StatusBar />);
     expect(document.querySelector('footer[role="status"]')).toBeTruthy();
+    expect(screen.getByText('Idle')).toBeInTheDocument();
+    expect(screen.getByText('3.0K tokens')).toBeInTheDocument();
     expect(screen.getByText('$1.23')).toBeInTheDocument();
-    expect(screen.getByText(/2\.0K \/ 1\.0K/)).toBeInTheDocument();
   });
 
-  it('clicking export button opens diagnostics dialog', () => {
-    render(() => <StatusBar />);
-    fireEvent.click(screen.getByRole('button', { name: 'Export Diagnostics' }));
-    expect(mockOpenExportDialog).toHaveBeenCalled();
-  });
-
-  it('shows CLI-not-found status when CLI is unavailable', () => {
+  it('shows CLI-not-found state in status pill', () => {
     mockCliDetected = false;
     render(() => <StatusBar />);
     expect(screen.getByText('CLI not found')).toBeInTheDocument();
   });
 
-  it('shows DEV badge when developer mode is enabled', () => {
-    mockDeveloperMode = true;
+  it('shows YOLO prefix in left status zone', () => {
+    mockYoloMode = true;
     render(() => <StatusBar />);
-    expect(screen.getByText('DEV')).toBeInTheDocument();
+    expect(screen.getByText(/YOLO ·/)).toBeInTheDocument();
   });
 
-  it('shows YOLO badge and aggregate running cost for multiple running sessions', () => {
-    mockYoloMode = true;
-    mockDeveloperMode = true;
+  it('opens cost breakdown popover and exports diagnostics', () => {
+    mockStatusCostPopoverVisible = true;
+    render(() => <StatusBar />);
+    expect(screen.getByText('Session cost')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Export Diagnostics' }));
+    expect(mockOpenExportDialog).toHaveBeenCalled();
+  });
+
+  it('shows running count and running aggregate cost when multiple sessions are active', () => {
     mockSessions = [
       makeSession({ id: 's1', total_cost_cents: 100 }),
-      makeSession({ id: 's2', total_cost_cents: 250 }),
+      makeSession({ id: 's2', total_cost_cents: 250, title: 'Second session' }),
     ];
-    mockActiveSessionId = 's1';
     mockSessionStatuses = { s1: 'running', s2: 'running' };
+    mockProcessStatus = 'running';
+    mockActiveSessionId = 's1';
+    mockStatusCostPopoverVisible = true;
 
     render(() => <StatusBar />);
-    expect(screen.getByText('YOLO')).toBeInTheDocument();
-    expect(screen.queryByText('DEV')).toBeNull();
-    expect(screen.getByText(/∑ \$3\.50/)).toBeInTheDocument();
+    expect(screen.getByText('2 running')).toBeInTheDocument();
+    expect(screen.getByText('Running total')).toBeInTheDocument();
+    expect(screen.getAllByText('$3.50').length).toBeGreaterThan(0);
   });
 
   function makeTodoMsg(
@@ -187,62 +229,19 @@ describe('StatusBar', () => {
     };
   }
 
-  it('shows task badge "✓ 1/3" when process is running and TodoWrite messages exist', () => {
+  it('opens status popover with running sessions and todo progress', () => {
     mockProcessStatus = 'running';
+    mockSessionStatuses = { s1: 'running' };
     mockMessages = [
       makeTodoMsg([
         { content: 'Fix bug', status: 'completed', activeForm: 'Fixing' },
         { content: 'Run tests', status: 'in_progress', activeForm: 'Running' },
-        { content: 'Update docs', status: 'pending', activeForm: 'Updating' },
       ]),
     ];
-    render(() => <StatusBar />);
-    expect(screen.getByText('✓ 1/3')).toBeInTheDocument();
-  });
 
-  it('does not show task badge when process is not running', () => {
-    mockProcessStatus = 'not_started';
-    mockMessages = [
-      makeTodoMsg([{ content: 'Fix bug', status: 'completed', activeForm: 'Fixing' }]),
-    ];
     render(() => <StatusBar />);
-    expect(screen.queryByText(/✓ \d+\/\d+/)).not.toBeInTheDocument();
-  });
-
-  it('does not show task badge when no TodoWrite messages exist', () => {
-    mockProcessStatus = 'running';
-    mockMessages = [];
-    render(() => <StatusBar />);
-    expect(screen.queryByText(/✓ \d+\/\d+/)).not.toBeInTheDocument();
-  });
-
-  it('shows "✓ 3/3" badge when all tasks completed and process running', () => {
-    mockProcessStatus = 'running';
-    mockMessages = [
-      makeTodoMsg([
-        { content: 'Step 1', status: 'completed', activeForm: 'Doing 1' },
-        { content: 'Step 2', status: 'completed', activeForm: 'Doing 2' },
-        { content: 'Step 3', status: 'completed', activeForm: 'Doing 3' },
-      ]),
-    ];
-    render(() => <StatusBar />);
-    expect(screen.getByText('✓ 3/3')).toBeInTheDocument();
-  });
-
-  it('uses the LAST TodoWrite message when multiple exist', () => {
-    mockProcessStatus = 'running';
-    mockMessages = [
-      makeTodoMsg([
-        { content: 'Task A', status: 'pending', activeForm: 'Doing A' },
-        { content: 'Task B', status: 'pending', activeForm: 'Doing B' },
-      ]),
-      makeTodoMsg([
-        { content: 'Task A', status: 'completed', activeForm: 'Did A' },
-        { content: 'Task B', status: 'pending', activeForm: 'Doing B' },
-      ]),
-    ];
-    render(() => <StatusBar />);
+    fireEvent.click(screen.getByRole('button', { name: '1 running' }));
+    expect(screen.getByText('Running sessions')).toBeInTheDocument();
     expect(screen.getByText('✓ 1/2')).toBeInTheDocument();
-    expect(screen.queryByText('✓ 0/2')).not.toBeInTheDocument();
   });
 });

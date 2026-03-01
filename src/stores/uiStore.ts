@@ -38,6 +38,7 @@ interface UIState {
   sessionSwitcherVisible: boolean;
   keyboardHelpVisible: boolean;
   messageSearchVisible: boolean;
+  statusCostPopoverVisible: boolean;
 }
 
 /** Restore persisted permission tier from localStorage. */
@@ -79,6 +80,7 @@ const [state, setState] = createStore<UIState>({
   sessionSwitcherVisible: false,
   keyboardHelpVisible: false,
   messageSearchVisible: false,
+  statusCostPopoverVisible: false,
 });
 
 // Sync persisted tier to backend on startup
@@ -276,6 +278,21 @@ export function openMessageSearch() {
 /** Close in-session conversation search overlay. */
 export function closeMessageSearch() {
   setState('messageSearchVisible', false);
+}
+
+/** Toggle the status-bar cost popover. */
+export function toggleStatusCostPopover() {
+  setState('statusCostPopoverVisible', (prev) => !prev);
+}
+
+/** Open the status-bar cost popover. */
+export function openStatusCostPopover() {
+  setState('statusCostPopoverVisible', true);
+}
+
+/** Close the status-bar cost popover. */
+export function closeStatusCostPopover() {
+  setState('statusCostPopoverVisible', false);
 }
 
 /** Close the keyboard shortcuts help overlay. */
