@@ -60,7 +60,7 @@ const SessionResumeCard: Component<SessionResumeCardProps> = (props) => {
           onMouseLeave={(e) => {
             e.currentTarget.style.color = 'var(--color-text-tertiary)';
           }}
-          onClick={props.onDismiss}
+          onClick={() => props.onDismiss()}
           aria-label="Dismiss resume card"
           title="Dismiss"
         >
@@ -139,7 +139,7 @@ const SessionResumeCard: Component<SessionResumeCardProps> = (props) => {
           onMouseLeave={(e) => {
             e.currentTarget.style.opacity = '1';
           }}
-          onClick={props.onContinue}
+          onClick={() => props.onContinue()}
         >
           Continue ▸
         </button>

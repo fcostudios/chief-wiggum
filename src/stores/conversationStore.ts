@@ -21,6 +21,7 @@ import {
   updateSessionCliId,
   getActiveSession,
   refreshSessionById,
+  touchSessionActivity,
 } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
@@ -137,6 +138,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       token_count: number | null;
     }>('message:chunk', (event) => {
       if (event.payload.session_id !== sessionId) return;
+      touchSessionActivity(sessionId);
       // Always update per-session status
       setSessionStatus(sessionId, 'running');
       // Only update UI state if this is the active session
@@ -164,6 +166,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
     }>('message:complete', (event) => {
       if (event.payload.session_id !== sessionId) return;
+      touchSessionActivity(sessionId);
 
       const p = event.payload;
 
@@ -485,6 +488,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       tool_input: string;
     }>('tool:use', (event) => {
       if (event.payload.session_id !== sessionId) return;
+      touchSessionActivity(sessionId);
       const { tool_use_id, tool_name, tool_input } = event.payload;
       const msgId = crypto.randomUUID();
       const content = JSON.stringify({ tool_name, tool_input, tool_use_id });
@@ -531,6 +535,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       is_error: boolean;
     }>('tool:result', (event) => {
       if (event.payload.session_id !== sessionId) return;
+      touchSessionActivity(sessionId);
       const { tool_use_id, content: resultContent, is_error } = event.payload;
       const msgId = crypto.randomUUID();
       const content = JSON.stringify({ tool_use_id, content: resultContent, is_error });
@@ -612,6 +617,7 @@ export async function sendMessage(
   sessionId: string,
   images: PromptImageInput[] = [],
 ): Promise<void> {
+  touchSessionActivity(sessionId);
   clearSessionUnread(sessionId);
   const msgId = crypto.randomUUID();
   const userMsg: Message = {

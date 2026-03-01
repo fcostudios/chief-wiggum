@@ -15,13 +15,29 @@ interface SessionState {
   sessions: Session[];
   activeSessionId: string | null;
   isLoading: boolean;
+  /** Resume card dismiss state (in-memory, per inactivity gap). */
+  dismissedResumeSessions: Set<string>;
+  /** Last meaningful activity timestamp per session. */
+  sessionLastActiveAt: Record<string, number>;
 }
 
 const [state, setState] = createStore<SessionState>({
   sessions: [],
   activeSessionId: null,
   isLoading: false,
+  dismissedResumeSessions: new Set(),
+  sessionLastActiveAt: {},
 });
+
+const RESUME_THRESHOLD_MS = 5 * 60 * 1000;
+
+function sessionTimestampMs(session: Session | undefined): number | null {
+  if (!session) return null;
+  const raw = session.updated_at ?? session.created_at;
+  if (!raw) return null;
+  const parsed = Date.parse(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 /** Load all sessions from the database. Called on app start. */
 export async function loadSessions(): Promise<void> {
@@ -29,6 +45,16 @@ export async function loadSessions(): Promise<void> {
   try {
     const sessions = await invoke<Session[]>('list_all_sessions');
     setState('sessions', sessions);
+    setState('sessionLastActiveAt', (prev) => {
+      const next = { ...prev };
+      for (const session of sessions) {
+        const ts = sessionTimestampMs(session);
+        if (ts != null && next[session.id] == null) {
+          next[session.id] = ts;
+        }
+      }
+      return next;
+    });
     ensureMainPaneSession(sessions[0]?.id ?? null);
   } finally {
     setState('isLoading', false);
@@ -43,6 +69,7 @@ export async function createNewSession(model: string, projectId?: string): Promi
   });
   setState('sessions', (prev) => [session, ...prev]);
   setState('activeSessionId', session.id);
+  setState('sessionLastActiveAt', session.id, Date.now());
   bindActiveSessionToFocusedPane(session.id);
   return session;
 }
@@ -57,6 +84,16 @@ export function setActiveSession(sessionId: string): void {
 export async function deleteSession(sessionId: string): Promise<void> {
   await invoke('delete_session', { session_id: sessionId });
   setState('sessions', (prev) => prev.filter((s) => s.id !== sessionId));
+  setState('sessionLastActiveAt', (prev) => {
+    const next = { ...prev };
+    delete next[sessionId];
+    return next;
+  });
+  setState('dismissedResumeSessions', (prev) => {
+    const next = new Set(prev);
+    next.delete(sessionId);
+    return next;
+  });
   if (state.activeSessionId === sessionId) {
     setState('activeSessionId', state.sessions[0]?.id ?? null);
   }
@@ -156,6 +193,44 @@ export async function forkSession(
 /** Check whether a session contains any messages (used for delete confirmation). */
 export async function sessionHasMessages(sessionId: string): Promise<boolean> {
   return invoke<boolean>('session_has_messages', { session_id: sessionId });
+}
+
+/** Mark a session as having user-visible activity now (send/receive/tool events). */
+export function touchSessionActivity(sessionId: string): void {
+  setState('sessionLastActiveAt', sessionId, Date.now());
+  clearDismissed(sessionId);
+}
+
+/** Resolve last activity timestamp for resume card logic. */
+export function getSessionLastActiveAt(sessionId: string): number | null {
+  const direct = state.sessionLastActiveAt[sessionId];
+  if (direct != null) return direct;
+  const fromSession = sessionTimestampMs(state.sessions.find((s) => s.id === sessionId));
+  return fromSession;
+}
+
+/** Return true when a session should show the resume card after inactivity. */
+export function shouldShowResumeCard(sessionId: string, messageCount: number): boolean {
+  if (messageCount === 0) return false;
+  if (state.dismissedResumeSessions.has(sessionId)) return false;
+  const lastActive = getSessionLastActiveAt(sessionId);
+  if (lastActive == null) return false;
+  return Date.now() - lastActive > RESUME_THRESHOLD_MS;
+}
+
+/** Dismiss resume card for current inactivity gap. */
+export function dismissResume(sessionId: string): void {
+  setState('dismissedResumeSessions', (prev) => new Set([...prev, sessionId]));
+}
+
+/** Clear dismissed state once a new activity gap starts. */
+export function clearDismissed(sessionId: string): void {
+  setState('dismissedResumeSessions', (prev) => {
+    if (!prev.has(sessionId)) return prev;
+    const next = new Set(prev);
+    next.delete(sessionId);
+    return next;
+  });
 }
 
 export { state as sessionState };

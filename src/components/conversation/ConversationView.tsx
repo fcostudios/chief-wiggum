@@ -16,7 +16,14 @@ import {
   switchSession,
   typewriter,
 } from '@/stores/conversationStore';
-import { forkSession, setActiveSession, sessionState } from '@/stores/sessionStore';
+import {
+  dismissResume,
+  forkSession,
+  getSessionLastActiveAt,
+  setActiveSession,
+  sessionState,
+  shouldShowResumeCard,
+} from '@/stores/sessionStore';
 import { cliState } from '@/stores/cliStore';
 import { pickAndCreateProject, projectState } from '@/stores/projectStore';
 import { closeMessageSearch, uiState } from '@/stores/uiStore';
@@ -28,8 +35,10 @@ import { ToolResultBlock } from './ToolResultBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { StreamingThinkingBlock } from './StreamingThinkingBlock';
 import { PermissionRecordBlock } from './PermissionRecordBlock';
+import SessionResumeCard from './SessionResumeCard';
 import type { Message } from '@/lib/types';
 import type { SearchMatch } from '@/lib/messageSearch';
+import { extractResumeData } from '@/lib/resumeDetector';
 import { stabilizeStreamingMarkdown } from '@/lib/streamingMarkdown';
 import { t } from '@/stores/i18nStore';
 
@@ -241,6 +250,8 @@ const ConversationView: Component = () => {
   const [showJumpButton, setShowJumpButton] = createSignal(false);
   const [searchMatches, setSearchMatches] = createSignal<SearchMatch[]>([]);
 
+  const activeSessionId = () => sessionState.activeSessionId;
+  const activeSession = () => sessionState.sessions.find((s) => s.id === activeSessionId());
   const messages = () => conversationState.messages;
   const hasActiveTurnLayout = () => conversationState.isLoading || conversationState.isStreaming;
   const hasComplexMessageLayout = () =>
@@ -254,6 +265,36 @@ const ConversationView: Component = () => {
     messages().length >= VIRTUALIZATION_THRESHOLD &&
     !hasActiveTurnLayout() &&
     !hasComplexMessageLayout();
+  const resumeData = () => {
+    const sid = activeSessionId();
+    if (!sid) return null;
+    const msgs = messages();
+    if (!shouldShowResumeCard(sid, msgs.length)) return null;
+    return extractResumeData(msgs);
+  };
+  const resumedAgo = () => {
+    const sid = activeSessionId();
+    if (!sid) return '';
+    const lastActive = getSessionLastActiveAt(sid);
+    if (!lastActive) return '';
+    const diffMs = Math.max(0, Date.now() - lastActive);
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  };
+  const activeProjectName = () => {
+    const pid = projectState.activeProjectId;
+    if (!pid) return undefined;
+    return projectState.projects.find((p) => p.id === pid)?.name;
+  };
+  const sessionCostDisplay = () => {
+    const cents = activeSession()?.total_cost_cents;
+    if (cents == null) return undefined;
+    return `$${(cents / 100).toFixed(2)}`;
+  };
 
   // ── Virtual scroller (active when messages >= threshold) ──
   const virtualizer = createVirtualizer({
@@ -571,6 +612,27 @@ const ConversationView: Component = () => {
           }
         >
           <div class="px-4 py-5 max-w-4xl mx-auto w-full">
+            <Show when={resumeData()}>
+              {(data) => (
+                <SessionResumeCard
+                  resume={data()}
+                  resumedAgo={resumedAgo()}
+                  projectName={activeProjectName()}
+                  costDisplay={sessionCostDisplay()}
+                  onDismiss={() => {
+                    const sid = activeSessionId();
+                    if (!sid) return;
+                    dismissResume(sid);
+                  }}
+                  onContinue={() => {
+                    const input = document.querySelector<HTMLTextAreaElement>(
+                      'textarea[aria-label="Message input"]',
+                    );
+                    input?.focus();
+                  }}
+                />
+              )}
+            </Show>
             <Show
               when={useVirtualization()}
               fallback={

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     updateSessionTitle: vi.fn(() => Promise.resolve()),
     updateSessionCliId: vi.fn(() => Promise.resolve()),
     refreshSessionById: vi.fn(() => Promise.resolve()),
+    touchSessionActivity: vi.fn(),
   },
   project: {
     activeProject: undefined as { id: string; path: string } | undefined,
@@ -30,6 +31,7 @@ vi.mock('@/stores/sessionStore', () => ({
   updateSessionCliId: mocks.session.updateSessionCliId,
   getActiveSession: () => mocks.session.activeSession,
   refreshSessionById: mocks.session.refreshSessionById,
+  touchSessionActivity: mocks.session.touchSessionActivity,
 }));
 
 vi.mock('@/stores/projectStore', () => ({

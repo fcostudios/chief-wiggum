@@ -9,8 +9,10 @@ let mockError: string | null = null;
 let mockThinkingContent = '';
 let mockLastUserMessage = '';
 let mockActiveSessionId: string | null = 'session-1';
+let mockSessions: Array<{ id: string; total_cost_cents: number | null }> = [];
 let mockCliDetected = true;
 let mockActiveProjectId: string | null = null;
+let mockProjects: Array<{ id: string; name: string }> = [];
 let mockTypewriterRendered = '';
 let mockMessageSearchVisible = false;
 
@@ -18,6 +20,11 @@ const mockSendMessage = vi.fn();
 const mockRetryLastMessage = vi.fn();
 const mockPickAndCreateProject = vi.fn(() => Promise.resolve());
 const mockCloseMessageSearch = vi.fn();
+const mockShouldShowResumeCard = vi.fn(
+  (_sessionId: string, _messageCount: number) => false,
+);
+const mockDismissResume = vi.fn((_sessionId: string) => undefined);
+const mockGetSessionLastActiveAt = vi.fn((_sessionId: string) => null as number | null);
 
 vi.mock('@tanstack/solid-virtual', () => ({
   createVirtualizer: () => ({
@@ -64,7 +71,16 @@ vi.mock('@/stores/sessionStore', () => ({
     get activeSessionId() {
       return mockActiveSessionId;
     },
+    get sessions() {
+      return mockSessions;
+    },
   },
+  shouldShowResumeCard: (sessionId: string, messageCount: number) =>
+    mockShouldShowResumeCard(sessionId, messageCount),
+  dismissResume: (sessionId: string) => mockDismissResume(sessionId),
+  getSessionLastActiveAt: (sessionId: string) => mockGetSessionLastActiveAt(sessionId),
+  forkSession: vi.fn(),
+  setActiveSession: vi.fn(),
 }));
 
 vi.mock('@/stores/cliStore', () => ({
@@ -79,6 +95,9 @@ vi.mock('@/stores/projectStore', () => ({
   projectState: {
     get activeProjectId() {
       return mockActiveProjectId;
+    },
+    get projects() {
+      return mockProjects;
     },
   },
   pickAndCreateProject: () => mockPickAndCreateProject(),
@@ -145,14 +164,21 @@ describe('ConversationView', () => {
     mockThinkingContent = '';
     mockLastUserMessage = '';
     mockActiveSessionId = 'session-1';
+    mockSessions = [{ id: 'session-1', total_cost_cents: 123 }];
     mockCliDetected = true;
     mockActiveProjectId = null;
+    mockProjects = [];
     mockTypewriterRendered = '';
     mockMessageSearchVisible = false;
     mockSendMessage.mockClear();
     mockRetryLastMessage.mockClear();
     mockPickAndCreateProject.mockClear();
     mockCloseMessageSearch.mockClear();
+    mockShouldShowResumeCard.mockReset();
+    mockShouldShowResumeCard.mockReturnValue(false);
+    mockDismissResume.mockClear();
+    mockGetSessionLastActiveAt.mockReset();
+    mockGetSessionLastActiveAt.mockReturnValue(null);
     if (!HTMLElement.prototype.scrollTo) {
       Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
         configurable: true,
