@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use crate::actions::bridge::ActionBridgeConfig;
 use crate::actions::event_loop;
-use crate::actions::manager::{ActionBridgeMap, RunningActionInfo};
+use crate::actions::manager::{ActionBridgeMap, ActionRuntimeMetadata, RunningActionInfo};
 use crate::actions::scanner;
 use crate::actions::{ActionCategory, ActionDefinition, ActionSource, CustomActionConfig};
 use crate::AppError;
@@ -36,6 +36,11 @@ pub async fn start_action(
     action_id: String,
     command: String,
     working_dir: String,
+    action_name: Option<String>,
+    project_id: Option<String>,
+    project_name: Option<String>,
+    category: Option<ActionCategory>,
+    is_long_running: Option<bool>,
 ) -> Result<(), AppError> {
     if command.trim().is_empty() {
         return Err(AppError::Validation(
@@ -49,7 +54,15 @@ pub async fn start_action(
         ..Default::default()
     };
 
-    let bridge = action_map.spawn_action(&action_id, config).await?;
+    let metadata = ActionRuntimeMetadata {
+        action_name: action_name.unwrap_or_else(|| action_id.clone()),
+        project_id: project_id.unwrap_or_else(|| "unknown".to_string()),
+        project_name: project_name.unwrap_or_else(|| "Unknown Project".to_string()),
+        category: category.unwrap_or(ActionCategory::Custom),
+        is_long_running: is_long_running.unwrap_or(false),
+    };
+
+    let bridge = action_map.spawn_action(&action_id, config, metadata).await?;
     event_loop::spawn_action_event_loop(app, action_id, bridge, action_map.inner().clone());
 
     Ok(())
@@ -72,6 +85,11 @@ pub async fn restart_action(
     action_id: String,
     command: String,
     working_dir: String,
+    action_name: Option<String>,
+    project_id: Option<String>,
+    project_name: Option<String>,
+    category: Option<ActionCategory>,
+    is_long_running: Option<bool>,
 ) -> Result<(), AppError> {
     let _ = action_map.stop_action(&action_id).await;
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
@@ -82,7 +100,15 @@ pub async fn restart_action(
         ..Default::default()
     };
 
-    let bridge = action_map.spawn_action(&action_id, config).await?;
+    let metadata = ActionRuntimeMetadata {
+        action_name: action_name.unwrap_or_else(|| action_id.clone()),
+        project_id: project_id.unwrap_or_else(|| "unknown".to_string()),
+        project_name: project_name.unwrap_or_else(|| "Unknown Project".to_string()),
+        category: category.unwrap_or(ActionCategory::Custom),
+        is_long_running: is_long_running.unwrap_or(false),
+    };
+
+    let bridge = action_map.spawn_action(&action_id, config, metadata).await?;
     event_loop::spawn_action_event_loop(app, action_id, bridge, action_map.inner().clone());
 
     Ok(())

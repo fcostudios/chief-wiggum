@@ -1,12 +1,14 @@
 //! Manages concurrent action processes per CHI-140.
 //! Modeled after bridge/manager.rs SessionBridgeMap.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
+use std::time::Instant;
 
 use tokio::sync::RwLock;
 
 use super::bridge::{ActionBridge, ActionBridgeConfig, ActionStatus};
+use super::ActionCategory;
 use crate::{AppError, AppResult};
 
 /// Maximum number of concurrent action processes.
@@ -19,17 +21,70 @@ pub struct RunningActionInfo {
     pub status: ActionStatus,
 }
 
+/// Metadata provided at action spawn time for cross-project visibility/history.
+#[derive(Debug, Clone)]
+pub struct ActionRuntimeMetadata {
+    pub action_name: String,
+    pub project_id: String,
+    pub project_name: String,
+    pub category: ActionCategory,
+    pub is_long_running: bool,
+}
+
+impl Default for ActionRuntimeMetadata {
+    fn default() -> Self {
+        Self {
+            action_name: String::new(),
+            project_id: String::new(),
+            project_name: String::new(),
+            category: ActionCategory::Custom,
+            is_long_running: false,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct ActionRuntime {
+    bridge: Arc<ActionBridge>,
+    command: String,
+    working_dir: String,
+    action_name: String,
+    project_id: String,
+    project_name: String,
+    category: ActionCategory,
+    is_long_running: bool,
+    started_at: Instant,
+    last_output_line: Option<String>,
+    output_tail: VecDeque<String>,
+}
+
+/// Snapshot of action runtime metadata for event loop persistence.
+#[derive(Debug, Clone)]
+pub struct ActionRuntimeSnapshot {
+    pub action_id: String,
+    pub command: String,
+    pub working_dir: String,
+    pub action_name: String,
+    pub project_id: String,
+    pub project_name: String,
+    pub category: ActionCategory,
+    pub is_long_running: bool,
+    pub started_at: Instant,
+    pub last_output_line: Option<String>,
+    pub output_tail: Vec<String>,
+}
+
 /// Tracks concurrent action processes.
 #[derive(Clone)]
 pub struct ActionBridgeMap {
-    bridges: Arc<RwLock<HashMap<String, Arc<ActionBridge>>>>,
+    runtimes: Arc<RwLock<HashMap<String, ActionRuntime>>>,
     max_concurrent: usize,
 }
 
 impl ActionBridgeMap {
     pub fn new() -> Self {
         Self {
-            bridges: Arc::new(RwLock::new(HashMap::new())),
+            runtimes: Arc::new(RwLock::new(HashMap::new())),
             max_concurrent: DEFAULT_MAX_ACTIONS,
         }
     }
@@ -39,6 +94,7 @@ impl ActionBridgeMap {
         &self,
         action_id: &str,
         config: ActionBridgeConfig,
+        metadata: ActionRuntimeMetadata,
     ) -> AppResult<Arc<ActionBridge>> {
         if self.has(action_id).await {
             self.stop_action(action_id).await?;
@@ -52,29 +108,104 @@ impl ActionBridgeMap {
             });
         }
 
-        let bridge = Arc::new(ActionBridge::spawn(config)?);
-        let mut bridges = self.bridges.write().await;
-        bridges.insert(action_id.to_string(), bridge.clone());
+        let action_name = if metadata.action_name.trim().is_empty() {
+            action_id.to_string()
+        } else {
+            metadata.action_name
+        };
+        let project_id = if metadata.project_id.trim().is_empty() {
+            "unknown".to_string()
+        } else {
+            metadata.project_id
+        };
+        let project_name = if metadata.project_name.trim().is_empty() {
+            "Unknown Project".to_string()
+        } else {
+            metadata.project_name
+        };
+
+        let bridge = Arc::new(ActionBridge::spawn(config.clone())?);
+        let runtime = ActionRuntime {
+            bridge: bridge.clone(),
+            command: config.command,
+            working_dir: config.working_dir,
+            action_name,
+            project_id,
+            project_name,
+            category: metadata.category,
+            is_long_running: metadata.is_long_running,
+            started_at: Instant::now(),
+            last_output_line: None,
+            output_tail: VecDeque::with_capacity(3),
+        };
+
+        let mut runtimes = self.runtimes.write().await;
+        runtimes.insert(action_id.to_string(), runtime);
         Ok(bridge)
     }
 
     /// Get a bridge by action ID.
     pub async fn get(&self, action_id: &str) -> Option<Arc<ActionBridge>> {
-        let bridges = self.bridges.read().await;
-        bridges.get(action_id).cloned()
+        let runtimes = self.runtimes.read().await;
+        runtimes.get(action_id).map(|runtime| runtime.bridge.clone())
     }
 
     /// Check if an action is tracked.
     pub async fn has(&self, action_id: &str) -> bool {
-        let bridges = self.bridges.read().await;
-        bridges.contains_key(action_id)
+        let runtimes = self.runtimes.read().await;
+        runtimes.contains_key(action_id)
+    }
+
+    /// Update last output lines for an action. Keeps a ring buffer of the last 3 non-error lines.
+    pub async fn update_output_line(&self, action_id: &str, line: &str, is_error: bool) {
+        if is_error {
+            return;
+        }
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            return;
+        }
+
+        let mut runtimes = self.runtimes.write().await;
+        if let Some(runtime) = runtimes.get_mut(action_id) {
+            runtime.last_output_line = Some(trimmed.to_string());
+            if runtime.output_tail.len() >= 3 {
+                runtime.output_tail.pop_front();
+            }
+            runtime.output_tail.push_back(trimmed.to_string());
+        }
+    }
+
+    /// Read a snapshot of action runtime metadata.
+    pub async fn snapshot(&self, action_id: &str) -> Option<ActionRuntimeSnapshot> {
+        let runtimes = self.runtimes.read().await;
+        let runtime = runtimes.get(action_id)?;
+        Some(ActionRuntimeSnapshot {
+            action_id: action_id.to_string(),
+            command: runtime.command.clone(),
+            working_dir: runtime.working_dir.clone(),
+            action_name: runtime.action_name.clone(),
+            project_id: runtime.project_id.clone(),
+            project_name: runtime.project_name.clone(),
+            category: runtime.category.clone(),
+            is_long_running: runtime.is_long_running,
+            started_at: runtime.started_at,
+            last_output_line: runtime.last_output_line.clone(),
+            output_tail: runtime.output_tail.iter().cloned().collect(),
+        })
+    }
+
+    /// Remove runtime without sending stop signal to the bridge (used after process exit).
+    pub async fn remove_runtime(&self, action_id: &str) {
+        let mut runtimes = self.runtimes.write().await;
+        runtimes.remove(action_id);
     }
 
     /// Stop a specific action.
     pub async fn stop_action(&self, action_id: &str) -> AppResult<()> {
         let bridge = {
-            let mut bridges = self.bridges.write().await;
-            bridges.remove(action_id)
+            let mut runtimes = self.runtimes.write().await;
+            runtimes.remove(action_id).map(|runtime| runtime.bridge)
         };
         if let Some(bridge) = bridge {
             bridge.stop().await?;
@@ -84,17 +215,17 @@ impl ActionBridgeMap {
 
     /// Count active actions.
     pub async fn active_count(&self) -> usize {
-        let bridges = self.bridges.read().await;
-        bridges.len()
+        let runtimes = self.runtimes.read().await;
+        runtimes.len()
     }
 
     /// List all running actions.
     pub async fn list_running(&self) -> Vec<RunningActionInfo> {
         let entries: Vec<(String, Arc<ActionBridge>)> = {
-            let bridges = self.bridges.read().await;
-            bridges
+            let runtimes = self.runtimes.read().await;
+            runtimes
                 .iter()
-                .map(|(id, bridge)| (id.clone(), bridge.clone()))
+                .map(|(id, runtime)| (id.clone(), runtime.bridge.clone()))
                 .collect()
         };
 
@@ -111,8 +242,10 @@ impl ActionBridgeMap {
     /// Stop all actions (app shutdown).
     pub async fn shutdown_all(&self) -> AppResult<()> {
         let bridges: Vec<(String, Arc<ActionBridge>)> = {
-            let mut map = self.bridges.write().await;
-            map.drain().collect()
+            let mut map = self.runtimes.write().await;
+            map.drain()
+                .map(|(id, runtime)| (id, runtime.bridge))
+                .collect()
         };
         for (id, bridge) in bridges {
             if let Err(e) = bridge.stop().await {
@@ -160,7 +293,7 @@ mod tests {
             working_dir: temp_workdir(),
             ..Default::default()
         };
-        map.spawn_action("test:1", config)
+        map.spawn_action("test:1", config, ActionRuntimeMetadata::default())
             .await
             .expect("spawn action");
         assert!(map.has("test:1").await);
@@ -188,7 +321,7 @@ mod tests {
             working_dir: temp_workdir(),
             ..Default::default()
         };
-        map.spawn_action("test:1", config)
+        map.spawn_action("test:1", config, ActionRuntimeMetadata::default())
             .await
             .expect("spawn action");
         map.stop_action("test:1").await.expect("stop action");
@@ -211,7 +344,11 @@ mod tests {
                 working_dir: temp_workdir(),
                 ..Default::default()
             };
-            map.spawn_action(&format!("test:{}", i), config)
+            map.spawn_action(
+                &format!("test:{}", i),
+                config,
+                ActionRuntimeMetadata::default(),
+            )
                 .await
                 .expect("spawn action");
         }

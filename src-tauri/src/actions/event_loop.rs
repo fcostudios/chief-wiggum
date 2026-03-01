@@ -35,6 +35,10 @@ pub fn spawn_action_event_loop(
         loop {
             match bridge.receive().await {
                 Ok(Some(ActionBridgeOutput::Output(output))) => {
+                    action_map
+                        .update_output_line(&action_id, &output.line, output.is_error)
+                        .await;
+
                     let payload = ActionOutputPayload {
                         action_id: action_id.clone(),
                         line: output.line,
@@ -66,11 +70,11 @@ pub fn spawn_action_event_loop(
                         );
                     }
 
-                    let _ = action_map.stop_action(&action_id).await;
+                    action_map.remove_runtime(&action_id).await;
                     break;
                 }
                 Ok(None) => {
-                    let _ = action_map.stop_action(&action_id).await;
+                    action_map.remove_runtime(&action_id).await;
                     break;
                 }
                 Err(e) => {
@@ -79,7 +83,7 @@ pub fn spawn_action_event_loop(
                         error = %e,
                         "Error reading action output"
                     );
-                    let _ = action_map.stop_action(&action_id).await;
+                    action_map.remove_runtime(&action_id).await;
                     break;
                 }
             }
