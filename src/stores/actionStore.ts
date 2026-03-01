@@ -15,6 +15,7 @@ import type {
 } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
+import { getActiveProject } from '@/stores/projectStore';
 
 const log = createLogger('ui/actions');
 
@@ -80,10 +81,16 @@ export async function startAction(action: ActionDefinition): Promise<void> {
   setState('selectedActionId', action.id);
 
   try {
+    const activeProject = getActiveProject();
     await invoke('start_action', {
       action_id: action.id,
       command: action.command,
       working_dir: action.working_dir,
+      action_name: action.name,
+      project_id: activeProject?.id ?? 'unknown',
+      project_name: activeProject?.name ?? 'Unknown Project',
+      category: action.category,
+      is_long_running: action.is_long_running,
     });
     setState('statuses', action.id, 'running');
     actionRunStartedAt.set(action.id, Date.now());
@@ -113,10 +120,16 @@ export async function restartAction(action: ActionDefinition): Promise<void> {
   setState('selectedActionId', action.id);
 
   try {
+    const activeProject = getActiveProject();
     await invoke('restart_action', {
       action_id: action.id,
       command: action.command,
       working_dir: action.working_dir,
+      action_name: action.name,
+      project_id: activeProject?.id ?? 'unknown',
+      project_name: activeProject?.name ?? 'Unknown Project',
+      category: action.category,
+      is_long_running: action.is_long_running,
     });
     setState('statuses', action.id, 'running');
     actionRunStartedAt.set(action.id, Date.now());
