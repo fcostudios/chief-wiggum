@@ -28,6 +28,7 @@ describe('extractResumeData', () => {
     const long = 'A'.repeat(150);
     const result = extractResumeData([makeMsg('user', 'hi'), makeMsg('assistant', long)]);
     expect(result?.lastMessagePreview).toHaveLength(100);
+    expect(result?.lastMessageFull).toBe(long);
   });
 
   it('extracts files touched from tool_use write_file blocks', () => {

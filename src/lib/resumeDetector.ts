@@ -2,6 +2,7 @@ import type { Message } from './types';
 
 export interface SessionResume {
   lastMessagePreview: string;
+  lastMessageFull: string;
   filesTouched: string[];
   openTodos: string[];
   lastTool: string | null;
@@ -22,10 +23,14 @@ export function extractResumeData(messages: Message[]): SessionResume | null {
   if (!hasAssistant) return null;
 
   let lastMessagePreview = '';
+  let lastMessageFull = '';
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
     if (msg.role === 'assistant') {
-      lastMessagePreview = msg.content.slice(0, 100);
+      const normalized = msg.content.trim();
+      if (!normalized) continue;
+      lastMessageFull = normalized;
+      lastMessagePreview = normalized.slice(0, 100);
       break;
     }
   }
@@ -82,6 +87,7 @@ export function extractResumeData(messages: Message[]): SessionResume | null {
 
   return {
     lastMessagePreview,
+    lastMessageFull,
     filesTouched,
     openTodos,
     lastTool,

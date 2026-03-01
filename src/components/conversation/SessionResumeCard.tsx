@@ -87,7 +87,7 @@ const SessionResumeCard: Component<SessionResumeCardProps> = (props) => {
               </button>
             }
           >
-            <span class="italic">"{props.resume.lastMessagePreview}"</span>
+            <span class="italic">"{props.resume.lastMessageFull}"</span>
           </Show>
         </div>
 

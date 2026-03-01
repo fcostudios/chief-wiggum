@@ -4,6 +4,7 @@ import SessionResumeCard from './SessionResumeCard';
 
 const baseResume = {
   lastMessagePreview: 'Added JWT refresh token logic',
+  lastMessageFull: 'Added JWT refresh token logic and updated refresh handling in auth flow.',
   filesTouched: ['src/auth/service.ts', 'src/auth/types.ts'],
   openTodos: ['Write tests', 'Update docs'],
   lastTool: 'Write',
@@ -72,5 +73,19 @@ describe('SessionResumeCard', () => {
     ));
     screen.getByRole('button', { name: /Continue/i }).click();
     expect(onContinue).toHaveBeenCalledOnce();
+  });
+
+  it('shows full assistant message after expanding summary', () => {
+    render(() => (
+      <SessionResumeCard
+        resume={baseResume}
+        resumedAgo="3 hours ago"
+        onDismiss={() => {}}
+        onContinue={() => {}}
+      />
+    ));
+
+    screen.getByRole('button', { name: /Show full summary/i }).click();
+    expect(screen.getByText(/updated refresh handling in auth flow/i)).toBeInTheDocument();
   });
 });
