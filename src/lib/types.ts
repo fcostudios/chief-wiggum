@@ -412,6 +412,33 @@ export interface FileSuggestion {
   estimated_tokens: number;
 }
 
+// ── Artifacts (CHI-225) ──────────────────────────────────
+
+/** A code/diagram/plan block extracted from a session message. */
+export interface Artifact {
+  id: string;
+  session_id: string;
+  message_id: string;
+  message_index: number;
+  block_index: number;
+  type: 'code' | 'file' | 'plan' | 'diagram' | 'data';
+  language: string | null;
+  title: string;
+  preview: string;
+  content: string;
+  line_count: number;
+  created_at: number;
+}
+
+/** Aggregate session statistics for the History tab. */
+export interface SessionSummary {
+  message_count: number;
+  tool_count: number;
+  artifact_count: number;
+  duration_secs: number;
+  models_used: string[];
+}
+
 // ── Settings (CHI-122) ──────────────────────────────────
 
 /** User settings persisted to JSON (mirrors Rust UserSettings). */
