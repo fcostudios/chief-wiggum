@@ -590,6 +590,137 @@ pub fn get_action_history(
     })
 }
 
+/// Insert an artifact, silently ignoring duplicate (message_id, block_index) pairs.
+#[allow(clippy::too_many_arguments)]
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db, preview, content))]
+pub fn insert_artifact_or_ignore(
+    db: &Database,
+    id: &str,
+    session_id: &str,
+    message_id: &str,
+    message_index: i64,
+    block_index: i64,
+    artifact_type: &str,
+    language: Option<&str>,
+    title: &str,
+    preview: &str,
+    content: &str,
+    line_count: i64,
+    created_at: i64,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "INSERT OR IGNORE INTO artifacts
+             (id, session_id, message_id, message_index, block_index,
+              type, language, title, preview, content, line_count, created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+            rusqlite::params![
+                id,
+                session_id,
+                message_id,
+                message_index,
+                block_index,
+                artifact_type,
+                language,
+                title,
+                preview,
+                content,
+                line_count,
+                created_at
+            ],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_session_artifacts(db: &Database, session_id: &str) -> Result<Vec<ArtifactRow>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, message_id, message_index, block_index,
+                    type, language, title, preview, content, line_count, created_at
+             FROM artifacts
+             WHERE session_id = ?1
+             ORDER BY created_at ASC",
+        )?;
+        let rows = stmt
+            .query_map(rusqlite::params![session_id], |row| {
+                Ok(ArtifactRow {
+                    id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    message_id: row.get(2)?,
+                    message_index: row.get(3)?,
+                    block_index: row.get(4)?,
+                    r#type: row.get(5)?,
+                    language: row.get(6)?,
+                    title: row.get(7)?,
+                    preview: row.get(8)?,
+                    content: row.get(9)?,
+                    line_count: row.get(10)?,
+                    created_at: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })
+}
+
+/// Compute aggregate session stats for the History tab.
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn query_session_summary(db: &Database, session_id: &str) -> Result<SessionSummaryRow, AppError> {
+    db.with_conn(|conn| {
+        let message_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM messages WHERE session_id = ?1
+             AND role NOT IN ('tool_use','tool_result','thinking','permission')",
+            rusqlite::params![session_id],
+            |r| r.get(0),
+        )?;
+
+        let tool_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM messages
+             WHERE session_id = ?1 AND role = 'tool_use'",
+            rusqlite::params![session_id],
+            |r| r.get(0),
+        )?;
+
+        let artifact_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM artifacts WHERE session_id = ?1",
+            rusqlite::params![session_id],
+            |r| r.get(0),
+        )?;
+
+        // Duration in seconds between session created_at and updated_at
+        let duration_secs: i64 = conn
+            .query_row(
+                "SELECT COALESCE(
+                    CAST((julianday(updated_at) - julianday(created_at)) * 86400 AS INTEGER),
+                    0
+                 )
+                 FROM sessions WHERE id = ?1",
+                rusqlite::params![session_id],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+
+        // Distinct non-null models used in this session
+        let mut stmt = conn.prepare(
+            "SELECT DISTINCT model FROM messages
+             WHERE session_id = ?1 AND model IS NOT NULL",
+        )?;
+        let models_used: Vec<String> = stmt
+            .query_map(rusqlite::params![session_id], |r| r.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(SessionSummaryRow {
+            message_count,
+            tool_count,
+            artifact_count,
+            duration_secs,
+            models_used,
+        })
+    })
+}
+
 // ── Row types ──────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -634,6 +765,33 @@ pub struct MessageRow {
     pub cost_cents: Option<i64>,
     pub is_compacted: Option<bool>,
     pub created_at: Option<String>,
+}
+
+/// A persisted code/file/diagram artifact extracted from a session message.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArtifactRow {
+    pub id: String,
+    pub session_id: String,
+    pub message_id: String,
+    pub message_index: i64,
+    pub block_index: i64,
+    pub r#type: String,
+    pub language: Option<String>,
+    pub title: String,
+    pub preview: String,
+    pub content: String,
+    pub line_count: i64,
+    pub created_at: i64,
+}
+
+/// Aggregate session summary for the History tab (CHI-225).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionSummaryRow {
+    pub message_count: i64,
+    pub tool_count: i64,
+    pub artifact_count: i64,
+    pub duration_secs: i64,
+    pub models_used: Vec<String>,
 }
 
 #[cfg(test)]
@@ -1052,5 +1210,142 @@ mod tests {
 
         let rows = get_action_history(&db, "p1", 2).unwrap();
         assert_eq!(rows.len(), 2);
+    }
+}
+
+#[cfg(test)]
+mod artifact_tests {
+    use super::*;
+
+    fn test_db() -> Database {
+        Database::open_in_memory().expect("open in-memory db")
+    }
+
+    #[test]
+    fn insert_artifact_and_retrieve() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        insert_artifact_or_ignore(
+            &db,
+            "a1",
+            "s1",
+            "m1",
+            0,
+            0,
+            "code",
+            Some("rust"),
+            "Rust block #1",
+            "fn main() {",
+            "fn main() {\n  println!(\"hello\");\n}",
+            2,
+            1000,
+        )
+        .unwrap();
+
+        let artifacts = get_session_artifacts(&db, "s1").unwrap();
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].id, "a1");
+        assert_eq!(artifacts[0].language, Some("rust".to_string()));
+    }
+
+    #[test]
+    fn insert_artifact_ignores_duplicate_message_block() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        insert_artifact_or_ignore(
+            &db,
+            "a1",
+            "s1",
+            "m1",
+            0,
+            0,
+            "code",
+            Some("ts"),
+            "TS block #1",
+            "const x",
+            "const x = 1;",
+            1,
+            1000,
+        )
+        .unwrap();
+        insert_artifact_or_ignore(
+            &db,
+            "a2",
+            "s1",
+            "m1",
+            0,
+            0,
+            "code",
+            Some("ts"),
+            "TS block #1",
+            "const x",
+            "const x = 1;",
+            1,
+            1001,
+        )
+        .unwrap();
+
+        let artifacts = get_session_artifacts(&db, "s1").unwrap();
+        assert_eq!(artifacts.len(), 1, "duplicate should be ignored");
+        assert_eq!(artifacts[0].id, "a1");
+    }
+
+    #[test]
+    fn session_summary_counts_correctly() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        insert_message(&db, "m1", "s1", "user", "hello", None, None, None, None).unwrap();
+        insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "hi",
+            Some("claude-sonnet-4-6"),
+            Some(10),
+            Some(5),
+            Some(1),
+        )
+        .unwrap();
+        insert_message(
+            &db,
+            "m3",
+            "s1",
+            "tool_use",
+            r#"{"tool_name":"Read","tool_input":"{}","tool_use_id":"t1"}"#,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        insert_artifact_or_ignore(
+            &db,
+            "a1",
+            "s1",
+            "m2",
+            1,
+            0,
+            "code",
+            Some("rust"),
+            "Rust block",
+            "fn f",
+            "fn f() {}",
+            1,
+            1000,
+        )
+        .unwrap();
+
+        let summary = query_session_summary(&db, "s1").unwrap();
+        assert_eq!(summary.message_count, 2);
+        assert_eq!(summary.tool_count, 1);
+        assert_eq!(summary.artifact_count, 1);
     }
 }
