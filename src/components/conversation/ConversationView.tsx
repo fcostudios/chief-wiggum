@@ -34,6 +34,7 @@ import { ToolUseBlock } from './ToolUseBlock';
 import { ToolResultBlock } from './ToolResultBlock';
 import { ThinkingBlock } from './ThinkingBlock';
 import { StreamingThinkingBlock } from './StreamingThinkingBlock';
+import { StreamingActivitySection } from './StreamingActivitySection';
 import { PermissionRecordBlock } from './PermissionRecordBlock';
 import SessionResumeCard from './SessionResumeCard';
 import type { Message } from '@/lib/types';
@@ -254,6 +255,30 @@ const ConversationView: Component = () => {
   const activeSession = () => sessionState.sessions.find((s) => s.id === activeSessionId());
   const messages = () => conversationState.messages;
   const hasActiveTurnLayout = () => conversationState.isLoading || conversationState.isStreaming;
+  // Index of the last user message (start of current turn).
+  const currentTurnStartIndex = (): number => {
+    const msgs = messages();
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].role === 'user') return i;
+    }
+    return 0;
+  };
+  // Tool messages that belong to the current active turn (after last user message).
+  const currentTurnToolMessages = () => {
+    if (!hasActiveTurnLayout()) return [];
+    const msgs = messages();
+    const startIdx = currentTurnStartIndex();
+    return msgs
+      .slice(startIdx + 1)
+      .filter((m) => m.role === 'tool_use' || m.role === 'tool_result');
+  };
+  // Messages to show in the main list: all when idle, historical-only during active turn.
+  const displayMessages = () => {
+    if (!hasActiveTurnLayout()) return messages();
+    const msgs = messages();
+    const startIdx = currentTurnStartIndex();
+    return msgs.slice(0, startIdx + 1);
+  };
   const hasComplexMessageLayout = () =>
     messages().some((m) => {
       if (m.role !== 'user' && m.role !== 'assistant') return true;
@@ -262,7 +287,7 @@ const ConversationView: Component = () => {
       return newlineCount > 40;
     });
   const useVirtualization = () =>
-    messages().length >= VIRTUALIZATION_THRESHOLD &&
+    displayMessages().length >= VIRTUALIZATION_THRESHOLD &&
     !hasActiveTurnLayout() &&
     !hasComplexMessageLayout();
   const resumeData = () => {
@@ -299,9 +324,9 @@ const ConversationView: Component = () => {
   // ── Virtual scroller (active when messages >= threshold) ──
   const virtualizer = createVirtualizer({
     get count() {
-      return messages().length;
+      return displayMessages().length;
     },
-    getItemKey: (index) => messages()[index]?.id ?? index,
+    getItemKey: (index) => displayMessages()[index]?.id ?? index,
     getScrollElement: () => scrollRef ?? null,
     estimateSize: () => 120,
     overscan: OVERSCAN,
@@ -342,9 +367,9 @@ const ConversationView: Component = () => {
   // produce incorrect offsets and make newly rendered messages overlap older rows.
   createEffect(() => {
     void sessionState.activeSessionId;
-    const count = messages().length;
-    const firstId = messages()[0]?.id ?? null;
-    const lastId = count > 0 ? messages()[count - 1]?.id : null;
+    const count = displayMessages().length;
+    const firstId = displayMessages()[0]?.id ?? null;
+    const lastId = count > 0 ? displayMessages()[count - 1]?.id : null;
     void firstId;
     void lastId;
 
@@ -376,6 +401,8 @@ const ConversationView: Component = () => {
     void conversationState.isStreaming;
     void conversationState.thinkingContent;
     void typewriter.rendered();
+    void currentTurnToolMessages().length;
+    void displayMessages().length;
     scheduleVirtualMeasure();
   });
 
@@ -388,8 +415,8 @@ const ConversationView: Component = () => {
     // to scroll to the final item, then snap to the true container bottom on
     // the next frame to include streaming/loading blocks rendered after the
     // virtualized list.
-    if (useVirtualization() && messages().length > 0) {
-      const lastIndex = messages().length - 1;
+    if (useVirtualization() && displayMessages().length > 0) {
+      const lastIndex = displayMessages().length - 1;
       virtualizer.measure();
       virtualizer.scrollToIndex(lastIndex, {
         align: 'end',
@@ -444,7 +471,7 @@ const ConversationView: Component = () => {
 
   function scrollToMessage(messageIndex: number): void {
     if (!scrollRef) return;
-    if (messageIndex < 0 || messageIndex >= messages().length) return;
+    if (messageIndex < 0 || messageIndex >= displayMessages().length) return;
 
     if (useVirtualization()) {
       virtualizer.scrollToIndex(messageIndex, { align: 'center', behavior: 'smooth' });
@@ -474,7 +501,7 @@ const ConversationView: Component = () => {
       </Show>
       <div ref={scrollRef} class="h-full overflow-y-auto" onScroll={handleScroll}>
         <Show
-          when={messages().length > 0}
+          when={displayMessages().length > 0}
           fallback={
             <div class="flex flex-col items-center justify-center h-full animate-fade-in">
               <Show
@@ -637,7 +664,7 @@ const ConversationView: Component = () => {
               when={useVirtualization()}
               fallback={
                 <div class="space-y-4">
-                  <For each={messages()}>
+                  <For each={displayMessages()}>
                     {(msg, index) => (
                       <div
                         data-message-index={index()}
@@ -662,7 +689,7 @@ const ConversationView: Component = () => {
               >
                 <For each={virtualizer.getVirtualItems()}>
                   {(virtualItem) => {
-                    const msg = () => messages()[virtualItem.index];
+                    const msg = () => displayMessages()[virtualItem.index];
                     return (
                       <VirtualMessageRow
                         virtualItem={virtualItem}
@@ -675,8 +702,13 @@ const ConversationView: Component = () => {
               </div>
             </Show>
 
+            {/* Current-turn tool activity — only during active turn */}
+            <Show when={hasActiveTurnLayout() && currentTurnToolMessages().length > 0}>
+              <StreamingActivitySection messages={currentTurnToolMessages()} />
+            </Show>
+
             <Show when={conversationState.isStreaming && conversationState.thinkingContent}>
-              <div class="mt-4">
+              <div class="mt-3">
                 <StreamingThinkingBlock content={conversationState.thinkingContent} />
               </div>
             </Show>
