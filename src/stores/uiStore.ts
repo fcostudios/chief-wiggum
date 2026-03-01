@@ -22,9 +22,18 @@ export type SidebarState = 'expanded' | 'collapsed' | 'hidden';
  */
 export type PermissionTier = 'safe' | 'developer' | 'yolo';
 
+const SIDEBAR_WIDTH_KEY = 'cw:sidebarWidth';
+const DETAILS_PANEL_WIDTH_KEY = 'cw:detailsPanelWidth';
+const SIDEBAR_WIDTH_MIN = 200;
+const SIDEBAR_WIDTH_MAX = 420;
+const DETAILS_PANEL_WIDTH_MIN = 220;
+const DETAILS_PANEL_WIDTH_MAX = 520;
+
 interface UIState {
   sidebarState: SidebarState;
+  sidebarWidth: number;
   detailsPanelVisible: boolean;
+  detailsPanelWidth: number;
   settingsVisible: boolean;
   contextBreakdownVisible: boolean;
   activeView: ActiveView;
@@ -62,11 +71,49 @@ function persistTier(tier: PermissionTier): void {
   }
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function loadPersistedWidth(key: string, fallback: number, min: number, max: number): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) return fallback;
+    return clamp(parsed, min, max);
+  } catch {
+    return fallback;
+  }
+}
+
+function persistWidth(key: string, value: number): void {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    // localStorage may be unavailable
+  }
+}
+
 const persisted = loadPersistedTier();
+const persistedSidebarWidth = loadPersistedWidth(
+  SIDEBAR_WIDTH_KEY,
+  240,
+  SIDEBAR_WIDTH_MIN,
+  SIDEBAR_WIDTH_MAX,
+);
+const persistedDetailsPanelWidth = loadPersistedWidth(
+  DETAILS_PANEL_WIDTH_KEY,
+  280,
+  DETAILS_PANEL_WIDTH_MIN,
+  DETAILS_PANEL_WIDTH_MAX,
+);
 
 const [state, setState] = createStore<UIState>({
   sidebarState: 'expanded',
+  sidebarWidth: persistedSidebarWidth,
   detailsPanelVisible: true,
+  detailsPanelWidth: persistedDetailsPanelWidth,
   settingsVisible: false,
   contextBreakdownVisible: false,
   activeView: 'conversation',
@@ -105,8 +152,22 @@ export function isSidebarVisible(): boolean {
   return state.sidebarState !== 'hidden';
 }
 
+/** Set custom sidebar width (expanded mode only), persisted locally. */
+export function setSidebarWidth(width: number): void {
+  const next = clamp(width, SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX);
+  setState('sidebarWidth', next);
+  persistWidth(SIDEBAR_WIDTH_KEY, next);
+}
+
 export function toggleDetailsPanel() {
   setState('detailsPanelVisible', (prev) => !prev);
+}
+
+/** Set custom details panel width, persisted locally. */
+export function setDetailsPanelWidth(width: number): void {
+  const next = clamp(width, DETAILS_PANEL_WIDTH_MIN, DETAILS_PANEL_WIDTH_MAX);
+  setState('detailsPanelWidth', next);
+  persistWidth(DETAILS_PANEL_WIDTH_KEY, next);
 }
 
 /** Open the full-screen settings overlay (Cmd+,). */

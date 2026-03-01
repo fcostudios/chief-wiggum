@@ -134,8 +134,6 @@ const Sidebar: Component = () => {
     );
   };
 
-  const hasFocusedContentSection = () => focusedContentSection() !== null;
-
   onCleanup(() => clearTimeout(debounceTimer));
 
   function ensureActionsDiscovered() {
@@ -417,16 +415,14 @@ const Sidebar: Component = () => {
               <div
                 class="min-h-0"
                 classList={{
-                  'h-[250px]': focusedContentSection() !== 'files',
+                  'max-h-[220px]': focusedContentSection() !== 'files',
                   'flex-1': focusedContentSection() === 'files',
-                  'overflow-hidden': focusedContentSection() !== 'files',
-                  'overflow-y-auto': focusedContentSection() === 'files',
+                  'overflow-y-auto': true,
                 }}
                 style={{
                   'transition-duration': 'var(--duration-normal)',
-                  'scrollbar-gutter': focusedContentSection() === 'files' ? 'stable' : undefined,
-                  'overscroll-behavior':
-                    focusedContentSection() === 'files' ? 'contain' : undefined,
+                  'scrollbar-gutter': 'stable',
+                  'overscroll-behavior': 'contain',
                 }}
               >
                 <FileTree singleScroll={focusedContentSection() === 'files'} />
@@ -492,16 +488,14 @@ const Sidebar: Component = () => {
               <div
                 class="min-h-0"
                 classList={{
-                  'h-[220px]': focusedContentSection() !== 'actions',
+                  'max-h-[220px]': focusedContentSection() !== 'actions',
                   'flex-1': focusedContentSection() === 'actions',
-                  'overflow-hidden': focusedContentSection() !== 'actions',
-                  'overflow-y-auto': focusedContentSection() === 'actions',
+                  'overflow-y-auto': true,
                 }}
                 style={{
                   'transition-duration': 'var(--duration-normal)',
-                  'scrollbar-gutter': focusedContentSection() === 'actions' ? 'stable' : undefined,
-                  'overscroll-behavior':
-                    focusedContentSection() === 'actions' ? 'contain' : undefined,
+                  'scrollbar-gutter': 'stable',
+                  'overscroll-behavior': 'contain',
                 }}
               >
                 <ActionsPanel singleScroll={focusedContentSection() === 'actions'} />
@@ -603,9 +597,7 @@ const Sidebar: Component = () => {
         <div
           class="overflow-y-auto px-1 py-2 min-h-0"
           classList={{
-            'flex-1': !hasFocusedContentSection(),
-            'h-[170px]': hasFocusedContentSection(),
-            'shrink-0': hasFocusedContentSection(),
+            'flex-1': true,
             'px-2': !isCollapsed(),
           }}
         >

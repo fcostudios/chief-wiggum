@@ -3,7 +3,9 @@ import { fireEvent, render, screen } from '@solidjs/testing-library';
 
 let mockActiveView: 'conversation' | 'agents' | 'diff' | 'terminal' = 'conversation';
 let mockSidebarState: 'expanded' | 'collapsed' | 'hidden' = 'expanded';
+let mockSidebarWidth = 240;
 let mockDetailsPanelVisible = true;
+let mockDetailsPanelWidth = 280;
 let mockPermissionRequest: unknown = null;
 let mockYoloDialogVisible = false;
 let mockCommandPaletteVisible = false;
@@ -20,6 +22,12 @@ let mockSessionId: string | null = 'session-1';
 let mockIsLoading = false;
 
 const mockSetActiveView = vi.fn();
+const mockSetSidebarWidth = vi.fn((width: number) => {
+  mockSidebarWidth = width;
+});
+const mockSetDetailsPanelWidth = vi.fn((width: number) => {
+  mockDetailsPanelWidth = width;
+});
 const mockDismissPermissionDialog = vi.fn();
 const mockCloseSessionSwitcher = vi.fn();
 const mockCreateNewSession = vi.fn(() => Promise.resolve({ id: 'session-new' }));
@@ -38,6 +46,12 @@ vi.mock('@/stores/uiStore', () => ({
     },
     get detailsPanelVisible() {
       return mockDetailsPanelVisible;
+    },
+    get sidebarWidth() {
+      return mockSidebarWidth;
+    },
+    get detailsPanelWidth() {
+      return mockDetailsPanelWidth;
     },
     get activeView() {
       return mockActiveView;
@@ -72,6 +86,10 @@ vi.mock('@/stores/uiStore', () => ({
   },
   setActiveView: (...args: unknown[]) =>
     (mockSetActiveView as unknown as (...inner: unknown[]) => unknown)(...args),
+  setSidebarWidth: (...args: unknown[]) =>
+    (mockSetSidebarWidth as unknown as (...inner: unknown[]) => unknown)(...args),
+  setDetailsPanelWidth: (...args: unknown[]) =>
+    (mockSetDetailsPanelWidth as unknown as (...inner: unknown[]) => unknown)(...args),
   dismissPermissionDialog: () => mockDismissPermissionDialog(),
   closeSessionSwitcher: () => mockCloseSessionSwitcher(),
 }));
@@ -171,7 +189,9 @@ describe('MainLayout', () => {
   beforeEach(() => {
     mockActiveView = 'conversation';
     mockSidebarState = 'expanded';
+    mockSidebarWidth = 240;
     mockDetailsPanelVisible = true;
+    mockDetailsPanelWidth = 280;
     mockPermissionRequest = null;
     mockYoloDialogVisible = false;
     mockCommandPaletteVisible = false;
@@ -195,6 +215,12 @@ describe('MainLayout', () => {
     expect(screen.getByTestId('sidebar')).toBeInTheDocument();
     expect(screen.getByTestId('details-panel')).toBeInTheDocument();
     expect(screen.getByTestId('statusbar')).toBeInTheDocument();
+  });
+
+  it('renders resizer handles for expanded sidebar and details panel', () => {
+    render(() => <MainLayout />);
+    expect(screen.getByLabelText('Resize sidebar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Resize details panel')).toBeInTheDocument();
   });
 
   it('renders skip-to-content link and main landmark', () => {

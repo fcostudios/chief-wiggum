@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-02-28T21:05:00Z",
-  "last_updated_by": "claude-code",
+  "last_updated": "2026-03-01T02:58:28Z",
+  "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
     "linear_project_id": "63e009bd-5e43-4575-a7be-2e3b1cface5f",
@@ -2640,6 +2640,34 @@
     }
   },
   "session_work_log": {
+    "2026-03-01_chi229_ux_batch3": {
+      "description": "UX excellence next-batch pass for CHI-229 polish + regressions: added resizable side panes, hardened titlebar model selector interaction, and stabilized sidebar section stacking to prevent actions/sessions overlap.",
+      "changes": [
+        {
+          "task": "Resizable chrome + selector/sidebar regression hardening",
+          "files_modified": [
+            "src/stores/uiStore.ts",
+            "src/stores/uiStore.test.ts",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/MainLayout.test.tsx",
+            "src/components/layout/Sidebar.tsx",
+            "src/components/common/ModelSelector.tsx",
+            "src/components/common/ModelSelector.test.tsx",
+            ".claude/handover.json"
+          ]
+        }
+      ],
+      "issues_encountered": [
+        "TypeScript strict CSSProperties rejected non-standard 'app-region' style key; adjusted to '-webkit-app-region' to preserve no-drag behavior without type violations."
+      ],
+      "verification": [
+        "npx vitest run src/components/common/ModelSelector.test.tsx src/components/layout/MainLayout.test.tsx src/stores/uiStore.test.ts",
+        "npx tsc --noEmit",
+        "npx eslint src/components/common/ModelSelector.tsx src/components/common/ModelSelector.test.tsx src/components/layout/MainLayout.tsx src/components/layout/MainLayout.test.tsx src/components/layout/Sidebar.tsx src/stores/uiStore.ts src/stores/uiStore.test.ts",
+        "npm run format:check"
+      ],
+      "result": "Batch implementation verified: left/right panel widths are now user-resizable and persisted, the titlebar model menu is interaction-safe over custom chrome, and sidebar sections no longer collapse into overlapping actions/sessions headers under constrained heights."
+    },
     "2026-02-28_chi217_execution": {
       "description": "Executed CHI-217 implementation plan in isolated worktree across Task 1-6 plus final verification batch.",
       "changes": [
@@ -4182,10 +4210,10 @@
     "npm_version": "11.6.2",
     "tauri_cli_installed": true,
     "tauri_cli_version": "2.10.0",
-    "notes": "Latest verification for CHI-217 completion: vitest run, cargo test, tsc, eslint, cargo clippy, cargo fmt, and vite build all pass. Global prettier --check . still has pre-existing repo baseline failures outside CHI-217 scope."
+    "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-02-28T21:05:00Z"
+    "last_updated": "2026-03-01T02:58:28Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {

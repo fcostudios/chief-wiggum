@@ -17,6 +17,8 @@ import {
   setActiveView,
   dismissPermissionDialog,
   closeSessionSwitcher,
+  setDetailsPanelWidth,
+  setSidebarWidth,
   type ActiveView,
 } from '@/stores/uiStore';
 import type { PermissionAction } from '@/lib/types';
@@ -56,6 +58,54 @@ const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }
 };
 
 const MainLayout: Component = () => {
+  let layoutRowRef: HTMLDivElement | undefined;
+
+  function startSidebarResize(event: MouseEvent): void {
+    if (uiState.sidebarState !== 'expanded') return;
+    const row = layoutRowRef;
+    if (!row) return;
+    event.preventDefault();
+    const bounds = row.getBoundingClientRect();
+
+    const onMove = (moveEvent: MouseEvent) => {
+      setSidebarWidth(moveEvent.clientX - bounds.left);
+    };
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function startDetailsResize(event: MouseEvent): void {
+    if (!uiState.detailsPanelVisible) return;
+    const row = layoutRowRef;
+    if (!row) return;
+    event.preventDefault();
+    const bounds = row.getBoundingClientRect();
+
+    const onMove = (moveEvent: MouseEvent) => {
+      setDetailsPanelWidth(bounds.right - moveEvent.clientX);
+    };
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   // Global keyboard shortcuts (Cmd+B, Cmd+Shift+B, Cmd+1/2/3/4)
   onMount(() => {
     document.addEventListener('keydown', handleGlobalKeyDown);
@@ -84,14 +134,14 @@ const MainLayout: Component = () => {
 
       <TitleBar />
 
-      <div class="flex-1 flex overflow-hidden">
+      <div ref={layoutRowRef} class="flex-1 flex overflow-hidden">
         {/* Z2: Sidebar — transitions width for expanded/collapsed/hidden tri-state */}
         <div
           class="overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
             width:
               uiState.sidebarState === 'expanded'
-                ? 'var(--sidebar-width)'
+                ? `${uiState.sidebarWidth}px`
                 : uiState.sidebarState === 'collapsed'
                   ? 'var(--sidebar-collapsed)'
                   : '0px',
@@ -110,12 +160,26 @@ const MainLayout: Component = () => {
               width:
                 uiState.sidebarState === 'collapsed'
                   ? 'var(--sidebar-collapsed)'
-                  : 'var(--sidebar-width)',
+                  : `${uiState.sidebarWidth}px`,
             }}
           >
             <Sidebar />
           </div>
         </div>
+        <Show when={uiState.sidebarState === 'expanded'}>
+          <div
+            role="separator"
+            aria-label="Resize sidebar"
+            aria-orientation="vertical"
+            class="w-1 shrink-0 cursor-col-resize group relative"
+            onMouseDown={startSidebarResize}
+          >
+            <div
+              class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px transition-colors"
+              style={{ background: 'var(--color-border-secondary)' }}
+            />
+          </div>
+        </Show>
 
         {/* Z3: Main Content */}
         <main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden" tabindex={-1}>
@@ -167,11 +231,26 @@ const MainLayout: Component = () => {
           </Show>
         </main>
 
+        <Show when={uiState.detailsPanelVisible}>
+          <div
+            role="separator"
+            aria-label="Resize details panel"
+            aria-orientation="vertical"
+            class="w-1 shrink-0 cursor-col-resize group relative"
+            onMouseDown={startDetailsResize}
+          >
+            <div
+              class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px transition-colors"
+              style={{ background: 'var(--color-border-secondary)' }}
+            />
+          </div>
+        </Show>
+
         {/* Z4: Details Panel — transitions width for smooth show/hide */}
         <div
           class="overflow-hidden shrink-0 transition-[width,border-width]"
           style={{
-            width: uiState.detailsPanelVisible ? 'var(--details-panel-width)' : '0px',
+            width: uiState.detailsPanelVisible ? `${uiState.detailsPanelWidth}px` : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
             background: 'var(--color-chrome-bg)',
@@ -181,7 +260,7 @@ const MainLayout: Component = () => {
               : 'none',
           }}
         >
-          <div class="h-full" style={{ width: 'var(--details-panel-width)' }}>
+          <div class="h-full" style={{ width: `${uiState.detailsPanelWidth}px` }}>
             <DetailsPanel />
           </div>
         </div>

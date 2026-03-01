@@ -36,11 +36,19 @@ const ModelSelector: Component<ModelSelectorProps> = (props) => {
     }
   }
 
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      setIsOpen(false);
+    }
+  }
+
   onMount(() => {
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
   });
   onCleanup(() => {
     document.removeEventListener('mousedown', handleClickOutside);
+    document.removeEventListener('keydown', handleKeyDown);
   });
 
   function currentModel(): ModelOption {
@@ -54,7 +62,15 @@ const ModelSelector: Component<ModelSelectorProps> = (props) => {
   }
 
   return (
-    <div ref={dropdownRef} class="relative">
+    <div
+      ref={dropdownRef}
+      class="relative"
+      style={{
+        'z-index': '80',
+        'pointer-events': 'auto',
+        '-webkit-app-region': 'no-drag',
+      }}
+    >
       <button
         class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-colors hover:bg-bg-elevated/50"
         style={{ 'transition-duration': 'var(--duration-fast)' }}
@@ -65,6 +81,7 @@ const ModelSelector: Component<ModelSelectorProps> = (props) => {
         disabled={!sessionState.activeSessionId}
         aria-label="Select model"
         aria-expanded={isOpen()}
+        aria-haspopup="listbox"
       >
         <span
           class="inline-block w-2 h-2 rounded-full"
@@ -89,14 +106,20 @@ const ModelSelector: Component<ModelSelectorProps> = (props) => {
 
       <Show when={isOpen()}>
         <div
-          class="absolute top-full left-1/2 mt-1.5 w-44 rounded-lg overflow-hidden z-50 animate-fade-in"
+          class="absolute top-full left-1/2 mt-1.5 w-44 rounded-lg overflow-hidden z-[120] animate-fade-in"
+          onMouseDown={(e) => e.stopPropagation()}
+          role="listbox"
+          aria-label="Model options"
           style={{
             transform: 'translateX(-50%)',
-            background: 'var(--color-bg-elevated)',
+            background:
+              'color-mix(in srgb, var(--color-bg-elevated) 94%, var(--color-bg-primary) 6%)',
             border: '1px solid var(--color-border-primary)',
             'box-shadow': 'var(--shadow-lg), 0 0 0 1px rgba(0,0,0,0.1)',
             'backdrop-filter': 'blur(var(--glass-blur))',
             'animation-duration': '100ms',
+            'pointer-events': 'auto',
+            '-webkit-app-region': 'no-drag',
           }}
         >
           <For each={MODELS}>
@@ -105,6 +128,8 @@ const ModelSelector: Component<ModelSelectorProps> = (props) => {
               return (
                 <button
                   class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs transition-colors"
+                  role="option"
+                  aria-selected={isSelected()}
                   style={{
                     'transition-duration': 'var(--duration-fast)',
                     background: isSelected() ? 'rgba(232, 130, 90, 0.08)' : 'transparent',

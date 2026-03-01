@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   closeStatusCostPopover,
+  setDetailsPanelWidth,
+  setSidebarWidth,
   openStatusCostPopover,
   setActiveView,
   toggleStatusCostPopover,
@@ -54,5 +56,23 @@ describe('uiStore', () => {
 
     toggleStatusCostPopover();
     expect(uiState.statusCostPopoverVisible).toBe(false);
+  });
+
+  it('clamps and stores sidebar width', () => {
+    setSidebarWidth(120);
+    expect(uiState.sidebarWidth).toBe(200);
+    setSidebarWidth(999);
+    expect(uiState.sidebarWidth).toBe(420);
+    setSidebarWidth(310);
+    expect(uiState.sidebarWidth).toBe(310);
+  });
+
+  it('clamps and stores details panel width', () => {
+    setDetailsPanelWidth(150);
+    expect(uiState.detailsPanelWidth).toBe(220);
+    setDetailsPanelWidth(900);
+    expect(uiState.detailsPanelWidth).toBe(520);
+    setDetailsPanelWidth(340);
+    expect(uiState.detailsPanelWidth).toBe(340);
   });
 });
