@@ -116,6 +116,30 @@ const MIGRATIONS: &[Migration] = &[
         description: "Add pinned column to sessions for section grouping",
         sql: "ALTER TABLE sessions ADD COLUMN pinned BOOLEAN DEFAULT 0;",
     },
+    Migration {
+        version: 4,
+        description: "Add action_history table for Actions Center runtime history",
+        sql: r#"
+            CREATE TABLE IF NOT EXISTS action_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                action_id TEXT NOT NULL,
+                project_id TEXT NOT NULL REFERENCES projects(id),
+                project_name TEXT NOT NULL,
+                action_name TEXT NOT NULL,
+                command TEXT NOT NULL,
+                category TEXT NOT NULL,
+                started_at TEXT NOT NULL,
+                ended_at TEXT,
+                exit_code INTEGER,
+                duration_ms INTEGER,
+                output_preview TEXT,
+                created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_action_history_project
+                ON action_history (project_id, started_at DESC);
+        "#,
+    },
 ];
 
 impl super::Database {
@@ -215,7 +239,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 3);
+        assert_eq!(version, 4);
     }
 
     #[test]
@@ -226,7 +250,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 3);
+        assert_eq!(count, 4);
     }
 
     #[test]
@@ -241,6 +265,7 @@ mod tests {
             "agents",
             "cost_events",
             "budgets",
+            "action_history",
         ];
         for table in &tables {
             let exists: bool = conn
@@ -269,13 +294,15 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 3);
+        assert_eq!(rows.len(), 4);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
         assert!(rows[1].1.contains("cli_session_id"));
         assert_eq!(rows[2].0, 3);
         assert!(rows[2].1.contains("pinned"));
+        assert_eq!(rows[3].0, 4);
+        assert!(rows[3].1.contains("action_history"));
     }
 
     #[test]

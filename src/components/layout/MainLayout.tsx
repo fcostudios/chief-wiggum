@@ -11,7 +11,7 @@ import { onMount, onCleanup, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { platform } from '@tauri-apps/plugin-os';
-import { MessageSquare, Users, GitCompare, Terminal } from 'lucide-solid';
+import { MessageSquare, Users, GitCompare, Terminal, Factory } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -39,6 +39,7 @@ import {
 } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
+import ActionsCenter from '@/components/actions/ActionsCenter';
 import CommandPalette from '@/components/common/CommandPalette';
 import KeyboardHelp from '@/components/common/KeyboardHelp';
 import ExportDialog from '@/components/diagnostics/ExportDialog';
@@ -55,6 +56,7 @@ const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }
   agents: Users,
   diff: GitCompare,
   terminal: Terminal,
+  actions_center: Factory,
 };
 
 const MainLayout: Component = () => {
@@ -192,6 +194,7 @@ const MainLayout: Component = () => {
             <ViewTab label="Agents" view="agents" />
             <ViewTab label="Diff" view="diff" />
             <ViewTab label="Terminal" view="terminal" />
+            <ViewTab label="Center" view="actions_center" />
           </div>
 
           {/* View content area */}
@@ -209,6 +212,9 @@ const MainLayout: Component = () => {
             </Show>
             <Show when={uiState.activeView === 'terminal'}>
               <TerminalPane />
+            </Show>
+            <Show when={uiState.activeView === 'actions_center'}>
+              <ActionsCenter />
             </Show>
           </div>
 

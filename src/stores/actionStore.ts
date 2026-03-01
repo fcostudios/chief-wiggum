@@ -7,14 +7,17 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import type {
   ActionDefinition,
+  ActionHistoryEntry,
   ActionOutputLine,
   ActionRecentEvent,
   ActionStatus,
+  CrossProjectRunningAction,
   CustomActionDraft,
   RunningActionInfo,
 } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
+import { getActiveProject } from '@/stores/projectStore';
 
 const log = createLogger('ui/actions');
 
@@ -35,6 +38,12 @@ interface ActionState {
   isDiscovering: boolean;
   /** Recent completed/failed actions for status bar / command palette UX. */
   recentEvents: ActionRecentEvent[];
+  /** Cross-project running actions for Actions Center (CHI-220). */
+  crossProjectRunning: CrossProjectRunningAction[];
+  /** Persisted action history per project. */
+  history: Record<string, ActionHistoryEntry[]>;
+  /** Loading state for per-project history requests. */
+  historyLoading: Record<string, boolean>;
 }
 
 const [state, setState] = createStore<ActionState>({
@@ -44,6 +53,9 @@ const [state, setState] = createStore<ActionState>({
   selectedActionId: null,
   isDiscovering: false,
   recentEvents: [],
+  crossProjectRunning: [],
+  history: {},
+  historyLoading: {},
 });
 
 let eventListeners: UnlistenFn[] = [];
@@ -80,10 +92,16 @@ export async function startAction(action: ActionDefinition): Promise<void> {
   setState('selectedActionId', action.id);
 
   try {
+    const activeProject = getActiveProject();
     await invoke('start_action', {
       action_id: action.id,
       command: action.command,
       working_dir: action.working_dir,
+      action_name: action.name,
+      project_id: activeProject?.id ?? 'unknown',
+      project_name: activeProject?.name ?? 'Unknown Project',
+      category: action.category,
+      is_long_running: action.is_long_running,
     });
     setState('statuses', action.id, 'running');
     actionRunStartedAt.set(action.id, Date.now());
@@ -113,10 +131,16 @@ export async function restartAction(action: ActionDefinition): Promise<void> {
   setState('selectedActionId', action.id);
 
   try {
+    const activeProject = getActiveProject();
     await invoke('restart_action', {
       action_id: action.id,
       command: action.command,
       working_dir: action.working_dir,
+      action_name: action.name,
+      project_id: activeProject?.id ?? 'unknown',
+      project_name: activeProject?.name ?? 'Unknown Project',
+      category: action.category,
+      is_long_running: action.is_long_running,
     });
     setState('statuses', action.id, 'running');
     actionRunStartedAt.set(action.id, Date.now());
@@ -258,6 +282,8 @@ export async function customizeDiscoveredAction(
 export async function setupActionListeners(): Promise<void> {
   await cleanupActionListeners();
 
+  eventListeners.push(await subscribeToActionStatusChanged());
+
   eventListeners.push(
     await listen<{ action_id: string; line: string; is_error: boolean }>(
       'action:output',
@@ -321,8 +347,81 @@ export async function syncRunningActions(): Promise<void> {
         actionRunStartedAt.set(info.action_id, Date.now());
       }
     }
+    await loadAllRunningActions();
   } catch {
     // Backend may not support this yet.
+  }
+}
+
+/** Load all currently running actions across projects (CHI-220). */
+export async function loadAllRunningActions(): Promise<void> {
+  try {
+    const running = await invoke<CrossProjectRunningAction[]>('list_all_running_actions');
+    setState('crossProjectRunning', running);
+  } catch (err) {
+    log.warn(
+      'list_all_running_actions failed: ' + (err instanceof Error ? err.message : String(err)),
+    );
+  }
+}
+
+/** Subscribe to backend status changes and keep cross-project lanes in sync. */
+export async function subscribeToActionStatusChanged(): Promise<UnlistenFn> {
+  return listen<{
+    action_id: string;
+    project_id: string;
+    project_name: string;
+    status: ActionStatus;
+    elapsed_ms: number;
+  }>('action:status_changed', (event) => {
+    const payload = event.payload;
+    const incomingStatus = payload.status;
+    setState('crossProjectRunning', (prev) => {
+      const idx = prev.findIndex(
+        (lane) => lane.action_id === payload.action_id && lane.project_id === payload.project_id,
+      );
+      if (
+        incomingStatus === 'completed' ||
+        incomingStatus === 'failed' ||
+        incomingStatus === 'stopped'
+      ) {
+        return idx >= 0 ? [...prev.slice(0, idx), ...prev.slice(idx + 1)] : prev;
+      }
+
+      const existing = idx >= 0 ? prev[idx] : null;
+      const updated: CrossProjectRunningAction = {
+        action_id: payload.action_id,
+        project_id: payload.project_id,
+        project_name: payload.project_name,
+        action_name: existing?.action_name ?? payload.action_id,
+        status: incomingStatus,
+        elapsed_ms: payload.elapsed_ms,
+        last_output_line: existing?.last_output_line ?? null,
+        command: existing?.command ?? '',
+        category: existing?.category ?? 'custom',
+        is_long_running: existing?.is_long_running ?? false,
+      };
+      if (idx >= 0) {
+        return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
+      }
+      return [...prev, updated];
+    });
+  });
+}
+
+/** Load persisted action history for a project (CHI-220). */
+export async function loadActionHistory(projectId: string, limit = 50): Promise<void> {
+  setState('historyLoading', projectId, true);
+  try {
+    const entries = await invoke<ActionHistoryEntry[]>('get_action_history', {
+      project_id: projectId,
+      limit,
+    });
+    setState('history', projectId, entries);
+  } catch (err) {
+    log.warn('get_action_history failed: ' + (err instanceof Error ? err.message : String(err)));
+  } finally {
+    setState('historyLoading', projectId, false);
   }
 }
 

@@ -48,7 +48,7 @@ import {
 } from '@/stores/projectStore';
 import { fileState, toggleFilesVisible } from '@/stores/fileStore';
 import { actionState, discoverActions } from '@/stores/actionStore';
-import { uiState } from '@/stores/uiStore';
+import { uiState, setViewBadge } from '@/stores/uiStore';
 import { t } from '@/stores/i18nStore';
 import FileTree from '@/components/explorer/FileTree';
 import ActionsPanel from '@/components/actions/ActionsPanel';
@@ -207,6 +207,10 @@ const Sidebar: Component = () => {
     if (focusedContentSection() === 'actions' && !actionsOpen()) {
       setFocusedContentSection(null);
     }
+  });
+
+  createEffect(() => {
+    setViewBadge('actions_center', actionState.crossProjectRunning.length);
   });
 
   async function handleNewSession() {

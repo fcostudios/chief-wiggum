@@ -168,6 +168,11 @@ describe('keybindings', () => {
     expect(mocks.fileStore.toggleShowIgnoredFiles).toHaveBeenCalled();
   });
 
+  it('Cmd+Shift+A opens Actions Center', () => {
+    handleGlobalKeyDown(createKeyEvent('KeyA', { shiftKey: true }));
+    expect(mocks.ui.setActiveView).toHaveBeenCalledWith('actions_center');
+  });
+
   it('Cmd+M cycles model', () => {
     handleGlobalKeyDown(createKeyEvent('KeyM'));
     expect(mocks.session.cycleModel).toHaveBeenCalled();

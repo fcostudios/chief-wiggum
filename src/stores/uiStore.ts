@@ -9,7 +9,7 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ui/state');
 
-export type ActiveView = 'conversation' | 'agents' | 'diff' | 'terminal';
+export type ActiveView = 'conversation' | 'agents' | 'diff' | 'terminal' | 'actions_center';
 export type CommandPaletteMode = 'all' | 'sessions' | 'actions';
 
 /** Sidebar tri-state: expanded (240px) → collapsed (48px icon-rail) → hidden (0px). */
@@ -117,7 +117,7 @@ const [state, setState] = createStore<UIState>({
   settingsVisible: false,
   contextBreakdownVisible: false,
   activeView: 'conversation',
-  viewBadges: { conversation: 0, agents: 0, diff: 0, terminal: 0 },
+  viewBadges: { conversation: 0, agents: 0, diff: 0, terminal: 0, actions_center: 0 },
   permissionRequest: null,
   yoloMode: persisted.yoloMode,
   yoloDialogVisible: false,

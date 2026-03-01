@@ -775,6 +775,72 @@
 }
 
 /* ============================================================
+ * Actions Center animations (CHI-220)
+ * ============================================================ */
+
+@keyframes conveyorSlide {
+  to {
+    background-position-x: 16px;
+  }
+}
+
+@keyframes laneStartingPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes laneSlideOut {
+  from {
+    opacity: 0.5;
+    transform: translateY(0);
+    max-height: 200px;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+    max-height: 0;
+  }
+}
+
+.conveyor-strip {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--conveyor-stripe-a, var(--color-border-secondary)) 0 8px,
+    var(--conveyor-stripe-b, transparent) 8px 16px
+  );
+  height: 6px;
+}
+
+.conveyor-strip.active {
+  animation: conveyorSlide 0.6s linear infinite;
+}
+
+.lane-running {
+  --conveyor-stripe-a: color-mix(in srgb, var(--color-success) 30%, transparent);
+  --conveyor-stripe-b: color-mix(in srgb, var(--color-success) 10%, transparent);
+}
+
+.lane-starting {
+  --conveyor-stripe-a: color-mix(in srgb, var(--color-warning) 30%, transparent);
+  --conveyor-stripe-b: color-mix(in srgb, var(--color-warning) 10%, transparent);
+}
+
+.lane-failed {
+  --conveyor-stripe-a: color-mix(in srgb, var(--color-error) 20%, transparent);
+  --conveyor-stripe-b: color-mix(in srgb, var(--color-error) 10%, transparent);
+}
+
+.lane-stopped {
+  --conveyor-stripe-a: color-mix(in srgb, var(--color-border-secondary) 50%, transparent);
+  --conveyor-stripe-b: transparent;
+}
+
+/* ============================================================
  * SPEC-002 §12: Accessibility — reduced motion
  * ============================================================ */
 
@@ -784,5 +850,13 @@
   *::after {
     animation-duration: 0ms !important;
     transition-duration: 0ms !important;
+  }
+
+  .conveyor-strip.active {
+    animation: none;
+  }
+
+  .lane-starting-pulse {
+    animation: none !important;
   }
 }

@@ -134,5 +134,22 @@
     "advanced": "Advanced",
     "searchSettings": "Search settings...",
     "resetDefaults": "Reset to defaults"
+  },
+  "actions_center": {
+    "title": "Actions Center",
+    "summary": "{n} projects · {m} lanes active",
+    "launch_action": "Launch Action",
+    "all_quiet": "All quiet on the factory floor",
+    "open_project": "Open a project to see its warehouse",
+    "add_lane": "Add Lane",
+    "no_lanes": "No lanes running — add one to start the assembly line",
+    "stop": "Stop",
+    "restart": "Restart",
+    "ask_ai": "Ask AI",
+    "no_history": "No history yet — run an action to see it here",
+    "load_more": "Load more",
+    "view_output": "View Output",
+    "output_preview_note": "Full output not persisted — showing last 3 lines",
+    "inspect_hint": "Click to inspect logs"
   }
 }

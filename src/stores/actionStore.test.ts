@@ -140,3 +140,29 @@ describe('actionStore', () => {
     );
   });
 });
+
+describe('loadAllRunningActions', () => {
+  let mod: ActionStoreModule;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    mockIpcCommand('list_all_running_actions', () => [
+      {
+        action_id: 'pkg:build',
+        project_id: 'proj-1',
+        project_name: 'My Project',
+        action_name: 'build',
+        status: 'running',
+        elapsed_ms: 5000,
+        command: 'npm run build',
+      },
+    ]);
+    mod = await import('./actionStore');
+  });
+
+  it('sets crossProjectRunning from IPC result', async () => {
+    await mod.loadAllRunningActions();
+    expect(mod.actionState.crossProjectRunning).toHaveLength(1);
+    expect(mod.actionState.crossProjectRunning[0].project_name).toBe('My Project');
+  });
+});

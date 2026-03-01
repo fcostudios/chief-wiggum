@@ -533,6 +533,37 @@ export interface RunningActionInfo {
   status: ActionStatus;
 }
 
+/** Running action snapshot used by cross-project Actions Center lanes (CHI-220). */
+export interface CrossProjectRunningAction {
+  action_id: string;
+  project_id: string;
+  project_name: string;
+  action_name: string;
+  status: ActionStatus;
+  elapsed_ms: number;
+  last_output_line: string | null;
+  command: string;
+  category: ActionCategory;
+  is_long_running: boolean;
+}
+
+/** Persisted action execution history row (CHI-219/220). */
+export interface ActionHistoryEntry {
+  id: number;
+  action_id: string;
+  project_id: string;
+  project_name: string;
+  action_name: string;
+  command: string;
+  category: string;
+  started_at: string;
+  ended_at: string | null;
+  exit_code: number | null;
+  duration_ms: number | null;
+  output_preview: string | null;
+  created_at: string;
+}
+
 /** CHI-145 inline editor payload for custom actions. */
 export interface CustomActionDraft {
   name: string;

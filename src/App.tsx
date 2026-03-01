@@ -23,6 +23,8 @@ import { sessionState } from '@/stores/sessionStore';
 import { switchLocale } from '@/stores/i18nStore';
 // Renderer registrations (side effects — register into rendererRegistry)
 import './components/conversation/renderers/MermaidRenderer';
+import './components/conversation/renderers/MathRenderer';
+import './components/conversation/renderers/ImageRenderer';
 
 const App: Component = () => {
   let lastAppliedLocale: string | null = null;

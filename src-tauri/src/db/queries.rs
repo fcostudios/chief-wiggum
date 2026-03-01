@@ -492,6 +492,104 @@ pub fn insert_cost_event(
     })
 }
 
+// ── Action History ─────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionHistoryInsert {
+    pub action_id: String,
+    pub project_id: String,
+    pub project_name: String,
+    pub action_name: String,
+    pub command: String,
+    pub category: String,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub exit_code: Option<i32>,
+    pub duration_ms: Option<i64>,
+    pub output_preview: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionHistoryEntry {
+    pub id: i64,
+    pub action_id: String,
+    pub project_id: String,
+    pub project_name: String,
+    pub action_name: String,
+    pub command: String,
+    pub category: String,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub exit_code: Option<i32>,
+    pub duration_ms: Option<i64>,
+    pub output_preview: Option<String>,
+    pub created_at: String,
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn insert_action_history(db: &Database, entry: &ActionHistoryInsert) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "INSERT INTO action_history (
+                action_id, project_id, project_name, action_name, command, category,
+                started_at, ended_at, exit_code, duration_ms, output_preview
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            rusqlite::params![
+                entry.action_id,
+                entry.project_id,
+                entry.project_name,
+                entry.action_name,
+                entry.command,
+                entry.category,
+                entry.started_at,
+                entry.ended_at,
+                entry.exit_code,
+                entry.duration_ms,
+                entry.output_preview
+            ],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_action_history(
+    db: &Database,
+    project_id: &str,
+    limit: u32,
+) -> Result<Vec<ActionHistoryEntry>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, action_id, project_id, project_name, action_name, command, category,
+                    started_at, ended_at, exit_code, duration_ms, output_preview, created_at
+             FROM action_history
+             WHERE project_id = ?1
+             ORDER BY started_at DESC, id DESC
+             LIMIT ?2",
+        )?;
+        let rows = stmt
+            .query_map(rusqlite::params![project_id, i64::from(limit)], |row| {
+                Ok(ActionHistoryEntry {
+                    id: row.get(0)?,
+                    action_id: row.get(1)?,
+                    project_id: row.get(2)?,
+                    project_name: row.get(3)?,
+                    action_name: row.get(4)?,
+                    command: row.get(5)?,
+                    category: row.get(6)?,
+                    started_at: row.get(7)?,
+                    ended_at: row.get(8)?,
+                    exit_code: row.get(9)?,
+                    duration_ms: row.get(10)?,
+                    output_preview: row.get(11)?,
+                    created_at: row.get(12)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })
+}
+
 // ── Row types ──────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -877,5 +975,82 @@ mod tests {
 
         let result = fork_session_up_to(&db, "s1", "s2", "nonexistent");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn insert_and_list_action_history_ordered_desc() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+
+        insert_action_history(
+            &db,
+            &ActionHistoryInsert {
+                action_id: "a1".to_string(),
+                project_id: "p1".to_string(),
+                project_name: "Proj".to_string(),
+                action_name: "build".to_string(),
+                command: "npm run build".to_string(),
+                category: "build".to_string(),
+                started_at: "2026-03-01T10:00:00Z".to_string(),
+                ended_at: Some("2026-03-01T10:01:00Z".to_string()),
+                exit_code: Some(0),
+                duration_ms: Some(60_000),
+                output_preview: Some("ok".to_string()),
+            },
+        )
+        .unwrap();
+
+        insert_action_history(
+            &db,
+            &ActionHistoryInsert {
+                action_id: "a2".to_string(),
+                project_id: "p1".to_string(),
+                project_name: "Proj".to_string(),
+                action_name: "test".to_string(),
+                command: "npm test".to_string(),
+                category: "test".to_string(),
+                started_at: "2026-03-01T11:00:00Z".to_string(),
+                ended_at: Some("2026-03-01T11:00:30Z".to_string()),
+                exit_code: Some(1),
+                duration_ms: Some(30_000),
+                output_preview: Some("fail".to_string()),
+            },
+        )
+        .unwrap();
+
+        let rows = get_action_history(&db, "p1", 50).unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].action_id, "a2");
+        assert_eq!(rows[1].action_id, "a1");
+        assert_eq!(rows[0].project_id, "p1");
+    }
+
+    #[test]
+    fn get_action_history_respects_limit() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+
+        for i in 0..3 {
+            insert_action_history(
+                &db,
+                &ActionHistoryInsert {
+                    action_id: format!("a{}", i),
+                    project_id: "p1".to_string(),
+                    project_name: "Proj".to_string(),
+                    action_name: "build".to_string(),
+                    command: "npm run build".to_string(),
+                    category: "build".to_string(),
+                    started_at: format!("2026-03-01T1{}:00:00Z", i),
+                    ended_at: None,
+                    exit_code: None,
+                    duration_ms: None,
+                    output_preview: None,
+                },
+            )
+            .unwrap();
+        }
+
+        let rows = get_action_history(&db, "p1", 2).unwrap();
+        assert_eq!(rows.len(), 2);
     }
 }
