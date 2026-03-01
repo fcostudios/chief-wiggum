@@ -12,6 +12,7 @@ import hljs from 'highlight.js';
 import { Copy, FileCode, Terminal } from 'lucide-solid';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 import MathRenderer from '@/components/conversation/renderers/MathRenderer';
+import ImageRenderer from '@/components/conversation/renderers/ImageRenderer';
 import {
   RENDERER_ATTR,
   RENDERER_CODE_ATTR,
@@ -25,6 +26,7 @@ import { setActiveView } from '@/stores/uiStore';
 
 // Side-effect import registers math renderers.
 void MathRenderer;
+void ImageRenderer;
 
 // Configure marked with highlight.js integration
 const marked = new Marked(
@@ -159,6 +161,19 @@ marked.use({
       const rendererType = language || entry.label;
 
       return `<div ${RENDERER_ATTR}="${rendererType}" ${RENDERER_CODE_ATTR}="${encoded}" ${RENDERER_LANG_ATTR}="${language}" class="cw-renderer-placeholder"></div>`;
+    },
+    image(token: Tokens.Image) {
+      const src = token.href?.trim() ?? '';
+      if (!src) return false;
+
+      const payload = JSON.stringify({
+        src,
+        alt: token.text ?? '',
+        title: token.title ?? '',
+      });
+      const encoded = encodeRendererCode(payload);
+
+      return `<span ${RENDERER_ATTR}="image" ${RENDERER_CODE_ATTR}="${encoded}" ${RENDERER_LANG_ATTR}="image" class="cw-renderer-placeholder"></span>`;
     },
   },
 });
