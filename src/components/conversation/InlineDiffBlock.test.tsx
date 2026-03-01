@@ -99,7 +99,11 @@ describe('InlineDiffBlock', () => {
     });
 
     const { getByRole } = render(() => <InlineDiffBlock code={DIFF} diffKey="msg1:4" />);
-    fireEvent.click(getByRole('button', { name: /apply/i }));
+    const apply = getByRole('button', { name: /apply/i });
+    await waitFor(() => {
+      expect(apply).not.toBeDisabled();
+    });
+    fireEvent.click(apply);
 
     await waitFor(() => {
       expect(mocks.invoke).toHaveBeenCalledWith('read_project_file', {
@@ -112,6 +116,16 @@ describe('InlineDiffBlock', () => {
         content: expect.stringContaining('new'),
       });
       expect(mocks.setDiffState).toHaveBeenCalledWith('msg1:4', 'applied');
+    });
+  });
+
+  it('disables Apply when target file does not exist', async () => {
+    mocks.invoke.mockRejectedValue(new Error('not found'));
+    const { getByRole } = render(() => <InlineDiffBlock code={DIFF} diffKey="msg1:5" />);
+    const apply = getByRole('button', { name: /apply/i });
+    await waitFor(() => {
+      expect(apply).toBeDisabled();
+      expect(apply).toHaveAttribute('title', 'File not found in project.');
     });
   });
 });

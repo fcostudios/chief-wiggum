@@ -2,7 +2,7 @@
 // Inline unified diff actions (Apply / Reject / Open in Diff) for assistant messages (CHI-230).
 
 import type { Component } from 'solid-js';
-import { For, Show, createMemo, createSignal } from 'solid-js';
+import { For, Show, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import { applyDiff, extractFilePath } from '@/lib/diffApplicator';
 import { getDiffState, setDiffState } from '@/stores/conversationStore';
@@ -33,6 +33,7 @@ function countChangedLines(diffText: string): { addedLines: number; removedLines
 
 const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
   const [isApplying, setIsApplying] = createSignal(false);
+  const [targetFileExists, setTargetFileExists] = createSignal<boolean | null>(null);
   const state = () => getDiffState(props.diffKey);
   const filePath = () => extractFilePath(props.code);
   const projectId = () => projectState.activeProjectId;
@@ -54,6 +55,32 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
     }),
   );
 
+  createEffect(() => {
+    const path = filePath();
+    const pid = projectId();
+    if (!path || !pid) {
+      setTargetFileExists(false);
+      return;
+    }
+
+    let cancelled = false;
+    setTargetFileExists(null);
+    void invoke<FileContent>('read_project_file', {
+      project_id: pid,
+      relative_path: path,
+    })
+      .then(() => {
+        if (!cancelled) setTargetFileExists(true);
+      })
+      .catch(() => {
+        if (!cancelled) setTargetFileExists(false);
+      });
+
+    onCleanup(() => {
+      cancelled = true;
+    });
+  });
+
   function openInDiffView(): void {
     const path = filePath() ?? 'Modified file';
     const counts = countChangedLines(props.code);
@@ -70,7 +97,7 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
     if (state() !== 'pending') return;
     const path = filePath();
     const pid = projectId();
-    if (!path || !pid) return;
+    if (!path || !pid || targetFileExists() !== true) return;
 
     setIsApplying(true);
     try {
@@ -110,6 +137,17 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
     if (state() !== 'pending') return;
     setDiffState(props.diffKey, 'rejected');
   }
+
+  const canApply = () =>
+    !!filePath() && !!projectId() && targetFileExists() === true && !isApplying();
+
+  const applyTitle = () => {
+    if (!filePath()) return 'File path could not be extracted from diff';
+    if (!projectId()) return 'No active project';
+    if (targetFileExists() === null) return 'Checking file availability...';
+    if (targetFileExists() === false) return 'File not found in project.';
+    return `Apply to ${filePath()}`;
+  };
 
   return (
     <div
@@ -182,19 +220,15 @@ const InlineDiffBlock: Component<InlineDiffBlockProps> = (props) => {
           <button
             class="flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors"
             style={{
-              background:
-                filePath() && projectId() ? 'var(--color-success)' : 'var(--color-bg-elevated)',
-              color:
-                filePath() && projectId()
-                  ? 'var(--color-bg-primary)'
-                  : 'var(--color-text-tertiary)',
-              cursor: filePath() && projectId() ? 'pointer' : 'not-allowed',
+              background: canApply() ? 'var(--color-success)' : 'var(--color-bg-elevated)',
+              color: canApply() ? 'var(--color-bg-primary)' : 'var(--color-text-tertiary)',
+              cursor: canApply() ? 'pointer' : 'not-allowed',
               opacity: isApplying() ? '0.6' : '1',
             }}
             onClick={() => void handleApply()}
-            disabled={!filePath() || !projectId() || isApplying()}
+            disabled={!canApply()}
             aria-label="Apply"
-            title={!filePath() ? 'File not found in project' : `Apply to ${filePath()}`}
+            title={applyTitle()}
           >
             {isApplying() ? '⏳' : '✓'} Apply
           </button>
