@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-01T05:19:55Z",
+  "last_updated": "2026-03-01T05:28:45Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -48,6 +48,12 @@
       "priority": "Medium",
       "status": "done",
       "completed_at": "2026-02-24T19:12:33Z"
+    },
+    "CHI-224": {
+      "title": "UX Excellence",
+      "status": "done",
+      "linear_id": "9ff752c7-b64a-4a86-8104-0410ba01477a",
+      "notes": "CHI-216/226/227/229/230 implemented and closed in Linear during closure."
     }
   },
   "tasks": {
@@ -437,6 +443,109 @@
         "src/components/layout/DetailsPanel.tsx"
       ],
       "notes": "Implemented CodeMirror inline editing in FilePreview with click-to-edit, blur auto-save pipeline via write_file_content IPC, dirty/save status indicators, conflict handling, read-only lock behavior, and store-level edit state with tests."
+    },
+    "CHI-216": {
+      "title": "G1: Gitignore Toggle \u2014 Optional File Visibility in Explorer",
+      "epic": "CHI-224",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [
+        "CHI-115",
+        "CHI-116"
+      ],
+      "linear_id": "46791693-3763-4416-8bfb-abca7b9a814a",
+      "assigned_to": null,
+      "started_at": "2026-03-01T02:32:00Z",
+      "completed_at": "2026-03-01T05:14:27Z",
+      "files": [
+        "src/components/explorer/FileTree.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/stores/fileStore.ts",
+        "src/lib/keybindings.ts",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/scanner.rs"
+      ],
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 0812d9e, ae97f34."
+    },
+    "CHI-226": {
+      "title": "CHI-226: Session Resume & Context Continuity",
+      "epic": "CHI-224",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [],
+      "linear_id": "e50e0d52-500a-4259-b302-96261ecc16d6",
+      "assigned_to": null,
+      "started_at": "2026-03-01T03:59:27Z",
+      "completed_at": "2026-03-01T05:14:26Z",
+      "files": [
+        "src/lib/resumeDetector.ts",
+        "src/components/conversation/SessionResumeCard.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/stores/sessionStore.ts",
+        "src/components/settings/SettingsModal.tsx",
+        "src/stores/settingsStore.ts"
+      ],
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 58940fc, 8155539, 606c19f, 5958e5c, 32fd99a."
+    },
+    "CHI-227": {
+      "title": "CHI-227: Agents View \u2014 Parallel Session Manager",
+      "epic": "CHI-224",
+      "status": "done",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": "52fb4bdf-1ced-473c-abfb-13b78c00b5ca",
+      "assigned_to": null,
+      "started_at": "2026-03-01T04:19:40Z",
+      "completed_at": "2026-03-01T05:14:27Z",
+      "files": [
+        "src/components/agents/AgentsView.tsx",
+        "src/components/agents/SessionCard.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/stores/sessionStore.ts"
+      ],
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 44ff86d, 510d4b7, b593b43."
+    },
+    "CHI-229": {
+      "title": "CHI-229: Information Hierarchy Redesign (TitleBar + StatusBar)",
+      "epic": "CHI-224",
+      "status": "done",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": "ade63305-0411-44f2-83b1-a671fcc3d90d",
+      "assigned_to": null,
+      "started_at": "2026-03-01T02:32:00Z",
+      "completed_at": "2026-03-01T05:14:28Z",
+      "files": [
+        "src/components/layout/TitleBar.tsx",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/stores/uiStore.ts",
+        "src/locales/en.json",
+        "src/locales/es.json"
+      ],
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 0812d9e, bd677f4."
+    },
+    "CHI-230": {
+      "title": "CHI-230: Inline Diff Accept/Reject",
+      "epic": "CHI-224",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [
+        "CHI-217"
+      ],
+      "linear_id": "0db731f6-1408-4ba4-be66-0f1bb9485518",
+      "assigned_to": null,
+      "started_at": "2026-03-01T02:32:00Z",
+      "completed_at": "2026-03-01T05:14:30Z",
+      "files": [
+        "src/lib/diffApplicator.ts",
+        "src/stores/conversationStore.ts",
+        "src/components/conversation/InlineDiffBlock.tsx",
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/components/conversation/MessageBubble.tsx"
+      ],
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 3deff7d, fb377aa, 7a43bbd, 3b2b3b9, 9001066."
     }
   },
   "epics_new": {
@@ -2601,8 +2710,8 @@
     }
   },
   "recommended_next": [
-    "Run manual CHI-217 acceptance checklist in app UI and capture any UX/a11y deltas.",
-    "Start next prioritized CHI batch (likely CHI-216 dependency follow-up) in a fresh codex worktree."
+    "CHI-219",
+    "CHI-225"
   ],
   "critical_path": [
     "Run CHI-217 manual accessibility quick-check in desktop UI (edit entry, blur save, dirty dot, conflict actions, read-only lock).",
@@ -4213,7 +4322,7 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-01T02:58:28Z"
+    "last_updated": "2026-03-01T05:28:45Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
