@@ -159,7 +159,8 @@ If two deltas conflict on the same path, **last write wins** (latest `written_at
 1. Claude Code runs `cargo check` and `cargo test`
 2. Claude Code commits with `CHI-N: description` format
 3. Claude Code **acquires the lock** (or writes a delta if locked)
-4. Claude Code updates `handover.json`: status → `"done"`, `completed_at`, `files`, `notes`
+4. Claude Code updates `handover.json`: status → `"done"`, `assigned_to: "claude-code"`, `completed_at`, `files`, `notes`
+   - Add a completion signature line to `notes`, e.g. `completed_by=claude-code; lock_acquired_at=<ISO-8601>`
 5. Claude Code **releases the lock** (reconciling pending deltas)
 6. Cowork reads `handover.json` on next session, updates Linear, plans next tasks
 
@@ -235,6 +236,8 @@ If two deltas conflict on the same path, **last write wins** (latest `written_at
 5. **Linear is source of truth for requirements.** Both agents defer to Linear issue descriptions.
 6. **Dependencies are mandatory.** Don't start a task if its dependencies aren't `"done"`.
 7. **Never overwrite another agent's in-progress work.** Check `handover.json` before starting any task.
+8. **Completed tasks keep actor identity.** When setting status `"done"`, keep `assigned_to` as the finishing agent (`cowork` or `claude-code`) instead of nulling it in the same closure update.
+9. **Record lock evidence in notes.** Completed task notes must include completion signature (`completed_by=...; lock_acquired_at=...`) so audits can confirm lock-protocol compliance.
 
 ---
 

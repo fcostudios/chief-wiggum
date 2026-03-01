@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-01T05:28:45Z",
+  "last_updated": "2026-03-01T13:09:11Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -454,7 +454,7 @@
         "CHI-116"
       ],
       "linear_id": "46791693-3763-4416-8bfb-abca7b9a814a",
-      "assigned_to": null,
+      "assigned_to": "claude-code",
       "started_at": "2026-03-01T02:32:00Z",
       "completed_at": "2026-03-01T05:14:27Z",
       "files": [
@@ -465,7 +465,7 @@
         "src-tauri/src/commands/files.rs",
         "src-tauri/src/files/scanner.rs"
       ],
-      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 0812d9e, ae97f34."
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 0812d9e, ae97f34.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
     },
     "CHI-226": {
       "title": "CHI-226: Session Resume & Context Continuity",
@@ -474,7 +474,7 @@
       "priority": "High",
       "dependencies": [],
       "linear_id": "e50e0d52-500a-4259-b302-96261ecc16d6",
-      "assigned_to": null,
+      "assigned_to": "claude-code",
       "started_at": "2026-03-01T03:59:27Z",
       "completed_at": "2026-03-01T05:14:26Z",
       "files": [
@@ -485,7 +485,7 @@
         "src/components/settings/SettingsModal.tsx",
         "src/stores/settingsStore.ts"
       ],
-      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 58940fc, 8155539, 606c19f, 5958e5c, 32fd99a."
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 58940fc, 8155539, 606c19f, 5958e5c, 32fd99a.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
     },
     "CHI-227": {
       "title": "CHI-227: Agents View \u2014 Parallel Session Manager",
@@ -494,7 +494,7 @@
       "priority": "Medium",
       "dependencies": [],
       "linear_id": "52fb4bdf-1ced-473c-abfb-13b78c00b5ca",
-      "assigned_to": null,
+      "assigned_to": "claude-code",
       "started_at": "2026-03-01T04:19:40Z",
       "completed_at": "2026-03-01T05:14:27Z",
       "files": [
@@ -503,7 +503,7 @@
         "src/components/layout/MainLayout.tsx",
         "src/stores/sessionStore.ts"
       ],
-      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 44ff86d, 510d4b7, b593b43."
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 44ff86d, 510d4b7, b593b43.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
     },
     "CHI-229": {
       "title": "CHI-229: Information Hierarchy Redesign (TitleBar + StatusBar)",
@@ -512,7 +512,7 @@
       "priority": "Medium",
       "dependencies": [],
       "linear_id": "ade63305-0411-44f2-83b1-a671fcc3d90d",
-      "assigned_to": null,
+      "assigned_to": "claude-code",
       "started_at": "2026-03-01T02:32:00Z",
       "completed_at": "2026-03-01T05:14:28Z",
       "files": [
@@ -524,7 +524,7 @@
         "src/locales/en.json",
         "src/locales/es.json"
       ],
-      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 0812d9e, bd677f4."
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 0812d9e, bd677f4.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
     },
     "CHI-230": {
       "title": "CHI-230: Inline Diff Accept/Reject",
@@ -535,7 +535,7 @@
         "CHI-217"
       ],
       "linear_id": "0db731f6-1408-4ba4-be66-0f1bb9485518",
-      "assigned_to": null,
+      "assigned_to": "claude-code",
       "started_at": "2026-03-01T02:32:00Z",
       "completed_at": "2026-03-01T05:14:30Z",
       "files": [
@@ -545,7 +545,7 @@
         "src/components/conversation/MarkdownContent.tsx",
         "src/components/conversation/MessageBubble.tsx"
       ],
-      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 3deff7d, fb377aa, 7a43bbd, 3b2b3b9, 9001066."
+      "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 3deff7d, fb377aa, 7a43bbd, 3b2b3b9, 9001066.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
     }
   },
   "epics_new": {
@@ -4322,7 +4322,7 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-01T05:28:45Z"
+    "last_updated": "2026-03-01T13:09:11Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
