@@ -54,6 +54,7 @@ const fileNode: FileNode = {
   extension: 'ts',
   children: null,
   is_binary: false,
+  is_git_ignored: false,
 };
 
 const folderNode: FileNode = {
@@ -64,6 +65,7 @@ const folderNode: FileNode = {
   extension: null,
   children: [],
   is_binary: false,
+  is_git_ignored: false,
 };
 
 describe('FileTreeNode', () => {
@@ -100,5 +102,12 @@ describe('FileTreeNode', () => {
     mockGitStatus = { status: 'modified' };
     render(() => <FileTreeNode node={fileNode} depth={0} />);
     expect(screen.getByLabelText('Git status: Modified')).toBeInTheDocument();
+  });
+
+  it('dims gitignored files and renders ignored badge', () => {
+    render(() => <FileTreeNode node={{ ...fileNode, is_git_ignored: true }} depth={0} />);
+    const item = screen.getByRole('treeitem');
+    expect(item).toHaveClass('opacity-50');
+    expect(screen.getByLabelText('Ignored by .gitignore')).toBeInTheDocument();
   });
 });

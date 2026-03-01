@@ -197,6 +197,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
     <div class="relative">
       <button
         class="flex items-center gap-1 w-full text-left py-0.5 pr-2 rounded-sm transition-colors text-xs"
+        classList={{ 'opacity-50': !!props.node.is_git_ignored }}
         style={{
           'padding-left': `${props.depth * 12 + 4}px`,
           background: isSelected() ? 'var(--color-accent-muted)' : 'transparent',
@@ -228,7 +229,11 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         role="treeitem"
         aria-level={props.depth + 1}
         aria-expanded={isDir() ? expanded() : undefined}
-        title={props.node.relative_path}
+        title={
+          props.node.is_git_ignored
+            ? `${props.node.relative_path} • Ignored by .gitignore`
+            : props.node.relative_path
+        }
       >
         {/* Expand chevron for directories */}
         <Show when={isDir()} fallback={<span class="w-3 shrink-0" />}>
@@ -295,6 +300,17 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
               </span>
             );
           }}
+        </Show>
+
+        <Show when={props.node.is_git_ignored}>
+          <span
+            class="text-[9px] font-mono shrink-0"
+            style={{ color: 'var(--color-text-tertiary)' }}
+            title="Ignored by .gitignore"
+            aria-label="Ignored by .gitignore"
+          >
+            ⦻
+          </span>
         </Show>
 
         {/* Size badge for files */}

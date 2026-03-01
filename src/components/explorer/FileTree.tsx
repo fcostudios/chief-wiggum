@@ -3,8 +3,8 @@
 // Loads root files on mount when a project is active.
 
 import type { Component } from 'solid-js';
-import { Show, For, createEffect } from 'solid-js';
-import { Search } from 'lucide-solid';
+import { Show, For, createEffect, createSignal, onMount } from 'solid-js';
+import { Search, Eye, EyeOff } from 'lucide-solid';
 import {
   fileState,
   loadRootFiles,
@@ -13,6 +13,7 @@ import {
   clearSearch,
   selectFile,
   retryLoadFiles,
+  toggleShowIgnoredFiles,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { t } from '@/stores/i18nStore';
@@ -24,6 +25,18 @@ interface FileTreeProps {
 
 const FileTree: Component<FileTreeProps> = (props) => {
   const projectId = () => projectState.activeProjectId;
+  const [showIgnoredPulse, setShowIgnoredPulse] = createSignal(false);
+  const showIgnoredHintSeenKey = 'cw:showIgnoredHintSeen';
+
+  onMount(() => {
+    try {
+      if (localStorage.getItem(showIgnoredHintSeenKey) !== '1') {
+        setShowIgnoredPulse(true);
+      }
+    } catch {
+      // localStorage may be unavailable in tests/browser mode.
+    }
+  });
 
   // Reload root when project changes
   createEffect(() => {
@@ -47,14 +60,26 @@ const FileTree: Component<FileTreeProps> = (props) => {
     clearSearch();
   }
 
+  function handleToggleShowIgnoredFiles() {
+    if (showIgnoredPulse()) {
+      setShowIgnoredPulse(false);
+      try {
+        localStorage.setItem(showIgnoredHintSeenKey, '1');
+      } catch {
+        // localStorage may be unavailable.
+      }
+    }
+    toggleShowIgnoredFiles();
+  }
+
   return (
     <div
       class="flex flex-col min-h-0"
       classList={{ 'h-full': !props.singleScroll, 'h-auto': !!props.singleScroll }}
     >
-      {/* Search input */}
-      <div class="px-2 pb-1.5">
-        <div class="relative">
+      {/* Search + toolbar */}
+      <div class="flex items-center gap-1 px-2 pb-1.5">
+        <div class="relative flex-1 min-w-0">
           <Search
             size={10}
             class="absolute left-2 top-1/2 -translate-y-1/2"
@@ -74,6 +99,33 @@ const FileTree: Component<FileTreeProps> = (props) => {
             onInput={handleSearchInput}
           />
         </div>
+        <button
+          class="shrink-0 p-1 rounded transition-colors"
+          classList={{ 'animate-pulse': showIgnoredPulse() }}
+          style={{
+            color: fileState.showIgnoredFiles
+              ? 'var(--color-accent)'
+              : 'var(--color-text-tertiary)',
+            background: fileState.showIgnoredFiles ? 'var(--color-accent-muted)' : 'transparent',
+            'transition-duration': 'var(--duration-fast)',
+          }}
+          onClick={handleToggleShowIgnoredFiles}
+          aria-label={
+            fileState.showIgnoredFiles
+              ? t('explorer.hideIgnoredFiles')
+              : t('explorer.showIgnoredFiles')
+          }
+          aria-pressed={fileState.showIgnoredFiles}
+          title={
+            fileState.showIgnoredFiles
+              ? t('explorer.hideIgnoredFilesShortcut')
+              : t('explorer.showIgnoredFilesShortcut')
+          }
+        >
+          <Show when={fileState.showIgnoredFiles} fallback={<EyeOff size={13} />}>
+            <Eye size={13} />
+          </Show>
+        </button>
       </div>
 
       {/* Search results or tree */}

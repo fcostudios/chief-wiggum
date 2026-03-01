@@ -109,7 +109,11 @@
     "searchFiles": "Search files...",
     "noFiles": "No files",
     "noFilesFound": "No files found",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "showIgnoredFiles": "Show ignored files",
+    "hideIgnoredFiles": "Hide ignored files",
+    "showIgnoredFilesShortcut": "Show ignored files (Cmd+Shift+I)",
+    "hideIgnoredFilesShortcut": "Hide ignored files (Cmd+Shift+I)"
   },
   "errors": {
     "couldNotLoadFiles": "Could not load files",

@@ -109,7 +109,11 @@
     "searchFiles": "Buscar archivos...",
     "noFiles": "Sin archivos",
     "noFilesFound": "No se encontraron archivos",
-    "loadMore": "Cargar más"
+    "loadMore": "Cargar más",
+    "showIgnoredFiles": "Mostrar archivos ignorados",
+    "hideIgnoredFiles": "Ocultar archivos ignorados",
+    "showIgnoredFilesShortcut": "Mostrar archivos ignorados (Cmd+Shift+I)",
+    "hideIgnoredFilesShortcut": "Ocultar archivos ignorados (Cmd+Shift+I)"
   },
   "errors": {
     "couldNotLoadFiles": "No se pudieron cargar los archivos",

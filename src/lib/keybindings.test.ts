@@ -42,6 +42,9 @@ const mocks = vi.hoisted(() => {
     diagnostics: {
       copyDebugInfo: vi.fn(() => Promise.resolve('debug info')),
     },
+    fileStore: {
+      toggleShowIgnoredFiles: vi.fn(),
+    },
     toast: {
       addToast: vi.fn(),
     },
@@ -72,6 +75,10 @@ vi.mock('@/stores/sessionStore', () => ({
 
 vi.mock('@/stores/diagnosticsStore', () => ({
   ...mocks.diagnostics,
+}));
+
+vi.mock('@/stores/fileStore', () => ({
+  ...mocks.fileStore,
 }));
 
 vi.mock('@/stores/toastStore', () => ({
@@ -154,6 +161,11 @@ describe('keybindings', () => {
   it('Cmd+Shift+T toggles context breakdown', () => {
     handleGlobalKeyDown(createKeyEvent('KeyT', { shiftKey: true }));
     expect(mocks.ui.toggleContextBreakdown).toHaveBeenCalled();
+  });
+
+  it('Cmd+Shift+I toggles ignored-file visibility', () => {
+    handleGlobalKeyDown(createKeyEvent('KeyI', { shiftKey: true }));
+    expect(mocks.fileStore.toggleShowIgnoredFiles).toHaveBeenCalled();
   });
 
   it('Cmd+M cycles model', () => {

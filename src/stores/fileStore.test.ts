@@ -15,8 +15,10 @@ import {
   selectFile,
   setSelectedRange,
   toggleFilesVisible,
+  toggleShowIgnoredFiles,
   toggleFolder,
 } from './fileStore';
+import { setActiveProject } from '@/stores/projectStore';
 import type { FileNode } from '@/lib/types';
 
 const mockRootNodes: FileNode[] = [
@@ -28,6 +30,7 @@ const mockRootNodes: FileNode[] = [
     extension: null,
     children: null,
     is_binary: false,
+    is_git_ignored: false,
   },
   {
     name: 'README.md',
@@ -37,12 +40,15 @@ const mockRootNodes: FileNode[] = [
     extension: 'md',
     children: null,
     is_binary: false,
+    is_git_ignored: false,
   },
 ];
 
 describe('fileStore', () => {
   beforeEach(() => {
     clearFileState();
+    localStorage.clear();
+    setActiveProject(null);
     mockIpcCommand('list_project_files', () => mockRootNodes);
     mockIpcCommand('read_project_file', (args) => ({
       relative_path: String((args as { relative_path?: string }).relative_path ?? 'README.md'),
@@ -64,9 +70,15 @@ describe('fileStore', () => {
   });
 
   it('loadRootFiles fetches tree from backend', async () => {
+    let callArgs: Record<string, unknown> | null = null;
+    mockIpcCommand('list_project_files', (args) => {
+      callArgs = args as Record<string, unknown>;
+      return mockRootNodes;
+    });
     await loadRootFiles('proj-1');
     expect(getRootNodes()).toHaveLength(2);
     expect(fileState.isLoading).toBe(false);
+    expect(callArgs?.['show_ignored']).toBe(false);
   });
 
   it('loadRootFiles handles IPC error', async () => {
@@ -178,5 +190,36 @@ describe('fileStore', () => {
     expect(fileState.isVisible).toBe(!initial);
     toggleFilesVisible();
     expect(fileState.isVisible).toBe(initial);
+  });
+
+  it('loadRootFiles applies persisted showIgnoredFiles preference', async () => {
+    let callArgs: Record<string, unknown> | null = null;
+    localStorage.setItem('cw:showIgnoredFiles:proj-1', '1');
+    mockIpcCommand('list_project_files', (args) => {
+      callArgs = args as Record<string, unknown>;
+      return mockRootNodes;
+    });
+
+    await loadRootFiles('proj-1');
+
+    expect(fileState.showIgnoredFiles).toBe(true);
+    expect(callArgs?.['show_ignored']).toBe(true);
+  });
+
+  it('toggleShowIgnoredFiles persists and reloads when an active project exists', async () => {
+    const callArgs: Array<Record<string, unknown>> = [];
+    mockIpcCommand('list_project_files', (args) => {
+      callArgs.push(args as Record<string, unknown>);
+      return mockRootNodes;
+    });
+
+    setActiveProject('proj-1');
+    await loadRootFiles('proj-1');
+    toggleShowIgnoredFiles();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(fileState.showIgnoredFiles).toBe(true);
+    expect(localStorage.getItem('cw:showIgnoredFiles:proj-1')).toBe('1');
+    expect(callArgs.some((args) => args['show_ignored'] === true)).toBe(true);
   });
 });

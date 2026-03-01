@@ -9,12 +9,14 @@ let mockIsSearching = false;
 let mockIsLoading = false;
 let mockLoadError: string | null = null;
 let mockRootNodes: FileNode[] = [];
+let mockShowIgnoredFiles = false;
 
 const mockLoadRootFiles = vi.fn();
 const mockSearchFiles = vi.fn();
 const mockClearSearch = vi.fn();
 const mockSelectFile = vi.fn();
 const mockRetryLoadFiles = vi.fn(async () => {});
+const mockToggleShowIgnoredFiles = vi.fn();
 
 vi.mock('@/stores/fileStore', () => ({
   fileState: {
@@ -33,6 +35,9 @@ vi.mock('@/stores/fileStore', () => ({
     get loadError() {
       return mockLoadError;
     },
+    get showIgnoredFiles() {
+      return mockShowIgnoredFiles;
+    },
   },
   loadRootFiles: (...args: unknown[]) => mockLoadRootFiles(...args),
   getRootNodes: () => mockRootNodes,
@@ -40,6 +45,7 @@ vi.mock('@/stores/fileStore', () => ({
   clearSearch: () => mockClearSearch(),
   selectFile: (...args: unknown[]) => mockSelectFile(...args),
   retryLoadFiles: () => mockRetryLoadFiles(),
+  toggleShowIgnoredFiles: () => mockToggleShowIgnoredFiles(),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
@@ -69,6 +75,7 @@ describe('FileTree', () => {
     mockIsLoading = false;
     mockLoadError = null;
     mockRootNodes = [];
+    mockShowIgnoredFiles = false;
     vi.clearAllMocks();
   });
 
@@ -82,6 +89,12 @@ describe('FileTree', () => {
     const input = screen.getByPlaceholderText('explorer.searchFiles');
     fireEvent.input(input, { target: { value: 'main' } });
     expect(mockSearchFiles).toHaveBeenCalledWith('proj-1', 'main');
+  });
+
+  it('toggles ignored-file visibility from explorer toolbar button', () => {
+    render(() => <FileTree />);
+    fireEvent.click(screen.getByRole('button', { name: 'explorer.showIgnoredFiles' }));
+    expect(mockToggleShowIgnoredFiles).toHaveBeenCalled();
   });
 
   it('renders search results and selects a file on click', () => {

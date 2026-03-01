@@ -12,6 +12,27 @@ import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
 
 const log = createLogger('ui/files');
+const SHOW_IGNORED_KEY_PREFIX = 'cw:showIgnoredFiles:';
+
+function showIgnoredStorageKey(projectId: string): string {
+  return `${SHOW_IGNORED_KEY_PREFIX}${projectId}`;
+}
+
+function loadPersistedShowIgnored(projectId: string): boolean {
+  try {
+    return localStorage.getItem(showIgnoredStorageKey(projectId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function persistShowIgnored(projectId: string, value: boolean): void {
+  try {
+    localStorage.setItem(showIgnoredStorageKey(projectId), value ? '1' : '0');
+  } catch {
+    // localStorage may be unavailable in test/browser mode.
+  }
+}
 
 interface FileState {
   /** Cached tree nodes per relative path (path -> children). */
@@ -40,6 +61,8 @@ interface FileState {
   isGitLoading: boolean;
   /** Whether the files section is visible. */
   isVisible: boolean;
+  /** Whether .gitignored files are shown in the explorer. */
+  showIgnoredFiles: boolean;
   /** Selected line range for code range selection. */
   selectedRange: { start: number; end: number } | null;
   /** Attachment currently being edited from ContextChip click, if any. */
@@ -75,6 +98,7 @@ const [state, setState] = createStore<FileState>({
   gitStatuses: {},
   isGitLoading: false,
   isVisible: true,
+  showIgnoredFiles: false,
   selectedRange: null,
   editingAttachmentId: null,
   isEditing: false,
@@ -138,6 +162,10 @@ async function loadRootFilesInternal(
   projectId: string,
   options: LoadRootFilesOptions = {},
 ): Promise<void> {
+  const showIgnored = loadPersistedShowIgnored(projectId);
+  if (state.showIgnoredFiles !== showIgnored) {
+    setState('showIgnoredFiles', showIgnored);
+  }
   const { showLoading = true, refreshGitStatuses = true } = options;
   if (showLoading) setState('isLoading', true);
   setState('loadError', null);
@@ -146,6 +174,7 @@ async function loadRootFilesInternal(
       project_id: projectId,
       relative_path: null,
       max_depth: 1,
+      show_ignored: showIgnored,
     });
     setState('tree', '', nodes);
   } catch (err) {
@@ -301,6 +330,7 @@ export async function loadDirectoryChildren(
       project_id: projectId,
       relative_path: relativePath,
       max_depth: 1,
+      show_ignored: state.showIgnoredFiles,
     });
     setState('tree', relativePath, nodes);
   } catch (err) {
@@ -453,6 +483,24 @@ export function toggleFilesVisible(): void {
   setState('isVisible', (v) => !v);
 }
 
+/** Toggle whether .gitignored files are visible in the explorer. */
+export function toggleShowIgnoredFiles(): void {
+  const projectId = projectState.activeProjectId;
+  const next = !state.showIgnoredFiles;
+  setState('showIgnoredFiles', next);
+
+  if (!projectId) return;
+
+  persistShowIgnored(projectId, next);
+  setState('tree', {});
+  void (async () => {
+    await loadRootFilesInternal(projectId);
+    for (const path of state.expandedPaths) {
+      await loadDirectoryChildren(projectId, path);
+    }
+  })();
+}
+
 /** Clear all file state (e.g., on project switch). */
 export function clearFileState(): void {
   if (filesChangedDebounceTimer) {
@@ -474,6 +522,7 @@ export function clearFileState(): void {
     isPreviewLoading: false,
     gitStatuses: {},
     isGitLoading: false,
+    showIgnoredFiles: false,
     selectedRange: null,
     editingAttachmentId: null,
     isEditing: false,

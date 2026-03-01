@@ -24,6 +24,7 @@ import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore
 import { conversationState } from '@/stores/conversationStore';
 import { cycleModel } from '@/stores/sessionStore';
 import { copyDebugInfo } from '@/stores/diagnosticsStore';
+import { toggleShowIgnoredFiles } from '@/stores/fileStore';
 import { addToast } from '@/stores/toastStore';
 import { closePane, splitView, unsplit, viewState } from '@/stores/viewStore';
 
@@ -85,6 +86,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   if (e.code === 'KeyT' && e.shiftKey) {
     e.preventDefault();
     toggleContextBreakdown();
+    return;
+  }
+
+  // Cmd+Shift+I — toggle gitignored file visibility in explorer
+  if (e.code === 'KeyI' && e.shiftKey) {
+    e.preventDefault();
+    toggleShowIgnoredFiles();
     return;
   }
 
