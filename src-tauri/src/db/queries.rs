@@ -608,9 +608,9 @@ pub fn extract_code_blocks(markdown: &str) -> Vec<CodeBlock> {
 
     for line in markdown.lines() {
         if !in_block {
-            if line.starts_with("```") {
+            if let Some(stripped) = line.strip_prefix("```") {
                 in_block = true;
-                current_lang = line[3..].trim().to_string();
+                current_lang = stripped.trim().to_string();
                 current_lines.clear();
             }
         } else if line.trim() == "```" {
@@ -681,7 +681,10 @@ pub fn insert_artifact_or_ignore(
 }
 
 #[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
-pub fn get_session_artifacts(db: &Database, session_id: &str) -> Result<Vec<ArtifactRow>, AppError> {
+pub fn get_session_artifacts(
+    db: &Database,
+    session_id: &str,
+) -> Result<Vec<ArtifactRow>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
             "SELECT id, session_id, message_id, message_index, block_index,
@@ -714,7 +717,10 @@ pub fn get_session_artifacts(db: &Database, session_id: &str) -> Result<Vec<Arti
 
 /// Compute aggregate session stats for the History tab.
 #[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
-pub fn query_session_summary(db: &Database, session_id: &str) -> Result<SessionSummaryRow, AppError> {
+pub fn query_session_summary(
+    db: &Database,
+    session_id: &str,
+) -> Result<SessionSummaryRow, AppError> {
     db.with_conn(|conn| {
         let message_count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM messages WHERE session_id = ?1
