@@ -33,6 +33,7 @@ const log = createLogger('ui/conversation');
 interface ConversationState {
   messages: Message[];
   toolOutputs: Record<string, string>;
+  diffStates: Record<string, 'pending' | 'applied' | 'rejected'>;
   isLoading: boolean;
   streamingContent: string;
   thinkingContent: string;
@@ -47,6 +48,7 @@ interface ConversationState {
 const [state, setState] = createStore<ConversationState>({
   messages: [],
   toolOutputs: {},
+  diffStates: {},
   isLoading: false,
   streamingContent: '',
   thinkingContent: '',
@@ -57,6 +59,16 @@ const [state, setState] = createStore<ConversationState>({
   sessionUnread: {},
   lastUserMessage: null,
 });
+
+/** Set applied/rejected state for an inline diff block. */
+export function setDiffState(key: string, state: 'applied' | 'rejected'): void {
+  setState('diffStates', key, state);
+}
+
+/** Get current inline diff state for a block key. */
+export function getDiffState(key: string): 'pending' | 'applied' | 'rejected' {
+  return state.diffStates[key] ?? 'pending';
+}
 
 /** Typewriter buffer for smooth streaming rendering (CHI-73). */
 const typewriter = createTypewriterBuffer();

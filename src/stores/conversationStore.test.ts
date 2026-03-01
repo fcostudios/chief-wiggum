@@ -94,6 +94,15 @@ describe('conversationStore', () => {
     expect(mod.conversationState.isStreaming).toBe(false);
     expect(mod.conversationState.error).toBeNull();
     expect(mod.conversationState.processStatus).toBeDefined();
+    expect(mod.conversationState.diffStates).toEqual({});
+  });
+
+  it('getDiffState defaults to pending and setDiffState updates map', () => {
+    expect(mod.getDiffState('m1:0')).toBe('pending');
+    mod.setDiffState('m1:0', 'applied');
+    expect(mod.getDiffState('m1:0')).toBe('applied');
+    mod.setDiffState('m1:0', 'rejected');
+    expect(mod.getDiffState('m1:0')).toBe('rejected');
   });
 
   it('getSessionStatus returns not_started for unknown session', () => {
