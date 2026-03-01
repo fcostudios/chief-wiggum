@@ -9,6 +9,7 @@ let mockActiveProjectId: string | null = null;
 let mockSidebarState: 'expanded' | 'collapsed' | 'hidden' = 'expanded';
 let mockFileVisible = false;
 let mockActions: Array<{ id: string }> = [];
+let mockCrossProjectRunning: Array<{ id: string }> = [];
 
 const mockLoadSessions = vi.fn(() => Promise.resolve());
 const mockLoadProjects = vi.fn(() => Promise.resolve());
@@ -31,6 +32,7 @@ const mockPickAndCreateProject = vi.fn(() => Promise.resolve());
 const mockSetActiveProject = vi.fn();
 const mockToggleFilesVisible = vi.fn();
 const mockDiscoverActions = vi.fn(() => Promise.resolve());
+const mockSetViewBadge = vi.fn();
 
 const tMap: Record<string, string> = {
   'sidebar.projects': 'Projects',
@@ -126,6 +128,9 @@ vi.mock('@/stores/actionStore', () => ({
     get actions() {
       return mockActions;
     },
+    get crossProjectRunning() {
+      return mockCrossProjectRunning;
+    },
   },
   discoverActions: (...args: unknown[]) =>
     (mockDiscoverActions as unknown as (...inner: unknown[]) => unknown)(...args),
@@ -137,6 +142,8 @@ vi.mock('@/stores/uiStore', () => ({
       return mockSidebarState;
     },
   },
+  setViewBadge: (...args: unknown[]) =>
+    (mockSetViewBadge as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/i18nStore', () => ({ t }));
@@ -191,6 +198,7 @@ describe('Sidebar', () => {
     mockSidebarState = 'expanded';
     mockFileVisible = false;
     mockActions = [];
+    mockCrossProjectRunning = [];
 
     vi.clearAllMocks();
   });
