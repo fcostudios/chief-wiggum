@@ -590,6 +590,53 @@ pub fn get_action_history(
     })
 }
 
+/// Parsed code block extracted from markdown content.
+#[derive(Debug)]
+pub struct CodeBlock {
+    pub language: String,
+    pub content: String,
+}
+
+/// Extract all fenced code blocks (```lang\n...\n```) from markdown text.
+/// Returns (language, content) pairs in document order.
+/// Pure function — no DB access, easy to unit test.
+pub fn extract_code_blocks(markdown: &str) -> Vec<CodeBlock> {
+    let mut blocks = Vec::new();
+    let mut in_block = false;
+    let mut current_lang = String::new();
+    let mut current_lines: Vec<&str> = Vec::new();
+
+    for line in markdown.lines() {
+        if !in_block {
+            if line.starts_with("```") {
+                in_block = true;
+                current_lang = line[3..].trim().to_string();
+                current_lines.clear();
+            }
+        } else if line.trim() == "```" {
+            blocks.push(CodeBlock {
+                language: current_lang.clone(),
+                content: current_lines.join("\n"),
+            });
+            in_block = false;
+            current_lang.clear();
+            current_lines.clear();
+        } else {
+            current_lines.push(line);
+        }
+    }
+    blocks
+}
+
+/// Map a language string to an artifact type.
+fn artifact_type_for(language: &str) -> &'static str {
+    match language.to_lowercase().as_str() {
+        "mermaid" => "diagram",
+        "json" | "csv" | "yaml" | "toml" | "xml" => "data",
+        _ => "code",
+    }
+}
+
 /// Insert an artifact, silently ignoring duplicate (message_id, block_index) pairs.
 #[allow(clippy::too_many_arguments)]
 #[tracing::instrument(target = "db/queries", level = "debug", skip(db, preview, content))]
@@ -719,6 +766,90 @@ pub fn query_session_summary(db: &Database, session_id: &str) -> Result<SessionS
             models_used,
         })
     })
+}
+
+/// Scan all assistant messages in a session, extract code blocks, and persist
+/// them to the artifacts table. Idempotent — duplicate (message_id, block_index)
+/// pairs are silently ignored.
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn extract_and_save_artifacts(db: &Database, session_id: &str) -> Result<(), AppError> {
+    let messages = db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, content, created_at FROM messages
+             WHERE session_id = ?1 AND role = 'assistant'
+             ORDER BY rowid ASC",
+        )?;
+        let rows = stmt
+            .query_map(rusqlite::params![session_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2).unwrap_or(0),
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })?;
+
+    for (msg_index, (message_id, content, created_at)) in messages.iter().enumerate() {
+        let blocks = extract_code_blocks(content);
+        for (block_index, block) in blocks.iter().enumerate() {
+            if block.content.trim().is_empty() {
+                continue;
+            }
+            let artifact_type = artifact_type_for(&block.language);
+            let lang_opt: Option<&str> = if block.language.is_empty() {
+                None
+            } else {
+                Some(&block.language)
+            };
+            let line_count = block.content.lines().count() as i64;
+            let preview: String = block
+                .content
+                .chars()
+                .take(200)
+                .collect::<String>()
+                .lines()
+                .next()
+                .unwrap_or("")
+                .to_string();
+            let title = if block.language.is_empty() {
+                format!("Code block #{}", block_index + 1)
+            } else {
+                let lang_display = block
+                    .language
+                    .chars()
+                    .enumerate()
+                    .map(|(i, c)| {
+                        if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        }
+                    })
+                    .collect::<String>();
+                format!("{} block #{}", lang_display, block_index + 1)
+            };
+            let artifact_id = format!("{}-{}", message_id, block_index);
+
+            insert_artifact_or_ignore(
+                db,
+                &artifact_id,
+                session_id,
+                message_id,
+                msg_index as i64,
+                block_index as i64,
+                artifact_type,
+                lang_opt,
+                &title,
+                &preview,
+                &block.content,
+                line_count,
+                *created_at,
+            )?;
+        }
+    }
+    Ok(())
 }
 
 // ── Row types ──────────────────────────────────────────────────
@@ -1347,5 +1478,43 @@ mod artifact_tests {
         assert_eq!(summary.message_count, 2);
         assert_eq!(summary.tool_count, 1);
         assert_eq!(summary.artifact_count, 1);
+    }
+}
+
+#[cfg(test)]
+mod extraction_tests {
+    use super::extract_code_blocks;
+
+    #[test]
+    fn extracts_single_rust_block() {
+        let md = "Here is code:\n```rust\nfn main() {}\n```\nDone.";
+        let blocks = extract_code_blocks(md);
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].language, "rust");
+        assert_eq!(blocks[0].content, "fn main() {}");
+    }
+
+    #[test]
+    fn extracts_multiple_blocks() {
+        let md = "```ts\nconst x = 1;\n```\nSome text.\n```json\n{\"a\":1}\n```";
+        let blocks = extract_code_blocks(md);
+        assert_eq!(blocks.len(), 2);
+        assert_eq!(blocks[0].language, "ts");
+        assert_eq!(blocks[1].language, "json");
+    }
+
+    #[test]
+    fn skips_empty_blocks() {
+        let md = "```\n```";
+        let blocks = extract_code_blocks(md);
+        assert_eq!(blocks.len(), 1);
+        assert!(blocks[0].content.trim().is_empty());
+    }
+
+    #[test]
+    fn no_blocks_returns_empty() {
+        let md = "Plain text only, no code.";
+        let blocks = extract_code_blocks(md);
+        assert!(blocks.is_empty());
     }
 }
