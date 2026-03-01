@@ -11,7 +11,7 @@ import { onMount, onCleanup, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { platform } from '@tauri-apps/plugin-os';
-import { MessageSquare, Users, GitCompare, Terminal } from 'lucide-solid';
+import { MessageSquare, Users, GitCompare, Terminal, Factory } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -55,6 +55,7 @@ const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }
   agents: Users,
   diff: GitCompare,
   terminal: Terminal,
+  actions_center: Factory,
 };
 
 const MainLayout: Component = () => {
