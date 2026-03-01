@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-01T13:09:11Z",
+  "last_updated": "2026-03-01T18:18:11Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -54,6 +54,12 @@
       "status": "done",
       "linear_id": "9ff752c7-b64a-4a86-8104-0410ba01477a",
       "notes": "CHI-216/226/227/229/230 implemented and closed in Linear during closure."
+    },
+    "CHI-218": {
+      "title": "Actions Center",
+      "status": "done",
+      "linear_id": "9df8c5a1-a02e-4be0-a059-6e8ab335ab90",
+      "notes": "CHI-219 and CHI-220 implemented and merged to main in closure."
     }
   },
   "tasks": {
@@ -546,6 +552,162 @@
         "src/components/conversation/MessageBubble.tsx"
       ],
       "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 3deff7d, fb377aa, 7a43bbd, 3b2b3b9, 9001066.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
+    },
+    "CHI-184": {
+      "title": "A4: LaTeX / Math Rendering",
+      "epic": "CHI-177",
+      "status": "done",
+      "priority": "Medium",
+      "dependencies": [
+        "CHI-186"
+      ],
+      "linear_id": "87b0fc2d-b579-46a8-8ab2-0ea75e31348f",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-01T13:40:57Z",
+      "completed_at": "2026-03-01T13:54:11Z",
+      "files": [
+        "package.json",
+        "package-lock.json",
+        "index.html",
+        "src/components/conversation/renderers/MathRenderer.tsx",
+        "src/components/conversation/renderers/MathRenderer.test.tsx",
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/App.tsx"
+      ],
+      "testing": {
+        "rust_unit_tests": 0,
+        "frontend_unit_tests": 5,
+        "integration_tests": 0,
+        "e2e_tests": 0,
+        "snapshot_tests": 0,
+        "property_tests": 0,
+        "coverage_percent": 90,
+        "test_files": [
+          "src/components/conversation/renderers/MathRenderer.test.tsx",
+          "src/components/conversation/MarkdownContent.test.tsx"
+        ],
+        "regression_verified": true
+      },
+      "notes": "Implemented KaTeX-backed math renderer with inline/block tokenizer extensions and markdown placeholder hydration. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
+    },
+    "CHI-185": {
+      "title": "A5: Inline Image Rendering",
+      "epic": "CHI-177",
+      "status": "done",
+      "priority": "Medium",
+      "dependencies": [
+        "CHI-186"
+      ],
+      "linear_id": "f3a83740-3211-410e-ba67-0cfbfb3b0154",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-01T13:51:45Z",
+      "completed_at": "2026-03-01T13:54:11Z",
+      "files": [
+        "src/components/conversation/renderers/ImageRenderer.tsx",
+        "src/components/conversation/renderers/ImageRenderer.test.tsx",
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/App.tsx"
+      ],
+      "testing": {
+        "rust_unit_tests": 0,
+        "frontend_unit_tests": 5,
+        "integration_tests": 0,
+        "e2e_tests": 0,
+        "snapshot_tests": 0,
+        "property_tests": 0,
+        "coverage_percent": 90,
+        "test_files": [
+          "src/components/conversation/renderers/ImageRenderer.test.tsx",
+          "src/components/conversation/MarkdownContent.test.tsx"
+        ],
+        "regression_verified": true
+      },
+      "notes": "Implemented secure inline image renderer (HTTPS/data URI allowlist, lazy loading, preview modal) integrated through markdown renderer placeholders. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
+    },
+    "CHI-219": {
+      "title": "H1a \u2014 Backend: list_all_running_actions IPC + ActionHistory DB table",
+      "epic": "CHI-218",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [],
+      "linear_id": "6147bcb1-bd9c-42e0-be25-8b3491f916a8",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-01T16:22:47Z",
+      "completed_at": "2026-03-01T16:54:10Z",
+      "files": [
+        "src-tauri/src/actions/manager.rs",
+        "src-tauri/src/actions/event_loop.rs",
+        "src-tauri/src/db/migrations.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/commands/actions.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/actionStore.ts"
+      ],
+      "testing": {
+        "rust_unit_tests": 0,
+        "frontend_unit_tests": 0,
+        "integration_tests": 0,
+        "e2e_tests": 0,
+        "snapshot_tests": 0,
+        "property_tests": 0,
+        "coverage_percent": null,
+        "test_files": [
+          "src-tauri/src/db/queries.rs",
+          "src/stores/actionStore.test.ts"
+        ],
+        "regression_verified": true
+      },
+      "notes": "Implemented ActionRuntime metadata snapshots, DB migration v4 action_history table, typed history queries, status-changed emissions, and new backend IPC endpoints for cross-project running actions/history. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
+    },
+    "CHI-220": {
+      "title": "H1b \u2014 WarehouseCard + ActionsCenter Overview UI",
+      "epic": "CHI-218",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [
+        "CHI-219"
+      ],
+      "linear_id": "41f95aec-1f90-41a4-9453-31a0626f7fdf",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-01T17:08:29Z",
+      "completed_at": "2026-03-01T18:08:10Z",
+      "files": [
+        "src/lib/types.ts",
+        "src/stores/actionStore.ts",
+        "src/stores/actionStore.test.ts",
+        "src/stores/uiStore.ts",
+        "src/components/actions/WarehouseCard.tsx",
+        "src/components/actions/WarehouseCard.test.tsx",
+        "src/components/actions/ActionsCenter.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/MainLayout.test.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/Sidebar.test.tsx",
+        "src/lib/keybindings.ts",
+        "src/lib/keybindings.test.ts",
+        "src/styles/tokens.css",
+        "src/locales/en.json",
+        "src/locales/es.json",
+        "src-tauri/src/commands/actions.rs"
+      ],
+      "testing": {
+        "rust_unit_tests": 0,
+        "frontend_unit_tests": 51,
+        "integration_tests": 0,
+        "e2e_tests": 0,
+        "snapshot_tests": 0,
+        "property_tests": 0,
+        "coverage_percent": 90,
+        "test_files": [
+          "src/stores/actionStore.test.ts",
+          "src/components/actions/WarehouseCard.test.tsx",
+          "src/lib/keybindings.test.ts",
+          "src/components/layout/MainLayout.test.tsx",
+          "src/components/layout/Sidebar.test.tsx"
+        ],
+        "regression_verified": true
+      },
+      "notes": "Completed Actions Center UI foundation: store extensions, conveyor animations, i18n, new Center view tab, keyboard shortcut, and live badge sync with cross-project running lanes. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
     }
   },
   "epics_new": {
@@ -2710,7 +2872,6 @@
     }
   },
   "recommended_next": [
-    "CHI-219",
     "CHI-225"
   ],
   "critical_path": [
@@ -4301,6 +4462,66 @@
       ],
       "tests": "Full closure validation passed: cargo fmt --all -- --check, cargo clippy --all-targets -- -D warnings, cargo test (288 passed); npm run typecheck, npm run lint, npm run format:check, npm run test:unit (55 files / 401 tests); npx playwright test (106 passed / 8 skipped).",
       "verified": "CHI-186, CHI-187, CHI-190, and CHI-200 implementation tasks are complete and verified. Handover/testing metadata is synchronized for this plan batch."
+    },
+    "2026-03-01_chi184_185_219_220_closure": {
+      "description": "Closure for plan 2026-03-01-chi184-chi185-chi219-chi220-math-image-actions-center: merged feature branch to main, executed verification, and normalized handover metadata with lock protocol.",
+      "changes": [
+        {
+          "task": "CHI-184 + CHI-185 rich rendering",
+          "files_modified": [
+            "package.json",
+            "package-lock.json",
+            "index.html",
+            "src/components/conversation/renderers/MathRenderer.tsx",
+            "src/components/conversation/renderers/ImageRenderer.tsx",
+            "src/components/conversation/renderers/ImageRenderer.test.tsx"
+          ]
+        },
+        {
+          "task": "CHI-219 backend Actions Center foundation",
+          "files_modified": [
+            "src-tauri/src/actions/manager.rs",
+            "src-tauri/src/actions/event_loop.rs",
+            "src-tauri/src/db/migrations.rs",
+            "src-tauri/src/db/queries.rs",
+            "src-tauri/src/commands/actions.rs",
+            "src-tauri/src/main.rs",
+            "src/stores/actionStore.ts"
+          ]
+        },
+        {
+          "task": "CHI-220 Actions Center overview UI",
+          "files_modified": [
+            "src/lib/types.ts",
+            "src/stores/actionStore.ts",
+            "src/stores/actionStore.test.ts",
+            "src/stores/uiStore.ts",
+            "src/components/actions/WarehouseCard.tsx",
+            "src/components/actions/WarehouseCard.test.tsx",
+            "src/components/actions/ActionsCenter.tsx",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/MainLayout.test.tsx",
+            "src/components/layout/Sidebar.tsx",
+            "src/components/layout/Sidebar.test.tsx",
+            "src/lib/keybindings.ts",
+            "src/lib/keybindings.test.ts",
+            "src/styles/tokens.css",
+            "src/locales/en.json",
+            "src/locales/es.json",
+            "src-tauri/src/commands/actions.rs"
+          ]
+        }
+      ],
+      "verification": [
+        "npx vitest run (73 files / 550 tests passed)",
+        "npx tsc --noEmit",
+        "npx eslint .",
+        "cargo clippy -- -D warnings",
+        "cargo fmt --check",
+        "cargo test",
+        "npx vite build"
+      ],
+      "notes": "Lock protocol applied on main .claude path; completion signatures recorded on each task."
     }
   },
   "warnings": [],
@@ -4311,7 +4532,7 @@
     "version": "1.0",
     "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
-  "notes": "CHI-217 complete: FilePreview now supports inline CodeMirror editing with blur auto-save, dirty indicators, conflict handling, and read-only lock semantics. Automated frontend+Rust verification is green in the isolated worktree; manual UI accessibility walkthrough is the remaining validation step.",
+  "notes": "CHI-184/185/219/220 closure complete: merged into main with full frontend/rust verification and handover/Linear normalization in progress.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -4322,7 +4543,7 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-01T13:09:11Z"
+    "last_updated": "2026-03-01T18:18:11Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
@@ -4421,6 +4642,52 @@
             "regression_verified": true
           },
           "notes": "Expanded renderer/table unit coverage with GFM table edge-case tests and existing HMR-safe renderer registry assertions."
+        },
+        "CHI-184": {
+          "title": "A4: LaTeX / Math Rendering",
+          "status": "done",
+          "completed_at": "2026-03-01T13:54:11Z",
+          "priority": "medium",
+          "track": "A",
+          "linear_id": "87b0fc2d-b579-46a8-8ab2-0ea75e31348f",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 5,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 90,
+            "test_files": [
+              "src/components/conversation/renderers/MathRenderer.test.tsx",
+              "src/components/conversation/MarkdownContent.test.tsx"
+            ],
+            "regression_verified": true
+          },
+          "notes": "KaTeX math renderer + markdown tokenizer extensions integrated via renderer registry."
+        },
+        "CHI-185": {
+          "title": "A5: Inline Image Rendering",
+          "status": "done",
+          "completed_at": "2026-03-01T13:54:11Z",
+          "priority": "medium",
+          "track": "A",
+          "linear_id": "f3a83740-3211-410e-ba67-0cfbfb3b0154",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 5,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 90,
+            "test_files": [
+              "src/components/conversation/renderers/ImageRenderer.test.tsx",
+              "src/components/conversation/MarkdownContent.test.tsx"
+            ],
+            "regression_verified": true
+          },
+          "notes": "Inline image renderer with secure URL handling, lazy load, and modal preview."
         }
       }
     },
