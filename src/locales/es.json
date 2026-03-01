@@ -134,5 +134,22 @@
     "advanced": "Avanzado",
     "searchSettings": "Buscar configuración...",
     "resetDefaults": "Restablecer valores predeterminados"
+  },
+  "actions_center": {
+    "title": "Centro de Acciones",
+    "summary": "{n} proyectos · {m} líneas activas",
+    "launch_action": "Iniciar Acción",
+    "all_quiet": "Todo tranquilo en la fábrica",
+    "open_project": "Abre un proyecto para ver su almacén",
+    "add_lane": "Añadir Línea",
+    "no_lanes": "Sin líneas activas — añade una para arrancar la cadena de montaje",
+    "stop": "Detener",
+    "restart": "Reiniciar",
+    "ask_ai": "Preguntar a IA",
+    "no_history": "Sin historial aún — ejecuta una acción para verlo aquí",
+    "load_more": "Cargar más",
+    "view_output": "Ver Salida",
+    "output_preview_note": "Salida completa no guardada — mostrando las últimas 3 líneas",
+    "inspect_hint": "Clic para inspeccionar registros"
   }
 }
