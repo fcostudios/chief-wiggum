@@ -17,6 +17,8 @@ import {
   RENDERER_LANG_ATTR,
   findRenderer,
 } from '@/lib/rendererRegistry';
+import InlineDiffBlock from './InlineDiffBlock';
+import { isDiffBlock } from '@/lib/diffApplicator';
 import { addToast } from '@/stores/toastStore';
 import { setActiveView } from '@/stores/uiStore';
 
@@ -102,6 +104,7 @@ marked.use({
 
 interface MarkdownContentProps {
   content: string;
+  messageId?: string;
 }
 
 const MarkdownContent: Component<MarkdownContentProps> = (props) => {
@@ -270,6 +273,27 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
           e.stopPropagation();
           openCodeContextMenu(pre as HTMLElement, { code, lang });
         });
+      });
+
+      // Detect unified diff code blocks and mount inline diff actions below each block.
+      let diffBlockIdx = 0;
+      containerRef!.querySelectorAll('pre').forEach((pre) => {
+        const codeEl = pre.querySelector('code');
+        const code = codeEl?.textContent || '';
+        const langMatch = codeEl?.className.match(/language-([A-Za-z0-9_+-]+)/);
+        const lang = langMatch ? langMatch[1] : '';
+        if (!isDiffBlock(lang, code)) return;
+        if (pre.nextElementSibling?.hasAttribute('data-cw-diff-buttons')) return;
+
+        const diffKey = `${props.messageId ?? 'unknown'}:${diffBlockIdx}`;
+        diffBlockIdx += 1;
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.setAttribute('data-cw-diff-buttons', 'true');
+        pre.parentNode?.insertBefore(buttonContainer, pre.nextSibling);
+
+        const dispose = solidRender(() => <InlineDiffBlock code={code} diffKey={diffKey} />, buttonContainer);
+        rendererDisposers.push(dispose);
       });
 
       // Wrap tables in a horizontal container and add markdown copy.

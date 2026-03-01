@@ -45,6 +45,14 @@ vi.mock('@/stores/uiStore', () => ({
     (mockSetActiveView as (...inner: unknown[]) => unknown)(...args),
 }));
 
+vi.mock('./InlineDiffBlock', () => ({
+  default: (props: { code: string; diffKey: string }) => (
+    <div data-testid="inline-diff-block" data-diff-key={props.diffKey}>
+      {props.code}
+    </div>
+  ),
+}));
+
 import MarkdownContent from './MarkdownContent';
 import { clearRenderers, registerRenderer } from '@/lib/rendererRegistry';
 
@@ -348,6 +356,37 @@ describe('MarkdownContent', () => {
 
       expect(container.querySelector('[data-cw-renderer]')).toBeNull();
       expect(container.querySelector('pre')).toBeTruthy();
+    });
+  });
+
+  describe('inline diff actions', () => {
+    it('mounts InlineDiffBlock for unified diff code fences', async () => {
+      const diff = `\`\`\`diff
+--- a/src/file.ts
++++ b/src/file.ts
+@@ -1,1 +1,1 @@
+-old
++new
+\`\`\``;
+      const { container, getByTestId } = render(() => (
+        <MarkdownContent content={diff} messageId="msg-1" />
+      ));
+
+      await waitFor(() => {
+        expect(getByTestId('inline-diff-block')).toBeTruthy();
+      });
+      expect(getByTestId('inline-diff-block')).toHaveAttribute('data-diff-key', 'msg-1:0');
+      expect(container.querySelector('[data-cw-diff-buttons]')).toBeTruthy();
+    });
+
+    it('does not mount InlineDiffBlock for non-diff code fences', async () => {
+      const { container, queryByTestId } = render(() => (
+        <MarkdownContent content={'```ts\nconst x = 1;\n```'} messageId="msg-2" />
+      ));
+      await waitFor(() => {
+        expect(container.querySelector('pre .copy-btn')).toBeTruthy();
+      });
+      expect(queryByTestId('inline-diff-block')).toBeNull();
     });
   });
 });

@@ -276,7 +276,10 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
         </div>
 
         {/* Content: user messages as plain text, others as markdown */}
-        <Show when={isUser()} fallback={<MarkdownContent content={props.message.content} />}>
+        <Show
+          when={isUser()}
+          fallback={<MarkdownContent content={props.message.content} messageId={props.message.id} />}
+        >
           <Show
             when={!isEditing()}
             fallback={
