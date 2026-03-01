@@ -140,6 +140,29 @@ const MIGRATIONS: &[Migration] = &[
                 ON action_history (project_id, started_at DESC);
         "#,
     },
+    Migration {
+        version: 5,
+        description: "Add artifacts table for session artifact index (CHI-225)",
+        sql: r#"
+            CREATE TABLE IF NOT EXISTS artifacts (
+                id            TEXT PRIMARY KEY,
+                session_id    TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+                message_id    TEXT NOT NULL,
+                message_index INTEGER NOT NULL,
+                block_index   INTEGER NOT NULL DEFAULT 0,
+                type          TEXT NOT NULL CHECK(type IN ('code','file','plan','diagram','data')),
+                language      TEXT,
+                title         TEXT NOT NULL,
+                preview       TEXT NOT NULL,
+                content       TEXT NOT NULL,
+                line_count    INTEGER NOT NULL DEFAULT 0,
+                created_at    INTEGER NOT NULL,
+                UNIQUE(message_id, block_index)
+            );
+            CREATE INDEX IF NOT EXISTS idx_artifacts_session
+                ON artifacts(session_id, created_at DESC);
+        "#,
+    },
 ];
 
 impl super::Database {
@@ -239,7 +262,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 4);
+        assert_eq!(version, 5);
     }
 
     #[test]
@@ -250,7 +273,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 4);
+        assert_eq!(count, 5);
     }
 
     #[test]
@@ -266,6 +289,7 @@ mod tests {
             "cost_events",
             "budgets",
             "action_history",
+            "artifacts",
         ];
         for table in &tables {
             let exists: bool = conn
@@ -294,7 +318,7 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 4);
+        assert_eq!(rows.len(), 5);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
@@ -303,6 +327,8 @@ mod tests {
         assert!(rows[2].1.contains("pinned"));
         assert_eq!(rows[3].0, 4);
         assert!(rows[3].1.contains("action_history"));
+        assert_eq!(rows[4].0, 5);
+        assert!(rows[4].1.contains("artifacts"));
     }
 
     #[test]
