@@ -6,11 +6,12 @@
 import type { Component } from 'solid-js';
 import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { render as solidRender } from 'solid-js/web';
-import { Marked } from 'marked';
+import { Marked, type TokenizerAndRendererExtension, type Tokens } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import hljs from 'highlight.js';
 import { Copy, FileCode, Terminal } from 'lucide-solid';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
+import MathRenderer from '@/components/conversation/renderers/MathRenderer';
 import {
   RENDERER_ATTR,
   RENDERER_CODE_ATTR,
@@ -21,6 +22,9 @@ import InlineDiffBlock from './InlineDiffBlock';
 import { isDiffBlock } from '@/lib/diffApplicator';
 import { addToast } from '@/stores/toastStore';
 import { setActiveView } from '@/stores/uiStore';
+
+// Side-effect import registers math renderers.
+void MathRenderer;
 
 // Configure marked with highlight.js integration
 const marked = new Marked(
@@ -85,6 +89,63 @@ function decodeRendererCode(encoded: string): string {
     return encoded;
   }
 }
+
+interface MathToken extends Tokens.Generic {
+  type: 'mathBlock' | 'mathInline';
+  text: string;
+}
+
+const mathBlockExtension: TokenizerAndRendererExtension = {
+  name: 'mathBlock',
+  level: 'block',
+  start(src: string) {
+    const idx = src.indexOf('$$');
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(src: string) {
+    const match = src.match(/^\$\$([\s\S]+?)\$\$(?:\n|$)/);
+    if (!match) return undefined;
+    return {
+      type: 'mathBlock',
+      raw: match[0],
+      text: match[1].trim(),
+      tokens: [],
+    } satisfies MathToken;
+  },
+  renderer(token) {
+    const math = token as MathToken;
+    const encoded = encodeRendererCode(math.text);
+    return `<div ${RENDERER_ATTR}="math-block" ${RENDERER_CODE_ATTR}="${encoded}" ${RENDERER_LANG_ATTR}="math-block" class="cw-renderer-placeholder"></div>`;
+  },
+};
+
+const mathInlineExtension: TokenizerAndRendererExtension = {
+  name: 'mathInline',
+  level: 'inline',
+  start(src: string) {
+    const idx = src.indexOf('$');
+    return idx === -1 ? undefined : idx;
+  },
+  tokenizer(src: string) {
+    const match = src.match(/^\$(?!\$)((?:[^$]|\\.)+?)\$/);
+    if (!match) return undefined;
+    return {
+      type: 'mathInline',
+      raw: match[0],
+      text: match[1].trim(),
+      tokens: [],
+    } satisfies MathToken;
+  },
+  renderer(token) {
+    const math = token as MathToken;
+    const encoded = encodeRendererCode(math.text);
+    return `<span ${RENDERER_ATTR}="math-inline" ${RENDERER_CODE_ATTR}="${encoded}" ${RENDERER_LANG_ATTR}="math-inline" class="cw-renderer-placeholder"></span>`;
+  },
+};
+
+marked.use({
+  extensions: [mathBlockExtension, mathInlineExtension],
+});
 
 marked.use({
   renderer: {
