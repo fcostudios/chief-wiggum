@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-01T18:18:11Z",
+  "last_updated": "2026-03-01T22:59:28Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -708,6 +708,74 @@
         "regression_verified": true
       },
       "notes": "Completed Actions Center UI foundation: store extensions, conveyor animations, i18n, new Center view tab, keyboard shortcut, and live badge sync with cross-project running lanes. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
+    },
+    "CHI-182": {
+      "title": "A2: Mermaid Diagram Rendering",
+      "epic": "CHI-177",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [
+        "CHI-186"
+      ],
+      "linear_id": "7c0cb4a2-80d7-471e-a4ea-5bd8013ea2dd",
+      "assigned_to": "claude-code",
+      "started_at": "2026-02-27T19:24:41Z",
+      "completed_at": "2026-02-27T19:30:56Z",
+      "files": [
+        "package.json",
+        "package-lock.json",
+        "src/components/conversation/renderers/MermaidRenderer.tsx",
+        "src/components/conversation/renderers/MermaidRenderer.test.tsx",
+        "src/App.tsx"
+      ],
+      "testing": {
+        "rust_unit_tests": 0,
+        "frontend_unit_tests": 9,
+        "integration_tests": 0,
+        "e2e_tests": 0,
+        "snapshot_tests": 0,
+        "property_tests": 0,
+        "coverage_percent": 90,
+        "test_files": [
+          "src/components/conversation/renderers/MermaidRenderer.test.tsx"
+        ],
+        "regression_verified": true
+      },
+      "notes": "Mermaid renderer implemented with lazy mermaid import, dark-theme awareness, fullscreen modal, and graceful source fallback on parse errors. completed_by=claude-code; lock_acquired_at=2026-03-01T22:57:48Z"
+    },
+    "CHI-188": {
+      "title": "B2: Live Tool Execution Output",
+      "epic": "CHI-178",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [],
+      "linear_id": "d5db88bd-d792-4ce1-b34d-e08b87040656",
+      "assigned_to": "claude-code",
+      "started_at": "2026-02-27T19:41:04Z",
+      "completed_at": "2026-02-27T20:26:31Z",
+      "files": [
+        "src-tauri/src/bridge/event_loop.rs",
+        "src-tauri/src/bridge/manager.rs",
+        "src/lib/types.ts",
+        "src/stores/conversationStore.ts",
+        "src/components/conversation/LiveToolOutput.tsx",
+        "src/components/conversation/LiveToolOutput.test.tsx",
+        "src/components/conversation/ToolResultBlock.tsx"
+      ],
+      "testing": {
+        "rust_unit_tests": 0,
+        "frontend_unit_tests": 8,
+        "integration_tests": 0,
+        "e2e_tests": 0,
+        "snapshot_tests": 0,
+        "property_tests": 0,
+        "coverage_percent": 90,
+        "test_files": [
+          "src/components/conversation/LiveToolOutput.test.tsx"
+        ],
+        "regression_verified": true
+      },
+      "notes": "Added tool:output bridge event + buffered replay support, frontend toolOutputs state/listener, and inline LiveToolOutput terminal widget integrated into ToolResultBlock. completed_by=claude-code; lock_acquired_at=2026-03-01T22:57:48Z"
     }
   },
   "epics_new": {
@@ -4522,6 +4590,15 @@
         "npx vite build"
       ],
       "notes": "Lock protocol applied on main .claude path; completion signatures recorded on each task."
+    },
+    "2026-03-01_chi182_chi188_handover_normalization": {
+      "description": "Audit pass confirmed CHI-182/188 work was already merged into main; handover metadata was missing and is now normalized.",
+      "verification": [
+        "git merge-base --is-ancestor fea8aa1 main",
+        "git merge-base --is-ancestor 2b8b3f3 main",
+        "git rev-list --left-right --count main...origin/main (0 0)"
+      ],
+      "notes": "No active worktree remained for chi182-chi188; closure state recorded retroactively with lock protocol evidence."
     }
   },
   "warnings": [],
@@ -4543,7 +4620,7 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-01T18:18:11Z"
+    "last_updated": "2026-03-01T22:59:28Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
@@ -4688,6 +4765,28 @@
             "regression_verified": true
           },
           "notes": "Inline image renderer with secure URL handling, lazy load, and modal preview."
+        },
+        "CHI-182": {
+          "title": "A2: Mermaid Diagram Rendering",
+          "status": "done",
+          "completed_at": "2026-02-27T19:30:56Z",
+          "priority": "high",
+          "track": "A",
+          "linear_id": "7c0cb4a2-80d7-471e-a4ea-5bd8013ea2dd",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 9,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 90,
+            "test_files": [
+              "src/components/conversation/renderers/MermaidRenderer.test.tsx"
+            ],
+            "regression_verified": true
+          },
+          "notes": "MermaidRenderer added and registered via App side-effect import, with parser fallback and fullscreen support."
         }
       }
     },
@@ -4763,6 +4862,28 @@
             "regression_verified": true
           },
           "notes": "Extended StreamingThinkingBlock unit coverage with animated streaming indicator assertion while preserving elapsed timer and compact/expand behavior tests."
+        },
+        "CHI-188": {
+          "title": "B2: Live Tool Execution Output",
+          "status": "done",
+          "completed_at": "2026-02-27T20:26:31Z",
+          "priority": "high",
+          "track": "B",
+          "linear_id": "d5db88bd-d792-4ce1-b34d-e08b87040656",
+          "testing": {
+            "rust_unit_tests": 0,
+            "frontend_unit_tests": 8,
+            "integration_tests": 0,
+            "e2e_tests": 0,
+            "snapshot_tests": 0,
+            "property_tests": 0,
+            "coverage_percent": 90,
+            "test_files": [
+              "src/components/conversation/LiveToolOutput.test.tsx"
+            ],
+            "regression_verified": true
+          },
+          "notes": "tool:output event emitted and replayed; LiveToolOutput now renders inline execution output before tool:result block."
         }
       }
     },
