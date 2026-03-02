@@ -6,6 +6,7 @@ import {
   Component,
   For,
   Show,
+  createEffect,
   createMemo,
   createSignal,
   onCleanup,
@@ -47,12 +48,20 @@ const LaneLogScreen: Component<LaneLogScreenProps> = (props) => {
   const [searchQuery, setSearchQuery] = createSignal('');
   let scrollRef: HTMLDivElement | undefined;
   let searchInputRef: HTMLInputElement | undefined;
+  let tailEnabled = true;
 
   function scrollToBottom() {
     if (scrollRef) {
       scrollRef.scrollTop = scrollRef.scrollHeight;
     }
   }
+
+  createEffect(() => {
+    tailEnabled = tailMode();
+    if (tailEnabled) {
+      queueMicrotask(scrollToBottom);
+    }
+  });
 
   onMount(() => {
     const existing = getActionOutput(props.lane.action_id);
@@ -63,13 +72,9 @@ const LaneLogScreen: Component<LaneLogScreenProps> = (props) => {
         const next = [...prev, logLine];
         return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next;
       });
-      if (tailMode()) {
+      if (tailEnabled) {
         queueMicrotask(scrollToBottom);
       }
-    });
-
-    queueMicrotask(() => {
-      if (tailMode()) scrollToBottom();
     });
 
     onCleanup(() => {
@@ -144,7 +149,7 @@ const LaneLogScreen: Component<LaneLogScreenProps> = (props) => {
         <button
           class="text-xs hover:underline"
           style={{ color: 'var(--color-text-tertiary)' }}
-          onClick={props.onBack}
+          onClick={() => props.onBack()}
         >
           ← Overview
         </button>

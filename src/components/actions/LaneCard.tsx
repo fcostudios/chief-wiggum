@@ -1,7 +1,7 @@
 // src/components/actions/LaneCard.tsx
 // CHI-221: Individual running action card with conveyor animation and controls.
 
-import { Component, Show, createSignal, onCleanup, onMount } from 'solid-js';
+import { Component, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js';
 import { Square, RotateCcw, Bot } from 'lucide-solid';
 import type { CrossProjectRunningAction } from '@/lib/types';
 import {
@@ -37,7 +37,11 @@ export const CATEGORY_ICONS: Record<string, string> = {
 };
 
 const LaneCard: Component<LaneCardProps> = (props) => {
-  const [elapsed, setElapsed] = createSignal(props.lane.elapsed_ms);
+  const [elapsed, setElapsed] = createSignal(0);
+
+  createEffect(() => {
+    setElapsed(props.lane.elapsed_ms);
+  });
 
   onMount(() => {
     const interval = setInterval(() => {
