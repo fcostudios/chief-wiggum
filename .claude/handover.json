@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-02T00:18:43Z",
+  "last_updated": "2026-03-02T03:17:18Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -887,34 +887,55 @@
     "CHI-228": {
       "title": "Progressive Feature Discovery (Contextual Onboarding Hints)",
       "epic": "CHI-224",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "dependencies": [
         "CHI-220"
       ],
-      "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "TASKS-006 §7. 10-hint table. CHI-220 now done — dependency clear."
+      "linear_id": "51a0fb5d-755e-420f-9833-8b0bc159d490",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T01:09:04Z",
+      "completed_at": "2026-03-02T03:17:18Z",
+      "worktree": ".worktrees/chi221-chi223-chi228-actions-center-hints",
+      "files": [
+        "src-tauri/src/settings/mod.rs",
+        "src/lib/types.ts",
+        "src/stores/settingsStore.ts",
+        "src/stores/hintStore.ts",
+        "src/components/common/HintTooltip.tsx",
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/App.tsx",
+        "src/components/settings/SettingsModal.test.tsx",
+        "src/stores/__integration__/settings-theme.test.ts"
+      ],
+      "notes": "Implemented contextual hint discovery engine with persisted seen-hints/settings schema updates, hint store cooldown queue, dismissible HintTooltip, global renderer, and 5 trigger wires (at-mention, slash commands, artifacts, session resume, idle keyboard shortcut). Checks: cargo test/clippy/fmt, tsc, eslint, prettier --check src/, vitest (MessageInput/MarkdownContent/ConversationView). Commits: 64c4e5a, f7dc45d, d4bec16, aef23e7, 0ccbf14. completed_by=claude-code; lock_acquired_at=2026-03-02T03:16:29Z"
     },
     "CHI-221": {
       "title": "H1c — LaneCard + Warehouse Detail UI + conveyor animations",
       "epic": "CHI-218",
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
       "dependencies": [
         "CHI-220"
       ],
-      "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "Actions Center H1c. LaneCard component + conveyor belt animations. Depends on CHI-220 (done)."
+      "linear_id": "d154230e-c989-4953-b7fb-b48216960b1f",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T01:09:04Z",
+      "completed_at": "2026-03-02T03:17:18Z",
+      "worktree": ".worktrees/chi221-chi223-chi228-actions-center-hints",
+      "files": [
+        "src/stores/actionStore.ts",
+        "src/stores/uiStore.ts",
+        "src/locales/en.json",
+        "src/locales/es.json",
+        "src/components/actions/LaneCard.tsx",
+        "src/components/actions/LaneLogScreen.tsx",
+        "src/components/actions/ActionsCenter.tsx",
+        "src/components/actions/LaneCard.test.tsx"
+      ],
+      "notes": "Implemented LaneCard, LaneLogScreen, warehouse-detail routing, action output listener, technical-mode UI toggle, lane/log i18n, and lane tests. Checks: cargo test/clippy/fmt, tsc, eslint, prettier --check src/. Commits: 3f62c2a, 5a6c139, 43ff1b3, d476b21, f543f7d, 5990e92. completed_by=claude-code; lock_acquired_at=2026-03-02T03:16:29Z"
     },
     "CHI-222": {
       "title": "H1d — History tab + LaneHistory component",
@@ -935,18 +956,24 @@
     "CHI-223": {
       "title": "H1e — ActionQuickLaunch modal + Cmd+Shift+A shortcut + sidebar integration",
       "epic": "CHI-218",
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
       "dependencies": [
         "CHI-220"
       ],
-      "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "Actions Center H1e. Quick-launch modal with keyboard shortcut. Depends on CHI-220 (done)."
+      "linear_id": "c4427fe8-84d2-4839-8832-c941798a8c52",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T01:09:04Z",
+      "completed_at": "2026-03-02T03:17:18Z",
+      "worktree": ".worktrees/chi221-chi223-chi228-actions-center-hints",
+      "files": [
+        "src/components/layout/StatusBar.tsx",
+        "src/components/actions/ActionRow.tsx",
+        "src/components/actions/ActionQuickLaunch.tsx",
+        "src/components/actions/ActionsCenter.tsx",
+        "src/lib/keybindings.ts"
+      ],
+      "notes": "Implemented Actions Center quick-launch integration: status bar running pill, action-row context menu entry, 2-step ActionQuickLaunch modal, FAB open flow, and Cmd+Shift+A behavior extension. Checks: tsc, eslint, prettier --check src/. Commits: 02d47b1, dc74034, ba21482, 5edb946. completed_by=claude-code; lock_acquired_at=2026-03-02T03:16:29Z"
     },
     "CHI-189": {
       "title": "B3: Response Content Priority Layout",
@@ -3130,13 +3157,13 @@
     }
   },
   "recommended_next": [
-    "CHI-221",
-    "CHI-223",
-    "CHI-228"
+    "CHI-222",
+    "CHI-131",
+    "CHI-134"
   ],
   "critical_path": [
-    "Run CHI-217 manual accessibility quick-check in desktop UI (edit entry, blur save, dirty dot, conflict actions, read-only lock).",
-    "Proceed with CHI-216 follow-up scope after manual CHI-217 validation sign-off."
+    "Proceed with CHI-222 (Actions Center history lane) now that CHI-221/223/228 are complete.",
+    "Resume context intelligence follow-through with CHI-131 and CHI-134."
   ],
   "ux_quick_wins": [
     "CHI-63 is re-closed: CHI-78 custom context menus now cover messages, sessions, files, and code blocks with keyboard-accessible menu interaction.",
@@ -4835,7 +4862,7 @@
     "version": "1.0",
     "notes": "Three-protocol lifecycle: Planning (§2) → Implementation (§3) → Verification (§4). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
-  "notes": "CHI-184/185/219/220 closure complete: merged into main with full frontend/rust verification and handover/Linear normalization in progress. | Orphaned worktree chi182-chi188-mermaid-live-tool-output on disk — CHI-182 and CHI-188 both done; worktree should be pruned.",
+  "notes": "CHI-221/223/228 closure complete: all implementation batches finished, checks passed, and handover normalized with assigned_to/lock metadata.",
   "environment": {
     "rust_installed": true,
     "node_installed": true,
@@ -4846,8 +4873,10 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-02T00:18:43Z",
-    "last_updated_by": "claude-code"
+    "last_updated": "2026-03-02T03:17:18Z",
+    "last_updated_by": "claude-code",
+    "last_sync": "2026-03-02T03:17:18Z",
+    "last_sync_by": "claude-code"
   },
   "conversation_experience_epic": {
     "CHI-177": {
