@@ -36,6 +36,8 @@ const mockSettings: UserSettings = {
   },
   onboarding: {
     completed: false,
+    seen_hints: [],
+    hints_enabled: true,
   },
   keybindings: {},
   privacy: {

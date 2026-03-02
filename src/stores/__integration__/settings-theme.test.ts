@@ -9,7 +9,7 @@ function makeSettings(): UserSettings {
     i18n: { locale: 'en', date_format: 'relative', number_format: 'standard' },
     cli: { default_model: 'claude-sonnet-4-6', default_effort: 'high' },
     sessions: { max_concurrent: 4, auto_save_interval_secs: 0, resume_inactivity_minutes: 5 },
-    onboarding: { completed: false },
+    onboarding: { completed: false, seen_hints: [], hints_enabled: true },
     keybindings: {},
     privacy: { log_redaction_level: 'standard' },
     advanced: { cli_path_override: '', debug_mode: false, developer_mode: false },

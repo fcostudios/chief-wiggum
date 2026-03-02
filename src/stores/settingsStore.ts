@@ -46,6 +46,8 @@ const DEFAULTS: UserSettings = {
   },
   onboarding: {
     completed: false,
+    seen_hints: [],
+    hints_enabled: true,
   },
   keybindings: {},
   privacy: {
@@ -158,6 +160,23 @@ export function isOnboardingCompleted(): boolean {
 /** Mark onboarding as completed (persisted via normal debounced settings save). */
 export function markOnboardingCompleted(): void {
   updateSetting('onboarding', 'completed', true);
+}
+
+/** Whether a contextual hint has already been seen. */
+export function hasSeenHint(id: string): boolean {
+  return state.settings.onboarding?.seen_hints?.includes(id) ?? false;
+}
+
+/** Global hints master toggle. */
+export function hintsEnabled(): boolean {
+  return state.settings.onboarding?.hints_enabled ?? true;
+}
+
+/** Persist a hint as seen to avoid re-showing it. */
+export function markHintSeen(id: string): void {
+  const current = state.settings.onboarding?.seen_hints ?? [];
+  if (current.includes(id)) return;
+  updateSetting('onboarding', 'seen_hints', [...current, id]);
 }
 
 async function persistSettings(): Promise<void> {
