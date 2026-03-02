@@ -5,7 +5,12 @@
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { ChevronDown } from 'lucide-solid';
-import { closeStatusCostPopover, toggleStatusCostPopover, uiState } from '@/stores/uiStore';
+import {
+  closeStatusCostPopover,
+  setActiveView,
+  toggleStatusCostPopover,
+  uiState,
+} from '@/stores/uiStore';
 import { cliState } from '@/stores/cliStore';
 import { conversationState } from '@/stores/conversationStore';
 import { sessionState, setActiveSession } from '@/stores/sessionStore';
@@ -13,6 +18,7 @@ import { openExportDialog } from '@/stores/diagnosticsStore';
 import { t } from '@/stores/i18nStore';
 import type { ProcessStatus, Session, TodoItem } from '@/lib/types';
 import {
+  actionState,
   getRecentActionEvents,
   getRunningActions,
   restartAction,
@@ -52,6 +58,7 @@ const StatusBar: Component = () => {
     sessionState.sessions.find((s) => s.id === sessionState.activeSessionId) ?? null;
   const activeSessionId = () => sessionState.activeSessionId;
   const runningActions = createMemo(() => getRunningActions());
+  const runningActionsCenterCount = createMemo(() => actionState.crossProjectRunning.length);
   const recentActions = createMemo(() => getRecentActionEvents().slice(0, 3));
   const runningActionCount = () => runningActions().length;
 
@@ -252,6 +259,22 @@ const StatusBar: Component = () => {
           <span class="font-mono text-[10px]">{statusPill().label}</span>
           <ChevronDown size={11} class="text-text-tertiary" />
         </button>
+
+        <Show when={runningActionsCenterCount() > 0}>
+          <button
+            class="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
+            style={{
+              background: 'color-mix(in srgb, var(--color-success) 15%, transparent)',
+              color: 'var(--color-success)',
+              border: '1px solid color-mix(in srgb, var(--color-success) 25%, transparent)',
+            }}
+            aria-label={`${runningActionsCenterCount()} actions running — open Actions Center`}
+            onClick={() => setActiveView('actions_center')}
+          >
+            <span aria-hidden="true">⚙</span>
+            {runningActionsCenterCount()} running
+          </button>
+        </Show>
 
         <Show when={statusPopoverOpen()}>
           <div
