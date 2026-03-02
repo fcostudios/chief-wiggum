@@ -12,13 +12,15 @@ import {
   Pin,
   Pencil,
   Copy,
+  Download,
   FileCode,
   MoreHorizontal,
   Zap,
   Search,
   X,
 } from 'lucide-solid';
-import type { Session } from '@/lib/types';
+import { invoke } from '@tauri-apps/api/core';
+import type { Message, Session } from '@/lib/types';
 import {
   sessionState,
   loadSessions,
@@ -32,6 +34,7 @@ import {
   loadSessionSummary,
 } from '@/stores/sessionStore';
 import {
+  conversationState,
   loadMessages,
   clearMessages,
   switchSession,
@@ -51,9 +54,11 @@ import { fileState, toggleFilesVisible } from '@/stores/fileStore';
 import { actionState, discoverActions } from '@/stores/actionStore';
 import { uiState, setViewBadge } from '@/stores/uiStore';
 import { t } from '@/stores/i18nStore';
+import { addToast } from '@/stores/toastStore';
 import FileTree from '@/components/explorer/FileTree';
 import ActionsPanel from '@/components/actions/ActionsPanel';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
+import { buildExportFilename, exportAsMarkdown } from '@/lib/conversationExport';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -907,6 +912,38 @@ const SessionItem: Component<{
     await props.onDelete(props.session.id);
   }
 
+  async function handleExportSession(): Promise<void> {
+    try {
+      const messages =
+        props.session.id === sessionState.activeSessionId
+          ? conversationState.messages
+          : await invoke<Message[]>('list_messages', { session_id: props.session.id });
+
+      if (messages.length === 0) {
+        addToast('No messages to export', 'info');
+        return;
+      }
+
+      const content = exportAsMarkdown(messages, props.session.id);
+      const savedPath = await invoke<string | null>('save_export_file', {
+        content,
+        default_name: buildExportFilename(props.session.id, 'md'),
+        extension: 'md',
+      });
+
+      if (savedPath) {
+        addToast('Conversation exported', 'success', {
+          label: 'Open File',
+          onClick: () => {
+            void invoke('open_path_in_shell', { path: savedPath });
+          },
+        });
+      }
+    } catch (err) {
+      addToast('Export failed: ' + (err instanceof Error ? err.message : String(err)), 'error');
+    }
+  }
+
   const sessionContextItems = (): ContextMenuItem[] => [
     {
       label: t('sidebar.rename'),
@@ -925,6 +962,13 @@ const SessionItem: Component<{
       icon: Copy,
       onClick: () => {
         void handleDuplicateClick();
+      },
+    },
+    {
+      label: 'Export conversation...',
+      icon: Download,
+      onClick: () => {
+        void handleExportSession();
       },
     },
     { separator: true, label: 'separator' },

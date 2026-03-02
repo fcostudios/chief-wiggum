@@ -4,6 +4,8 @@ import type { Project, Session } from '@/lib/types';
 
 let mockSessions: Session[] = [];
 let mockActiveSessionId: string | null = 's1';
+let mockSessionSummaries: Record<string, { message_count: number; duration_secs: number }> = {};
+let mockSummaryLoading: Record<string, boolean> = {};
 let mockProjects: Project[] = [];
 let mockActiveProjectId: string | null = null;
 let mockSidebarState: 'expanded' | 'collapsed' | 'hidden' = 'expanded';
@@ -23,6 +25,7 @@ const mockDuplicateSession = vi.fn(async (id: string) => ({
   id: `${id}-copy`,
 }));
 const mockSessionHasMessages = vi.fn(async () => false);
+const mockLoadSessionSummary = vi.fn(() => Promise.resolve());
 const mockLoadMessages = vi.fn(() => Promise.resolve());
 const mockClearMessages = vi.fn();
 const mockSwitchSession = vi.fn(() => Promise.resolve());
@@ -66,6 +69,12 @@ vi.mock('@/stores/sessionStore', () => ({
     get activeSessionId() {
       return mockActiveSessionId;
     },
+    get sessionSummaries() {
+      return mockSessionSummaries;
+    },
+    get summaryLoading() {
+      return mockSummaryLoading;
+    },
   },
   loadSessions: () => mockLoadSessions(),
   createNewSession: (...args: unknown[]) =>
@@ -82,6 +91,8 @@ vi.mock('@/stores/sessionStore', () => ({
     (mockDuplicateSession as unknown as (...inner: unknown[]) => unknown)(...args),
   sessionHasMessages: (...args: unknown[]) =>
     (mockSessionHasMessages as unknown as (...inner: unknown[]) => unknown)(...args),
+  loadSessionSummary: (...args: unknown[]) =>
+    (mockLoadSessionSummary as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
 vi.mock('@/stores/conversationStore', () => ({
@@ -195,6 +206,8 @@ describe('Sidebar', () => {
     mockActiveSessionId = 's1';
     mockProjects = [];
     mockActiveProjectId = null;
+    mockSessionSummaries = {};
+    mockSummaryLoading = {};
     mockSidebarState = 'expanded';
     mockFileVisible = false;
     mockActions = [];

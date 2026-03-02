@@ -17,7 +17,9 @@ import {
   Play,
   Square,
   RotateCw,
+  Download,
 } from 'lucide-solid';
+import { invoke } from '@tauri-apps/api/core';
 import {
   closeCommandPalette,
   toggleSidebar,
@@ -31,7 +33,7 @@ import {
   createNewSession,
   cycleModel,
 } from '@/stores/sessionStore';
-import { switchSession } from '@/stores/conversationStore';
+import { switchSession, conversationState } from '@/stores/conversationStore';
 import { projectState } from '@/stores/projectStore';
 import {
   actionState,
@@ -42,6 +44,14 @@ import {
   restartAction,
 } from '@/stores/actionStore';
 import type { ActionDefinition } from '@/lib/types';
+import { addToast } from '@/stores/toastStore';
+import {
+  buildExportFilename,
+  exportAsHtml,
+  exportAsMarkdown,
+  exportAsText,
+  type ExportFormat,
+} from '@/lib/conversationExport';
 
 // ---------------------------------------------------------------------------
 // Command types
@@ -79,6 +89,46 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     if (props.onClose) props.onClose();
     else closeCommandPalette();
   };
+
+  async function exportConversation(format: ExportFormat): Promise<void> {
+    const sessionId = sessionState.activeSessionId;
+    if (!sessionId) {
+      addToast('No active session to export', 'warning');
+      return;
+    }
+
+    const messages = conversationState.messages;
+    if (messages.length === 0) {
+      addToast('No messages to export', 'info');
+      return;
+    }
+
+    const content =
+      format === 'md'
+        ? exportAsMarkdown(messages, sessionId)
+        : format === 'html'
+          ? exportAsHtml(messages, sessionId)
+          : exportAsText(messages, sessionId);
+
+    try {
+      const savedPath = await invoke<string | null>('save_export_file', {
+        content,
+        default_name: buildExportFilename(sessionId, format),
+        extension: format,
+      });
+
+      if (savedPath) {
+        addToast('Conversation exported', 'success', {
+          label: 'Open File',
+          onClick: () => {
+            void invoke('open_path_in_shell', { path: savedPath });
+          },
+        });
+      }
+    } catch (err) {
+      addToast('Export failed: ' + (err instanceof Error ? err.message : String(err)), 'error');
+    }
+  }
 
   // Build static commands list
   const staticCommands: Command[] = [
@@ -153,6 +203,33 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       shortcut: '\u2318 M',
       icon: () => <Sparkles size={16} />,
       action: () => cycleModel(),
+    },
+    {
+      id: 'export-md',
+      label: 'Export Conversation as Markdown',
+      category: 'Session',
+      icon: () => <Download size={16} />,
+      action: () => {
+        void exportConversation('md');
+      },
+    },
+    {
+      id: 'export-html',
+      label: 'Export Conversation as HTML',
+      category: 'Session',
+      icon: () => <Download size={16} />,
+      action: () => {
+        void exportConversation('html');
+      },
+    },
+    {
+      id: 'export-txt',
+      label: 'Export Conversation as Plain Text',
+      category: 'Session',
+      icon: () => <Download size={16} />,
+      action: () => {
+        void exportConversation('txt');
+      },
     },
   ];
 

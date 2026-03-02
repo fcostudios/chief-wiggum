@@ -6,6 +6,7 @@ pub mod actions;
 pub mod bridge;
 pub mod cli;
 pub mod diagnostic;
+pub mod export;
 pub mod files;
 pub mod logging;
 pub mod project;
