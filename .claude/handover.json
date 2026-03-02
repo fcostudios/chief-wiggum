@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-02T05:48:40Z",
+  "last_updated": "2026-03-02T16:34:46Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -958,7 +958,7 @@
         "src/components/actions/ActionsCenter.tsx",
         "src/components/layout/StatusBar.test.tsx"
       ],
-      "notes": "Implemented paginated action history (limit+offset), lane history UI, load-more behavior, and project history auto-refresh on completed/failed status events. Checks: cargo test/fmt/clippy, npm format:check/lint/build, vitest. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z"
+      "notes": "Implemented paginated action history (limit+offset), lane history UI, load-more behavior, and project history auto-refresh on completed/failed status events. Checks: cargo test/fmt/clippy, npm format:check/lint/build, vitest. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z | plan=2026-03-01-chi222-chi192-chi193-chi201-chi195-lanehistory-attachments-export-copy.md"
     },
     "CHI-223": {
       "title": "H1e — ActionQuickLaunch modal + Cmd+Shift+A shortcut + sidebar integration",
@@ -998,7 +998,7 @@
         "src/stores/contextStore.ts",
         "src/components/conversation/ImageAttachmentChip.test.tsx"
       ],
-      "notes": "Completed remaining image attachment scope: thumbnail click lightbox preview, escape/backdrop close, total image-size budget indicator, and OS image drag-drop support while preserving SDK image-base64 transport path. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z"
+      "notes": "Completed remaining image attachment scope: thumbnail click lightbox preview, escape/backdrop close, total image-size budget indicator, and OS image drag-drop support while preserving SDK image-base64 transport path. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z | plan=2026-03-01-chi222-chi192-chi193-chi201-chi195-lanehistory-attachments-export-copy.md"
     },
     "CHI-193": {
       "title": "C4: Attachment Button & File Picker",
@@ -1015,7 +1015,7 @@
         "src/components/conversation/MessageInput.tsx",
         "src/lib/keybindings.ts"
       ],
-      "notes": "Added hidden multi-file picker input, paperclip trigger button, and Cmd+Shift+U global shortcut via cw:open-file-picker event. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z"
+      "notes": "Added hidden multi-file picker input, paperclip trigger button, and Cmd+Shift+U global shortcut via cw:open-file-picker event. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z | plan=2026-03-01-chi222-chi192-chi193-chi201-chi195-lanehistory-attachments-export-copy.md"
     },
     "CHI-195": {
       "title": "D2: Copy Actions on All Blocks",
@@ -1034,7 +1034,7 @@
         "src/components/conversation/ThinkingBlock.tsx",
         "src/components/conversation/ToolUseBlock.test.tsx"
       ],
-      "notes": "Added consistent copy actions (toast + check state) to tool-use, tool-result, and thinking headers. updated tests for header-button targeting. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z"
+      "notes": "Added consistent copy actions (toast + check state) to tool-use, tool-result, and thinking headers. updated tests for header-button targeting. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z | plan=2026-03-01-chi222-chi192-chi193-chi201-chi195-lanehistory-attachments-export-copy.md"
     },
     "CHI-201": {
       "title": "E2: Conversation Export",
@@ -1057,7 +1057,7 @@
         "src/components/layout/Sidebar.tsx",
         "src/components/layout/Sidebar.test.tsx"
       ],
-      "notes": "Implemented export formatter library (md/html/txt) + tests, Rust save/open IPC commands, and export entry points in Command Palette and Sidebar context menu with Open File toast action. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z"
+      "notes": "Implemented export formatter library (md/html/txt) + tests, Rust save/open IPC commands, and export entry points in Command Palette and Sidebar context menu with Open File toast action. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z | plan=2026-03-01-chi222-chi192-chi193-chi201-chi195-lanehistory-attachments-export-copy.md"
     },
     "CHI-189": {
       "title": "B3: Response Content Priority Layout",
@@ -1087,10 +1087,10 @@
       "linear_id": null,
       "assigned_to": "claude-code",
       "started_at": "2026-03-02T05:11:54Z",
-      "completed_at": "2026-03-02T05:48:40Z",
+      "completed_at": "2026-03-02T05:50:20Z",
       "worktree": null,
       "files": [],
-      "notes": "Epic wrapper complete. CHI-131 and CHI-134 are implemented, merged to main, and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T05:47:58Z"
+      "notes": "EPIC: Context Intelligence — File Explorer v2. All sub-tasks complete. completed_by=claude-code; confirmed on Linear 2026-03-02."
     },
     "CHI-131": {
       "title": "Token-Optimized Snippets",
@@ -1103,7 +1103,7 @@
       "linear_id": null,
       "assigned_to": "claude-code",
       "started_at": "2026-03-02T05:11:54Z",
-      "completed_at": "2026-03-02T05:48:40Z",
+      "completed_at": "2026-03-02T05:48:00Z",
       "worktree": ".worktrees/chi131-chi134-context-intelligence",
       "files": [
         "src/lib/types.ts",
@@ -1115,7 +1115,7 @@
         "src/components/conversation/ContextChip.test.tsx",
         "src/components/explorer/FilePreview.tsx"
       ],
-      "notes": "Implemented symbol extraction + snippet optimization flow (suggest/apply/revert), symbol-aware context assembly, and token-savings UI actions in ContextChip/FilePreview with tests. completed_by=claude-code; lock_acquired_at=2026-03-02T05:47:58Z"
+      "notes": "Token-Optimized Snippets. Completed as part of CHI-121 plan. completed_by=claude-code."
     },
     "CHI-134": {
       "title": "Multi-File Bundles",
@@ -1128,7 +1128,7 @@
       "linear_id": null,
       "assigned_to": "claude-code",
       "started_at": "2026-03-02T05:11:54Z",
-      "completed_at": "2026-03-02T05:48:40Z",
+      "completed_at": "2026-03-02T05:48:00Z",
       "worktree": ".worktrees/chi131-chi134-context-intelligence",
       "files": [
         "src-tauri/src/files/bundles.rs",
@@ -1143,7 +1143,181 @@
         "src/components/conversation/MessageInput.tsx",
         "docs/plans/2026-03-02-chi131-chi134-context-intelligence-followthrough.md"
       ],
-      "notes": "Implemented backend bundle detection (component/module/custom), get_file_bundles IPC, FileTree context-menu bundle attach, and @-mention bundle hints with tests. completed_by=claude-code; lock_acquired_at=2026-03-02T05:47:58Z"
+      "notes": "Multi-File Bundles. Completed as part of CHI-121 plan. completed_by=claude-code."
+    },
+    "CHI-196": {
+      "title": "D3: Message Formatting Toggle",
+      "epic": "CHI-180",
+      "status": "done",
+      "priority": "Low",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T15:41:21Z",
+      "completed_at": "2026-03-02T16:34:46Z",
+      "worktree": ".worktrees/chi203-chi196-chi197-chi205-chi211-symbol-mention-format-toggle-anchor-tests",
+      "files": [
+        "src/components/conversation/MessageBubble.tsx",
+        "src/components/conversation/MessageBubble.test.tsx"
+      ],
+      "notes": "Toggle between rendered markdown and raw source per message. Independent. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
+    },
+    "CHI-197": {
+      "title": "D4: Response Anchor Links",
+      "epic": "CHI-180",
+      "status": "done",
+      "priority": "Low",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T15:41:21Z",
+      "completed_at": "2026-03-02T16:34:46Z",
+      "worktree": ".worktrees/chi203-chi196-chi197-chi205-chi211-symbol-mention-format-toggle-anchor-tests",
+      "files": [
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/components/conversation/ResponseOutline.tsx",
+        "src/components/conversation/MarkdownContent.test.tsx"
+      ],
+      "notes": "Heading anchor IDs + floating mini-TOC on long responses. Independent. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
+    },
+    "CHI-202": {
+      "title": "E3: Voice Input",
+      "epic": "CHI-198",
+      "status": "backlog",
+      "priority": "Low",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "worktree": null,
+      "files": [],
+      "notes": "Web Speech API mic button in MessageInput. Cmd+Shift+V. Independent."
+    },
+    "CHI-203": {
+      "title": "E4: Symbol @-Mention",
+      "epic": "CHI-198",
+      "status": "done",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T15:41:21Z",
+      "completed_at": "2026-03-02T16:34:46Z",
+      "worktree": ".worktrees/chi203-chi196-chi197-chi205-chi211-symbol-mention-format-toggle-anchor-tests",
+      "files": [
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/main.rs",
+        "src/lib/types.ts",
+        "src/stores/contextStore.ts",
+        "src/components/conversation/FileMentionMenu.tsx",
+        "src/components/conversation/MessageInput.tsx"
+      ],
+      "notes": "@fn:/@class:/@var: symbol search. Extends FileMentionMenu. Independent. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
+    },
+    "CHI-205": {
+      "title": "F2: Unit Tests — Code Block & Mermaid Renderers",
+      "epic": "CHI-199",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T15:41:21Z",
+      "completed_at": "2026-03-02T16:34:46Z",
+      "worktree": ".worktrees/chi203-chi196-chi197-chi205-chi211-symbol-mention-format-toggle-anchor-tests",
+      "files": [
+        "src/components/conversation/renderers/CodeBlockRenderer.test.tsx",
+        "src/components/conversation/renderers/MermaidRenderer.test.tsx"
+      ],
+      "notes": "CodeBlockRenderer + MermaidRenderer unit tests. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
+    },
+    "CHI-206": {
+      "title": "F3: Unit Tests — Math & Image Renderers",
+      "epic": "CHI-199",
+      "status": "backlog",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "worktree": null,
+      "files": [],
+      "notes": "MathRenderer + ImageRenderer unit tests."
+    },
+    "CHI-209": {
+      "title": "F6: Unit Tests — Polish Features",
+      "epic": "CHI-199",
+      "status": "backlog",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "worktree": null,
+      "files": [],
+      "notes": "Unit tests for CHI-194/195/196/197 polish features."
+    },
+    "CHI-210": {
+      "title": "F7: Unit Tests — Utility Features",
+      "epic": "CHI-199",
+      "status": "backlog",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "worktree": null,
+      "files": [],
+      "notes": "Unit tests for CHI-E1/E2/E3/E4 utility features."
+    },
+    "CHI-211": {
+      "title": "F8: E2E Tests — Rich Content Rendering",
+      "epic": "CHI-199",
+      "status": "done",
+      "priority": "High",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T15:41:21Z",
+      "completed_at": "2026-03-02T16:34:46Z",
+      "worktree": ".worktrees/chi203-chi196-chi197-chi205-chi211-symbol-mention-format-toggle-anchor-tests",
+      "files": [
+        "tests/e2e/conversation/conversation-rendering.spec.ts"
+      ],
+      "notes": "Playwright E2E for CHI-186/181/182/183 rendering features. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
+    },
+    "CHI-212": {
+      "title": "F9: E2E Tests — Attachments & Input",
+      "epic": "CHI-199",
+      "status": "backlog",
+      "priority": "High",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "worktree": null,
+      "files": [],
+      "notes": "Playwright E2E for CHI-190/191/193 attachment features."
+    },
+    "CHI-213": {
+      "title": "F10: E2E Tests — Conversation Utility",
+      "epic": "CHI-199",
+      "status": "backlog",
+      "priority": "Medium",
+      "dependencies": [],
+      "linear_id": null,
+      "assigned_to": null,
+      "started_at": null,
+      "completed_at": null,
+      "worktree": null,
+      "files": [],
+      "notes": "Playwright E2E for CHI-E1/E2 search and export."
     }
   },
   "epics_new": {
@@ -3314,12 +3488,7 @@
       }
     }
   },
-  "recommended_next": [
-    "CHI-196",
-    "CHI-197",
-    "CHI-202",
-    "CHI-203"
-  ],
+  "recommended_next": [],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
     "Complete remaining Conversation Utility tasks: CHI-202 and CHI-203.",
