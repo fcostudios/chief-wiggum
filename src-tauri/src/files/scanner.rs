@@ -4,6 +4,7 @@
 use std::collections::HashSet;
 use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use crate::AppError;
 
@@ -28,6 +29,17 @@ const ALWAYS_SKIP: &[&str] = &[
     ".venv",
     "venv",
 ];
+
+/// A code symbol found by regex pattern scanning.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SymbolMatch {
+    pub name: String,
+    pub kind: String,       // function | class | variable
+    pub file_path: String,  // relative to root, forward-slash separated
+    pub line_number: usize, // 1-indexed
+    pub snippet: String,    // up to 20 lines starting at declaration
+    pub estimated_tokens: usize,
+}
 
 /// Canonicalize an existing path and ensure it stays within the project root.
 /// This blocks `..` traversal and symlink escapes for file operations.
@@ -524,6 +536,180 @@ pub fn search_files(
     Ok(results)
 }
 
+fn ts_symbol_patterns(kind: &str) -> Vec<(&'static regex::Regex, &'static str)> {
+    static FN_KEYWORD: OnceLock<regex::Regex> = OnceLock::new();
+    static FN_ARROW: OnceLock<regex::Regex> = OnceLock::new();
+    static CLASS: OnceLock<regex::Regex> = OnceLock::new();
+    static VAR_EXPORT: OnceLock<regex::Regex> = OnceLock::new();
+
+    let fn_kw = FN_KEYWORD.get_or_init(|| {
+        regex::Regex::new(r"^(?:export\s+)?(?:async\s+)?function\s+(\w+)").expect("valid regex")
+    });
+    let fn_arr = FN_ARROW.get_or_init(|| {
+        regex::Regex::new(r"^(?:export\s+)?const\s+(\w+)\s*=\s*(?:async\s*)?\(")
+            .expect("valid regex")
+    });
+    let cls = CLASS.get_or_init(|| {
+        regex::Regex::new(r"^(?:export\s+)?(?:default\s+)?class\s+(\w+)").expect("valid regex")
+    });
+    let var = VAR_EXPORT.get_or_init(|| {
+        regex::Regex::new(r"^export\s+(?:const|let)\s+(\w+)\s*[=:]").expect("valid regex")
+    });
+
+    let want_fn = kind == "all" || kind == "function";
+    let want_cls = kind == "all" || kind == "class";
+    let want_var = kind == "all" || kind == "variable";
+
+    let mut patterns: Vec<(&'static regex::Regex, &'static str)> = Vec::new();
+    if want_fn {
+        patterns.push((fn_kw, "function"));
+        patterns.push((fn_arr, "function"));
+    }
+    if want_cls {
+        patterns.push((cls, "class"));
+    }
+    if want_var {
+        patterns.push((var, "variable"));
+    }
+    patterns
+}
+
+fn rs_symbol_patterns(kind: &str) -> Vec<(&'static regex::Regex, &'static str)> {
+    static FN: OnceLock<regex::Regex> = OnceLock::new();
+    static STRUCT: OnceLock<regex::Regex> = OnceLock::new();
+    static CONST: OnceLock<regex::Regex> = OnceLock::new();
+
+    let fn_re = FN.get_or_init(|| {
+        regex::Regex::new(r"^(?:pub\s+)?(?:async\s+)?fn\s+(\w+)").expect("valid regex")
+    });
+    let struct_re = STRUCT
+        .get_or_init(|| regex::Regex::new(r"^(?:pub\s+)?struct\s+(\w+)").expect("valid regex"));
+    let const_re = CONST.get_or_init(|| {
+        regex::Regex::new(r"^(?:pub\s+)?const\s+([A-Z_][A-Z0-9_]*)").expect("valid regex")
+    });
+
+    let want_fn = kind == "all" || kind == "function";
+    let want_cls = kind == "all" || kind == "class";
+    let want_var = kind == "all" || kind == "variable";
+
+    let mut patterns: Vec<(&'static regex::Regex, &'static str)> = Vec::new();
+    if want_fn {
+        patterns.push((fn_re, "function"));
+    }
+    if want_cls {
+        patterns.push((struct_re, "class"));
+    }
+    if want_var {
+        patterns.push((const_re, "variable"));
+    }
+    patterns
+}
+
+fn py_symbol_patterns(kind: &str) -> Vec<(&'static regex::Regex, &'static str)> {
+    static FN: OnceLock<regex::Regex> = OnceLock::new();
+    static CLS: OnceLock<regex::Regex> = OnceLock::new();
+
+    let fn_re =
+        FN.get_or_init(|| regex::Regex::new(r"^(?:async\s+)?def\s+(\w+)").expect("valid regex"));
+    let cls_re = CLS.get_or_init(|| regex::Regex::new(r"^class\s+(\w+)").expect("valid regex"));
+
+    let want_fn = kind == "all" || kind == "function";
+    let want_cls = kind == "all" || kind == "class";
+
+    let mut patterns: Vec<(&'static regex::Regex, &'static str)> = Vec::new();
+    if want_fn {
+        patterns.push((fn_re, "function"));
+    }
+    if want_cls {
+        patterns.push((cls_re, "class"));
+    }
+    patterns
+}
+
+/// Scan source files for symbols by regex, filtered by kind/query.
+/// Returns at most 20 matches.
+pub fn scan_symbols(root: &Path, query: &str, kind: &str) -> Result<Vec<SymbolMatch>, AppError> {
+    use ignore::WalkBuilder;
+
+    let query_lower = query.to_lowercase();
+    let mut results = Vec::new();
+
+    'walk: for entry in WalkBuilder::new(root)
+        .hidden(false)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .build()
+    {
+        let entry = match entry {
+            Ok(value) => value,
+            Err(err) => return Err(AppError::Other(err.to_string())),
+        };
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+
+        let ext = path
+            .extension()
+            .and_then(|value| value.to_str())
+            .unwrap_or("");
+        let patterns: Vec<(&'static regex::Regex, &'static str)> = match ext {
+            "ts" | "tsx" | "js" | "jsx" => ts_symbol_patterns(kind),
+            "rs" => rs_symbol_patterns(kind),
+            "py" => py_symbol_patterns(kind),
+            _ => continue,
+        };
+        if patterns.is_empty() {
+            continue;
+        }
+
+        let content = match std::fs::read_to_string(path) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+        let lines: Vec<&str> = content.lines().collect();
+        let relative = path
+            .strip_prefix(root)
+            .map(|value| value.to_string_lossy().replace('\\', "/"))
+            .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
+
+        for (line_idx, line) in lines.iter().enumerate() {
+            for (pattern, symbol_kind) in &patterns {
+                let Some(caps) = pattern.captures(line) else {
+                    continue;
+                };
+                let Some(symbol_name) = caps.get(1).map(|value| value.as_str().to_string()) else {
+                    continue;
+                };
+                if symbol_name.is_empty() {
+                    continue;
+                }
+                if !query.is_empty() && !symbol_name.to_lowercase().contains(&query_lower) {
+                    continue;
+                }
+
+                let end = (line_idx + 20).min(lines.len());
+                let snippet = lines[line_idx..end].join("\n");
+                results.push(SymbolMatch {
+                    name: symbol_name,
+                    kind: (*symbol_kind).to_string(),
+                    file_path: relative.clone(),
+                    line_number: line_idx + 1,
+                    estimated_tokens: snippet.len() / 4,
+                    snippet,
+                });
+
+                if results.len() >= 20 {
+                    break 'walk;
+                }
+            }
+        }
+    }
+
+    Ok(results)
+}
+
 /// Estimate token count for a file (~chars/4).
 pub fn estimate_tokens(project_root: &Path, relative_path: &str) -> Result<usize, AppError> {
     tracing::debug!(
@@ -921,5 +1107,102 @@ mod tests {
     fn is_binary_detects_null_bytes() {
         assert!(is_binary(&[0x89, 0x50, 0x4E, 0x47, 0x00]));
         assert!(!is_binary(b"Hello world"));
+    }
+}
+
+#[cfg(test)]
+mod symbol_tests {
+    use super::*;
+    use std::io::Write as _;
+    use tempfile::TempDir;
+
+    fn write_file(dir: &TempDir, name: &str, content: &str) {
+        let path = dir.path().join(name);
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).expect("create parent directory");
+        }
+        let mut file = std::fs::File::create(path).expect("create file");
+        file.write_all(content.as_bytes()).expect("write file");
+    }
+
+    #[test]
+    fn scan_ts_function_by_name() {
+        let dir = TempDir::new().expect("temp dir");
+        write_file(
+            &dir,
+            "utils.ts",
+            "export function greetUser(name: string): string {\n  return `Hello ${name}`;\n}\n",
+        );
+        let results = scan_symbols(dir.path(), "greet", "function").expect("scan symbols");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "greetUser");
+        assert_eq!(results[0].kind, "function");
+        assert_eq!(results[0].line_number, 1);
+    }
+
+    #[test]
+    fn scan_ts_class_by_name() {
+        let dir = TempDir::new().expect("temp dir");
+        write_file(
+            &dir,
+            "service.ts",
+            "export class UserService {\n  id = 1;\n}\n",
+        );
+        let results = scan_symbols(dir.path(), "UserService", "class").expect("scan symbols");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].name, "UserService");
+        assert_eq!(results[0].kind, "class");
+    }
+
+    #[test]
+    fn scan_rust_fn() {
+        let dir = TempDir::new().expect("temp dir");
+        write_file(
+            &dir,
+            "lib.rs",
+            "pub fn compute_total(x: i32) -> i32 {\n    x * 2\n}\n",
+        );
+        let results = scan_symbols(dir.path(), "compute", "function").expect("scan symbols");
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].kind, "function");
+    }
+
+    #[test]
+    fn scan_query_is_case_insensitive() {
+        let dir = TempDir::new().expect("temp dir");
+        write_file(&dir, "helpers.ts", "export function calculateTotal() {}\n");
+        let results = scan_symbols(dir.path(), "CALC", "all").expect("scan symbols");
+        assert_eq!(results.len(), 1);
+    }
+
+    #[test]
+    fn scan_kind_filter_excludes_other_kinds() {
+        let dir = TempDir::new().expect("temp dir");
+        write_file(
+            &dir,
+            "mixed.ts",
+            "export function doWork() {}\nexport class DoClass {}\n",
+        );
+        let fn_only = scan_symbols(dir.path(), "", "function").expect("scan symbols");
+        assert!(fn_only.iter().all(|value| value.kind == "function"));
+
+        let class_only = scan_symbols(dir.path(), "", "class").expect("scan symbols");
+        assert!(class_only.iter().all(|value| value.kind == "class"));
+    }
+
+    #[test]
+    fn scan_snippet_capped_at_20_lines() {
+        let dir = TempDir::new().expect("temp dir");
+        let body: String = (0..30)
+            .map(|idx| format!("  let line{} = {};\n", idx, idx))
+            .collect();
+        write_file(
+            &dir,
+            "big.ts",
+            &format!("export function bigFn() {{\n{body}}}\n"),
+        );
+        let results = scan_symbols(dir.path(), "bigFn", "function").expect("scan symbols");
+        assert!(!results.is_empty());
+        assert!(results[0].snippet.lines().count() <= 20);
     }
 }

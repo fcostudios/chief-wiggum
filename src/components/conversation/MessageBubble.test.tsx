@@ -174,6 +174,35 @@ describe('MessageBubble', () => {
     expect(mockAddToast).toHaveBeenCalledWith('Copied to clipboard', 'success');
   });
 
+  describe('Formatting toggle (CHI-196)', () => {
+    it('toggle button is available for assistant messages', () => {
+      render(() => <MessageBubble message={makeMessage({ role: 'assistant' })} />);
+      expect(screen.queryByLabelText('Show raw markdown source')).toBeInTheDocument();
+    });
+
+    it('toggle button is not shown for user messages', () => {
+      render(() => (
+        <MessageBubble message={makeMessage({ role: 'user', content: 'hello **there**' })} />
+      ));
+      expect(screen.queryByLabelText('Show raw markdown source')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Show rendered markdown')).not.toBeInTheDocument();
+    });
+
+    it('clicking the toggle switches to raw view and back', () => {
+      const rawContent = '## Hello\n\nSome **bold** text.';
+      render(() => <MessageBubble message={makeMessage({ content: rawContent })} />);
+
+      expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Show raw markdown source'));
+      expect(screen.queryByTestId('markdown-content')).not.toBeInTheDocument();
+      expect(screen.getByText(/## Hello/)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Show rendered markdown'));
+      expect(screen.getByTestId('markdown-content')).toBeInTheDocument();
+    });
+  });
+
   describe('context menu', () => {
     it('opens context menu on right-click', () => {
       render(() => <MessageBubble message={makeMessage()} />);

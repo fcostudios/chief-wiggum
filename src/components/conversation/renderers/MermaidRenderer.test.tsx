@@ -30,6 +30,10 @@ describe('MermaidRenderer (CHI-182)', () => {
     vi.clearAllMocks();
   });
 
+  it('does not initialize mermaid eagerly before first render', () => {
+    expect(initializeMock).not.toHaveBeenCalled();
+  });
+
   it('renders SVG after mermaid resolves', async () => {
     const { container } = render(() => (
       <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />
@@ -123,5 +127,19 @@ describe('MermaidRenderer (CHI-182)', () => {
 
   it('renderer is registered in the registry after module loads', () => {
     expect(hasRenderer('mermaid')).toBe(true);
+  });
+
+  it('initializes once per renderer mount', async () => {
+    render(() => <MermaidRenderer code={'graph TD\n  A-->B'} lang="mermaid" />);
+    await waitFor(() => {
+      expect(initializeMock).toHaveBeenCalledTimes(1);
+    });
+
+    vi.clearAllMocks();
+
+    render(() => <MermaidRenderer code={'graph TD\n  B-->C'} lang="mermaid" />);
+    await waitFor(() => {
+      expect(initializeMock).toHaveBeenCalledTimes(1);
+    });
   });
 });

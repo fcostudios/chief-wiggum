@@ -1,26 +1,44 @@
 // src/components/conversation/FileMentionMenu.tsx
-// Inline autocomplete dropdown for @-file mentions.
-// Appears above MessageInput when user types `@` in input.
-// Mirrors SlashCommandMenu UX: keyboard nav, accent highlights.
+// Inline autocomplete dropdown for @-file and @symbol mentions.
 
 import type { Component } from 'solid-js';
 import { Show, For, createEffect } from 'solid-js';
-import { File } from 'lucide-solid';
-import type { FileSearchResult } from '@/lib/types';
+import { File, Code, Box, Hash } from 'lucide-solid';
+import type { FileSearchResult, SymbolSearchResult } from '@/lib/types';
 
 interface FileMentionMenuProps {
   isOpen: boolean;
   results: FileSearchResult[];
+  symbolResults?: SymbolSearchResult[];
   highlightedIndex: number;
   bundleHints?: Record<string, string>;
+  mode?: 'file' | 'symbol';
   onSelect: (result: FileSearchResult) => void;
+  onSelectSymbol?: (result: SymbolSearchResult) => void;
   onClose: () => void;
+}
+
+function SymbolKindIcon(props: { kind: string }) {
+  return (
+    <Show
+      when={props.kind === 'class'}
+      fallback={
+        <Show
+          when={props.kind === 'variable'}
+          fallback={<Code size={12} style={{ color: 'var(--color-text-tertiary)' }} />}
+        >
+          <Hash size={12} style={{ color: 'var(--color-text-tertiary)' }} />
+        </Show>
+      }
+    >
+      <Box size={12} style={{ color: 'var(--color-text-tertiary)' }} />
+    </Show>
+  );
 }
 
 const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
   let menuRef: HTMLDivElement | undefined;
 
-  // Scroll highlighted item into view
   createEffect(() => {
     if (!menuRef || !props.isOpen) return;
     const highlighted = menuRef.querySelector('[data-highlighted="true"]');
@@ -29,8 +47,12 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
     }
   });
 
+  const isSymbolMode = () => props.mode === 'symbol';
+  const activeResults = () => (isSymbolMode() ? (props.symbolResults ?? []) : props.results);
+  const hasResults = () => activeResults().length > 0;
+
   return (
-    <Show when={props.isOpen && props.results.length > 0}>
+    <Show when={props.isOpen && hasResults()}>
       <div
         ref={menuRef}
         class="absolute bottom-full left-0 right-0 mb-1 max-h-[250px] overflow-y-auto rounded-lg z-50"
@@ -40,9 +62,8 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
           'box-shadow': '0 -4px 16px rgba(0, 0, 0, 0.3)',
         }}
         role="listbox"
-        aria-label="File mentions"
+        aria-label={isSymbolMode() ? 'Symbol mentions' : 'File mentions'}
       >
-        {/* Header */}
         <div
           class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider"
           style={{
@@ -51,16 +72,14 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
             'border-bottom': '1px solid var(--color-border-secondary)',
           }}
         >
-          Files
+          {isSymbolMode() ? 'Symbols' : 'Files'}
         </div>
 
-        {/* Results */}
-        <For each={props.results}>
-          {(result, idx) => {
-            const isHighlighted = () => idx() === props.highlightedIndex;
-
-            return (
-              <div>
+        <Show when={isSymbolMode()}>
+          <For each={props.symbolResults ?? []}>
+            {(result, idx) => {
+              const isHighlighted = () => idx() === props.highlightedIndex;
+              return (
                 <button
                   class="w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors"
                   style={{
@@ -72,42 +91,84 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
                   data-highlighted={isHighlighted()}
                   role="option"
                   aria-selected={isHighlighted()}
-                  onClick={() => props.onSelect(result)}
+                  onClick={() => props.onSelectSymbol?.(result)}
                 >
-                  <File
-                    size={12}
-                    class="shrink-0"
-                    style={{ color: 'var(--color-text-tertiary)' }}
-                  />
+                  <SymbolKindIcon kind={result.kind} />
                   <span
                     class="text-xs font-mono font-medium truncate"
                     style={{ color: 'var(--color-accent)' }}
                   >
                     {result.name}
                   </span>
-                  <span class="text-[10px] text-text-tertiary/50 truncate flex-1 text-right font-mono">
-                    {result.relative_path}
+                  <span
+                    class="text-[10px] truncate flex-1 text-right font-mono"
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  >
+                    {result.file_path}:{result.line_number}
                   </span>
                 </button>
-                <Show when={props.bundleHints?.[result.relative_path]}>
-                  {(hint) => (
-                    <div
-                      class="px-3 pb-1 text-[10px] font-mono"
+              );
+            }}
+          </For>
+        </Show>
+
+        <Show when={!isSymbolMode()}>
+          <For each={props.results}>
+            {(result, idx) => {
+              const isHighlighted = () => idx() === props.highlightedIndex;
+              return (
+                <div>
+                  <button
+                    class="w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors"
+                    style={{
+                      background: isHighlighted() ? 'var(--color-accent-muted)' : 'transparent',
+                      'border-left': isHighlighted()
+                        ? '2px solid var(--color-accent)'
+                        : '2px solid transparent',
+                    }}
+                    data-highlighted={isHighlighted()}
+                    role="option"
+                    aria-selected={isHighlighted()}
+                    onClick={() => props.onSelect(result)}
+                  >
+                    <File
+                      size={12}
+                      class="shrink-0"
+                      style={{ color: 'var(--color-text-tertiary)' }}
+                    />
+                    <span
+                      class="text-xs font-mono font-medium truncate"
                       style={{ color: 'var(--color-accent)' }}
                     >
-                      Bundle: {hint()}
-                    </div>
-                  )}
-                </Show>
-              </div>
-            );
-          }}
-        </For>
+                      {result.name}
+                    </span>
+                    <span
+                      class="text-[10px] truncate flex-1 text-right font-mono"
+                      style={{ color: 'var(--color-text-tertiary)' }}
+                    >
+                      {result.relative_path}
+                    </span>
+                  </button>
+                  <Show when={props.bundleHints?.[result.relative_path]}>
+                    {(hint) => (
+                      <div
+                        class="px-3 pb-1 text-[10px] font-mono"
+                        style={{ color: 'var(--color-accent)' }}
+                      >
+                        Bundle: {hint()}
+                      </div>
+                    )}
+                  </Show>
+                </div>
+              );
+            }}
+          </For>
+        </Show>
 
-        {/* Footer hint */}
         <div
-          class="px-3 py-1.5 text-[10px] text-text-tertiary/40 flex items-center gap-3"
+          class="px-3 py-1.5 text-[10px] flex items-center gap-3"
           style={{
+            color: 'var(--color-text-tertiary)',
             'border-top': '1px solid var(--color-border-secondary)',
             background: 'var(--color-bg-secondary)',
           }}

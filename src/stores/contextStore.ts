@@ -13,6 +13,7 @@ import type {
   FileSuggestion,
   ImageAttachment,
   PromptImageInput,
+  SymbolSearchResult,
   SymbolOptimizationSuggestion,
 } from '@/lib/types';
 import { extractConversationKeywords, scoreAllAttachments } from '@/lib/contextScoring';
@@ -100,6 +101,54 @@ export function addFileReference(ref: FileReference): void {
     id: crypto.randomUUID(),
     reference: ref,
   };
+  setState('attachments', (prev) => [...prev, attachment]);
+  recalculateScores();
+  void refreshSuggestions();
+  void refreshSymbolSuggestionForAttachment(attachment.id);
+
+  if (newTotal > TOKEN_WARNING_THRESHOLD) {
+    addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
+  }
+}
+
+/** Add a symbol snippet as a context attachment without requiring file IPC reads. */
+export function addSymbolAttachment(symbol: SymbolSearchResult): void {
+  const exists = state.attachments.some(
+    (attachment) =>
+      attachment.reference.relative_path === symbol.file_path &&
+      attachment.reference.start_line === symbol.line_number,
+  );
+  if (exists) return;
+
+  const currentTotal = getTotalEstimatedTokens();
+  const newTotal = currentTotal + symbol.estimated_tokens;
+  if (newTotal > TOKEN_HARD_CAP) {
+    addToast('Symbol would exceed the context token limit', 'warning');
+    return;
+  }
+
+  const extension = symbol.file_path.split('.').pop() ?? null;
+  const kindPrefix = symbol.kind === 'function' ? 'fn' : symbol.kind === 'class' ? 'class' : 'var';
+  const lineCount = symbol.snippet.split('\n').length;
+
+  const reference: FileReference = {
+    relative_path: symbol.file_path,
+    name: `@${kindPrefix}:${symbol.name}`,
+    extension,
+    estimated_tokens: Math.max(1, symbol.estimated_tokens),
+    start_line: symbol.line_number,
+    end_line: symbol.line_number + lineCount - 1,
+    symbol_names: [symbol.name],
+    is_directory: false,
+  };
+
+  const attachment: ContextAttachment = {
+    id: crypto.randomUUID(),
+    reference,
+    content: symbol.snippet,
+    actual_tokens: Math.max(1, symbol.estimated_tokens),
+  };
+
   setState('attachments', (prev) => [...prev, attachment]);
   recalculateScores();
   void refreshSuggestions();
