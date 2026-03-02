@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-02T16:34:46Z",
+  "last_updated": "2026-03-02T18:08:06Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -822,16 +822,16 @@
     "CHI-180": {
       "title": "Epic D: Polish & Differentiators",
       "epic": null,
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "dependencies": [],
       "linear_id": null,
-      "assigned_to": null,
+      "assigned_to": "claude-code",
       "started_at": null,
-      "completed_at": null,
+      "completed_at": "2026-03-02T16:34:46Z",
       "worktree": null,
       "files": [],
-      "notes": "Epic wrapper. CHI-195 done. Remaining sub-tasks: CHI-196 (D3: Formatting Toggle), CHI-197 (D4: Anchor Links)."
+      "notes": "Epic D: Polish & Differentiators. All sub-tasks done: CHI-195/196/197. completed_by=claude-code; auto-closed by cowork on sub-task completion."
     },
     "CHI-198": {
       "title": "Epic E: Conversation Utility Features",
@@ -1236,44 +1236,61 @@
     "CHI-206": {
       "title": "F3: Unit Tests — Math & Image Renderers",
       "epic": "CHI-199",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "dependencies": [],
       "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "MathRenderer + ImageRenderer unit tests."
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T17:29:07Z",
+      "completed_at": "2026-03-02T18:08:06Z",
+      "worktree": ".worktrees/chi206-209-210-212-213-renderer-tests",
+      "files": [
+        "src/components/conversation/renderers/MathRenderer.test.tsx",
+        "src/components/conversation/renderers/ImageRenderer.tsx",
+        "src/components/conversation/renderers/ImageRenderer.test.tsx"
+      ],
+      "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-209": {
       "title": "F6: Unit Tests — Polish Features",
       "epic": "CHI-199",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "dependencies": [],
       "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "Unit tests for CHI-194/195/196/197 polish features."
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T17:29:07Z",
+      "completed_at": "2026-03-02T18:08:06Z",
+      "worktree": ".worktrees/chi206-209-210-212-213-renderer-tests",
+      "files": [
+        "src/components/conversation/MarkdownContent.tsx",
+        "src/components/conversation/MarkdownContent.test.tsx",
+        "src/components/conversation/ToolUseBlock.test.tsx",
+        "src/components/conversation/ThinkingBlock.test.tsx",
+        "src/components/conversation/ConversationView.tsx"
+      ],
+      "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-210": {
       "title": "F7: Unit Tests — Utility Features",
       "epic": "CHI-199",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "dependencies": [],
       "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "Unit tests for CHI-E1/E2/E3/E4 utility features."
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T17:29:07Z",
+      "completed_at": "2026-03-02T18:08:06Z",
+      "worktree": ".worktrees/chi206-209-210-212-213-renderer-tests",
+      "files": [
+        "src/components/conversation/ConversationSearch.test.tsx",
+        "src/lib/conversationExport.test.ts",
+        "src/components/conversation/VoiceInput.tsx",
+        "src/components/conversation/VoiceInput.test.tsx",
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/conversation/MessageInput.test.ts"
+      ],
+      "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-211": {
       "title": "F8: E2E Tests — Rich Content Rendering",
@@ -1294,30 +1311,34 @@
     "CHI-212": {
       "title": "F9: E2E Tests — Attachments & Input",
       "epic": "CHI-199",
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
       "dependencies": [],
       "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "Playwright E2E for CHI-190/191/193 attachment features."
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T17:29:07Z",
+      "completed_at": "2026-03-02T18:08:06Z",
+      "worktree": ".worktrees/chi206-209-210-212-213-renderer-tests",
+      "files": [
+        "tests/e2e/conversation/conversation-attachments.spec.ts"
+      ],
+      "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-213": {
       "title": "F10: E2E Tests — Conversation Utility",
       "epic": "CHI-199",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "dependencies": [],
       "linear_id": null,
-      "assigned_to": null,
-      "started_at": null,
-      "completed_at": null,
-      "worktree": null,
-      "files": [],
-      "notes": "Playwright E2E for CHI-E1/E2 search and export."
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-02T17:29:07Z",
+      "completed_at": "2026-03-02T18:08:06Z",
+      "worktree": ".worktrees/chi206-209-210-212-213-renderer-tests",
+      "files": [
+        "tests/e2e/conversation/conversation-utility.spec.ts"
+      ],
+      "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     }
   },
   "epics_new": {
@@ -3488,7 +3509,14 @@
       }
     }
   },
-  "recommended_next": [],
+  "recommended_next": [
+    "CHI-212",
+    "CHI-206",
+    "CHI-209",
+    "CHI-210",
+    "CHI-213",
+    "CHI-202"
+  ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
     "Complete remaining Conversation Utility tasks: CHI-202 and CHI-203.",
