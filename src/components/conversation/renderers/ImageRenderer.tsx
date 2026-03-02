@@ -29,6 +29,7 @@ const ImageRenderer: Component<RendererComponentProps> = (props) => {
   const [loaded, setLoaded] = createSignal(false);
   const [lightboxOpen, setLightboxOpen] = createSignal(false);
   const [errored, setErrored] = createSignal(false);
+  const [showFull, setShowFull] = createSignal(false);
 
   const payload = () => parsePayload(props.code);
 
@@ -81,7 +82,7 @@ const ImageRenderer: Component<RendererComponentProps> = (props) => {
               loading="lazy"
               class="max-w-full rounded transition-opacity cursor-zoom-in"
               style={{
-                'max-height': '400px',
+                'max-height': showFull() ? 'none' : '400px',
                 opacity: loaded() ? '1' : '0',
                 border: '1px solid var(--color-border-secondary)',
               }}
@@ -93,6 +94,20 @@ const ImageRenderer: Component<RendererComponentProps> = (props) => {
               onClick={() => setLightboxOpen(true)}
               aria-label={p().alt ? `Image: ${p().alt}` : 'Image'}
             />
+
+            <Show when={!errored()}>
+              <button
+                class="mt-1 text-[11px] font-medium transition-colors"
+                style={{ color: showFull() ? 'var(--color-text-tertiary)' : 'var(--color-accent)' }}
+                aria-label={showFull() ? 'Collapse image' : 'Show full image'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowFull((prev) => !prev);
+                }}
+              >
+                {showFull() ? 'Collapse' : 'Show full'}
+              </button>
+            </Show>
 
             <Show when={errored()}>
               <span

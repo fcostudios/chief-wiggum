@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMentionQuery, pickBestMentionResult } from './MessageInput';
+import { getSymbolPrefix, parseMentionQuery, pickBestMentionResult } from './MessageInput';
 import type { FileSearchResult } from '@/lib/types';
 
 describe('parseMentionQuery', () => {
@@ -88,5 +88,26 @@ describe('pickBestMentionResult', () => {
     expect(pickBestMentionResult('SRC/LIB/UTILS.TS', results)?.relative_path).toBe(
       'src/lib/utils.ts',
     );
+  });
+});
+
+describe('getSymbolPrefix', () => {
+  it('maps @fn: query to function kind', () => {
+    expect(getSymbolPrefix('fn:greet')).toEqual({ kind: 'function', subQuery: 'greet' });
+  });
+
+  it('maps @class: query to class kind', () => {
+    expect(getSymbolPrefix('class:UserService')).toEqual({
+      kind: 'class',
+      subQuery: 'UserService',
+    });
+  });
+
+  it('maps @var: query to variable kind', () => {
+    expect(getSymbolPrefix('var:token')).toEqual({ kind: 'variable', subQuery: 'token' });
+  });
+
+  it('returns null for non-symbol prefixes', () => {
+    expect(getSymbolPrefix('utils.ts')).toBeNull();
   });
 });

@@ -42,6 +42,25 @@ describe('exportAsMarkdown', () => {
     const output = exportAsMarkdown([message('permission', 'secret')], 'abc');
     expect(output).not.toContain('secret');
   });
+
+  it('renders tool_use payload as fenced tool block', () => {
+    const output = exportAsMarkdown(
+      [
+        message(
+          'tool_use',
+          JSON.stringify({
+            tool_name: 'Write',
+            tool_input: '{"path":"src/app.ts","content":"hello"}',
+          }),
+        ),
+      ],
+      'abc',
+    );
+    expect(output).toContain('```tool');
+    expect(output).toContain('# Write');
+    expect(output).toContain('"path":"src/app.ts"');
+    expect(output).toContain('```');
+  });
 });
 
 describe('exportAsText', () => {
@@ -55,6 +74,25 @@ describe('exportAsText', () => {
     expect(output).toContain('CLAUDE:');
     expect(output).toContain('Answer');
     expect(output).not.toContain('skip');
+  });
+
+  it('excludes tool_use and tool_result content from text export', () => {
+    const output = exportAsText(
+      [
+        message('user', 'Question'),
+        message(
+          'tool_use',
+          JSON.stringify({ tool_name: 'Bash', tool_input: '{"command":"echo hi"}' }),
+        ),
+        message('tool_result', JSON.stringify({ content: 'tool output', is_error: false })),
+        message('assistant', 'Answer'),
+      ],
+      'abc',
+    );
+    expect(output).toContain('Question');
+    expect(output).toContain('Answer');
+    expect(output).not.toContain('tool output');
+    expect(output).not.toContain('Bash');
   });
 });
 

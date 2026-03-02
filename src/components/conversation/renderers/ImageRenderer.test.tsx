@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render } from '@solidjs/testing-library';
+import { fireEvent, render, screen, waitFor } from '@solidjs/testing-library';
 import ImageRenderer from './ImageRenderer';
 
 vi.mock('@/lib/rendererRegistry', () => ({ registerRenderer: vi.fn() }));
@@ -102,5 +102,57 @@ describe('ImageRenderer (CHI-185)', () => {
 
   it('renders gracefully when code is malformed JSON', () => {
     expect(() => render(() => <ImageRenderer code="not-json" lang="image" />)).not.toThrow();
+  });
+
+  describe('max-height and show-full toggle (CHI-206)', () => {
+    it('applies a max-height constraint by default', async () => {
+      const { container } = render(() => (
+        <ImageRenderer
+          code={JSON.stringify({ src: 'https://example.com/img.png', alt: 'test' })}
+          lang="image"
+        />
+      ));
+
+      await waitFor(() => {
+        const img = container.querySelector('img') as HTMLImageElement | null;
+        expect(img).toBeTruthy();
+        expect(img?.style.maxHeight).toBe('400px');
+      });
+    });
+
+    it('renders a Show full button for constrained images', async () => {
+      render(() => (
+        <ImageRenderer
+          code={JSON.stringify({ src: 'https://example.com/img.png', alt: 'test' })}
+          lang="image"
+        />
+      ));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Show full image')).toBeInTheDocument();
+      });
+    });
+
+    it('clicking Show full removes max-height and shows Collapse button', async () => {
+      const { container } = render(() => (
+        <ImageRenderer
+          code={JSON.stringify({ src: 'https://example.com/img.png', alt: 'test' })}
+          lang="image"
+        />
+      ));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Show full image')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByLabelText('Show full image'));
+
+      await waitFor(() => {
+        const img = container.querySelector('img') as HTMLImageElement | null;
+        expect(img?.style.maxHeight).toBe('none');
+        expect(screen.queryByLabelText('Show full image')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('Collapse image')).toBeInTheDocument();
+      });
+    });
   });
 });

@@ -108,6 +108,20 @@ describe('ConversationSearch', () => {
     expect(onNavigate).toHaveBeenLastCalledWith(1);
   });
 
+  it('navigates to previous match on Shift+Enter', async () => {
+    renderSearch();
+    const input = screen.getByLabelText('Search query');
+    fireEvent.input(input, { target: { value: 'hello' } });
+    vi.advanceTimersByTime(200);
+
+    await waitFor(() => {
+      expect(onNavigate).toHaveBeenCalledWith(0);
+    });
+
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true });
+    expect(onNavigate).toHaveBeenLastCalledWith(1);
+  });
+
   it('toggles case sensitivity state', () => {
     renderSearch();
     const toggle = screen.getByLabelText('Toggle case sensitivity');
