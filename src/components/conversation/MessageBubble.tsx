@@ -294,10 +294,12 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
                   <code
                     class="hljs language-markdown"
                     // eslint-disable-next-line solid/no-innerhtml -- syntax-highlighted markdown source preview
-                    innerHTML={hljs.highlight(props.message.content ?? '', {
-                      language: 'markdown',
-                      ignoreIllegals: true,
-                    }).value}
+                    innerHTML={
+                      hljs.highlight(props.message.content ?? '', {
+                        language: 'markdown',
+                        ignoreIllegals: true,
+                      }).value
+                    }
                   />
                 </pre>
               }

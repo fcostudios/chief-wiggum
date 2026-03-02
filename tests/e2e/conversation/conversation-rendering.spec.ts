@@ -42,35 +42,40 @@ async function seedAndLoad(page: Page, content: string): Promise<void> {
   const canSeed = await hasTauriInvoke(page);
   test.skip(!canSeed, 'Requires Tauri runtime IPC for DB seeding');
 
-  await page.evaluate(async ([messageContent]: [string]) => {
-    const invoke = (window as unknown as {
-      __TAURI_INTERNALS__: {
-        invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
-      };
-    }).__TAURI_INTERNALS__.invoke;
+  await page.evaluate(
+    async ([messageContent]: [string]) => {
+      const invoke = (
+        window as unknown as {
+          __TAURI_INTERNALS__: {
+            invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+          };
+        }
+      ).__TAURI_INTERNALS__.invoke;
 
-    const now = Date.now();
-    const project = (await invoke('create_project', {
-      folder_path: `/tmp/chief-wiggum-e2e-render-${now}`,
-      name: `__e2e_render_${now}`,
-    })) as { id: string };
+      const now = Date.now();
+      const project = (await invoke('create_project', {
+        folder_path: `/tmp/chief-wiggum-e2e-render-${now}`,
+        name: `__e2e_render_${now}`,
+      })) as { id: string };
 
-    const session = (await invoke('create_session', {
-      model: 'claude-sonnet-4-6',
-      project_id: project.id,
-    })) as { id: string };
+      const session = (await invoke('create_session', {
+        model: 'claude-sonnet-4-6',
+        project_id: project.id,
+      })) as { id: string };
 
-    await invoke('save_message', {
-      session_id: session.id,
-      id: `msg-${now}`,
-      role: 'assistant',
-      content: messageContent,
-      model: 'claude-sonnet-4-6',
-      input_tokens: null,
-      output_tokens: null,
-      cost_cents: null,
-    });
-  }, [content] as [string]);
+      await invoke('save_message', {
+        session_id: session.id,
+        id: `msg-${now}`,
+        role: 'assistant',
+        content: messageContent,
+        model: 'claude-sonnet-4-6',
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      });
+    },
+    [content] as [string],
+  );
 
   await page.reload();
   await page.waitForSelector('.grain-overlay', { timeout: 15_000 });
@@ -98,9 +103,9 @@ test.describe('Rich Content Rendering (CHI-211)', () => {
   test('mermaid fences render an SVG diagram', async ({ page }) => {
     await seedAndLoad(page, MERMAID_MD);
     await expect(page.locator('.markdown-content svg').first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('.markdown-content code').filter({ hasText: 'graph TD' })).toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('.markdown-content code').filter({ hasText: 'graph TD' }),
+    ).toHaveCount(0);
   });
 
   test('typescript block shows toolbar and line-number toggle behavior', async ({ page }) => {

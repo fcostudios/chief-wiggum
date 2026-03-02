@@ -83,7 +83,9 @@ const SYMBOL_KIND_MAP: Record<string, SymbolSearchResult['kind']> = {
   'var:': 'variable',
 };
 
-function getSymbolPrefix(query: string): { kind: SymbolSearchResult['kind']; subQuery: string } | null {
+function getSymbolPrefix(
+  query: string,
+): { kind: SymbolSearchResult['kind']; subQuery: string } | null {
   for (const [prefix, kind] of Object.entries(SYMBOL_KIND_MAP)) {
     if (query.startsWith(prefix)) {
       return { kind, subQuery: query.slice(prefix.length) };

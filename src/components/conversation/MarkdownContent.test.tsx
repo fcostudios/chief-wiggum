@@ -86,7 +86,9 @@ describe('MarkdownContent', () => {
   describe('Response anchor links (CHI-197)', () => {
     it('adds slugified id attributes to headings', async () => {
       const { container } = render(() => (
-        <MarkdownContent content={'# Hello World\n\nSome text.\n\n## Second Section\n\nMore text.'} />
+        <MarkdownContent
+          content={'# Hello World\n\nSome text.\n\n## Second Section\n\nMore text.'}
+        />
       ));
       await waitFor(() => {
         const h1 = container.querySelector('h1');
