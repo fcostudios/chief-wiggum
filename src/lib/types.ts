@@ -258,6 +258,16 @@ export interface FileSearchResult {
   score: number;
 }
 
+/** A code symbol found by backend regex scanning. */
+export interface SymbolSearchResult {
+  name: string;
+  kind: 'function' | 'class' | 'variable';
+  file_path: string;
+  line_number: number;
+  snippet: string;
+  estimated_tokens: number;
+}
+
 /** Git file status indicator (mirrors Rust GitFileStatus). */
 export interface GitFileStatus {
   status: 'modified' | 'untracked' | 'staged' | 'deleted' | 'renamed' | 'conflict';
