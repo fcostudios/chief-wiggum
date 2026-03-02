@@ -1,20 +1,30 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import type { ContextAttachment } from '@/lib/types';
 import ContextChip from './ContextChip';
 
-vi.mock('@/stores/contextStore', () => ({
-  contextState: {
-    scores: {
-      'att-1': {
-        overall: 80,
-        relevance: 90,
-        tokenEfficiency: 70,
-        isStale: false,
-        label: 'high' as const,
+const { mockApplyAttachmentOptimization, mockRevertAttachmentOptimization, mockContextState } =
+  vi.hoisted(() => ({
+    mockApplyAttachmentOptimization: vi.fn(() => true),
+    mockRevertAttachmentOptimization: vi.fn(() => true),
+    mockContextState: {
+      scores: {
+        'att-1': {
+          overall: 80,
+          relevance: 90,
+          tokenEfficiency: 70,
+          isStale: false,
+          label: 'high' as const,
+        },
       },
+      symbolSuggestions: {} as Record<string, unknown>,
     },
-  },
+  }));
+
+vi.mock('@/stores/contextStore', () => ({
+  contextState: mockContextState,
+  applyAttachmentOptimization: () => mockApplyAttachmentOptimization(),
+  revertAttachmentOptimization: () => mockRevertAttachmentOptimization(),
 }));
 
 function makeAttachment(overrides?: Partial<ContextAttachment>): ContextAttachment {
@@ -32,6 +42,12 @@ function makeAttachment(overrides?: Partial<ContextAttachment>): ContextAttachme
 }
 
 describe('ContextChip', () => {
+  beforeEach(() => {
+    mockApplyAttachmentOptimization.mockReset();
+    mockRevertAttachmentOptimization.mockReset();
+    mockContextState.symbolSuggestions = {};
+  });
+
   it('renders filename and token count', () => {
     render(() => <ContextChip attachment={makeAttachment()} onRemove={() => {}} />);
     expect(screen.getByText('helper.ts')).toBeInTheDocument();
@@ -98,5 +114,24 @@ describe('ContextChip', () => {
     fireEvent.click(screen.getByLabelText('Remove helper.ts'));
     expect(onRemove).toHaveBeenCalled();
     expect(onEdit).not.toHaveBeenCalled();
+  });
+
+  it('shows optimize button when optimization suggestion exists', () => {
+    mockApplyAttachmentOptimization.mockReturnValue(true);
+    const attachment = makeAttachment();
+    mockContextState.symbolSuggestions = {
+      'att-1': {
+        symbols: [],
+        suggested_symbols: ['parseStream'],
+        optimized_tokens: 120,
+        full_tokens: 500,
+      },
+    };
+
+    render(() => <ContextChip attachment={attachment} onRemove={() => {}} />);
+
+    const optimizeButton = screen.getByLabelText('Optimize helper.ts');
+    fireEvent.click(optimizeButton);
+    expect(mockApplyAttachmentOptimization).toHaveBeenCalled();
   });
 });

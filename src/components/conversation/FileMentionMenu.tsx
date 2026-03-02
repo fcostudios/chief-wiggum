@@ -12,6 +12,7 @@ interface FileMentionMenuProps {
   isOpen: boolean;
   results: FileSearchResult[];
   highlightedIndex: number;
+  bundleHints?: Record<string, string>;
   onSelect: (result: FileSearchResult) => void;
   onClose: () => void;
 }
@@ -59,30 +60,46 @@ const FileMentionMenu: Component<FileMentionMenuProps> = (props) => {
             const isHighlighted = () => idx() === props.highlightedIndex;
 
             return (
-              <button
-                class="w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors"
-                style={{
-                  background: isHighlighted() ? 'var(--color-accent-muted)' : 'transparent',
-                  'border-left': isHighlighted()
-                    ? '2px solid var(--color-accent)'
-                    : '2px solid transparent',
-                }}
-                data-highlighted={isHighlighted()}
-                role="option"
-                aria-selected={isHighlighted()}
-                onClick={() => props.onSelect(result)}
-              >
-                <File size={12} class="shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />
-                <span
-                  class="text-xs font-mono font-medium truncate"
-                  style={{ color: 'var(--color-accent)' }}
+              <div>
+                <button
+                  class="w-full text-left px-3 py-1.5 flex items-center gap-2 transition-colors"
+                  style={{
+                    background: isHighlighted() ? 'var(--color-accent-muted)' : 'transparent',
+                    'border-left': isHighlighted()
+                      ? '2px solid var(--color-accent)'
+                      : '2px solid transparent',
+                  }}
+                  data-highlighted={isHighlighted()}
+                  role="option"
+                  aria-selected={isHighlighted()}
+                  onClick={() => props.onSelect(result)}
                 >
-                  {result.name}
-                </span>
-                <span class="text-[10px] text-text-tertiary/50 truncate flex-1 text-right font-mono">
-                  {result.relative_path}
-                </span>
-              </button>
+                  <File
+                    size={12}
+                    class="shrink-0"
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  />
+                  <span
+                    class="text-xs font-mono font-medium truncate"
+                    style={{ color: 'var(--color-accent)' }}
+                  >
+                    {result.name}
+                  </span>
+                  <span class="text-[10px] text-text-tertiary/50 truncate flex-1 text-right font-mono">
+                    {result.relative_path}
+                  </span>
+                </button>
+                <Show when={props.bundleHints?.[result.relative_path]}>
+                  {(hint) => (
+                    <div
+                      class="px-3 pb-1 text-[10px] font-mono"
+                      style={{ color: 'var(--color-accent)' }}
+                    >
+                      Bundle: {hint()}
+                    </div>
+                  )}
+                </Show>
+              </div>
             );
           }}
         </For>

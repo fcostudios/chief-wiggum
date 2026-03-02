@@ -6,7 +6,7 @@ import type { Component } from 'solid-js';
 import { Show, For, createSignal, onCleanup } from 'solid-js';
 import { ChevronRight, File, Folder, FolderOpen, Copy, Plus } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
-import type { FileNode, FileContent } from '@/lib/types';
+import type { FileNode, FileContent, FileBundleSuggestion } from '@/lib/types';
 import {
   fileState,
   isExpanded,
@@ -16,7 +16,7 @@ import {
   getGitStatus,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
-import { addFileReference } from '@/stores/contextStore';
+import { addFileBundle, addFileReference } from '@/stores/contextStore';
 import { addToast } from '@/stores/toastStore';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 
@@ -43,6 +43,11 @@ function sizeColor(bytes: number | null): string {
   return 'var(--color-error)';
 }
 
+function formatTokenCount(tokens: number): string {
+  if (tokens < 1000) return `~${tokens}`;
+  return `~${(tokens / 1000).toFixed(1)}K`;
+}
+
 const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const isDir = () => props.node.node_type === 'Directory';
   const expanded = () => isExpanded(props.node.relative_path);
@@ -51,6 +56,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const projectId = () => projectState.activeProjectId;
   const [showTooltip, setShowTooltip] = createSignal(false);
   const [contextMenuPos, setContextMenuPos] = createSignal<{ x: number; y: number } | null>(null);
+  const [bundleOptions, setBundleOptions] = createSignal<FileBundleSuggestion[]>([]);
   const [tooltipContent, setTooltipContent] = createSignal<{
     lines: string[];
     size: string;
@@ -112,30 +118,63 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
     addToast(`Added ${props.node.name} to prompt`, 'success');
   }
 
-  const contextMenuItems = (): ContextMenuItem[] => [
-    {
-      label: 'Copy path',
-      icon: Copy,
-      onClick: () => {
-        navigator.clipboard.writeText(props.node.relative_path);
-        addToast('Path copied', 'success');
+  async function loadBundleOptions(): Promise<void> {
+    const pid = projectId();
+    if (!pid || isDir() || props.node.is_binary) {
+      setBundleOptions([]);
+      return;
+    }
+
+    try {
+      const bundles = await invoke<FileBundleSuggestion[]>('get_file_bundles', {
+        project_id: pid,
+        relative_path: props.node.relative_path,
+      });
+      setBundleOptions(bundles);
+    } catch {
+      setBundleOptions([]);
+    }
+  }
+
+  const contextMenuItems = (): ContextMenuItem[] => {
+    const items: ContextMenuItem[] = [
+      {
+        label: 'Copy path',
+        icon: Copy,
+        onClick: () => {
+          navigator.clipboard.writeText(props.node.relative_path);
+          addToast('Path copied', 'success');
+        },
       },
-    },
-    {
-      label: isDir() ? (expanded() ? 'Collapse folder' : 'Expand folder') : 'Preview file',
-      icon: isDir() ? FolderOpen : File,
-      onClick: handleClick,
-    },
-    { separator: true, label: 'separator' },
-    {
-      label: 'Add to prompt',
-      icon: Plus,
-      onClick: () => {
-        void handleAddToPrompt();
+      {
+        label: isDir() ? (expanded() ? 'Collapse folder' : 'Expand folder') : 'Preview file',
+        icon: isDir() ? FolderOpen : File,
+        onClick: handleClick,
       },
-      disabled: isDir() || props.node.is_binary,
-    },
-  ];
+      { separator: true, label: 'separator' },
+      {
+        label: 'Add to prompt',
+        icon: Plus,
+        onClick: () => {
+          void handleAddToPrompt();
+        },
+        disabled: isDir() || props.node.is_binary,
+      },
+    ];
+
+    for (const bundle of bundleOptions()) {
+      items.push({
+        label: `${bundle.label} (${formatTokenCount(bundle.estimated_tokens)})`,
+        icon: Plus,
+        disabled: isDir() || props.node.is_binary,
+        onClick: () => {
+          addFileBundle(bundle);
+        },
+      });
+    }
+
+    return items;
+  };
 
   function handleKeyDown(e: KeyboardEvent) {
     const pid = projectId();
@@ -224,6 +263,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           e.stopPropagation();
           handleMouseLeaveTooltip();
           setContextMenuPos({ x: e.clientX, y: e.clientY });
+          void loadBundleOptions();
         }}
         onKeyDown={handleKeyDown}
         role="treeitem"

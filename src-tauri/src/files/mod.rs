@@ -1,6 +1,7 @@
 //! File explorer: gitignore-aware scanning, content reading, and search.
 //! Per CHI-115: foundation for the File Explorer & @-Mention system.
 
+pub mod bundles;
 pub mod scanner;
 pub mod suggestions;
 pub mod watcher;

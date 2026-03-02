@@ -2,6 +2,7 @@
 //! Thin handlers: resolve project path from DB, delegate to `files::scanner`.
 
 use crate::db::{queries, Database};
+use crate::files::bundles::{self, FileBundle, FileBundleEntry};
 use crate::files::suggestions::{self, FileSuggestion};
 use crate::files::watcher::FileWatcherManager;
 use crate::files::{scanner, FileContent, FileNode, FileSearchResult};
@@ -184,6 +185,60 @@ pub fn get_file_suggestions(
     });
     results.truncate(limit);
     Ok(results)
+}
+
+/// Detect one-click multi-file bundles for a file (CHI-134).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path))]
+pub fn get_file_bundles(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+) -> Result<Vec<FileBundle>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let project_root = std::path::Path::new(&project.path);
+
+    let detected = bundles::detect_bundles(project_root, &relative_path);
+    let mut result = Vec::new();
+
+    for bundle in detected {
+        let mut entries = Vec::new();
+        let mut total_tokens = 0usize;
+
+        for path in bundle.paths {
+            let estimated_tokens = scanner::estimate_tokens(project_root, &path).unwrap_or(0);
+            total_tokens = total_tokens.saturating_add(estimated_tokens);
+            entries.push(FileBundleEntry {
+                name: std::path::Path::new(&path)
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or(&path)
+                    .to_string(),
+                extension: std::path::Path::new(&path)
+                    .extension()
+                    .and_then(|value| value.to_str())
+                    .map(str::to_string),
+                relative_path: path,
+                estimated_tokens,
+            });
+        }
+
+        if entries.len() < 2 {
+            continue;
+        }
+
+        result.push(FileBundle {
+            id: bundle.id,
+            kind: bundle.kind,
+            label: bundle.label,
+            reason: bundle.reason,
+            entries,
+            estimated_tokens: total_tokens,
+        });
+    }
+
+    Ok(result)
 }
 
 /// Get git status for all files in a project directory.

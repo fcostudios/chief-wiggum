@@ -38,7 +38,7 @@ vi.mock('@/stores/projectStore', () => ({
   },
 }));
 
-vi.mock('@/stores/contextStore', () => ({ addFileReference: vi.fn() }));
+vi.mock('@/stores/contextStore', () => ({ addFileReference: vi.fn(), addFileBundle: vi.fn() }));
 vi.mock('@/stores/toastStore', () => ({ addToast: vi.fn() }));
 vi.mock('@/components/common/ContextMenu', () => ({
   default: () => <div data-testid="context-menu" />,

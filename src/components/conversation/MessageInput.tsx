@@ -13,6 +13,7 @@ import type {
   SlashCommand,
   FileSearchResult,
   FileReference,
+  FileBundleSuggestion,
   PromptImageInput,
   ImageAttachment,
 } from '@/lib/types';
@@ -123,10 +124,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   const [isDragOver, setIsDragOver] = createSignal(false);
   const [mentionOpen, setMentionOpen] = createSignal(false);
   const [mentionResults, setMentionResults] = createSignal<FileSearchResult[]>([]);
+  const [mentionBundleHints, setMentionBundleHints] = createSignal<Record<string, string>>({});
   const [mentionHighlight, setMentionHighlight] = createSignal(0);
   const [previewImage, setPreviewImage] = createSignal<ImageAttachment | null>(null);
   let textareaRef: HTMLTextAreaElement | undefined;
   let fileInputRef: HTMLInputElement | undefined;
+  const mentionBundleCache = new Map<string, string | null>();
 
   // Local booleans synced with stores — avoids store proxy issues in event handlers
   let slashMenuOpen = false;
@@ -212,6 +215,49 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     }
 
     return ref;
+  }
+
+  function formatTokenCount(tokens: number): string {
+    if (tokens < 1000) return `~${tokens}`;
+    return `~${(tokens / 1000).toFixed(1)}K`;
+  }
+
+  async function loadMentionBundleHints(results: FileSearchResult[]): Promise<void> {
+    const projectId = projectState.activeProjectId;
+    if (!projectId || results.length === 0) {
+      setMentionBundleHints({});
+      return;
+    }
+
+    const hints: Record<string, string> = {};
+    const topResults = results.slice(0, 5);
+
+    for (const result of topResults) {
+      const cached = mentionBundleCache.get(result.relative_path);
+      if (cached !== undefined) {
+        if (cached) hints[result.relative_path] = cached;
+        continue;
+      }
+
+      try {
+        const bundles = await invoke<FileBundleSuggestion[]>('get_file_bundles', {
+          project_id: projectId,
+          relative_path: result.relative_path,
+        });
+        const primary = bundles[0];
+        if (primary) {
+          const hint = `${primary.label} (${formatTokenCount(primary.estimated_tokens)})`;
+          mentionBundleCache.set(result.relative_path, hint);
+          hints[result.relative_path] = hint;
+        } else {
+          mentionBundleCache.set(result.relative_path, null);
+        }
+      } catch {
+        mentionBundleCache.set(result.relative_path, null);
+      }
+    }
+
+    setMentionBundleHints(hints);
   }
 
   async function resolveInlineRangeMentions(text: string): Promise<string> {
@@ -316,18 +362,22 @@ const MessageInput: Component<MessageInputProps> = (props) => {
               max_results: 10,
             });
             setMentionResults(results);
+            void loadMentionBundleHints(results);
           } catch {
             setMentionResults([]);
+            setMentionBundleHints({});
           }
         }, 100);
       } else {
         setMentionOpen(false);
         setMentionResults([]);
+        setMentionBundleHints({});
       }
     } else {
       if (mentionOpen()) {
         setMentionOpen(false);
         setMentionResults([]);
+        setMentionBundleHints({});
       }
     }
 
@@ -650,6 +700,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
     setMentionOpen(false);
     setMentionResults([]);
+    setMentionBundleHints({});
     adjustHeight();
   }
 
@@ -693,6 +744,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         e.stopPropagation();
         setMentionOpen(false);
         setMentionResults([]);
+        setMentionBundleHints({});
         return;
       }
     }
@@ -938,10 +990,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           isOpen={mentionOpen()}
           results={mentionResults()}
           highlightedIndex={mentionHighlight()}
+          bundleHints={mentionBundleHints()}
           onSelect={handleMentionSelect}
           onClose={() => {
             setMentionOpen(false);
             setMentionResults([]);
+            setMentionBundleHints({});
           }}
         />
         <textarea
@@ -971,6 +1025,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
               if (mentionOpen()) {
                 setMentionOpen(false);
                 setMentionResults([]);
+                setMentionBundleHints({});
               }
             }, 200);
           }}

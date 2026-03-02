@@ -3,9 +3,11 @@ import { mockIpcCommand } from '@/test/mockIPC';
 import { setActiveProject } from './projectStore';
 import { clearMessages } from './conversationStore';
 import {
+  addFileBundle,
   addImageAttachment,
   addFileReference,
   addExternalFileAttachment,
+  applyAttachmentOptimization,
   assembleContext,
   clearAttachments,
   contextState,
@@ -14,9 +16,11 @@ import {
   getImageTokenEstimate,
   getPromptImages,
   getTotalEstimatedTokens,
+  refreshSymbolSuggestionForAttachment,
   refreshSuggestions,
   removeAttachment,
   removeImageAttachment,
+  revertAttachmentOptimization,
   updateAttachmentRange,
 } from './contextStore';
 import type { FileReference } from '@/lib/types';
@@ -38,13 +42,15 @@ describe('contextStore', () => {
     clearMessages();
     setActiveProject(null);
     mockIpcCommand('get_file_suggestions', () => []);
+    mockIpcCommand('get_file_bundles', () => []);
     mockIpcCommand('read_project_file', () => ({
       relative_path: 'src/main.ts',
-      content: 'file content here',
-      line_count: 3,
+      content:
+        'export function parseStream(input: string) { return input.trim(); }\nexport function formatOutput(value: string) { return value.toUpperCase(); }\n',
+      line_count: 2,
       size_bytes: 17,
       language: 'typescript',
-      estimated_tokens: 100,
+      estimated_tokens: 120,
       truncated: false,
     }));
     mockIpcCommand('read_claude_md', () => null);
@@ -62,6 +68,7 @@ describe('contextStore', () => {
     expect(contextState.attachments).toEqual([]);
     expect(contextState.scores).toEqual({});
     expect(contextState.suggestions).toEqual([]);
+    expect(contextState.symbolSuggestions).toEqual({});
   });
 
   it('addFileReference adds attachment', () => {
@@ -135,6 +142,7 @@ describe('contextStore', () => {
     expect(getAttachmentCount()).toBe(0);
     expect(contextState.scores).toEqual({});
     expect(contextState.suggestions).toEqual([]);
+    expect(contextState.symbolSuggestions).toEqual({});
   });
 
   it('assembleContext returns empty string when no attachments', async () => {
@@ -162,7 +170,7 @@ describe('contextStore', () => {
     const result = await assembleContext();
     expect(result).toContain('<context>');
     expect(result).toContain('<file path="src/main.ts"');
-    expect(result).toContain('file content here');
+    expect(result).toContain('parseStream');
     expect(result).toContain('</context>');
   });
 
@@ -170,6 +178,66 @@ describe('contextStore', () => {
     addFileReference(makeRef());
     await refreshSuggestions();
     expect(contextState.suggestions).toEqual([]);
+  });
+
+  it('computes and applies symbol optimization suggestion', async () => {
+    setActiveProject('proj-1');
+    addFileReference(makeRef({ estimated_tokens: 500 }));
+    const id = contextState.attachments[0].id;
+
+    await refreshSymbolSuggestionForAttachment(id);
+    expect(contextState.symbolSuggestions[id]).toBeDefined();
+
+    const applied = applyAttachmentOptimization(id);
+    expect(applied).toBe(true);
+    expect(contextState.attachments[0].reference.symbol_names?.length).toBeGreaterThan(0);
+    expect(contextState.attachments[0].reference.full_file_tokens).toBe(500);
+    expect(contextState.attachments[0].reference.estimated_tokens).toBeLessThan(500);
+
+    const reverted = revertAttachmentOptimization(id);
+    expect(reverted).toBe(true);
+    expect(contextState.attachments[0].reference.symbol_names).toBeUndefined();
+    expect(contextState.attachments[0].reference.estimated_tokens).toBe(500);
+  });
+
+  it('assembleContext includes symbols attribute for optimized attachments', async () => {
+    setActiveProject('proj-1');
+    addFileReference(makeRef({ estimated_tokens: 600 }));
+    const id = contextState.attachments[0].id;
+
+    await refreshSymbolSuggestionForAttachment(id);
+    applyAttachmentOptimization(id);
+
+    const result = await assembleContext();
+    expect(result).toContain('symbols="');
+    expect(result).toContain('parseStream');
+  });
+
+  it('addFileBundle attaches all entries', () => {
+    const added = addFileBundle({
+      id: 'component:src/main.ts',
+      kind: 'component',
+      label: 'Add with test file',
+      reason: 'test',
+      estimated_tokens: 200,
+      entries: [
+        {
+          relative_path: 'src/main.ts',
+          name: 'main.ts',
+          extension: 'ts',
+          estimated_tokens: 100,
+        },
+        {
+          relative_path: 'src/main.test.ts',
+          name: 'main.test.ts',
+          extension: 'ts',
+          estimated_tokens: 100,
+        },
+      ],
+    });
+
+    expect(added).toBe(2);
+    expect(getAttachmentCount()).toBe(2);
   });
 
   describe('image attachments', () => {

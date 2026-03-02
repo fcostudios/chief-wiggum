@@ -7,13 +7,16 @@ import { invoke } from '@tauri-apps/api/core';
 import type {
   ContextAttachment,
   ContextQualityScore,
+  FileBundleSuggestion,
   FileReference,
   FileContent,
   FileSuggestion,
   ImageAttachment,
   PromptImageInput,
+  SymbolOptimizationSuggestion,
 } from '@/lib/types';
 import { extractConversationKeywords, scoreAllAttachments } from '@/lib/contextScoring';
+import { buildSymbolSnippet, extractSymbols, pickRelevantSymbols } from '@/lib/symbolExtractor';
 import { getActiveProject, projectState } from '@/stores/projectStore';
 import { conversationState } from '@/stores/conversationStore';
 import { addToast } from '@/stores/toastStore';
@@ -33,6 +36,7 @@ interface ContextState {
   images: ImageAttachment[];
   scores: Record<string, ContextQualityScore>;
   suggestions: FileSuggestion[];
+  symbolSuggestions: Record<string, SymbolOptimizationSuggestion>;
   isAssembling: boolean;
 }
 
@@ -41,10 +45,36 @@ const [state, setState] = createStore<ContextState>({
   images: [],
   scores: {},
   suggestions: [],
+  symbolSuggestions: {},
   isAssembling: false,
 });
 
 export { state as contextState };
+
+function updateSymbolSuggestions(
+  updater: (
+    draft: Record<string, SymbolOptimizationSuggestion>,
+  ) => Record<string, SymbolOptimizationSuggestion>,
+): void {
+  const next = updater({ ...state.symbolSuggestions });
+  setState('symbolSuggestions', reconcile(next, { merge: false }));
+}
+
+function setSymbolSuggestion(attachmentId: string, suggestion: SymbolOptimizationSuggestion): void {
+  updateSymbolSuggestions((draft) => {
+    draft[attachmentId] = suggestion;
+    return draft;
+  });
+}
+
+function clearSymbolSuggestion(attachmentId: string): void {
+  updateSymbolSuggestions((draft) => {
+    if (attachmentId in draft) {
+      delete draft[attachmentId];
+    }
+    return draft;
+  });
+}
 
 /** Add a file reference to the prompt context. */
 export function addFileReference(ref: FileReference): void {
@@ -73,6 +103,7 @@ export function addFileReference(ref: FileReference): void {
   setState('attachments', (prev) => [...prev, attachment]);
   recalculateScores();
   void refreshSuggestions();
+  void refreshSymbolSuggestionForAttachment(attachment.id);
 
   if (newTotal > TOKEN_WARNING_THRESHOLD) {
     addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
@@ -115,16 +146,15 @@ export function addExternalFileAttachment(
     return;
   }
 
-  setState('attachments', (prev) => [
-    ...prev,
-    {
-      id: crypto.randomUUID(),
-      reference: ref,
-      content,
-      actual_tokens: estimatedTokens,
-    },
-  ]);
+  const attachment: ContextAttachment = {
+    id: crypto.randomUUID(),
+    reference: ref,
+    content,
+    actual_tokens: estimatedTokens,
+  };
+  setState('attachments', (prev) => [...prev, attachment]);
   recalculateScores();
+  void refreshSymbolSuggestionForAttachment(attachment.id);
 
   if (newTotal > TOKEN_WARNING_THRESHOLD) {
     addToast(`Context is large: ~${(newTotal / 1000).toFixed(1)}K tokens attached`, 'warning');
@@ -137,6 +167,7 @@ export function removeAttachment(id: string): void {
     'attachments',
     state.attachments.filter((a) => a.id !== id),
   );
+  clearSymbolSuggestion(id);
   recalculateScores();
   void refreshSuggestions();
 }
@@ -234,7 +265,10 @@ export function updateAttachmentRange(
     start_line: normalizedStart,
     end_line: normalizedEnd,
     estimated_tokens: estimatedTokens,
+    symbol_names: undefined,
+    full_file_tokens: undefined,
   });
+  clearSymbolSuggestion(attachmentId);
   recalculateScores();
 }
 
@@ -244,6 +278,7 @@ export function clearAttachments(): void {
   setState('images', []);
   setState('scores', reconcile({}, { merge: false }));
   setState('suggestions', []);
+  setState('symbolSuggestions', reconcile({}, { merge: false }));
 }
 
 /** Recalculate quality scores for all attachments. */
@@ -277,6 +312,138 @@ export async function refreshSuggestions(): Promise<void> {
   } catch {
     setState('suggestions', []);
   }
+}
+
+function isSymbolOptimizable(reference: FileReference): boolean {
+  const extension = (reference.extension ?? '').toLowerCase();
+  if (reference.is_directory) return false;
+  if (reference.start_line != null || reference.end_line != null) return false;
+  return ['ts', 'tsx', 'js', 'jsx', 'rs'].includes(extension);
+}
+
+/** Compute or refresh symbol optimization hint for one attachment (CHI-131). */
+export async function refreshSymbolSuggestionForAttachment(attachmentId: string): Promise<void> {
+  const attachment = state.attachments.find((item) => item.id === attachmentId);
+  if (!attachment) {
+    clearSymbolSuggestion(attachmentId);
+    return;
+  }
+  if (!isSymbolOptimizable(attachment.reference)) {
+    clearSymbolSuggestion(attachmentId);
+    return;
+  }
+
+  let sourceContent: string | null = attachment.content ?? null;
+  if (!sourceContent) {
+    const projectId = projectState.activeProjectId;
+    if (!projectId) {
+      clearSymbolSuggestion(attachmentId);
+      return;
+    }
+    try {
+      const file = await invoke<FileContent>('read_project_file', {
+        project_id: projectId,
+        relative_path: attachment.reference.relative_path,
+        start_line: null,
+        end_line: null,
+      });
+      sourceContent = file.content;
+    } catch {
+      clearSymbolSuggestion(attachmentId);
+      return;
+    }
+  }
+
+  const symbols = extractSymbols(sourceContent, attachment.reference.extension);
+  if (symbols.length < 2) {
+    clearSymbolSuggestion(attachmentId);
+    return;
+  }
+
+  const keywords = extractConversationKeywords(conversationState.messages);
+  const suggested = pickRelevantSymbols(symbols, keywords, 3);
+  const snippet = buildSymbolSnippet(
+    sourceContent,
+    symbols,
+    suggested,
+    attachment.reference.extension,
+  );
+  if (!snippet) {
+    clearSymbolSuggestion(attachmentId);
+    return;
+  }
+
+  const fullTokens = attachment.reference.full_file_tokens ?? attachment.reference.estimated_tokens;
+  if (snippet.estimated_tokens >= fullTokens) {
+    clearSymbolSuggestion(attachmentId);
+    return;
+  }
+
+  setSymbolSuggestion(attachmentId, {
+    symbols,
+    suggested_symbols: suggested,
+    optimized_tokens: snippet.estimated_tokens,
+    full_tokens: fullTokens,
+  });
+}
+
+/** Apply symbol-level optimization to an attachment (CHI-131). */
+export function applyAttachmentOptimization(attachmentId: string): boolean {
+  const index = state.attachments.findIndex((item) => item.id === attachmentId);
+  if (index === -1) return false;
+  const suggestion = state.symbolSuggestions[attachmentId];
+  if (!suggestion || suggestion.suggested_symbols.length === 0) return false;
+
+  const current = state.attachments[index];
+  const fullTokens = current.reference.full_file_tokens ?? current.reference.estimated_tokens;
+  setState('attachments', index, 'reference', {
+    ...current.reference,
+    symbol_names: suggestion.suggested_symbols,
+    full_file_tokens: fullTokens,
+    estimated_tokens: suggestion.optimized_tokens,
+  });
+  recalculateScores();
+  return true;
+}
+
+/** Revert an optimized symbol-level attachment back to full-file mode. */
+export function revertAttachmentOptimization(attachmentId: string): boolean {
+  const index = state.attachments.findIndex((item) => item.id === attachmentId);
+  if (index === -1) return false;
+  const current = state.attachments[index];
+  if (!current.reference.symbol_names || current.reference.symbol_names.length === 0) return false;
+
+  setState('attachments', index, 'reference', {
+    ...current.reference,
+    symbol_names: undefined,
+    estimated_tokens: current.reference.full_file_tokens ?? current.reference.estimated_tokens,
+    full_file_tokens: undefined,
+  });
+  recalculateScores();
+  void refreshSymbolSuggestionForAttachment(attachmentId);
+  return true;
+}
+
+/** Attach all files from a backend-provided multi-file bundle suggestion (CHI-134). */
+export function addFileBundle(bundle: FileBundleSuggestion): number {
+  const before = state.attachments.length;
+  for (const entry of bundle.entries) {
+    addFileReference({
+      relative_path: entry.relative_path,
+      name: entry.name,
+      extension: entry.extension,
+      estimated_tokens: Math.max(1, entry.estimated_tokens),
+      is_directory: false,
+    });
+  }
+
+  const added = state.attachments.length - before;
+  if (added > 0) {
+    addToast(`Added ${added} file${added > 1 ? 's' : ''} from ${bundle.label}`, 'success');
+  } else {
+    addToast('All bundle files are already attached', 'info');
+  }
+  return added;
 }
 
 /** Get total estimated tokens across all attachments. */
@@ -314,9 +481,27 @@ export async function assembleContext(): Promise<string> {
       for (const attachment of state.attachments) {
         const ref = attachment.reference;
         if (attachment.content != null) {
-          parts.push(
-            `<file path="${ref.relative_path}" tokens="~${attachment.actual_tokens ?? ref.estimated_tokens}">`,
-          );
+          const symbolSelection = ref.symbol_names ?? [];
+          if (symbolSelection.length > 0) {
+            const symbols = extractSymbols(attachment.content, ref.extension);
+            const snippet = buildSymbolSnippet(
+              attachment.content,
+              symbols,
+              symbolSelection,
+              ref.extension,
+            );
+            if (snippet) {
+              parts.push(
+                `<file path="${ref.relative_path}" symbols="${symbolSelection.join(',')}" tokens="~${snippet.estimated_tokens}">`,
+              );
+              parts.push(snippet.content);
+              parts.push('</file>');
+              continue;
+            }
+          }
+
+          const fallbackTokens = attachment.actual_tokens ?? ref.estimated_tokens;
+          parts.push(`<file path="${ref.relative_path}" tokens="~${fallbackTokens}">`);
           parts.push(attachment.content);
           parts.push('</file>');
           continue;
@@ -333,6 +518,25 @@ export async function assembleContext(): Promise<string> {
             // Backend scanner uses end-exclusive ranges; chips store inclusive ranges.
             end_line: ref.end_line ? ref.end_line + 1 : null,
           });
+
+          const symbolSelection = ref.symbol_names ?? [];
+          if (symbolSelection.length > 0) {
+            const symbols = extractSymbols(content.content, ref.extension);
+            const snippet = buildSymbolSnippet(
+              content.content,
+              symbols,
+              symbolSelection,
+              ref.extension,
+            );
+            if (snippet) {
+              parts.push(
+                `<file path="${ref.relative_path}" symbols="${symbolSelection.join(',')}" tokens="~${snippet.estimated_tokens}">`,
+              );
+              parts.push(snippet.content);
+              parts.push('</file>');
+              continue;
+            }
+          }
 
           const lineAttr = ref.start_line ? ` lines="${ref.start_line}-${ref.end_line ?? ''}"` : '';
           parts.push(

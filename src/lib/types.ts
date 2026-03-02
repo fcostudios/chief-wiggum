@@ -271,6 +271,10 @@ export interface FileReference {
   estimated_tokens: number;
   start_line?: number;
   end_line?: number;
+  /** Optimized symbol-level context selection (CHI-131). */
+  symbol_names?: string[];
+  /** Estimated tokens of the original full-file attachment before optimization. */
+  full_file_tokens?: number;
   is_directory: boolean;
 }
 
@@ -409,6 +413,41 @@ export interface FileSuggestion {
   path: string;
   reason: string;
   confidence: number;
+  estimated_tokens: number;
+}
+
+/** Symbol discovered in a source file (CHI-131). */
+export interface ExtractedSymbol {
+  name: string;
+  kind: 'function' | 'class' | 'interface' | 'type' | 'enum' | 'struct' | 'trait' | 'impl';
+  start_line: number;
+  end_line: number;
+  estimated_tokens: number;
+}
+
+/** Suggested symbol-level optimization for an attached file (CHI-131). */
+export interface SymbolOptimizationSuggestion {
+  symbols: ExtractedSymbol[];
+  suggested_symbols: string[];
+  optimized_tokens: number;
+  full_tokens: number;
+}
+
+/** Single file entry inside a multi-file bundle suggestion (CHI-134). */
+export interface FileBundleEntry {
+  relative_path: string;
+  name: string;
+  extension: string | null;
+  estimated_tokens: number;
+}
+
+/** Bundle suggestion for one-click multi-file context attachment (CHI-134). */
+export interface FileBundleSuggestion {
+  id: string;
+  kind: 'component' | 'module' | 'custom';
+  label: string;
+  reason: string;
+  entries: FileBundleEntry[];
   estimated_tokens: number;
 }
 

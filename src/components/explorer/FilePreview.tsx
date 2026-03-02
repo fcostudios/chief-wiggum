@@ -15,7 +15,13 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { Check, Copy, ExternalLink, File, Lock, Plus } from 'lucide-solid';
 import type { FileContent } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
-import { addFileReference, contextState, updateAttachmentRange } from '@/stores/contextStore';
+import {
+  addFileReference,
+  applyAttachmentOptimization,
+  contextState,
+  revertAttachmentOptimization,
+  updateAttachmentRange,
+} from '@/stores/contextStore';
 import {
   clearConflict,
   enterEditMode,
@@ -319,6 +325,15 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     return contextState.attachments.find(
       (a) => a.reference.relative_path === props.content.relative_path,
     );
+  };
+  const optimizationSuggestion = () => {
+    const attachment = existingAttachment();
+    if (!attachment) return null;
+    return contextState.symbolSuggestions[attachment.id] ?? null;
+  };
+  const isOptimizedAttachment = () => {
+    const attachment = existingAttachment();
+    return !!(attachment?.reference.symbol_names && attachment.reference.symbol_names.length > 0);
   };
 
   function selectionTokenEstimate(): number {
@@ -938,6 +953,49 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           <Plus size={10} />
           Add to prompt
         </button>
+
+        <Show when={optimizationSuggestion() && !isOptimizedAttachment()}>
+          <button
+            class="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
+            style={{
+              color: 'var(--color-accent)',
+              background: 'rgba(232, 130, 90, 0.12)',
+              border: '1px solid rgba(232, 130, 90, 0.35)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
+            onClick={() => {
+              const attachment = existingAttachment();
+              if (!attachment) return;
+              if (applyAttachmentOptimization(attachment.id)) {
+                addToast('Applied token-optimized snippet', 'success');
+              }
+            }}
+          >
+            Optimize context (~{optimizationSuggestion()!.optimized_tokens} vs ~
+            {optimizationSuggestion()!.full_tokens})
+          </button>
+        </Show>
+
+        <Show when={isOptimizedAttachment()}>
+          <button
+            class="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
+            style={{
+              color: 'var(--color-text-secondary)',
+              background: 'transparent',
+              border: '1px solid var(--color-border-secondary)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
+            onClick={() => {
+              const attachment = existingAttachment();
+              if (!attachment) return;
+              if (revertAttachmentOptimization(attachment.id)) {
+                addToast('Switched back to full-file context', 'info');
+              }
+            }}
+          >
+            Use full file
+          </button>
+        </Show>
 
         <button
           class="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
