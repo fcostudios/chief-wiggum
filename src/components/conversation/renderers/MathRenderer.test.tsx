@@ -21,16 +21,16 @@ describe('MathRenderer (CHI-184)', () => {
   });
 
   it('renders inline math without display class when lang is math-inline', async () => {
-    const { container, findByText } = render(() => <MathRenderer code="E = mc^2" lang="math-inline" />);
+    const { container, findByText } = render(() => (
+      <MathRenderer code="E = mc^2" lang="math-inline" />
+    ));
     await findByText('E = mc^2');
     expect(container.querySelector('.katex')).toBeTruthy();
     expect(container.querySelector('.katex-display')).toBeNull();
   });
 
   it('renders block math with display class when lang is math-block', async () => {
-    const { container } = render(() => (
-      <MathRenderer code="\\int_0^1 f(x) dx" lang="math-block" />
-    ));
+    const { container } = render(() => <MathRenderer code="\\int_0^1 f(x) dx" lang="math-block" />);
     await waitFor(() => {
       expect(container.querySelector('.katex-display')).toBeTruthy();
     });
