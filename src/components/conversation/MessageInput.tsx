@@ -48,6 +48,7 @@ import { addToast } from '@/stores/toastStore';
 import { actionState, startAction } from '@/stores/actionStore';
 import { selectFileForEditing } from '@/stores/fileStore';
 import { t } from '@/stores/i18nStore';
+import { maybeShowHint } from '@/stores/hintStore';
 
 interface MessageInputProps {
   onSend: (content: string, images?: PromptImageInput[]) => void;
@@ -266,6 +267,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     // @-mention detection: `@` after whitespace or at start
     const mentionMatch = textBeforeCursor.match(/(?:^|[\s])@([^\s@]*)$/);
     if (mentionMatch) {
+      maybeShowHint(
+        'at-mention',
+        'Type @filename to attach file context to your message',
+        undefined,
+        '[aria-label="Message input"]',
+      );
       const parsedMention = parseMentionQuery(mentionMatch[1]);
       const query = parsedMention.fileQuery;
       if (query.length > 0 && projectState.activeProjectId) {
@@ -300,6 +307,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     if (!mentionMatch) {
       const slashMatch = textBeforeCursor.match(/(?:^|[\s])\/([^\s/]*)$/);
       if (slashMatch) {
+        maybeShowHint(
+          'slash-commands',
+          'Slash commands run Claude skills — type / to browse',
+          undefined,
+          '[aria-label="Message input"]',
+        );
         const afterSlash = slashMatch[1];
         openMenu(afterSlash);
         setFilter(afterSlash);

@@ -23,6 +23,7 @@ import InlineDiffBlock from './InlineDiffBlock';
 import { isDiffBlock } from '@/lib/diffApplicator';
 import { addToast } from '@/stores/toastStore';
 import { setActiveView } from '@/stores/uiStore';
+import { maybeShowHint } from '@/stores/hintStore';
 
 // Side-effect import registers math renderers.
 void MathRenderer;
@@ -255,7 +256,15 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
 
     // Use requestAnimationFrame to ensure DOM is updated
     const rafId = requestAnimationFrame(() => {
-      containerRef!.querySelectorAll('pre').forEach((pre) => {
+      const codeBlocks = containerRef!.querySelectorAll('pre');
+      if (codeBlocks.length > 0) {
+        maybeShowHint(
+          'artifacts',
+          'Right-click code blocks to save as artifact or open in terminal',
+        );
+      }
+
+      codeBlocks.forEach((pre) => {
         if (pre.querySelector('.code-toolbar')) return;
 
         const codeEl = pre.querySelector('code');

@@ -42,6 +42,7 @@ import type { SearchMatch } from '@/lib/messageSearch';
 import { extractResumeData } from '@/lib/resumeDetector';
 import { stabilizeStreamingMarkdown } from '@/lib/streamingMarkdown';
 import { t } from '@/stores/i18nStore';
+import { maybeShowHint } from '@/stores/hintStore';
 
 const SAMPLE_PROMPTS = [
   {
@@ -650,6 +651,11 @@ const ConversationView: Component = () => {
                     const sid = activeSessionId();
                     if (!sid) return;
                     dismissResume(sid);
+                    maybeShowHint(
+                      'session-resume',
+                      'Next time, press Cmd+Shift+R to resume the last session instantly',
+                      'Cmd+Shift+R',
+                    );
                   }}
                   onContinue={() => {
                     const input = document.querySelector<HTMLTextAreaElement>(

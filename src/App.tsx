@@ -12,6 +12,7 @@ import {
   settingsState,
   startSettingsListener,
 } from '@/stores/settingsStore';
+import { dismissHint, hintState, maybeShowHint } from '@/stores/hintStore';
 import {
   setupActionListeners,
   cleanupActionListeners,
@@ -21,6 +22,7 @@ import {
 } from '@/stores/actionStore';
 import { sessionState } from '@/stores/sessionStore';
 import { switchLocale } from '@/stores/i18nStore';
+import { HintTooltip } from '@/components/common/HintTooltip';
 // Renderer registrations (side effects — register into rendererRegistry)
 import './components/conversation/renderers/MermaidRenderer';
 import './components/conversation/renderers/MathRenderer';
@@ -88,6 +90,13 @@ const App: Component = () => {
       await reconnectAfterReload(sessionState.activeSessionId);
     }, 100);
 
+    const hintTimer = setTimeout(
+      () => {
+        maybeShowHint('keyboard-shortcuts', 'Press Cmd+/ to see all keyboard shortcuts', 'Cmd+/');
+      },
+      5 * 60 * 1000,
+    );
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleSystemThemeChange = () => {
       if (settingsState.settings.appearance.theme === 'system') {
@@ -96,6 +105,7 @@ const App: Component = () => {
     };
     mediaQuery.addEventListener('change', handleSystemThemeChange);
     onCleanup(() => {
+      clearTimeout(hintTimer);
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
     });
   });
@@ -109,6 +119,18 @@ const App: Component = () => {
       <MainLayout />
       <Show when={settingsState.isLoaded && !isOnboardingCompleted()}>
         <OnboardingFlow />
+      </Show>
+      <Show when={hintState.activeHint}>
+        {(hint) => (
+          <div class="fixed z-[9999]" style={{ bottom: '64px', right: '16px' }}>
+            <HintTooltip
+              id={hint().id}
+              text={hint().text}
+              shortcut={hint().shortcut}
+              onDismiss={dismissHint}
+            />
+          </div>
+        )}
       </Show>
     </>
   );
