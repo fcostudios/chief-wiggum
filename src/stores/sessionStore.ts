@@ -4,7 +4,7 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
-import type { Session } from '@/lib/types';
+import type { Session, SessionSummary } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
 import { settingsState } from '@/stores/settingsStore';
 import { addToast } from '@/stores/toastStore';
@@ -16,6 +16,8 @@ interface SessionState {
   sessions: Session[];
   activeSessionId: string | null;
   isLoading: boolean;
+  sessionSummaries: Record<string, SessionSummary>;
+  summaryLoading: Record<string, boolean>;
   /** Resume card dismiss state (in-memory, per inactivity gap). */
   dismissedResumeSessions: Set<string>;
   /** Last meaningful activity timestamp per session. */
@@ -26,6 +28,8 @@ const [state, setState] = createStore<SessionState>({
   sessions: [],
   activeSessionId: null,
   isLoading: false,
+  sessionSummaries: {},
+  summaryLoading: {},
   dismissedResumeSessions: new Set(),
   sessionLastActiveAt: {},
 });
@@ -90,6 +94,8 @@ export async function createNewSession(model: string, projectId?: string): Promi
 export function setActiveSession(sessionId: string): void {
   setState('activeSessionId', sessionId);
   bindActiveSessionToFocusedPane(sessionId);
+  // Load summary for the active session (fire-and-forget).
+  void loadSessionSummary(sessionId);
 }
 
 /** Delete a session and switch to the next one. */
@@ -163,6 +169,25 @@ export async function refreshSessionById(sessionId: string): Promise<void> {
     setState('sessions', (s) => s.id === sessionId, session);
   } catch (err) {
     log.warn('Failed to refresh session: ' + (err instanceof Error ? err.message : String(err)));
+  }
+}
+
+/** Load aggregate session stats used by DetailsPanel History and sidebar metadata. */
+export async function loadSessionSummary(sessionId: string): Promise<void> {
+  if (state.summaryLoading[sessionId]) return;
+  setState('summaryLoading', sessionId, true);
+  try {
+    const summary = await invoke<SessionSummary>('get_session_summary', {
+      session_id: sessionId,
+    });
+    setState('sessionSummaries', sessionId, summary);
+  } catch (err) {
+    log.warn(
+      `loadSessionSummary failed for ${sessionId}: ` +
+        (err instanceof Error ? err.message : String(err)),
+    );
+  } finally {
+    setState('summaryLoading', sessionId, false);
   }
 }
 

@@ -182,6 +182,36 @@ pub fn session_has_messages(db: State<'_, Database>, session_id: String) -> Resu
     Ok(queries::count_session_messages(&db, &session_id)? > 0)
 }
 
+/// Extract code blocks from all assistant messages in a session and persist
+/// them to the artifacts table. Idempotent. Returns the full artifact list.
+#[tauri::command(rename_all = "snake_case")]
+pub fn extract_session_artifacts(
+    db: State<'_, Database>,
+    session_id: String,
+) -> Result<Vec<queries::ArtifactRow>, AppError> {
+    queries::extract_and_save_artifacts(&db, &session_id)?;
+    queries::get_session_artifacts(&db, &session_id)
+}
+
+/// Return cached artifact list for a session (no re-extraction).
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_session_artifacts(
+    db: State<'_, Database>,
+    session_id: String,
+) -> Result<Vec<queries::ArtifactRow>, AppError> {
+    queries::get_session_artifacts(&db, &session_id)
+}
+
+/// Return aggregate session stats: message count, tool count, artifact count,
+/// duration, models used.
+#[tauri::command(rename_all = "snake_case")]
+pub fn get_session_summary(
+    db: State<'_, Database>,
+    session_id: String,
+) -> Result<queries::SessionSummaryRow, AppError> {
+    queries::query_session_summary(&db, &session_id)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::queries;

@@ -4,9 +4,11 @@
 // Each section is a collapsible accordion.
 
 import type { Component, JSX } from 'solid-js';
-import { createEffect, createSignal, Show } from 'solid-js';
+import { createEffect, createSignal, For, Show } from 'solid-js';
+import { invoke } from '@tauri-apps/api/core';
 import { ChevronDown, ChevronRight } from 'lucide-solid';
-import { sessionState } from '@/stores/sessionStore';
+import type { Artifact } from '@/lib/types';
+import { loadSessionSummary, sessionState } from '@/stores/sessionStore';
 import { projectState } from '@/stores/projectStore';
 import { fileState } from '@/stores/fileStore';
 import { actionState } from '@/stores/actionStore';
@@ -97,6 +99,8 @@ const DetailsPanel: Component = () => {
     projectContext: false,
     context: true,
     cost: true,
+    history: false,
+    artifacts: false,
   });
 
   const activeSession = () =>
@@ -113,6 +117,45 @@ const DetailsPanel: Component = () => {
   const costDisplay = () => {
     const c = activeSession()?.total_cost_cents;
     return c ? `$${(c / 100).toFixed(2)}` : '$0.00';
+  };
+
+  // History section state
+  const sessionSummary = () =>
+    sessionState.activeSessionId
+      ? sessionState.sessionSummaries[sessionState.activeSessionId]
+      : undefined;
+
+  // Artifacts section state
+  const [artifacts, setArtifacts] = createSignal<Artifact[]>([]);
+  const [artifactsLoading, setArtifactsLoading] = createSignal(false);
+  const [artifactSearch, setArtifactSearch] = createSignal('');
+
+  async function loadArtifacts() {
+    const sid = sessionState.activeSessionId;
+    if (!sid) return;
+    setArtifactsLoading(true);
+    try {
+      const result = await invoke<Artifact[]>('extract_session_artifacts', {
+        session_id: sid,
+      });
+      setArtifacts(result);
+    } catch {
+      // Best-effort: fail silently and show empty state.
+      setArtifacts([]);
+    } finally {
+      setArtifactsLoading(false);
+    }
+  }
+
+  const filteredArtifacts = () => {
+    const q = artifactSearch().toLowerCase().trim();
+    if (!q) return artifacts();
+    return artifacts().filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        (a.language ?? '').toLowerCase().includes(q) ||
+        a.preview.toLowerCase().includes(q),
+    );
   };
 
   const isSectionOpen = (id: string, fallback = true) => sectionOpenState()[id] ?? fallback;
@@ -303,6 +346,181 @@ const DetailsPanel: Component = () => {
           <span>Session total</span>
           <span>{costDisplay()}</span>
         </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        id="history"
+        title={<>History</>}
+        open={isSectionOpen('history', false)}
+        focused={isFocused('history')}
+        onHeaderClick={() => {
+          handleSectionHeaderClick('history', false);
+          if (!sessionSummary() && sessionState.activeSessionId) {
+            void loadSessionSummary(sessionState.activeSessionId);
+          }
+        }}
+      >
+        <Show
+          when={sessionSummary()}
+          fallback={
+            <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+              Loading…
+            </p>
+          }
+        >
+          {(summary) => (
+            <div class="space-y-1.5">
+              <For
+                each={
+                  [
+                    ['Messages', summary().message_count],
+                    ['Tool calls', summary().tool_count],
+                    ['Artifacts', summary().artifact_count],
+                    [
+                      'Duration',
+                      summary().duration_secs < 60
+                        ? `${summary().duration_secs}s`
+                        : `${Math.floor(summary().duration_secs / 60)}m`,
+                    ],
+                  ] as [string, string | number][]
+                }
+              >
+                {([label, value]) => (
+                  <div
+                    class="flex items-center justify-between font-mono"
+                    style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)' }}
+                  >
+                    <span>{label}</span>
+                    <span>{value}</span>
+                  </div>
+                )}
+              </For>
+              <Show when={summary().models_used.length > 0}>
+                <div
+                  class="flex flex-wrap gap-1 pt-1"
+                  style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
+                >
+                  <For each={summary().models_used}>
+                    {(model) => (
+                      <span
+                        class="text-[9px] px-1 py-0.5 rounded font-mono"
+                        style={{
+                          background: 'var(--color-bg-elevated)',
+                          color: 'var(--color-text-tertiary)',
+                          border: '1px solid var(--color-border-secondary)',
+                        }}
+                      >
+                        {model}
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </Show>
+            </div>
+          )}
+        </Show>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        id="artifacts"
+        title={
+          <>
+            Artifacts
+            <Show when={artifacts().length > 0}>
+              <span
+                class="ml-1 px-1 py-0.5 rounded text-[8px] font-mono"
+                style={{
+                  background: 'rgba(232, 130, 90, 0.12)',
+                  color: 'var(--color-accent)',
+                }}
+              >
+                {artifacts().length}
+              </span>
+            </Show>
+          </>
+        }
+        open={isSectionOpen('artifacts', false)}
+        focused={isFocused('artifacts')}
+        onHeaderClick={() => {
+          const wasOpen = isSectionOpen('artifacts', false);
+          handleSectionHeaderClick('artifacts', false);
+          if (!wasOpen && artifacts().length === 0) {
+            void loadArtifacts();
+          }
+        }}
+      >
+        <Show when={artifactsLoading()}>
+          <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+            Extracting…
+          </p>
+        </Show>
+        <Show when={!artifactsLoading()}>
+          <Show when={artifacts().length === 0}>
+            <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+              No code blocks found in this session yet.
+            </p>
+          </Show>
+          <Show when={artifacts().length > 0}>
+            <input
+              type="search"
+              placeholder="Search artifacts…"
+              value={artifactSearch()}
+              onInput={(e) => setArtifactSearch(e.currentTarget.value)}
+              class="w-full text-xs px-2 py-1 rounded mb-2"
+              style={{
+                background: 'var(--color-bg-inset)',
+                border: '1px solid var(--color-border-secondary)',
+                color: 'var(--color-text-primary)',
+                outline: 'none',
+              }}
+            />
+            <div class="space-y-1.5">
+              <For each={filteredArtifacts()}>
+                {(artifact) => (
+                  <div
+                    class="rounded px-2 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{
+                      background: 'var(--color-bg-elevated)',
+                      border: '1px solid var(--color-border-secondary)',
+                    }}
+                    title={`${artifact.type} · ${artifact.line_count} lines`}
+                  >
+                    <div class="flex items-center gap-1.5 mb-0.5">
+                      <Show when={artifact.language}>
+                        <span
+                          class="text-[8px] font-mono px-1 py-0.5 rounded shrink-0"
+                          style={{
+                            background: 'var(--color-bg-inset)',
+                            color: 'var(--color-text-tertiary)',
+                          }}
+                        >
+                          {artifact.language}
+                        </span>
+                      </Show>
+                      <span
+                        class="text-[10px] font-medium truncate"
+                        style={{ color: 'var(--color-text-secondary)' }}
+                      >
+                        {artifact.title}
+                      </span>
+                    </div>
+                    <p
+                      class="text-[9px] font-mono truncate"
+                      style={{ color: 'var(--color-text-tertiary)' }}
+                    >
+                      {artifact.preview}
+                    </p>
+                  </div>
+                )}
+              </For>
+              <Show when={filteredArtifacts().length === 0 && artifactSearch()}>
+                <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+                  No matches for "{artifactSearch()}"
+                </p>
+              </Show>
+            </div>
+          </Show>
+        </Show>
       </CollapsibleSection>
     </aside>
   );

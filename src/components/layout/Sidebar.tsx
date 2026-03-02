@@ -29,6 +29,7 @@ import {
   updateSessionTitle,
   duplicateSession,
   sessionHasMessages,
+  loadSessionSummary,
 } from '@/stores/sessionStore';
 import {
   loadMessages,
@@ -65,6 +66,19 @@ function formatRelativeTime(isoString: string | null): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+function formatDuration(createdAt: string | null, updatedAt: string | null): string {
+  if (!createdAt || !updatedAt) return '';
+  const diffMs = new Date(updatedAt).getTime() - new Date(createdAt).getTime();
+  if (diffMs < 1000) return '';
+  const totalSecs = Math.floor(diffMs / 1000);
+  if (totalSecs < 60) return `${totalSecs}s`;
+  const mins = Math.floor(totalSecs / 60);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  return remainMins > 0 ? `${hours}h ${remainMins}m` : `${hours}h`;
 }
 
 /** Map model ID to short display label. */
@@ -834,6 +848,14 @@ const SessionItem: Component<{
     null,
   );
 
+  createEffect(() => {
+    const summary = sessionState.sessionSummaries[props.session.id];
+    const loading = sessionState.summaryLoading[props.session.id];
+    if (!summary && !loading) {
+      void loadSessionSummary(props.session.id);
+    }
+  });
+
   function currentTitle() {
     return props.session.title || t('sidebar.newSession');
   }
@@ -1101,6 +1123,8 @@ const SessionItem: Component<{
               {currentTitle()}
             </span>
           </Show>
+        </div>
+        <div class="flex items-center gap-1 flex-wrap">
           <span
             class="text-[9px] font-medium shrink-0 px-1 py-0.5 rounded"
             style={{
@@ -1121,6 +1145,31 @@ const SessionItem: Component<{
               title="Session cost"
             >
               {`$${((props.session.total_cost_cents ?? 0) / 100).toFixed(2)}`}
+            </span>
+          </Show>
+          <Show when={formatDuration(props.session.created_at, props.session.updated_at)}>
+            <span
+              class="text-[9px] font-mono shrink-0 px-1 py-0.5 rounded"
+              style={{
+                color: 'var(--color-text-tertiary)',
+                background: 'var(--color-bg-inset)',
+              }}
+              title="Session duration"
+            >
+              {formatDuration(props.session.created_at, props.session.updated_at)}
+            </span>
+          </Show>
+          <Show when={(sessionState.sessionSummaries[props.session.id]?.artifact_count ?? 0) > 0}>
+            <span
+              class="text-[9px] font-mono shrink-0 px-1 py-0.5 rounded"
+              style={{
+                color: 'var(--color-accent)',
+                background: 'rgba(232, 130, 90, 0.12)',
+                border: '1px solid rgba(232, 130, 90, 0.25)',
+              }}
+              title="Artifacts"
+            >
+              {`${sessionState.sessionSummaries[props.session.id]?.artifact_count ?? 0} artifacts`}
             </span>
           </Show>
         </div>

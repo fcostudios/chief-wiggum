@@ -590,6 +590,274 @@ pub fn get_action_history(
     })
 }
 
+/// Parsed code block extracted from markdown content.
+#[derive(Debug)]
+pub struct CodeBlock {
+    pub language: String,
+    pub content: String,
+}
+
+/// Extract all fenced code blocks (```lang\n...\n```) from markdown text.
+/// Returns (language, content) pairs in document order.
+/// Pure function — no DB access, easy to unit test.
+pub fn extract_code_blocks(markdown: &str) -> Vec<CodeBlock> {
+    let mut blocks = Vec::new();
+    let mut in_block = false;
+    let mut current_lang = String::new();
+    let mut current_lines: Vec<&str> = Vec::new();
+
+    for line in markdown.lines() {
+        if !in_block {
+            if let Some(stripped) = line.strip_prefix("```") {
+                in_block = true;
+                current_lang = stripped.trim().to_string();
+                current_lines.clear();
+            }
+        } else if line.trim() == "```" {
+            blocks.push(CodeBlock {
+                language: current_lang.clone(),
+                content: current_lines.join("\n"),
+            });
+            in_block = false;
+            current_lang.clear();
+            current_lines.clear();
+        } else {
+            current_lines.push(line);
+        }
+    }
+    blocks
+}
+
+/// Map a language string to an artifact type.
+fn artifact_type_for(language: &str) -> &'static str {
+    match language.to_lowercase().as_str() {
+        "mermaid" => "diagram",
+        "json" | "csv" | "yaml" | "toml" | "xml" => "data",
+        _ => "code",
+    }
+}
+
+/// Insert an artifact, silently ignoring duplicate (message_id, block_index) pairs.
+#[allow(clippy::too_many_arguments)]
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db, preview, content))]
+pub fn insert_artifact_or_ignore(
+    db: &Database,
+    id: &str,
+    session_id: &str,
+    message_id: &str,
+    message_index: i64,
+    block_index: i64,
+    artifact_type: &str,
+    language: Option<&str>,
+    title: &str,
+    preview: &str,
+    content: &str,
+    line_count: i64,
+    created_at: i64,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "INSERT OR IGNORE INTO artifacts
+             (id, session_id, message_id, message_index, block_index,
+              type, language, title, preview, content, line_count, created_at)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+            rusqlite::params![
+                id,
+                session_id,
+                message_id,
+                message_index,
+                block_index,
+                artifact_type,
+                language,
+                title,
+                preview,
+                content,
+                line_count,
+                created_at
+            ],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_session_artifacts(
+    db: &Database,
+    session_id: &str,
+) -> Result<Vec<ArtifactRow>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, session_id, message_id, message_index, block_index,
+                    type, language, title, preview, content, line_count, created_at
+             FROM artifacts
+             WHERE session_id = ?1
+             ORDER BY created_at ASC",
+        )?;
+        let rows = stmt
+            .query_map(rusqlite::params![session_id], |row| {
+                Ok(ArtifactRow {
+                    id: row.get(0)?,
+                    session_id: row.get(1)?,
+                    message_id: row.get(2)?,
+                    message_index: row.get(3)?,
+                    block_index: row.get(4)?,
+                    r#type: row.get(5)?,
+                    language: row.get(6)?,
+                    title: row.get(7)?,
+                    preview: row.get(8)?,
+                    content: row.get(9)?,
+                    line_count: row.get(10)?,
+                    created_at: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })
+}
+
+/// Compute aggregate session stats for the History tab.
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn query_session_summary(
+    db: &Database,
+    session_id: &str,
+) -> Result<SessionSummaryRow, AppError> {
+    db.with_conn(|conn| {
+        let message_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM messages WHERE session_id = ?1
+             AND role NOT IN ('tool_use','tool_result','thinking','permission')",
+            rusqlite::params![session_id],
+            |r| r.get(0),
+        )?;
+
+        let tool_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM messages
+             WHERE session_id = ?1 AND role = 'tool_use'",
+            rusqlite::params![session_id],
+            |r| r.get(0),
+        )?;
+
+        let artifact_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM artifacts WHERE session_id = ?1",
+            rusqlite::params![session_id],
+            |r| r.get(0),
+        )?;
+
+        // Duration in seconds between session created_at and updated_at
+        let duration_secs: i64 = conn
+            .query_row(
+                "SELECT COALESCE(
+                    CAST((julianday(updated_at) - julianday(created_at)) * 86400 AS INTEGER),
+                    0
+                 )
+                 FROM sessions WHERE id = ?1",
+                rusqlite::params![session_id],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+
+        // Distinct non-null models used in this session
+        let mut stmt = conn.prepare(
+            "SELECT DISTINCT model FROM messages
+             WHERE session_id = ?1 AND model IS NOT NULL",
+        )?;
+        let models_used: Vec<String> = stmt
+            .query_map(rusqlite::params![session_id], |r| r.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(SessionSummaryRow {
+            message_count,
+            tool_count,
+            artifact_count,
+            duration_secs,
+            models_used,
+        })
+    })
+}
+
+/// Scan all assistant messages in a session, extract code blocks, and persist
+/// them to the artifacts table. Idempotent — duplicate (message_id, block_index)
+/// pairs are silently ignored.
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn extract_and_save_artifacts(db: &Database, session_id: &str) -> Result<(), AppError> {
+    let messages = db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, content, created_at FROM messages
+             WHERE session_id = ?1 AND role = 'assistant'
+             ORDER BY rowid ASC",
+        )?;
+        let rows = stmt
+            .query_map(rusqlite::params![session_id], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, i64>(2).unwrap_or(0),
+                ))
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })?;
+
+    for (msg_index, (message_id, content, created_at)) in messages.iter().enumerate() {
+        let blocks = extract_code_blocks(content);
+        for (block_index, block) in blocks.iter().enumerate() {
+            if block.content.trim().is_empty() {
+                continue;
+            }
+            let artifact_type = artifact_type_for(&block.language);
+            let lang_opt: Option<&str> = if block.language.is_empty() {
+                None
+            } else {
+                Some(&block.language)
+            };
+            let line_count = block.content.lines().count() as i64;
+            let preview: String = block
+                .content
+                .chars()
+                .take(200)
+                .collect::<String>()
+                .lines()
+                .next()
+                .unwrap_or("")
+                .to_string();
+            let title = if block.language.is_empty() {
+                format!("Code block #{}", block_index + 1)
+            } else {
+                let lang_display = block
+                    .language
+                    .chars()
+                    .enumerate()
+                    .map(|(i, c)| {
+                        if i == 0 {
+                            c.to_uppercase().next().unwrap_or(c)
+                        } else {
+                            c
+                        }
+                    })
+                    .collect::<String>();
+                format!("{} block #{}", lang_display, block_index + 1)
+            };
+            let artifact_id = format!("{}-{}", message_id, block_index);
+
+            insert_artifact_or_ignore(
+                db,
+                &artifact_id,
+                session_id,
+                message_id,
+                msg_index as i64,
+                block_index as i64,
+                artifact_type,
+                lang_opt,
+                &title,
+                &preview,
+                &block.content,
+                line_count,
+                *created_at,
+            )?;
+        }
+    }
+    Ok(())
+}
+
 // ── Row types ──────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -634,6 +902,33 @@ pub struct MessageRow {
     pub cost_cents: Option<i64>,
     pub is_compacted: Option<bool>,
     pub created_at: Option<String>,
+}
+
+/// A persisted code/file/diagram artifact extracted from a session message.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ArtifactRow {
+    pub id: String,
+    pub session_id: String,
+    pub message_id: String,
+    pub message_index: i64,
+    pub block_index: i64,
+    pub r#type: String,
+    pub language: Option<String>,
+    pub title: String,
+    pub preview: String,
+    pub content: String,
+    pub line_count: i64,
+    pub created_at: i64,
+}
+
+/// Aggregate session summary for the History tab (CHI-225).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionSummaryRow {
+    pub message_count: i64,
+    pub tool_count: i64,
+    pub artifact_count: i64,
+    pub duration_secs: i64,
+    pub models_used: Vec<String>,
 }
 
 #[cfg(test)]
@@ -1052,5 +1347,180 @@ mod tests {
 
         let rows = get_action_history(&db, "p1", 2).unwrap();
         assert_eq!(rows.len(), 2);
+    }
+}
+
+#[cfg(test)]
+mod artifact_tests {
+    use super::*;
+
+    fn test_db() -> Database {
+        Database::open_in_memory().expect("open in-memory db")
+    }
+
+    #[test]
+    fn insert_artifact_and_retrieve() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        insert_artifact_or_ignore(
+            &db,
+            "a1",
+            "s1",
+            "m1",
+            0,
+            0,
+            "code",
+            Some("rust"),
+            "Rust block #1",
+            "fn main() {",
+            "fn main() {\n  println!(\"hello\");\n}",
+            2,
+            1000,
+        )
+        .unwrap();
+
+        let artifacts = get_session_artifacts(&db, "s1").unwrap();
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].id, "a1");
+        assert_eq!(artifacts[0].language, Some("rust".to_string()));
+    }
+
+    #[test]
+    fn insert_artifact_ignores_duplicate_message_block() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        insert_artifact_or_ignore(
+            &db,
+            "a1",
+            "s1",
+            "m1",
+            0,
+            0,
+            "code",
+            Some("ts"),
+            "TS block #1",
+            "const x",
+            "const x = 1;",
+            1,
+            1000,
+        )
+        .unwrap();
+        insert_artifact_or_ignore(
+            &db,
+            "a2",
+            "s1",
+            "m1",
+            0,
+            0,
+            "code",
+            Some("ts"),
+            "TS block #1",
+            "const x",
+            "const x = 1;",
+            1,
+            1001,
+        )
+        .unwrap();
+
+        let artifacts = get_session_artifacts(&db, "s1").unwrap();
+        assert_eq!(artifacts.len(), 1, "duplicate should be ignored");
+        assert_eq!(artifacts[0].id, "a1");
+    }
+
+    #[test]
+    fn session_summary_counts_correctly() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        insert_message(&db, "m1", "s1", "user", "hello", None, None, None, None).unwrap();
+        insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "hi",
+            Some("claude-sonnet-4-6"),
+            Some(10),
+            Some(5),
+            Some(1),
+        )
+        .unwrap();
+        insert_message(
+            &db,
+            "m3",
+            "s1",
+            "tool_use",
+            r#"{"tool_name":"Read","tool_input":"{}","tool_use_id":"t1"}"#,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        insert_artifact_or_ignore(
+            &db,
+            "a1",
+            "s1",
+            "m2",
+            1,
+            0,
+            "code",
+            Some("rust"),
+            "Rust block",
+            "fn f",
+            "fn f() {}",
+            1,
+            1000,
+        )
+        .unwrap();
+
+        let summary = query_session_summary(&db, "s1").unwrap();
+        assert_eq!(summary.message_count, 2);
+        assert_eq!(summary.tool_count, 1);
+        assert_eq!(summary.artifact_count, 1);
+    }
+}
+
+#[cfg(test)]
+mod extraction_tests {
+    use super::extract_code_blocks;
+
+    #[test]
+    fn extracts_single_rust_block() {
+        let md = "Here is code:\n```rust\nfn main() {}\n```\nDone.";
+        let blocks = extract_code_blocks(md);
+        assert_eq!(blocks.len(), 1);
+        assert_eq!(blocks[0].language, "rust");
+        assert_eq!(blocks[0].content, "fn main() {}");
+    }
+
+    #[test]
+    fn extracts_multiple_blocks() {
+        let md = "```ts\nconst x = 1;\n```\nSome text.\n```json\n{\"a\":1}\n```";
+        let blocks = extract_code_blocks(md);
+        assert_eq!(blocks.len(), 2);
+        assert_eq!(blocks[0].language, "ts");
+        assert_eq!(blocks[1].language, "json");
+    }
+
+    #[test]
+    fn skips_empty_blocks() {
+        let md = "```\n```";
+        let blocks = extract_code_blocks(md);
+        assert_eq!(blocks.len(), 1);
+        assert!(blocks[0].content.trim().is_empty());
+    }
+
+    #[test]
+    fn no_blocks_returns_empty() {
+        let md = "Plain text only, no code.";
+        let blocks = extract_code_blocks(md);
+        assert!(blocks.is_empty());
     }
 }
