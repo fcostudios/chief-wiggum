@@ -2,7 +2,7 @@
 // CHI-220/221: Cross-project Actions Center with warehouse overview + detail lanes.
 
 import type { Component } from 'solid-js';
-import { For, Show, createMemo, createSignal, onMount } from 'solid-js';
+import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { ChevronLeft, Settings } from 'lucide-solid';
 import { actionState, loadActionHistory, loadAllRunningActions } from '@/stores/actionStore';
 import { projectState, setActiveProject } from '@/stores/projectStore';
@@ -12,16 +12,22 @@ import type { CrossProjectRunningAction } from '@/lib/types';
 import WarehouseCard from './WarehouseCard';
 import LaneCard, { CATEGORY_ICONS } from './LaneCard';
 import LaneLogScreen from './LaneLogScreen';
+import ActionQuickLaunch from './ActionQuickLaunch';
 
 const ActionsCenter: Component = () => {
   const [selectedWarehouseId, setSelectedWarehouseId] = createSignal<string | null>(null);
   const [activeTab, setActiveTab] = createSignal<'active' | 'history'>('active');
   const [selectedLaneId, setSelectedLaneId] = createSignal<string | null>(null);
+  const [showQuickLaunch, setShowQuickLaunch] = createSignal(false);
 
   const projects = () => projectState.projects ?? [];
 
   onMount(async () => {
     await loadAllRunningActions();
+
+    const openQuickLaunchListener = () => setShowQuickLaunch(true);
+    window.addEventListener('cw:open-quick-launch', openQuickLaunchListener);
+    onCleanup(() => window.removeEventListener('cw:open-quick-launch', openQuickLaunchListener));
   });
 
   const summaryText = createMemo(() => {
@@ -52,7 +58,7 @@ const ActionsCenter: Component = () => {
     activeLanesForSelected().find((l) => l.action_id === selectedLaneId());
 
   return (
-    <div class="flex h-full flex-col overflow-hidden">
+    <div class="relative flex h-full flex-col overflow-hidden">
       <div
         class="shrink-0 px-4 py-3"
         style={{
@@ -295,6 +301,28 @@ const ActionsCenter: Component = () => {
           </Show>
         </Show>
       </div>
+
+      <Show when={!selectedLaneId()}>
+        <button
+          id="launch-action-fab"
+          class="absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium shadow-lg hover:opacity-90 transition-opacity"
+          style={{
+            background: 'var(--color-accent)',
+            color: 'var(--color-bg-primary)',
+          }}
+          onClick={() => setShowQuickLaunch(true)}
+          aria-label={t('actions_center.launch_action')}
+        >
+          <span>+</span> {t('actions_center.launch_action')}
+        </button>
+      </Show>
+
+      <Show when={showQuickLaunch()}>
+        <ActionQuickLaunch
+          preselectedProjectId={selectedWarehouseId() ?? undefined}
+          onClose={() => setShowQuickLaunch(false)}
+        />
+      </Show>
     </div>
   );
 };

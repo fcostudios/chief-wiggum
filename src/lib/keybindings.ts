@@ -99,7 +99,15 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
   // Cmd+Shift+A — open Actions Center view
   if (e.code === 'KeyA' && e.shiftKey) {
     e.preventDefault();
-    setActiveView('actions_center');
+    if (uiState.activeView === 'actions_center') {
+      document.getElementById('launch-action-fab')?.focus();
+    } else {
+      setActiveView('actions_center');
+      // Let ActionsCenter mount before requesting modal open.
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('cw:open-quick-launch'));
+      }, 0);
+    }
     return;
   }
 
