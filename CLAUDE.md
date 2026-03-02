@@ -2,7 +2,7 @@
 
 > **Read this first.** Auto-loaded by Claude Code at session start. Keep under 150 lines.
 > Full completed task history → `.claude/COMPLETED.md`
-> Updated: 2026-02-28
+> Updated: 2026-03-02
 
 ---
 
@@ -22,17 +22,17 @@ All in **Backlog** state. No task is currently `in_progress`. Check `.claude/han
 
 | Task | Priority | Depends on | Spec |
 |------|----------|-----------|------|
-| CHI-226: Session Resume Persistence | High | — | TASKS-006 §5 |
-| CHI-227: Agents Tab Scaffolding v2 | Medium | — | TASKS-006 §6 |
-| CHI-230: Inline Diff Accept/Reject | High | **none** (CHI-217 done ✓) | TASKS-006 §9 |
-| CHI-229: Info Hierarchy Redesign (TitleBar/StatusBar) | Medium | — | TASKS-006 §8 |
-| CHI-225: Session History & Artifact Index | High | — | TASKS-006 §4 |
-| CHI-228: Contextual Onboarding Hints | Medium | CHI-220 | TASKS-006 §7 |
-| CHI-218..223: Actions Center v2 | High/Med | CHI-138 ✓ | TASKS-005 |
+| CHI-196: D3 Formatting Toggle | Medium | CHI-195 ✓ | Conversation Experience (Polish) |
+| CHI-197: D4 Anchor Links | Medium | CHI-196 | Conversation Experience (Polish) |
+| CHI-202: E3 Voice Input/Output | Medium | CHI-201 ✓ | Conversation Utility |
+| CHI-203: E4 @-Mention Command Suggestions | Medium | CHI-202 | Conversation Utility |
+| CHI-205/206: Unit coverage (rendering blocks) | High | CHI-199 epic | QA Coverage |
+| CHI-209/210: Unit coverage (polish/utility) | High | CHI-199 epic | QA Coverage |
+| CHI-211/212/213: E2E coverage expansion | High | CHI-199 epic | QA Coverage |
 
-**Also in backlog (Conversation Experience project):** CHI-216 (gitignore toggle), CHI-179 (file attachments), CHI-180 (polish), CHI-198 (utility: search/export/voice), CHI-199 (QA coverage). See Linear for full list.
+**Recently completed:** CHI-121 epic is now complete with CHI-131 + CHI-134 merged.
 
-**Suggested start order:** CHI-226 → CHI-227 → CHI-230 → CHI-229 → CHI-225
+**Suggested start order:** CHI-196 → CHI-197 → CHI-202 → CHI-203
 
 ---
 
