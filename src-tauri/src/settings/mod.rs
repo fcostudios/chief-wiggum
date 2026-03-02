@@ -17,6 +17,10 @@ fn default_resume_inactivity_minutes() -> u32 {
     DEFAULT_RESUME_INACTIVITY_MINUTES
 }
 
+fn default_hints_enabled() -> bool {
+    true
+}
+
 /// Root settings structure persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct UserSettings {
@@ -73,10 +77,26 @@ pub struct SessionSettings {
     pub resume_inactivity_minutes: u32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct OnboardingSettings {
     /// Whether the first-launch onboarding flow has been completed.
     pub completed: bool,
+    /// Hint IDs that have already been displayed and dismissed.
+    #[serde(default)]
+    pub seen_hints: Vec<String>,
+    /// Master toggle for contextual hints.
+    #[serde(default = "default_hints_enabled")]
+    pub hints_enabled: bool,
+}
+
+impl Default for OnboardingSettings {
+    fn default() -> Self {
+        Self {
+            completed: false,
+            seen_hints: Vec::new(),
+            hints_enabled: default_hints_enabled(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

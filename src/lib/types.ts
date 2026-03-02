@@ -480,6 +480,8 @@ export interface SessionSettings {
 
 export interface OnboardingSettings {
   completed: boolean;
+  seen_hints: string[];
+  hints_enabled: boolean;
 }
 
 export interface PrivacySettings {
