@@ -89,6 +89,11 @@ vi.mock('@/stores/diagnosticsStore', () => ({
 }));
 
 vi.mock('@/stores/actionStore', () => ({
+  actionState: {
+    get crossProjectRunning() {
+      return [];
+    },
+  },
   getRunningActions: () => mockRunningActions,
   getRecentActionEvents: () => mockRecentActionEvents,
   stopAction: (id: string) => mockStopAction(id),

@@ -4,15 +4,16 @@
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
 import { ChevronLeft, Settings } from 'lucide-solid';
-import { actionState, loadActionHistory, loadAllRunningActions } from '@/stores/actionStore';
+import { actionState, loadAllRunningActions } from '@/stores/actionStore';
 import { projectState, setActiveProject } from '@/stores/projectStore';
 import { t } from '@/stores/i18nStore';
 import { toggleActionTechnicalMode, uiState } from '@/stores/uiStore';
 import type { CrossProjectRunningAction } from '@/lib/types';
 import WarehouseCard from './WarehouseCard';
-import LaneCard, { CATEGORY_ICONS } from './LaneCard';
+import LaneCard from './LaneCard';
 import LaneLogScreen from './LaneLogScreen';
 import ActionQuickLaunch from './ActionQuickLaunch';
+import LaneHistory from './LaneHistory';
 
 const ActionsCenter: Component = () => {
   const [selectedWarehouseId, setSelectedWarehouseId] = createSignal<string | null>(null);
@@ -47,12 +48,6 @@ const ActionsCenter: Component = () => {
     selectedWarehouseId()
       ? actionState.crossProjectRunning.filter((l) => l.project_id === selectedWarehouseId())
       : [];
-
-  const historyForSelected = () => {
-    const pid = selectedWarehouseId();
-    if (!pid) return [];
-    return actionState.history[pid] ?? [];
-  };
 
   const selectedLane = (): CrossProjectRunningAction | undefined =>
     activeLanesForSelected().find((l) => l.action_id === selectedLaneId());
@@ -212,13 +207,7 @@ const ActionsCenter: Component = () => {
                           ? '2px solid var(--color-accent)'
                           : '2px solid transparent',
                     }}
-                    onClick={() => {
-                      setActiveTab('history');
-                      const pid = selectedWarehouseId();
-                      if (pid && historyForSelected().length === 0) {
-                        void loadActionHistory(pid);
-                      }
-                    }}
+                    onClick={() => setActiveTab('history')}
                   >
                     History
                   </button>
@@ -247,50 +236,8 @@ const ActionsCenter: Component = () => {
                   </Show>
 
                   <Show when={activeTab() === 'history'}>
-                    <Show
-                      when={historyForSelected().length > 0}
-                      fallback={
-                        <p class="text-sm" style={{ color: 'var(--color-text-tertiary)' }}>
-                          {t('actions_center.no_history')}
-                        </p>
-                      }
-                    >
-                      <div class="space-y-2">
-                        <For each={historyForSelected()}>
-                          {(entry) => (
-                            <div
-                              class="flex items-center gap-2 rounded px-3 py-2 text-xs"
-                              style={{
-                                background: 'var(--color-bg-elevated)',
-                                border: '1px solid var(--color-border-secondary)',
-                              }}
-                            >
-                              <span>{CATEGORY_ICONS[entry.category] ?? '✨'}</span>
-                              <span
-                                class="flex-1 font-medium truncate"
-                                style={{ color: 'var(--color-text-primary)' }}
-                              >
-                                {entry.action_name}
-                              </span>
-                              <span
-                                class="font-mono text-[10px] px-1 py-0.5 rounded"
-                                style={{
-                                  background:
-                                    entry.exit_code === 0
-                                      ? 'color-mix(in srgb, var(--color-success) 15%, transparent)'
-                                      : 'color-mix(in srgb, var(--color-error) 15%, transparent)',
-                                  color:
-                                    entry.exit_code === 0
-                                      ? 'var(--color-success)'
-                                      : 'var(--color-error)',
-                                }}
-                              >
-                                {entry.exit_code === 0 ? '✓ 0' : `✗ ${entry.exit_code ?? '?'}`}
-                              </span>
-                            </div>
-                          )}
-                        </For>
-                      </div>
+                    <Show when={selectedWarehouseId()}>
+                      {(projectId) => <LaneHistory projectId={projectId()} />}
                     </Show>
                   </Show>
                 </div>

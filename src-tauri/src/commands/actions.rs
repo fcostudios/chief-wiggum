@@ -174,11 +174,12 @@ pub async fn list_all_running_actions(
     target = "commands/actions",
     level = "info",
     skip(db),
-    fields(project_id = %project_id, limit = ?limit)
+    fields(project_id = %project_id, limit = ?limit, offset = ?offset)
 )]
 pub async fn get_action_history(
     project_id: String,
     limit: Option<u32>,
+    offset: Option<u32>,
     db: tauri::State<'_, Database>,
 ) -> Result<Vec<queries::ActionHistoryEntry>, AppError> {
     let project_id = project_id.trim().to_string();
@@ -189,7 +190,8 @@ pub async fn get_action_history(
     }
 
     let limit = limit.unwrap_or(50).clamp(1, 200);
-    queries::get_action_history(db.inner(), &project_id, limit)
+    let offset = offset.unwrap_or(0);
+    queries::get_action_history(db.inner(), &project_id, limit, offset)
 }
 
 /// Read custom actions from `.claude/actions.json`.

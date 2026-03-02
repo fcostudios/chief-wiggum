@@ -412,6 +412,11 @@ export async function subscribeToActionStatusChanged(): Promise<UnlistenFn> {
   }>('action:status_changed', (event) => {
     const payload = event.payload;
     const incomingStatus = payload.status;
+
+    if (incomingStatus === 'completed' || incomingStatus === 'failed') {
+      void loadActionHistory(payload.project_id, 50);
+    }
+
     setState('crossProjectRunning', (prev) => {
       const idx = prev.findIndex(
         (lane) => lane.action_id === payload.action_id && lane.project_id === payload.project_id,
@@ -452,10 +457,31 @@ export async function loadActionHistory(projectId: string, limit = 50): Promise<
     const entries = await invoke<ActionHistoryEntry[]>('get_action_history', {
       project_id: projectId,
       limit,
+      offset: 0,
     });
     setState('history', projectId, entries);
   } catch (err) {
     log.warn('get_action_history failed: ' + (err instanceof Error ? err.message : String(err)));
+  } finally {
+    setState('historyLoading', projectId, false);
+  }
+}
+
+/** Load the next page of persisted action history for a project. */
+export async function loadMoreActionHistory(projectId: string, limit = 50): Promise<void> {
+  const current = state.history[projectId] ?? [];
+  setState('historyLoading', projectId, true);
+  try {
+    const entries = await invoke<ActionHistoryEntry[]>('get_action_history', {
+      project_id: projectId,
+      limit,
+      offset: current.length,
+    });
+    if (entries.length > 0) {
+      setState('history', projectId, [...current, ...entries]);
+    }
+  } catch (err) {
+    log.warn('loadMoreActionHistory failed: ' + (err instanceof Error ? err.message : String(err)));
   } finally {
     setState('historyLoading', projectId, false);
   }

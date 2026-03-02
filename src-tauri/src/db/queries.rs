@@ -557,6 +557,7 @@ pub fn get_action_history(
     db: &Database,
     project_id: &str,
     limit: u32,
+    offset: u32,
 ) -> Result<Vec<ActionHistoryEntry>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
@@ -565,26 +566,29 @@ pub fn get_action_history(
              FROM action_history
              WHERE project_id = ?1
              ORDER BY started_at DESC, id DESC
-             LIMIT ?2",
+             LIMIT ?2 OFFSET ?3",
         )?;
         let rows = stmt
-            .query_map(rusqlite::params![project_id, i64::from(limit)], |row| {
-                Ok(ActionHistoryEntry {
-                    id: row.get(0)?,
-                    action_id: row.get(1)?,
-                    project_id: row.get(2)?,
-                    project_name: row.get(3)?,
-                    action_name: row.get(4)?,
-                    command: row.get(5)?,
-                    category: row.get(6)?,
-                    started_at: row.get(7)?,
-                    ended_at: row.get(8)?,
-                    exit_code: row.get(9)?,
-                    duration_ms: row.get(10)?,
-                    output_preview: row.get(11)?,
-                    created_at: row.get(12)?,
-                })
-            })?
+            .query_map(
+                rusqlite::params![project_id, i64::from(limit), i64::from(offset)],
+                |row| {
+                    Ok(ActionHistoryEntry {
+                        id: row.get(0)?,
+                        action_id: row.get(1)?,
+                        project_id: row.get(2)?,
+                        project_name: row.get(3)?,
+                        action_name: row.get(4)?,
+                        command: row.get(5)?,
+                        category: row.get(6)?,
+                        started_at: row.get(7)?,
+                        ended_at: row.get(8)?,
+                        exit_code: row.get(9)?,
+                        duration_ms: row.get(10)?,
+                        output_preview: row.get(11)?,
+                        created_at: row.get(12)?,
+                    })
+                },
+            )?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     })
@@ -1313,7 +1317,7 @@ mod tests {
         )
         .unwrap();
 
-        let rows = get_action_history(&db, "p1", 50).unwrap();
+        let rows = get_action_history(&db, "p1", 50, 0).unwrap();
         assert_eq!(rows.len(), 2);
         assert_eq!(rows[0].action_id, "a2");
         assert_eq!(rows[1].action_id, "a1");
@@ -1345,8 +1349,39 @@ mod tests {
             .unwrap();
         }
 
-        let rows = get_action_history(&db, "p1", 2).unwrap();
+        let rows = get_action_history(&db, "p1", 2, 0).unwrap();
         assert_eq!(rows.len(), 2);
+    }
+
+    #[test]
+    fn get_action_history_respects_offset() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+
+        for i in 0..4 {
+            insert_action_history(
+                &db,
+                &ActionHistoryInsert {
+                    action_id: format!("a{}", i),
+                    project_id: "p1".to_string(),
+                    project_name: "Proj".to_string(),
+                    action_name: "build".to_string(),
+                    command: "npm run build".to_string(),
+                    category: "build".to_string(),
+                    started_at: format!("2026-03-01T1{}:00:00Z", i),
+                    ended_at: None,
+                    exit_code: None,
+                    duration_ms: None,
+                    output_preview: None,
+                },
+            )
+            .unwrap();
+        }
+
+        let rows = get_action_history(&db, "p1", 2, 1).unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].action_id, "a2");
+        assert_eq!(rows[1].action_id, "a1");
     }
 }
 
