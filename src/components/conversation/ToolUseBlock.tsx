@@ -1,7 +1,8 @@
 import { Component, Show, Switch, Match, createSignal } from 'solid-js';
-import { ChevronDown, ChevronRight, Wrench, Terminal, FileEdit } from 'lucide-solid';
+import { ChevronDown, ChevronRight, Wrench, Terminal, FileEdit, Copy, Check } from 'lucide-solid';
 import type { Message, ToolUseData, ToolCategory } from '../../lib/types';
 import { TodoWriteBlock } from './TodoWriteBlock';
+import { addToast } from '@/stores/toastStore';
 
 interface ToolUseBlockProps {
   message: Message;
@@ -93,8 +94,15 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
   const summary = () => toolSummary(data().tool_name, data().tool_input);
 
   const [expanded, setExpanded] = createSignal(false);
+  const [copied, setCopied] = createSignal(false);
 
   const toggleExpanded = () => setExpanded((prev) => !prev);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(data().tool_input).catch(() => {});
+    setCopied(true);
+    addToast('Copied to clipboard', 'success');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <Show
@@ -114,36 +122,55 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
             {/* Color stripe */}
             <div class="w-[3px] shrink-0" style={{ background: color() }} />
 
-            <div class="flex-1 min-w-0">
+            <div class="flex-1 min-w-0 group">
               {/* Header row — always visible */}
-              <button
-                class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/[0.02] transition-colors"
-                style={{ 'transition-duration': 'var(--duration-fast)' }}
-                onClick={toggleExpanded}
-                aria-expanded={expanded()}
-                aria-label={`${expanded() ? 'Collapse' : 'Expand'} ${data().tool_name} tool use`}
-              >
-                <ToolIcon category={category()} color={color()} />
-                <span class="text-xs font-mono font-semibold" style={{ color: color() }}>
-                  {data().tool_name}
-                </span>
-                <Show when={summary()}>
-                  <span
-                    class="text-xs truncate flex-1"
-                    style={{ color: 'var(--color-text-tertiary)' }}
-                  >
-                    {summary()}
-                  </span>
-                </Show>
-                <Show
-                  when={expanded()}
-                  fallback={
-                    <ChevronRight size={14} color="var(--color-text-tertiary)" class="shrink-0" />
-                  }
+              <div class="flex items-center gap-2 px-3 py-2 hover:bg-white/[0.02] transition-colors">
+                <button
+                  class="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  onClick={toggleExpanded}
+                  aria-expanded={expanded()}
+                  aria-label={`${expanded() ? 'Collapse' : 'Expand'} ${data().tool_name} tool use`}
                 >
-                  <ChevronDown size={14} color="var(--color-text-tertiary)" class="shrink-0" />
-                </Show>
-              </button>
+                  <ToolIcon category={category()} color={color()} />
+                  <span class="text-xs font-mono font-semibold" style={{ color: color() }}>
+                    {data().tool_name}
+                  </span>
+                  <Show when={summary()}>
+                    <span
+                      class="text-xs truncate flex-1"
+                      style={{ color: 'var(--color-text-tertiary)' }}
+                    >
+                      {summary()}
+                    </span>
+                  </Show>
+                  <Show
+                    when={expanded()}
+                    fallback={
+                      <ChevronRight size={14} color="var(--color-text-tertiary)" class="shrink-0" />
+                    }
+                  >
+                    <ChevronDown size={14} color="var(--color-text-tertiary)" class="shrink-0" />
+                  </Show>
+                </button>
+                <button
+                  class="rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 shrink-0"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCopy();
+                  }}
+                  aria-label="Copy tool input"
+                  title="Copy tool input"
+                >
+                  <Show
+                    when={copied()}
+                    fallback={<Copy size={11} color="var(--color-text-tertiary)" />}
+                  >
+                    <Check size={11} color="var(--color-success)" />
+                  </Show>
+                </button>
+              </div>
 
               {/* Expanded content — tool input */}
               <Show when={expanded()}>

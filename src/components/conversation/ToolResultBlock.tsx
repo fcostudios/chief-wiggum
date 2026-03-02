@@ -1,10 +1,11 @@
 import { Component, Show, createSignal } from 'solid-js';
-import { ChevronDown, ChevronRight, CheckCircle, XCircle } from 'lucide-solid';
+import { ChevronDown, ChevronRight, CheckCircle, XCircle, Copy, Check } from 'lucide-solid';
 import type { Message, ToolResultData, ToolUseData } from '../../lib/types';
 import { conversationState } from '@/stores/conversationStore';
 import { extractInlineDiffPreview } from '@/lib/inlineDiff';
 import { setActiveInlineDiff } from '@/stores/diffReviewStore';
 import { setActiveView } from '@/stores/uiStore';
+import { addToast } from '@/stores/toastStore';
 import InlineDiff from './InlineDiff';
 import { LiveToolOutput } from './LiveToolOutput';
 
@@ -78,8 +79,15 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   };
 
   const [expanded, setExpanded] = createSignal(false);
+  const [copied, setCopied] = createSignal(false);
 
   const toggleExpanded = () => setExpanded((prev) => !prev);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(data().content).catch(() => {});
+    setCopied(true);
+    addToast('Copied to clipboard', 'success');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div class="flex justify-start">
@@ -100,55 +108,75 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
         </Show>
 
         {/* Header row */}
-        <button
-          class="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-white/[0.02] transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
-          onClick={toggleExpanded}
-          aria-expanded={expanded()}
-          aria-label={`${expanded() ? 'Collapse' : 'Expand'} tool result`}
-        >
-          <Show
-            when={!isError()}
-            fallback={<XCircle size={12} color="var(--color-tool-permission-deny)" />}
+        <div class="group flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.02] transition-colors">
+          <button
+            class="flex min-w-0 flex-1 items-center gap-2 text-left"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={toggleExpanded}
+            aria-expanded={expanded()}
+            aria-label={`${expanded() ? 'Collapse' : 'Expand'} tool result`}
           >
-            <CheckCircle size={12} color="var(--color-tool-bash)" />
-          </Show>
-          <span
-            class="text-[11px] font-mono shrink-0"
-            style={{
-              color: isError() ? 'var(--color-tool-permission-deny)' : 'var(--color-text-tertiary)',
+            <Show
+              when={!isError()}
+              fallback={<XCircle size={12} color="var(--color-tool-permission-deny)" />}
+            >
+              <CheckCircle size={12} color="var(--color-tool-bash)" />
+            </Show>
+            <span
+              class="text-[11px] font-mono shrink-0"
+              style={{
+                color: isError()
+                  ? 'var(--color-tool-permission-deny)'
+                  : 'var(--color-text-tertiary)',
+              }}
+            >
+              {isError() ? 'Tool Error' : 'Tool Result'}
+            </span>
+            <span class="text-[11px] text-text-tertiary/80 shrink-0">•</span>
+            <span
+              class="text-[11px] font-mono shrink-0"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              {relatedToolName()}
+            </span>
+            <span
+              class="text-[11px] font-mono truncate flex-1"
+              style={{
+                color: isError()
+                  ? 'var(--color-tool-permission-deny)'
+                  : 'var(--color-text-tertiary)',
+              }}
+            >
+              {expanded()
+                ? isError()
+                  ? `Execution output${exitCode() ? ` (exit ${exitCode()})` : ''}`
+                  : 'Execution output'
+                : preview()}
+            </span>
+            <Show
+              when={expanded()}
+              fallback={
+                <ChevronRight size={12} color="var(--color-text-tertiary)" class="shrink-0" />
+              }
+            >
+              <ChevronDown size={12} color="var(--color-text-tertiary)" class="shrink-0" />
+            </Show>
+          </button>
+          <button
+            class="rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100 shrink-0"
+            style={{ 'transition-duration': 'var(--duration-fast)' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCopy();
             }}
+            aria-label="Copy tool result"
+            title="Copy tool result"
           >
-            {isError() ? 'Tool Error' : 'Tool Result'}
-          </span>
-          <span class="text-[11px] text-text-tertiary/80 shrink-0">•</span>
-          <span
-            class="text-[11px] font-mono shrink-0"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
-            {relatedToolName()}
-          </span>
-          <span
-            class="text-[11px] font-mono truncate flex-1"
-            style={{
-              color: isError() ? 'var(--color-tool-permission-deny)' : 'var(--color-text-tertiary)',
-            }}
-          >
-            {expanded()
-              ? isError()
-                ? `Execution output${exitCode() ? ` (exit ${exitCode()})` : ''}`
-                : 'Execution output'
-              : preview()}
-          </span>
-          <Show
-            when={expanded()}
-            fallback={
-              <ChevronRight size={12} color="var(--color-text-tertiary)" class="shrink-0" />
-            }
-          >
-            <ChevronDown size={12} color="var(--color-text-tertiary)" class="shrink-0" />
-          </Show>
-        </button>
+            <Show when={copied()} fallback={<Copy size={11} color="var(--color-text-tertiary)" />}>
+              <Check size={11} color="var(--color-success)" />
+            </Show>
+          </button>
+        </div>
 
         {/* Expanded content — result output */}
         <Show when={expanded()}>

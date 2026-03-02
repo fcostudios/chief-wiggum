@@ -40,7 +40,7 @@ describe('ToolUseBlock', () => {
   it('renders default expand button for non-TodoWrite tool calls', () => {
     const msg = makeMsg('Bash', JSON.stringify({ command: 'npm test' }));
     render(() => <ToolUseBlock message={msg} />);
-    const btn = screen.getByRole('button');
+    const btn = screen.getByRole('button', { name: 'Expand Bash tool use' });
     expect(btn).toHaveAttribute('aria-expanded', 'false');
     expect(btn).toHaveAttribute('aria-label', 'Expand Bash tool use');
   });
@@ -54,7 +54,7 @@ describe('ToolUseBlock', () => {
   it('expands default block to show tool input on click', () => {
     const msg = makeMsg('Bash', JSON.stringify({ command: 'cargo test' }));
     render(() => <ToolUseBlock message={msg} />);
-    const btn = screen.getByRole('button');
+    const btn = screen.getByRole('button', { name: 'Expand Bash tool use' });
     fireEvent.click(btn);
     expect(btn).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText(/"command":"cargo test"/)).toBeInTheDocument();
