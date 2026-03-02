@@ -734,7 +734,10 @@ const ConversationView: Component = () => {
                     </span>
                   </div>
                   <div class="streaming-markdown">
-                    <MarkdownContent content={stabilizeStreamingMarkdown(typewriter.rendered())} />
+                    <MarkdownContent
+                      content={stabilizeStreamingMarkdown(typewriter.rendered())}
+                      isStreaming={true}
+                    />
                   </div>
                   <span
                     class="inline-block w-[3px] h-4 rounded-[1px] animate-cursor-blink ml-0.5"

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import type { Message } from '@/lib/types';
 
@@ -25,6 +25,19 @@ function makeMsg(toolName: string, toolInput: string): Message {
 }
 
 describe('ToolUseBlock', () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    });
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
   it('delegates to TodoWriteBlock for TodoWrite tool calls', () => {
     const msg = makeMsg('TodoWrite', JSON.stringify({ todos: [] }));
     render(() => <ToolUseBlock message={msg} />);
@@ -58,5 +71,29 @@ describe('ToolUseBlock', () => {
     fireEvent.click(btn);
     expect(btn).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText(/"command":"cargo test"/)).toBeInTheDocument();
+  });
+
+  it('copy button calls clipboard.writeText with tool input', () => {
+    const msg = makeMsg('Write', JSON.stringify({ path: 'src/app.ts', content: 'hello' }));
+    render(() => <ToolUseBlock message={msg} />);
+
+    fireEvent.click(screen.getByLabelText('Copy tool input'));
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      JSON.stringify({ path: 'src/app.ts', content: 'hello' }),
+    );
+  });
+
+  it('copy button feedback icon resets after 2 seconds', () => {
+    const msg = makeMsg('Read', JSON.stringify({ path: 'src/app.ts' }));
+    render(() => <ToolUseBlock message={msg} />);
+
+    const copyBtn = screen.getByLabelText('Copy tool input');
+    const before = copyBtn.innerHTML;
+    fireEvent.click(copyBtn);
+    const during = copyBtn.innerHTML;
+    expect(during).not.toBe(before);
+
+    vi.advanceTimersByTime(2000);
+    expect(copyBtn.innerHTML).toBe(before);
   });
 });

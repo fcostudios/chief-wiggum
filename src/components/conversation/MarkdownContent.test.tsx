@@ -423,4 +423,42 @@ describe('MarkdownContent', () => {
       expect(queryByTestId('inline-diff-block')).toBeNull();
     });
   });
+
+  describe('streaming code block stability (CHI-194)', () => {
+    it('shows generating indicator for unclosed code fence when isStreaming=true', async () => {
+      const { container } = render(() => (
+        <MarkdownContent
+          content={'```typescript\nconst x = 1;'}
+          messageId="test-streaming"
+          isStreaming={true}
+        />
+      ));
+
+      await waitFor(() => {
+        expect(container.querySelector('pre.is-generating')).toBeTruthy();
+        expect(container.querySelector('.generating-indicator')?.textContent).toContain(
+          'generating...',
+        );
+      });
+    });
+
+    it('does not show generating indicator for closed code fence when isStreaming=true', async () => {
+      const { container } = render(() => (
+        <MarkdownContent
+          content={'```typescript\nconst x = 1;\n```'}
+          messageId="test-stable"
+          isStreaming={true}
+        />
+      ));
+
+      await waitFor(() => {
+        const codeBlocks = Array.from(container.querySelectorAll('pre'));
+        expect(codeBlocks.length).toBeGreaterThan(0);
+        codeBlocks.forEach((block) => {
+          expect(block.classList.contains('is-generating')).toBe(false);
+          expect(block.querySelector('.generating-indicator')).toBeNull();
+        });
+      });
+    });
+  });
 });

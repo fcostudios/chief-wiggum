@@ -196,6 +196,7 @@ marked.use({
 interface MarkdownContentProps {
   content: string;
   messageId?: string;
+  isStreaming?: boolean;
 }
 
 const MarkdownContent: Component<MarkdownContentProps> = (props) => {
@@ -261,6 +262,7 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
   createEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const _html = html(); // track reactive dependency
+    const streaming = props.isStreaming ?? false;
     if (!containerRef) return;
 
     for (const dispose of rendererDisposers) {
@@ -461,6 +463,27 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
           outlineMount,
         );
         rendererDisposers.push(dispose);
+      }
+
+      // CHI-209 / CHI-194: indicate unstable streaming code when the final fence is unclosed.
+      const allCodeBlocks = Array.from(containerRef!.querySelectorAll<HTMLElement>('pre'));
+      for (const block of allCodeBlocks) {
+        block.classList.remove('is-generating');
+        block.querySelector('.generating-indicator')?.remove();
+      }
+
+      const fenceCount = (props.content.match(/```/g) ?? []).length;
+      const hasUnclosedFence = fenceCount % 2 !== 0;
+      if (streaming && hasUnclosedFence && allCodeBlocks.length > 0) {
+        const lastBlock = allCodeBlocks[allCodeBlocks.length - 1];
+        lastBlock.classList.add('is-generating');
+        const indicator = document.createElement('div');
+        indicator.className = 'generating-indicator';
+        indicator.setAttribute('aria-live', 'polite');
+        indicator.textContent = 'generating...';
+        indicator.style.cssText =
+          'font-size:11px;color:var(--color-text-tertiary);padding:4px 8px;font-style:italic;opacity:0.7;';
+        lastBlock.appendChild(indicator);
       }
     });
 
