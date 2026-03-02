@@ -83,6 +83,38 @@ describe('MarkdownContent', () => {
     expect(container.querySelector('h1')?.textContent).toBe('Title');
   });
 
+  describe('Response anchor links (CHI-197)', () => {
+    it('adds slugified id attributes to headings', async () => {
+      const { container } = render(() => (
+        <MarkdownContent content={'# Hello World\n\nSome text.\n\n## Second Section\n\nMore text.'} />
+      ));
+      await waitFor(() => {
+        const h1 = container.querySelector('h1');
+        const h2 = container.querySelector('h2');
+        expect(h1).toBeTruthy();
+        expect(h2).toBeTruthy();
+        expect(h1?.id).toBe('hello-world');
+        expect(h2?.id).toBe('second-section');
+      });
+    });
+
+    it('shows TOC button when there are 3 or more headings', async () => {
+      const md = '# A\n\ntext\n\n## B\n\ntext\n\n### C\n\ntext';
+      render(() => <MarkdownContent content={md} messageId="test-toc" />);
+      await waitFor(() => {
+        expect(screen.getByLabelText('Show table of contents')).toBeInTheDocument();
+      });
+    });
+
+    it('does not show TOC button when there are fewer than 3 headings', async () => {
+      const md = '# A\n\ntext\n\n## B\n\ntext';
+      render(() => <MarkdownContent content={md} messageId="test-no-toc" />);
+      await waitFor(() => {
+        expect(screen.queryByLabelText('Show table of contents')).not.toBeInTheDocument();
+      });
+    });
+  });
+
   it('renders bold markdown text', () => {
     const { container } = render(() => <MarkdownContent content="This is **bold** text" />);
     expect(container.querySelector('strong')?.textContent).toBe('bold');

@@ -20,6 +20,7 @@ import {
   findRenderer,
 } from '@/lib/rendererRegistry';
 import InlineDiffBlock from './InlineDiffBlock';
+import { ResponseOutline, type OutlineHeading } from './ResponseOutline';
 import { isDiffBlock } from '@/lib/diffApplicator';
 import { addToast } from '@/stores/toastStore';
 import { setActiveView } from '@/stores/uiStore';
@@ -93,6 +94,15 @@ function decodeRendererCode(encoded: string): string {
   }
 }
 
+function slugifyHeading(text: string): string {
+  return text
+    .replace(/<[^>]*>/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]/g, '')
+    .replace(/^-+|-+$/g, '');
+}
+
 interface MathToken extends Tokens.Generic {
   type: 'mathBlock' | 'mathInline';
   text: string;
@@ -152,6 +162,10 @@ marked.use({
 
 marked.use({
   renderer: {
+    heading(token: Tokens.Heading) {
+      const id = slugifyHeading(token.text);
+      return `<h${token.depth} id="${id}">${token.text}</h${token.depth}>`;
+    },
     code(token) {
       const language = token.lang || '';
       const code = token.text;
@@ -425,6 +439,29 @@ const MarkdownContent: Component<MarkdownContentProps> = (props) => {
         );
         rendererDisposers.push(dispose);
       });
+
+      const headingElements = Array.from(
+        containerRef!.querySelectorAll<HTMLElement>('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]'),
+      );
+      if (headingElements.length >= 3) {
+        const headings: OutlineHeading[] = headingElements.map((element) => ({
+          id: element.id,
+          text: element.innerText,
+          depth: Number.parseInt(element.tagName.slice(1), 10),
+        }));
+        const container = containerRef!;
+        if (getComputedStyle(container).position === 'static') {
+          container.style.position = 'relative';
+        }
+        const outlineMount = document.createElement('div');
+        outlineMount.className = 'response-outline-host';
+        container.appendChild(outlineMount);
+        const dispose = solidRender(
+          () => <ResponseOutline headings={headings} containerRef={container} />,
+          outlineMount,
+        );
+        rendererDisposers.push(dispose);
+      }
     });
 
     onCleanup(() => {
