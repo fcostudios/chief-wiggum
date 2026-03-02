@@ -45,13 +45,14 @@ test.describe('Diff Review Pane (CHI-168)', () => {
   test('details panel toggle works while Diff view is active', async ({ page }) => {
     if (!(await openDiffView(page))) return;
 
-    const toggle = page.getByRole('button', { name: /details panel/i });
-    const before = await toggle.getAttribute('aria-label');
-    await toggle.click();
+    const separator = page.getByRole('separator', { name: 'Resize details panel' });
+    const before = await separator.isVisible().catch(() => false);
+
+    await page.keyboard.press(`${modKey}+Shift+b`);
     await page.waitForTimeout(200);
 
-    const after = await toggle.getAttribute('aria-label');
-    expect(after).not.toBe(before);
+    const after = await separator.isVisible().catch(() => false);
+    expect(after).toBe(!before);
     await expect(page.locator('body')).toBeVisible();
   });
 });

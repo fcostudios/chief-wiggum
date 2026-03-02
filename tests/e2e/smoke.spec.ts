@@ -2,7 +2,7 @@ import { test, expect } from './fixtures/app';
 
 test.describe('Smoke Test', () => {
   test('app loads and renders main layout', async ({ page }) => {
-    await expect(page.locator('[data-tauri-drag-region]')).toBeVisible();
+    await expect(page.locator('[data-tauri-drag-region]:visible').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Conversation' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Agents' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Diff' })).toBeVisible();

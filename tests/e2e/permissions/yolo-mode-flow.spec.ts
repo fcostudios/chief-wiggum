@@ -1,12 +1,21 @@
 import { test, expect, modKey } from '../fixtures/app';
 
-function titleBarYoloBadge(page: import('@playwright/test').Page) {
-  return page.getByRole('banner').getByText('YOLO', { exact: true });
+function statusBarYoloBadge(page: import('@playwright/test').Page) {
+  return page.locator('footer[role="status"]').getByText(/YOLO\s*·/);
+}
+
+async function stopResponseIfRunning(page: import('@playwright/test').Page): Promise<void> {
+  const stopButton = page.getByRole('button', { name: /Cancel response/i });
+  if (await stopButton.isVisible().catch(() => false)) {
+    await stopButton.click();
+    await page.waitForTimeout(300);
+  }
 }
 
 async function disableYoloIfEnabled(page: import('@playwright/test').Page): Promise<void> {
-  const yoloBadge = titleBarYoloBadge(page);
+  const yoloBadge = statusBarYoloBadge(page);
   if (await yoloBadge.isVisible().catch(() => false)) {
+    await stopResponseIfRunning(page);
     await page.keyboard.press(`${modKey}+Shift+y`);
     await page.waitForTimeout(250);
   }
@@ -24,6 +33,7 @@ test.describe('YOLO Mode Full Flow (CHI-161)', () => {
   });
 
   test('enable flow: shortcut opens warning, confirm enables badge', async ({ page }) => {
+    await stopResponseIfRunning(page);
     await page.keyboard.press(`${modKey}+Shift+y`);
     await page.waitForTimeout(200);
 
@@ -41,10 +51,11 @@ test.describe('YOLO Mode Full Flow (CHI-161)', () => {
     await page.waitForTimeout(300);
 
     await expect(dialog).toBeHidden();
-    await expect(titleBarYoloBadge(page)).toBeVisible();
+    await expect(statusBarYoloBadge(page)).toBeVisible();
   });
 
   test('cancel flow leaves YOLO badge hidden', async ({ page }) => {
+    await stopResponseIfRunning(page);
     await page.keyboard.press(`${modKey}+Shift+y`);
     await page.waitForTimeout(200);
 
@@ -55,10 +66,11 @@ test.describe('YOLO Mode Full Flow (CHI-161)', () => {
     await page.waitForTimeout(200);
 
     await expect(dialog).toBeHidden();
-    await expect(titleBarYoloBadge(page)).toBeHidden();
+    await expect(statusBarYoloBadge(page)).toBeHidden();
   });
 
   test('Escape dismisses YOLO warning dialog', async ({ page }) => {
+    await stopResponseIfRunning(page);
     await page.keyboard.press(`${modKey}+Shift+y`);
     await page.waitForTimeout(200);
 
@@ -67,6 +79,6 @@ test.describe('YOLO Mode Full Flow (CHI-161)', () => {
 
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
-    await expect(titleBarYoloBadge(page)).toBeHidden();
+    await expect(statusBarYoloBadge(page)).toBeHidden();
   });
 });

@@ -1,8 +1,12 @@
 import { test, expect } from '../fixtures/app';
 
 async function openExportDialog(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: /export diagnostics/i }).click();
-  const dialog = page.getByRole('dialog', { name: /export diagnostic bundle/i });
+  await page.getByRole('button', { name: /cost breakdown/i }).dispatchEvent('click');
+  const exportButton = page.getByRole('button', { name: /export diagnostics/i });
+  await expect(exportButton).toBeVisible();
+  await exportButton.dispatchEvent('click');
+
+  const dialog = page.getByRole('dialog').filter({ hasText: 'Export Diagnostic Bundle' });
   await expect(dialog).toBeVisible();
   return dialog;
 }
@@ -46,6 +50,6 @@ test.describe('Diagnostics Export Dialog (CHI-169)', () => {
     await openExportDialog(page);
     const backdrop = page.locator('.fixed.inset-0.z-50').last();
     await backdrop.click({ position: { x: 4, y: 4 } });
-    await expect(page.getByRole('dialog', { name: /export diagnostic bundle/i })).toBeHidden();
+    await expect(page.getByRole('dialog').filter({ hasText: 'Export Diagnostic Bundle' })).toBeHidden();
   });
 });
