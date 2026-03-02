@@ -87,6 +87,21 @@ pub fn search_project_files(
     scanner::search_files(project_root, &query, max_results)
 }
 
+/// Search project source files for symbols (function/class/variable).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, kind = %kind, query = %query))]
+pub fn list_symbols(
+    db: State<'_, Database>,
+    project_id: String,
+    kind: String,
+    query: String,
+) -> Result<Vec<scanner::SymbolMatch>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let project_root = std::path::Path::new(&project.path);
+    scanner::scan_symbols(project_root, &query, &kind)
+}
+
 /// Estimate token count for a file (~chars/4).
 #[tauri::command(rename_all = "snake_case")]
 #[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path))]
