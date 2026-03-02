@@ -150,6 +150,21 @@
     "load_more": "Cargar más",
     "view_output": "Ver Salida",
     "output_preview_note": "Salida completa no guardada — mostrando las últimas 3 líneas",
-    "inspect_hint": "Clic para inspeccionar registros"
+    "inspect_hint": "Clic para inspeccionar registros",
+    "log_screen": {
+      "wrap": "Ajustar",
+      "search": "Buscar",
+      "tail": "Seguir",
+      "search_placeholder": "Buscar en salida…",
+      "exited_ok": "── Salió con código 0 · {duration} ──",
+      "exited_err": "── Salió con código {code} · {duration} ──",
+      "matches": "{n} coincidencias",
+      "no_matches": "Sin coincidencias"
+    },
+    "lane": {
+      "elapsed": "{duration}",
+      "inspect_hint": "Clic para inspeccionar registros",
+      "stop_confirm": "¿Detener {name}?"
+    }
   }
 }

@@ -150,6 +150,21 @@
     "load_more": "Load more",
     "view_output": "View Output",
     "output_preview_note": "Full output not persisted — showing last 3 lines",
-    "inspect_hint": "Click to inspect logs"
+    "inspect_hint": "Click to inspect logs",
+    "log_screen": {
+      "wrap": "Wrap",
+      "search": "Search",
+      "tail": "Tail",
+      "search_placeholder": "Search output…",
+      "exited_ok": "── Exited with code 0 · {duration} ──",
+      "exited_err": "── Exited with code {code} · {duration} ──",
+      "matches": "{n} matches",
+      "no_matches": "No matches"
+    },
+    "lane": {
+      "elapsed": "{duration}",
+      "inspect_hint": "Click to inspect logs",
+      "stop_confirm": "Stop {name}?"
+    }
   }
 }
