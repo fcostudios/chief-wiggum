@@ -4,11 +4,15 @@
 
 import type { Component } from 'solid-js';
 import { Show, createSignal } from 'solid-js';
-import { Copy, Check, Pencil, RefreshCw, Trash2, GitFork } from 'lucide-solid';
+import { Copy, Check, Pencil, RefreshCw, Trash2, GitFork, Eye, EyeOff } from 'lucide-solid';
+import hljs from 'highlight.js/lib/core';
+import markdownLang from 'highlight.js/lib/languages/markdown';
 import type { Message } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
 import MarkdownContent from './MarkdownContent';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
+
+hljs.registerLanguage('markdown', markdownLang);
 
 interface MessageBubbleProps {
   message: Message;
@@ -123,6 +127,7 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isSystem = () => props.message.role === 'system';
   const isAssistant = () => props.message.role === 'assistant';
   const [isEditing, setIsEditing] = createSignal(false);
+  const [showRaw, setShowRaw] = createSignal(false);
   const [editContent, setEditContent] = createSignal('');
   const [contextMenuPos, setContextMenuPos] = createSignal<{ x: number; y: number } | null>(null);
 
@@ -279,7 +284,26 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
         <Show
           when={isUser()}
           fallback={
-            <MarkdownContent content={props.message.content} messageId={props.message.id} />
+            <Show
+              when={!(isAssistant() && showRaw())}
+              fallback={
+                <pre
+                  class="text-[11px] font-mono whitespace-pre-wrap rounded-lg p-3 overflow-x-auto"
+                  style={{ background: 'var(--color-bg-inset)' }}
+                >
+                  <code
+                    class="hljs language-markdown"
+                    // eslint-disable-next-line solid/no-innerhtml -- syntax-highlighted markdown source preview
+                    innerHTML={hljs.highlight(props.message.content ?? '', {
+                      language: 'markdown',
+                      ignoreIllegals: true,
+                    }).value}
+                  />
+                </pre>
+              }
+            >
+              <MarkdownContent content={props.message.content} messageId={props.message.id} />
+            </Show>
           }
         >
           <Show
@@ -399,6 +423,25 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
               >
                 <RefreshCw size={11} />
               </button>
+              <Show when={props.message.content}>
+                <button
+                  class="p-0.5 rounded transition-colors press-feedback"
+                  style={{
+                    'transition-duration': 'var(--duration-fast)',
+                    color: showRaw() ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowRaw((value) => !value);
+                  }}
+                  aria-label={showRaw() ? 'Show rendered markdown' : 'Show raw markdown source'}
+                  title={showRaw() ? 'Show rendered markdown' : 'Show raw source'}
+                >
+                  <Show when={showRaw()} fallback={<Eye size={14} />}>
+                    <EyeOff size={14} />
+                  </Show>
+                </button>
+              </Show>
               <CopyButton content={props.message.content} />
             </div>
           </Show>
