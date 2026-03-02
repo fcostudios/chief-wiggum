@@ -6,10 +6,16 @@
 // @-mention file references (CHI-117) with context assembly on send.
 
 import type { Component } from 'solid-js';
-import { createSignal, createEffect, Show, For, onCleanup } from 'solid-js';
+import { createSignal, createEffect, Show, For, onCleanup, onMount } from 'solid-js';
 import { Send, Square, Paperclip, Image as ImageIcon, X } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
-import type { SlashCommand, FileSearchResult, FileReference, PromptImageInput } from '@/lib/types';
+import type {
+  SlashCommand,
+  FileSearchResult,
+  FileReference,
+  PromptImageInput,
+  ImageAttachment,
+} from '@/lib/types';
 import {
   SUPPORTED_IMAGE_MIMES,
   SUPPORTED_TEXT_EXTENSIONS,
@@ -39,6 +45,7 @@ import {
   clearAttachments,
   getAttachmentCount,
   getImageCount,
+  getTotalImageSizeBytes,
   getTotalEstimatedTokens,
   assembleContext,
   getPromptImages,
@@ -117,7 +124,9 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   const [mentionOpen, setMentionOpen] = createSignal(false);
   const [mentionResults, setMentionResults] = createSignal<FileSearchResult[]>([]);
   const [mentionHighlight, setMentionHighlight] = createSignal(0);
+  const [previewImage, setPreviewImage] = createSignal<ImageAttachment | null>(null);
   let textareaRef: HTMLTextAreaElement | undefined;
+  let fileInputRef: HTMLInputElement | undefined;
 
   // Local booleans synced with stores — avoids store proxy issues in event handlers
   let slashMenuOpen = false;
@@ -131,6 +140,25 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   // Debounce timer for mention search
   let mentionSearchTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  onMount(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewImage()) {
+        setPreviewImage(null);
+      }
+    };
+    const handleOpenFilePicker = () => {
+      if (props.isDisabled) return;
+      fileInputRef?.click();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    window.addEventListener('cw:open-file-picker', handleOpenFilePicker);
+    onCleanup(() => {
+      document.removeEventListener('keydown', handleEscape);
+      window.removeEventListener('cw:open-file-picker', handleOpenFilePicker);
+    });
+  });
 
   // Auto-resize textarea between min and max height
   function adjustHeight() {
@@ -338,6 +366,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         void startAction(action);
         setContent('');
         clearAttachments();
+        setPreviewImage(null);
         if (textareaRef) {
           textareaRef.value = '';
           textareaRef.style.height = '80px';
@@ -356,6 +385,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     props.onSend(fullMessage, promptImages.length > 0 ? promptImages : undefined);
     setContent('');
     clearAttachments();
+    setPreviewImage(null);
     if (textareaRef) {
       textareaRef.value = '';
       textareaRef.style.height = '80px';
@@ -431,6 +461,31 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     }
   }
 
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function readImageDimensions(dataUrl: string): Promise<{ width: number; height: number } | null> {
+    return new Promise((resolve) => {
+      const image = new window.Image();
+      image.onload = () => resolve({ width: image.width, height: image.height });
+      image.onerror = () => resolve(null);
+      image.src = dataUrl;
+    });
+  }
+
+  async function handleFileInputChange(e: Event): Promise<void> {
+    const input = e.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    await handleExternalFileDrop(input.files);
+    input.value = '';
+  }
+
   async function handleExternalFileDrop(files: FileList): Promise<void> {
     const dropped = Array.from(files);
     if (dropped.length === 0) return;
@@ -448,7 +503,22 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       const isImage = SUPPORTED_IMAGE_MIMES.has(mimeType);
 
       if (isImage) {
-        imageCount += 1;
+        try {
+          const dataUrl = await readFileAsDataUrl(file);
+          const dimensions = await readImageDimensions(dataUrl);
+          const imageId = addImageAttachment(
+            dataUrl,
+            mimeType,
+            file.size,
+            dimensions?.width,
+            dimensions?.height,
+          );
+          if (imageId) {
+            imageCount += 1;
+          }
+        } catch {
+          failedCount += 1;
+        }
         continue;
       }
 
@@ -476,10 +546,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       );
     }
     if (imageCount > 0) {
-      addToast(
-        `Image drop is not supported yet (${imageCount}). Use clipboard paste (Cmd/Ctrl+V).`,
-        'info',
-      );
+      addToast(`Added ${imageCount} image${imageCount > 1 ? 's' : ''} to prompt`, 'success');
     }
     if (failedCount > 0) {
       addToast(`Failed to read ${failedCount} dropped file${failedCount > 1 ? 's' : ''}`, 'error');
@@ -754,7 +821,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
                 <img
                   src={image.data_url}
                   alt={image.file_name}
-                  class="h-12 w-auto max-w-[80px] object-cover"
+                  class="h-12 w-auto max-w-[80px] object-cover cursor-pointer"
+                  onClick={() => setPreviewImage(image)}
                 />
                 <button
                   class="absolute -top-1 -right-1 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -762,7 +830,13 @@ const MessageInput: Component<MessageInputProps> = (props) => {
                     background: 'var(--color-bg-elevated)',
                     border: '1px solid var(--color-border-primary)',
                   }}
-                  onClick={() => removeImageAttachment(image.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImageAttachment(image.id);
+                    if (previewImage()?.id === image.id) {
+                      setPreviewImage(null);
+                    }
+                  }}
                   aria-label={`Remove ${image.file_name}`}
                 >
                   <X size={8} />
@@ -779,7 +853,73 @@ const MessageInput: Component<MessageInputProps> = (props) => {
               </div>
             )}
           </For>
+          <span
+            class="ml-1 text-[9px] font-mono"
+            style={{
+              color:
+                getTotalImageSizeBytes() > 4 * 1024 * 1024
+                  ? 'var(--color-warning)'
+                  : 'var(--color-text-tertiary)',
+              opacity: '0.8',
+            }}
+          >
+            {(getTotalImageSizeBytes() / 1024 / 1024).toFixed(1)} / 5.0 MB
+          </span>
         </div>
+      </Show>
+
+      {/* Full-size image preview lightbox */}
+      <Show when={previewImage()}>
+        {(image) => (
+          <div
+            class="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0, 0, 0, 0.75)' }}
+            onClick={() => setPreviewImage(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Preview: ${image().file_name}`}
+          >
+            <div
+              class="relative overflow-hidden rounded-lg"
+              style={{
+                'max-width': '80vw',
+                'max-height': '80vh',
+                border: '1px solid var(--color-border-primary)',
+                'box-shadow': 'var(--shadow-lg)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={image().data_url}
+                alt={image().file_name}
+                style={{
+                  'max-width': '80vw',
+                  'max-height': '80vh',
+                  display: 'block',
+                }}
+              />
+              <div
+                class="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2"
+                style={{ background: 'rgba(0, 0, 0, 0.6)' }}
+              >
+                <span class="text-xs font-mono" style={{ color: 'var(--color-text-primary)' }}>
+                  {image().file_name}
+                </span>
+                <button
+                  class="rounded px-2 py-0.5 text-xs"
+                  style={{
+                    color: 'var(--color-text-secondary)',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                  }}
+                  onClick={() => setPreviewImage(null)}
+                  aria-label="Close preview"
+                >
+                  X Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </Show>
 
       {/* Suggested related files (CHI-127) */}
@@ -841,10 +981,28 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
       {/* Footer: character count + buttons */}
       <div class="flex items-center justify-between mt-2 max-w-4xl mx-auto">
-        {/* Left: character count */}
-        <span class="text-[10px] text-text-tertiary/40 font-mono tracking-wide">
-          <Show when={charCount() > 0}>{charCount()}</Show>
-        </span>
+        <div class="flex items-center gap-2">
+          {/* Left: character count */}
+          <span class="text-[10px] text-text-tertiary/40 font-mono tracking-wide">
+            <Show when={charCount() > 0}>{charCount()}</Show>
+          </span>
+
+          {/* Attach file button */}
+          <button
+            class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors"
+            style={{
+              'transition-duration': 'var(--duration-fast)',
+              color: 'var(--color-text-tertiary)',
+              background: 'transparent',
+            }}
+            onClick={() => fileInputRef?.click()}
+            disabled={props.isDisabled}
+            aria-label="Attach file (Cmd+Shift+U)"
+            title="Attach file (Cmd+Shift+U)"
+          >
+            <Paperclip size={13} />
+          </button>
+        </div>
 
         {/* Right: action buttons */}
         <div class="flex items-center gap-2">
@@ -883,6 +1041,16 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           </button>
         </div>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept=".ts,.tsx,.js,.jsx,.mjs,.cjs,.py,.rb,.rs,.go,.java,.kt,.swift,.c,.cpp,.h,.hpp,.cs,.html,.css,.scss,.less,.json,.yaml,.yml,.toml,.xml,.md,.txt,.sh,.bash,.zsh,.sql,.graphql,.env,.gitignore,image/png,image/jpeg,image/webp,image/gif,application/pdf"
+        class="hidden"
+        aria-hidden="true"
+        onChange={handleFileInputChange}
+      />
     </div>
   );
 };

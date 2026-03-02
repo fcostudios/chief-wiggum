@@ -192,6 +192,11 @@ export function getImageCount(): number {
   return state.images.length;
 }
 
+/** Total size of all image attachments in bytes. */
+export function getTotalImageSizeBytes(): number {
+  return state.images.reduce((sum, image) => sum + image.size_bytes, 0);
+}
+
 /** Return image attachments as SDK-ready prompt payload blocks. */
 export function getPromptImages(): PromptImageInput[] {
   return state.images.map((image) => ({

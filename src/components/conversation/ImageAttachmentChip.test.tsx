@@ -57,6 +57,7 @@ vi.mock('@/stores/contextStore', () => ({
   clearAttachments: vi.fn(),
   getAttachmentCount: () => 0,
   getImageCount: () => mockImages.length,
+  getTotalImageSizeBytes: () => mockImages.reduce((sum, img) => sum + img.size_bytes, 0),
   getTotalEstimatedTokens: () => 0,
   assembleContext: () => Promise.resolve(''),
   getPromptImages: () => [],

@@ -111,6 +111,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
     return;
   }
 
+  // Cmd+Shift+U — open file attachment picker
+  if (e.code === 'KeyU' && e.shiftKey) {
+    e.preventDefault();
+    window.dispatchEvent(new CustomEvent('cw:open-file-picker'));
+    return;
+  }
+
   // Cmd+Shift+. — stop all running actions
   if (e.code === 'Period' && e.shiftKey) {
     e.preventDefault();
