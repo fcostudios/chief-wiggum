@@ -16,6 +16,7 @@ import type {
   FileBundleSuggestion,
   PromptImageInput,
   ImageAttachment,
+  SymbolSearchResult,
 } from '@/lib/types';
 import {
   SUPPORTED_IMAGE_MIMES,
@@ -50,6 +51,7 @@ import {
   getTotalEstimatedTokens,
   assembleContext,
   getPromptImages,
+  addSymbolAttachment,
 } from '@/stores/contextStore';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
@@ -73,6 +75,21 @@ interface MentionRange {
 interface ParsedMentionQuery {
   fileQuery: string;
   range: MentionRange | null;
+}
+
+const SYMBOL_KIND_MAP: Record<string, SymbolSearchResult['kind']> = {
+  'fn:': 'function',
+  'class:': 'class',
+  'var:': 'variable',
+};
+
+function getSymbolPrefix(query: string): { kind: SymbolSearchResult['kind']; subQuery: string } | null {
+  for (const [prefix, kind] of Object.entries(SYMBOL_KIND_MAP)) {
+    if (query.startsWith(prefix)) {
+      return { kind, subQuery: query.slice(prefix.length) };
+    }
+  }
+  return null;
 }
 
 function getFileExtension(fileName: string): string | null {
@@ -124,6 +141,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   const [isDragOver, setIsDragOver] = createSignal(false);
   const [mentionOpen, setMentionOpen] = createSignal(false);
   const [mentionResults, setMentionResults] = createSignal<FileSearchResult[]>([]);
+  const [symbolResults, setSymbolResults] = createSignal<SymbolSearchResult[]>([]);
+  const [mentionMode, setMentionMode] = createSignal<'file' | 'symbol'>('file');
   const [mentionBundleHints, setMentionBundleHints] = createSignal<Record<string, string>>({});
   const [mentionHighlight, setMentionHighlight] = createSignal(0);
   const [previewImage, setPreviewImage] = createSignal<ImageAttachment | null>(null);
@@ -260,6 +279,32 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     setMentionBundleHints(hints);
   }
 
+  function closeMentionMenu(): void {
+    setMentionOpen(false);
+    setMentionResults([]);
+    setSymbolResults([]);
+    setMentionBundleHints({});
+    setMentionMode('file');
+  }
+
+  function stripCurrentMentionToken(): void {
+    if (!textareaRef) return;
+
+    const value = textareaRef.value;
+    const cursorPos = textareaRef.selectionStart ?? value.length;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/(?:^|[\s])(@[^\s@]*)$/);
+    if (!match) return;
+
+    const mentionStart = textBeforeCursor.length - match[1].length;
+    const newValue = value.slice(0, mentionStart) + value.slice(cursorPos);
+    setContent(newValue);
+    textareaRef.value = newValue;
+    textareaRef.focus();
+    textareaRef.setSelectionRange(mentionStart, mentionStart);
+    adjustHeight();
+  }
+
   async function resolveInlineRangeMentions(text: string): Promise<string> {
     const projectId = projectState.activeProjectId;
     if (!projectId) return text;
@@ -355,30 +400,47 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         // Debounced search
         if (mentionSearchTimeout) clearTimeout(mentionSearchTimeout);
         mentionSearchTimeout = setTimeout(async () => {
+          const projectId = projectState.activeProjectId;
+          if (!projectId) {
+            closeMentionMenu();
+            return;
+          }
+
+          const symbolPrefix = getSymbolPrefix(query);
           try {
-            const results = await invoke<FileSearchResult[]>('search_project_files', {
-              project_id: projectState.activeProjectId,
-              query,
-              max_results: 10,
-            });
-            setMentionResults(results);
-            void loadMentionBundleHints(results);
+            if (symbolPrefix) {
+              setMentionMode('symbol');
+              const symbols = await invoke<SymbolSearchResult[]>('list_symbols', {
+                project_id: projectId,
+                kind: symbolPrefix.kind,
+                query: symbolPrefix.subQuery,
+              });
+              setSymbolResults(symbols);
+              setMentionResults([]);
+              setMentionBundleHints({});
+            } else {
+              setMentionMode('file');
+              const results = await invoke<FileSearchResult[]>('search_project_files', {
+                project_id: projectId,
+                query,
+                max_results: 10,
+              });
+              setMentionResults(results);
+              setSymbolResults([]);
+              void loadMentionBundleHints(results);
+            }
           } catch {
             setMentionResults([]);
+            setSymbolResults([]);
             setMentionBundleHints({});
+            setMentionMode('file');
           }
         }, 100);
       } else {
-        setMentionOpen(false);
-        setMentionResults([]);
-        setMentionBundleHints({});
+        closeMentionMenu();
       }
     } else {
-      if (mentionOpen()) {
-        setMentionOpen(false);
-        setMentionResults([]);
-        setMentionBundleHints({});
-      }
+      if (mentionOpen()) closeMentionMenu();
     }
 
     // Slash command detection: `/` after a space, newline, or at the start of text.
@@ -686,27 +748,22 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
     const ref = await buildFileReference(result, parsedMention.range);
     addFileReference(ref);
+    stripCurrentMentionToken();
+    closeMentionMenu();
+  }
 
-    // Remove the @query from the textarea
-    const match = textBeforeCursor.match(/(?:^|[\s])(@[^\s@]*)$/);
-    if (match) {
-      const mentionStart = textBeforeCursor.length - match[1].length;
-      const newValue = value.slice(0, mentionStart) + value.slice(cursorPos);
-      setContent(newValue);
-      textareaRef.value = newValue;
-      textareaRef.focus();
-      textareaRef.setSelectionRange(mentionStart, mentionStart);
-    }
-
-    setMentionOpen(false);
-    setMentionResults([]);
-    setMentionBundleHints({});
-    adjustHeight();
+  function handleSymbolMentionSelect(result: SymbolSearchResult): void {
+    addSymbolAttachment(result);
+    stripCurrentMentionToken();
+    closeMentionMenu();
   }
 
   function handleKeyDown(e: KeyboardEvent) {
     // When mention menu is open, intercept navigation keys
     if (mentionMenuOpen) {
+      const optionCount =
+        mentionMode() === 'symbol' ? symbolResults().length : mentionResults().length;
+      const maxIndex = Math.max(0, optionCount - 1);
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         e.stopPropagation();
@@ -716,35 +773,47 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         e.stopPropagation();
-        setMentionHighlight((i) => Math.min(mentionResults().length - 1, i + 1));
+        setMentionHighlight((i) => Math.min(maxIndex, i + 1));
         return;
       }
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        const results = mentionResults();
         const idx = mentionHighlight();
-        if (results[idx]) {
-          void handleMentionSelect(results[idx]);
+        if (mentionMode() === 'symbol') {
+          const symbols = symbolResults();
+          if (symbols[idx]) {
+            handleSymbolMentionSelect(symbols[idx]);
+          }
+        } else {
+          const results = mentionResults();
+          if (results[idx]) {
+            void handleMentionSelect(results[idx]);
+          }
         }
         return;
       }
       if (e.key === 'Tab') {
         e.preventDefault();
         e.stopPropagation();
-        const results = mentionResults();
         const idx = mentionHighlight();
-        if (results[idx]) {
-          void handleMentionSelect(results[idx]);
+        if (mentionMode() === 'symbol') {
+          const symbols = symbolResults();
+          if (symbols[idx]) {
+            handleSymbolMentionSelect(symbols[idx]);
+          }
+        } else {
+          const results = mentionResults();
+          if (results[idx]) {
+            void handleMentionSelect(results[idx]);
+          }
         }
         return;
       }
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        setMentionOpen(false);
-        setMentionResults([]);
-        setMentionBundleHints({});
+        closeMentionMenu();
         return;
       }
     }
@@ -989,14 +1058,13 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         <FileMentionMenu
           isOpen={mentionOpen()}
           results={mentionResults()}
+          symbolResults={symbolResults()}
           highlightedIndex={mentionHighlight()}
           bundleHints={mentionBundleHints()}
+          mode={mentionMode()}
           onSelect={handleMentionSelect}
-          onClose={() => {
-            setMentionOpen(false);
-            setMentionResults([]);
-            setMentionBundleHints({});
-          }}
+          onSelectSymbol={handleSymbolMentionSelect}
+          onClose={closeMentionMenu}
         />
         <textarea
           ref={textareaRef}
@@ -1022,11 +1090,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             // Delay close to allow click on menu items
             setTimeout(() => {
               if (slashState.isOpen) closeMenu();
-              if (mentionOpen()) {
-                setMentionOpen(false);
-                setMentionResults([]);
-                setMentionBundleHints({});
-              }
+              if (mentionOpen()) closeMentionMenu();
             }, 200);
           }}
           rows={1}
