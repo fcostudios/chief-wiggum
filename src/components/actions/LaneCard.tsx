@@ -4,12 +4,7 @@
 import { Component, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js';
 import { Square, RotateCcw, Bot } from 'lucide-solid';
 import type { CrossProjectRunningAction } from '@/lib/types';
-import {
-  getActionById,
-  restartAction,
-  stopAction,
-  selectAction,
-} from '@/stores/actionStore';
+import { getActionById, restartAction, stopAction, selectAction } from '@/stores/actionStore';
 import { t } from '@/stores/i18nStore';
 import { uiState, setActiveView } from '@/stores/uiStore';
 import { addToast } from '@/stores/toastStore';
@@ -97,7 +92,10 @@ const LaneCard: Component<LaneCardProps> = (props) => {
 
   function handleStop(e: MouseEvent) {
     e.stopPropagation();
-    const confirmation = t('actions_center.lane.stop_confirm').replace('{name}', props.lane.action_name);
+    const confirmation = t('actions_center.lane.stop_confirm').replace(
+      '{name}',
+      props.lane.action_name,
+    );
     if (!window.confirm(confirmation)) return;
     void stopAction(props.lane.action_id);
   }
@@ -204,7 +202,10 @@ const LaneCard: Component<LaneCardProps> = (props) => {
 
         <button
           class="rounded p-1 transition-colors hover:text-yellow-400"
-          style={{ color: 'var(--color-text-tertiary)', 'transition-duration': 'var(--duration-fast)' }}
+          style={{
+            color: 'var(--color-text-tertiary)',
+            'transition-duration': 'var(--duration-fast)',
+          }}
           aria-label={t('actions_center.restart')}
           title={t('actions_center.restart')}
           onClick={handleRestart}
@@ -214,7 +215,10 @@ const LaneCard: Component<LaneCardProps> = (props) => {
 
         <button
           class="rounded p-1 transition-colors hover:text-blue-400"
-          style={{ color: 'var(--color-text-tertiary)', 'transition-duration': 'var(--duration-fast)' }}
+          style={{
+            color: 'var(--color-text-tertiary)',
+            'transition-duration': 'var(--duration-fast)',
+          }}
           aria-label={t('actions_center.ask_ai')}
           title={t('actions_center.ask_ai')}
           onClick={(e) => {
@@ -228,7 +232,10 @@ const LaneCard: Component<LaneCardProps> = (props) => {
 
       <span
         class="pointer-events-none absolute bottom-1 right-2 text-[9px] opacity-0 transition-opacity group-hover:opacity-50"
-        style={{ color: 'var(--color-text-tertiary)', 'transition-duration': 'var(--duration-fast)' }}
+        style={{
+          color: 'var(--color-text-tertiary)',
+          'transition-duration': 'var(--duration-fast)',
+        }}
         aria-hidden="true"
       >
         {t('actions_center.lane.inspect_hint')}

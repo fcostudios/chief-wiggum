@@ -106,7 +106,10 @@ const LaneLogScreen: Component<LaneLogScreenProps> = (props) => {
   }
 
   function handleStop() {
-    const confirmation = t('actions_center.lane.stop_confirm').replace('{name}', props.lane.action_name);
+    const confirmation = t('actions_center.lane.stop_confirm').replace(
+      '{name}',
+      props.lane.action_name,
+    );
     if (!window.confirm(confirmation)) return;
     void stopAction(props.lane.action_id);
   }
@@ -271,7 +274,12 @@ const LaneLogScreen: Component<LaneLogScreenProps> = (props) => {
             style={{ color: '#e6edf3' }}
           />
           <Show when={searchQuery().trim().length > 0}>
-            <span class="text-[10px] font-mono" style={{ color: '#6e7681' }} role="status" aria-live="polite">
+            <span
+              class="text-[10px] font-mono"
+              style={{ color: '#6e7681' }}
+              role="status"
+              aria-live="polite"
+            >
               {t('actions_center.log_screen.matches').replace('{n}', String(matchCount()))}
             </span>
           </Show>
@@ -296,7 +304,14 @@ const LaneLogScreen: Component<LaneLogScreenProps> = (props) => {
         aria-label={`Live action output for ${props.lane.action_name}`}
         style={{ background: '#0d1117' }}
       >
-        <Show when={filteredLines().length > 0} fallback={<p class="px-3 py-2 text-xs font-mono" style={{ color: '#6e7681' }}>No output yet</p>}>
+        <Show
+          when={filteredLines().length > 0}
+          fallback={
+            <p class="px-3 py-2 text-xs font-mono" style={{ color: '#6e7681' }}>
+              No output yet
+            </p>
+          }
+        >
           <For each={filteredLines()}>
             {(entry) => {
               const isMatch =

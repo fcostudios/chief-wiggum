@@ -32,8 +32,7 @@ const ActionsCenter: Component = () => {
 
   const hasProjects = createMemo(() => projects().length > 0);
 
-  const selectedProject = () =>
-    projects().find((p) => p.id === selectedWarehouseId());
+  const selectedProject = () => projects().find((p) => p.id === selectedWarehouseId());
 
   const activeLanesForProject = (projectId: string) =>
     actionState.crossProjectRunning.filter((lane) => lane.project_id === projectId);
@@ -149,7 +148,10 @@ const ActionsCenter: Component = () => {
                     Overview
                   </button>
                   <span style={{ color: 'var(--color-border-secondary)' }}>/</span>
-                  <span class="text-sm font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+                  <span
+                    class="text-sm font-semibold"
+                    style={{ color: 'var(--color-text-primary)' }}
+                  >
                     {selectedProject()?.name}
                   </span>
                   <div class="flex-1" />
@@ -230,7 +232,9 @@ const ActionsCenter: Component = () => {
                     >
                       <div class="space-y-3">
                         <For each={activeLanesForSelected()}>
-                          {(lane) => <LaneCard lane={lane} onInspect={(id) => setSelectedLaneId(id)} />}
+                          {(lane) => (
+                            <LaneCard lane={lane} onInspect={(id) => setSelectedLaneId(id)} />
+                          )}
                         </For>
                       </div>
                     </Show>
