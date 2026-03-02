@@ -48,6 +48,7 @@ interface UIState {
   keyboardHelpVisible: boolean;
   messageSearchVisible: boolean;
   statusCostPopoverVisible: boolean;
+  actionTechnicalMode: boolean;
 }
 
 /** Restore persisted permission tier from localStorage. */
@@ -128,6 +129,7 @@ const [state, setState] = createStore<UIState>({
   keyboardHelpVisible: false,
   messageSearchVisible: false,
   statusCostPopoverVisible: false,
+  actionTechnicalMode: false,
 });
 
 // Sync persisted tier to backend on startup
@@ -197,6 +199,10 @@ export function toggleContextBreakdown() {
 
 export function setActiveView(view: ActiveView) {
   setState('activeView', view);
+}
+
+export function toggleActionTechnicalMode() {
+  setState('actionTechnicalMode', (prev) => !prev);
 }
 
 /** Set the badge count for a view tab. 0 hides the badge. */

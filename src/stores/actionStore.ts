@@ -202,6 +202,42 @@ export function getActionOutput(actionId: string): ActionOutputLine[] {
   return state.outputs[actionId] ?? [];
 }
 
+/**
+ * Subscribe to output lines for a specific action.
+ * Returns an unlisten callback suitable for onCleanup().
+ */
+export function listenToActionOutput(
+  actionId: string,
+  callback: (line: ActionOutputLine) => void,
+): () => void {
+  let unlisten: UnlistenFn | null = null;
+  let disposed = false;
+
+  void listen<{ action_id: string; line: string; is_error: boolean }>('action:output', (event) => {
+    const { action_id, line, is_error } = event.payload;
+    if (action_id !== actionId) return;
+    callback({
+      line,
+      is_error,
+      timestamp: Date.now(),
+    });
+  }).then((fn) => {
+    if (disposed) {
+      fn();
+      return;
+    }
+    unlisten = fn;
+  });
+
+  return () => {
+    disposed = true;
+    if (unlisten) {
+      unlisten();
+      unlisten = null;
+    }
+  };
+}
+
 /** Select an action to view output. */
 export function selectAction(actionId: string | null): void {
   setState('selectedActionId', actionId);
