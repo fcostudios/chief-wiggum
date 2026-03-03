@@ -21,6 +21,7 @@ import {
   foldGutter,
   foldKeymap,
   indentOnInput,
+  StreamLanguage,
 } from '@codemirror/language';
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { search, searchKeymap } from '@codemirror/search';
@@ -47,20 +48,69 @@ const log = createLogger('ui/editor-takeover');
 const MTIME_POLL_INTERVAL = 2000;
 
 /** Lazy-load a CodeMirror language extension from file extension. */
-async function loadLanguageExtension(filePath: string): Promise<Extension | null> {
-  const ext = filePath.split('.').pop()?.toLowerCase();
+export function languageKeyForFilePath(filePath: string): string | null {
+  const normalizedPath = filePath.toLowerCase();
+  const baseName = normalizedPath.split('/').pop() ?? normalizedPath;
+  const ext = baseName.includes('.') ? (baseName.split('.').pop() ?? '') : '';
+
+  if (baseName === 'dockerfile') return 'shell';
+  if (baseName === 'makefile') return 'shell';
+  if (baseName === '.env' || baseName.startsWith('.env.')) return 'shell';
+
   switch (ext) {
     case 'ts':
     case 'tsx':
     case 'js':
-    case 'jsx': {
+    case 'jsx':
+      return 'javascript';
+    case 'rs':
+      return 'rust';
+    case 'json':
+      return 'json';
+    case 'py':
+      return 'python';
+    case 'css':
+      return 'css';
+    case 'html':
+    case 'htm':
+      return 'html';
+    case 'md':
+    case 'mdx':
+      return 'markdown';
+    case 'yaml':
+    case 'yml':
+      return 'yaml';
+    case 'toml':
+      return 'toml';
+    case 'sh':
+    case 'bash':
+    case 'zsh':
+    case 'fish':
+      return 'shell';
+    case 'sql':
+      return 'sql';
+    case 'xml':
+    case 'svg':
+      return 'xml';
+    default:
+      return null;
+  }
+}
+
+async function loadLanguageExtension(filePath: string): Promise<Extension | null> {
+  const languageKey = languageKeyForFilePath(filePath);
+  if (!languageKey) return null;
+
+  switch (languageKey) {
+    case 'javascript': {
+      const ext = filePath.split('.').pop()?.toLowerCase();
       const { javascript } = await import('@codemirror/lang-javascript');
       return javascript({
         typescript: ext === 'ts' || ext === 'tsx',
         jsx: ext === 'tsx' || ext === 'jsx',
       });
     }
-    case 'rs': {
+    case 'rust': {
       const { rust } = await import('@codemirror/lang-rust');
       return rust();
     }
@@ -68,7 +118,7 @@ async function loadLanguageExtension(filePath: string): Promise<Extension | null
       const { json } = await import('@codemirror/lang-json');
       return json();
     }
-    case 'py': {
+    case 'python': {
       const { python } = await import('@codemirror/lang-python');
       return python();
     }
@@ -80,9 +130,29 @@ async function loadLanguageExtension(filePath: string): Promise<Extension | null
       const { html } = await import('@codemirror/lang-html');
       return html();
     }
-    case 'md': {
+    case 'markdown': {
       const { markdown } = await import('@codemirror/lang-markdown');
       return markdown();
+    }
+    case 'yaml': {
+      const { yaml } = await import('@codemirror/legacy-modes/mode/yaml');
+      return StreamLanguage.define(yaml);
+    }
+    case 'toml': {
+      const { toml } = await import('@codemirror/legacy-modes/mode/toml');
+      return StreamLanguage.define(toml);
+    }
+    case 'shell': {
+      const { shell } = await import('@codemirror/legacy-modes/mode/shell');
+      return StreamLanguage.define(shell);
+    }
+    case 'sql': {
+      const { sql } = await import('@codemirror/legacy-modes/mode/sql');
+      return StreamLanguage.define(sql({}));
+    }
+    case 'xml': {
+      const { xml } = await import('@codemirror/legacy-modes/mode/xml');
+      return StreamLanguage.define(xml);
     }
     default:
       return null;
@@ -167,10 +237,15 @@ const EditorTakeover: Component = () => {
       }),
       EditorView.theme({
         '&': {
+          height: '100%',
           fontSize: '14px',
           fontFamily: 'var(--font-mono)',
         },
+        '.cm-scroller': {
+          overflow: 'auto',
+        },
         '.cm-content': {
+          minHeight: '100%',
           lineHeight: '1.6',
         },
         '.cm-gutters': {
@@ -309,11 +384,7 @@ const EditorTakeover: Component = () => {
         </div>
       </Show>
 
-      <div
-        ref={editorContainerRef}
-        class="flex-1 min-h-0 overflow-hidden"
-        aria-label="Code editor"
-      />
+      <div ref={editorContainerRef} class="flex-1 min-h-0 overflow-auto" aria-label="Code editor" />
 
       <EditorStatusBar />
 
