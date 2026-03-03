@@ -30,7 +30,6 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
     <section
       class="flex flex-col shrink-0"
       classList={{ 'flex-1': props.open && props.focused, 'min-h-0': props.open && props.focused }}
-      style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
       data-section-id={props.id}
     >
       <button
@@ -240,7 +239,6 @@ const DetailsPanel: Component = () => {
               'h-full': isFocused('actionOutput'),
               'min-h-0': isFocused('actionOutput'),
             }}
-            style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
           >
             <ActionOutputPanel />
           </div>
