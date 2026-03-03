@@ -17,7 +17,7 @@ async function dismissOnboardingIfVisible(page: Page): Promise<void> {
 export const test = base.extend({
   page: async ({ page }, use) => {
     await page.goto('/');
-    await page.waitForSelector('.grain-overlay', { timeout: 15_000 });
+    await page.waitForSelector('#main-content', { timeout: 15_000 });
     await dismissOnboardingIfVisible(page);
     await use(page);
   },
