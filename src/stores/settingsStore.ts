@@ -203,10 +203,15 @@ async function persistSettings(): Promise<void> {
       isSaving: false,
       saveError: message,
     });
-    addToast('Settings could not be saved', 'error', {
-      label: 'Retry',
-      onClick: retryPendingSettingsSave,
-    });
+    addToast(
+      'Settings could not be saved',
+      'error',
+      {
+        label: 'Retry',
+        onClick: retryPendingSettingsSave,
+      },
+      String(err),
+    );
   } finally {
     saveInFlight = false;
     if (hasPendingPatch()) {
@@ -231,7 +236,7 @@ export async function resetCategory(category?: SettingsCategory): Promise<void> 
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.error('Failed to reset settings: ' + message);
-    addToast('Failed to reset settings', 'error');
+    addToast('Failed to reset settings', 'error', undefined, String(err));
   }
 }
 

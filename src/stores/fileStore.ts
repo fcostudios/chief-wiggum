@@ -667,7 +667,7 @@ export async function openEditorTakeover(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     log.error('Failed to open file for editor takeover: ' + msg);
-    addToast('Failed to open file: ' + msg, 'error');
+    addToast('Failed to open file: ' + msg, 'error', undefined, String(err));
   }
 }
 
@@ -712,7 +712,7 @@ export async function saveFileEdit(projectId: string, relativePath: string): Pro
     setState('saveStatus', 'error');
     const msg = err instanceof Error ? err.message : String(err);
     log.error('Failed to save file: ' + msg);
-    addToast('Failed to save: ' + msg, 'error');
+    addToast('Failed to save: ' + msg, 'error', undefined, String(err));
   }
 }
 

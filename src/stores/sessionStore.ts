@@ -222,7 +222,7 @@ export async function forkSession(
     return session.id;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    addToast(`Fork failed: ${message}`, 'error');
+    addToast(`Fork failed: ${message}`, 'error', undefined, String(err));
     return null;
   }
 }

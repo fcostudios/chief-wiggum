@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import { ChevronDown, Coins } from 'lucide-solid';
+import { ChevronDown, Coins, Copy, XCircle } from 'lucide-solid';
 import {
   closeStatusCostPopover,
   setActiveView,
@@ -16,6 +16,8 @@ import { conversationState } from '@/stores/conversationStore';
 import { sessionState, setActiveSession } from '@/stores/sessionStore';
 import { openExportDialog } from '@/stores/diagnosticsStore';
 import { t } from '@/stores/i18nStore';
+import { addToast } from '@/stores/toastStore';
+import { clearErrorLog, errorLogState, getErrorCount } from '@/stores/errorLogStore';
 import type { ProcessStatus, Session, TodoItem } from '@/lib/types';
 import {
   actionState,
@@ -54,13 +56,16 @@ const StatusBar: Component = () => {
   let statusPopoverRef: HTMLDivElement | undefined;
   let costButtonRef: HTMLButtonElement | undefined;
   let costPopoverRef: HTMLDivElement | undefined;
+  let errorLogRef: HTMLDivElement | undefined;
   const [statusPopoverOpen, setStatusPopoverOpen] = createSignal(false);
+  const [errorLogOpen, setErrorLogOpen] = createSignal(false);
 
   const activeSession = () =>
     sessionState.sessions.find((s) => s.id === sessionState.activeSessionId) ?? null;
   const activeSessionId = () => sessionState.activeSessionId;
   const runningActions = createMemo(() => getRunningActions());
   const runningActionsCenterCount = createMemo(() => actionState.crossProjectRunning.length);
+  const errorCount = createMemo(() => getErrorCount());
   const recentActions = createMemo(() => getRecentActionEvents().slice(0, 3));
   const runningActionCount = () => runningActions().length;
 
@@ -188,6 +193,7 @@ const StatusBar: Component = () => {
   function closeAllPopovers() {
     setStatusPopoverOpen(false);
     closeStatusCostPopover();
+    setErrorLogOpen(false);
   }
 
   function handleStatusPillClick() {
@@ -202,6 +208,19 @@ const StatusBar: Component = () => {
     }
   }
 
+  function handleCopyAllErrors() {
+    const text = errorLogState.entries
+      .map((entry) => {
+        const base = `[${entry.timestamp.toISOString()}] ${entry.message}`;
+        return entry.details ? `${base} — ${entry.details}` : base;
+      })
+      .join('\n');
+
+    void navigator.clipboard.writeText(text).then(() => {
+      addToast(t('errorLog.copiedAll'), 'success');
+    });
+  }
+
   onMount(() => {
     const onDocumentMouseDown = (event: MouseEvent) => {
       const target = event.target as Node | null;
@@ -209,7 +228,8 @@ const StatusBar: Component = () => {
 
       const clickedStatus = statusButtonRef?.contains(target) || statusPopoverRef?.contains(target);
       const clickedCost = costButtonRef?.contains(target) || costPopoverRef?.contains(target);
-      if (!clickedStatus && !clickedCost) {
+      const clickedError = errorLogRef?.contains(target);
+      if (!clickedStatus && !clickedCost && !clickedError) {
         closeAllPopovers();
       }
     };
@@ -299,6 +319,164 @@ const StatusBar: Component = () => {
             <span aria-hidden="true">⚙</span>
             {runningActionsCenterCount()} running
           </button>
+        </Show>
+
+        <Show when={errorCount() > 0}>
+          <button
+            class="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
+            style={{
+              background: 'color-mix(in srgb, var(--color-error) 15%, transparent)',
+              color: 'var(--color-error)',
+              border: '1px solid color-mix(in srgb, var(--color-error) 25%, transparent)',
+            }}
+            aria-label={`${errorCount()} ${t('errorLog.badge')}`}
+            onClick={() => setErrorLogOpen((prev) => !prev)}
+          >
+            <XCircle size={10} />
+            {errorCount()}
+          </button>
+        </Show>
+
+        <Show when={errorLogOpen()}>
+          <div
+            ref={errorLogRef}
+            class="absolute bottom-7 left-0 z-40 w-[380px] overflow-hidden rounded-lg animate-fade-in"
+            style={{
+              background: 'var(--color-bg-primary)',
+              border: '1px solid var(--color-border-primary)',
+              'box-shadow': 'var(--shadow-lg)',
+            }}
+          >
+            <div
+              class="flex items-center justify-between px-3 py-2"
+              style={{
+                background: 'var(--color-bg-secondary)',
+                'border-bottom': '1px solid var(--color-border-secondary)',
+              }}
+            >
+              <span
+                class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
+                {t('errorLog.title')}
+              </span>
+              <div class="flex items-center gap-2">
+                <button
+                  class="text-[10px] hover:underline"
+                  style={{
+                    color: 'var(--color-text-tertiary)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  onClick={handleCopyAllErrors}
+                >
+                  {t('errorLog.copyAll')}
+                </button>
+                <button
+                  class="text-[10px] hover:underline"
+                  style={{
+                    color: 'var(--color-error)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    clearErrorLog();
+                    setErrorLogOpen(false);
+                  }}
+                >
+                  {t('errorLog.clear')}
+                </button>
+              </div>
+            </div>
+
+            <div class="max-h-[300px] overflow-y-auto">
+              <Show
+                when={errorLogState.entries.length > 0}
+                fallback={
+                  <p
+                    class="px-3 py-4 text-center text-xs"
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  >
+                    {t('errorLog.empty')}
+                  </p>
+                }
+              >
+                <For each={errorLogState.entries}>
+                  {(entry) => (
+                    <div
+                      class="border-b px-3 py-2"
+                      style={{ 'border-color': 'var(--color-border-secondary)' }}
+                    >
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                          <div class="flex items-center gap-1.5">
+                            <span
+                              class="shrink-0 font-mono text-[10px]"
+                              style={{ color: 'var(--color-text-tertiary)' }}
+                            >
+                              {entry.timestamp.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </span>
+                            <XCircle
+                              size={10}
+                              class="shrink-0"
+                              style={{ color: 'var(--color-error)' }}
+                            />
+                          </div>
+                          <p class="mt-0.5 text-xs" style={{ color: 'var(--color-text-primary)' }}>
+                            {entry.humanMessage ?? entry.message}
+                          </p>
+                          <Show when={entry.suggestion}>
+                            <p
+                              class="mt-0.5 text-[11px]"
+                              style={{ color: 'var(--color-text-tertiary)' }}
+                            >
+                              {entry.suggestion}
+                            </p>
+                          </Show>
+                          <Show when={entry.details}>
+                            <p
+                              class="mt-1 truncate rounded px-1.5 py-1 font-mono text-[10px]"
+                              style={{
+                                color: 'var(--color-text-tertiary)',
+                                background: 'var(--color-bg-inset)',
+                                'max-width': '100%',
+                              }}
+                              title={entry.details}
+                            >
+                              {entry.details}
+                            </p>
+                          </Show>
+                        </div>
+                        <button
+                          class="mt-0.5 shrink-0"
+                          style={{
+                            color: 'var(--color-text-tertiary)',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                          onClick={() =>
+                            void navigator.clipboard.writeText(
+                              `${entry.message}${entry.details ? `\n${entry.details}` : ''}`,
+                            )
+                          }
+                          aria-label="Copy error"
+                        >
+                          <Copy size={10} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </Show>
+            </div>
+          </div>
         </Show>
 
         <Show when={statusPopoverOpen()}>

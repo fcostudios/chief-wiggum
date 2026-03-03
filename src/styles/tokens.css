@@ -150,6 +150,9 @@
   --title-bar-height: 40px;
   --input-area-min-height: 80px;
   --agent-card-min-height: 120px;
+  --toast-countdown-duration: 5s;
+  --toast-countdown-color: var(--color-info);
+  --toast-countdown-height: 2px;
 
   /* --- Ambient glow colors (derived from accent) --- */
   --glow-accent: 0 0 20px rgba(232, 130, 90, 0.15);
@@ -404,6 +407,15 @@
   }
 }
 
+@keyframes toast-countdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
 @keyframes border-glow {
   0%,
   100% {
@@ -459,6 +471,10 @@
 
 .animate-slide-out-right {
   animation: slide-out-right 0.3s var(--ease-default) forwards;
+}
+
+.animate-toast-countdown {
+  animation: toast-countdown var(--toast-countdown-duration, 5s) linear forwards;
 }
 
 .animate-thinking-shimmer {

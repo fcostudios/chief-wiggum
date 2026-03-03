@@ -131,6 +131,22 @@
     "settingsNotSaved": "Settings could not be saved",
     "connectionTimeout": "Connection timed out"
   },
+  "toast": {
+    "details": "Details",
+    "hideDetails": "Hide details",
+    "copyError": "Copy error",
+    "copied": "Copied!",
+    "undo": "Undo",
+    "dismiss": "Dismiss notification"
+  },
+  "errorLog": {
+    "title": "Error Log",
+    "empty": "No errors in this session",
+    "clear": "Clear all",
+    "copyAll": "Copy all errors",
+    "copiedAll": "All errors copied",
+    "badge": "errors"
+  },
   "settings": {
     "title": "Settings",
     "appearance": "Appearance",

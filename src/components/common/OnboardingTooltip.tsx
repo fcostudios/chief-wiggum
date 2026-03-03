@@ -31,8 +31,9 @@ const OnboardingTooltip: Component<OnboardingTooltipProps> = (props) => {
       class="absolute z-50 flex items-start gap-2 px-3 py-2 rounded-lg animate-fade-in"
       style={{
         ...positionStyle(),
-        background: 'var(--color-accent)',
-        color: '#fff',
+        background: 'var(--color-bg-elevated)',
+        color: 'var(--color-text-primary)',
+        border: '1px solid var(--color-accent-muted)',
         'font-size': '12px',
         'box-shadow': 'var(--shadow-md)',
         'max-width': '240px',
@@ -42,7 +43,7 @@ const OnboardingTooltip: Component<OnboardingTooltipProps> = (props) => {
       <span class="flex-1 leading-snug">{props.message}</span>
       <button
         aria-label="Dismiss"
-        class="flex-shrink-0 opacity-70 hover:opacity-100 mt-0.5"
+        class="mt-0.5 flex-shrink-0 text-text-tertiary transition-colors hover:text-text-primary"
         onClick={() => dismissTooltip(props.id)}
       >
         <X size={12} />

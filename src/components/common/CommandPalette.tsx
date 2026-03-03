@@ -128,7 +128,12 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
         });
       }
     } catch (err) {
-      addToast('Export failed: ' + (err instanceof Error ? err.message : String(err)), 'error');
+      addToast(
+        'Export failed',
+        'error',
+        undefined,
+        err instanceof Error ? err.message : String(err),
+      );
     }
   }
 
