@@ -119,7 +119,7 @@ vi.mock('@/stores/i18nStore', () => ({
     if (key === 'statusBar.recent') return 'Recent';
     if (key === 'statusBar.running') return 'Running';
     if (key === 'statusBar.dev') return 'DEV';
-    if (key === 'statusBar.yolo') return 'YOLO';
+    if (key === 'statusBar.yolo') return 'AUTO';
     if (key === 'common.stop') return 'Stop';
     if (key === 'common.retry') return 'Retry';
     return key;
@@ -183,10 +183,10 @@ describe('StatusBar', () => {
     expect(screen.getByText('CLI not found')).toBeInTheDocument();
   });
 
-  it('shows YOLO prefix in left status zone', () => {
+  it('shows AUTO prefix in left status zone when auto-approve active', () => {
     mockYoloMode = true;
     render(() => <StatusBar />);
-    expect(screen.getByText(/YOLO ·/)).toBeInTheDocument();
+    expect(screen.getByText(/AUTO ·/)).toBeInTheDocument();
   });
 
   it('opens cost breakdown popover and exports diagnostics', () => {

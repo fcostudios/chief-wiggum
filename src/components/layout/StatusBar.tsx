@@ -230,8 +230,14 @@ const StatusBar: Component = () => {
         <Show when={uiState.yoloMode || uiState.developerMode}>
           <span
             class="font-semibold tracking-[0.08em] uppercase"
+            title={
+              uiState.yoloMode
+                ? 'Auto-approve: All operations run without confirmation'
+                : 'Developer: Auto-approve safe operations, confirm destructive ones'
+            }
             style={{
               'font-size': '10px',
+              cursor: 'help',
               color: uiState.yoloMode ? 'var(--color-warning)' : 'var(--color-accent)',
             }}
           >
