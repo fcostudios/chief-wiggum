@@ -19,6 +19,9 @@ const mockSelectFile = vi.fn<(projectId: string, relativePath: string) => Promis
   Promise.resolve(),
 );
 const mockSetEditBuffer = vi.fn<(content: string) => void>();
+const mockOpenEditorTakeover = vi.fn<
+  (relativePath: string, cursorLine?: number, scrollTop?: number) => Promise<void>
+>(() => Promise.resolve());
 const mockAddToast = vi.fn();
 const mockClipboardWriteText = vi.fn(() => Promise.resolve());
 
@@ -82,6 +85,8 @@ vi.mock('@/stores/fileStore', () => ({
   selectFile: (projectId: string, relativePath: string) => mockSelectFile(projectId, relativePath),
   setEditBuffer: (content: string) => mockSetEditBuffer(content),
   setSelectedRange: (range: { start: number; end: number } | null) => mockSetSelectedRange(range),
+  openEditorTakeover: (relativePath: string, cursorLine?: number, scrollTop?: number) =>
+    mockOpenEditorTakeover(relativePath, cursorLine, scrollTop),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
@@ -107,6 +112,7 @@ const content: FileContent = {
   estimated_tokens: 7,
   truncated: false,
   is_readonly: false,
+  modified_at_ms: 1709500000000,
 };
 
 describe('FilePreview', () => {
@@ -134,7 +140,7 @@ describe('FilePreview', () => {
 
   it('Add to prompt button adds a file reference', () => {
     render(() => <FilePreview content={content} isLoading={false} />);
-    fireEvent.click(screen.getByRole('button', { name: /Add to prompt/i }));
+    fireEvent.click(screen.getByRole('button', { name: /\+ Context/i }));
     expect(mockAddFileReference).toHaveBeenCalledWith(
       expect.objectContaining({ relative_path: 'src/test.ts', name: 'test.ts' }),
     );

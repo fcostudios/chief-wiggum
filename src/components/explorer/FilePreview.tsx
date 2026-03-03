@@ -1,18 +1,13 @@
 // src/components/explorer/FilePreview.tsx
-// File preview panel with syntax highlighting, line numbers, range selection, and inline editing.
+// Read-only preview panel with syntax highlighting, line-range selection,
+// and explicit entry point into Editor Takeover.
 
 import type { Component } from 'solid-js';
 import { For, Show, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
-import type { Extension } from '@codemirror/state';
-import { EditorState } from '@codemirror/state';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
-import { EditorView, highlightActiveLine, keymap, lineNumbers } from '@codemirror/view';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { Check, Copy, ExternalLink, File, Lock, Plus } from 'lucide-solid';
+import { Check, Copy, ExternalLink, Eye, File, Lock, Pencil, Plus } from 'lucide-solid';
 import type { FileContent } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
 import {
@@ -23,18 +18,14 @@ import {
   updateAttachmentRange,
 } from '@/stores/contextStore';
 import {
-  clearConflict,
-  enterEditMode,
-  exitEditMode,
   fileState,
   navigateToFolder,
-  saveFileEdit,
-  selectFile,
-  setEditBuffer,
+  openEditorTakeover,
   setSelectedRange,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
+import { t } from '@/stores/i18nStore';
 
 interface FilePreviewProps {
   content: FileContent;
@@ -67,43 +58,6 @@ function highlightLine(line: string, language: string | null): string {
   }
 }
 
-/** Lazy-load a CodeMirror language extension. Returns null for unknown languages. */
-async function loadLanguageExtension(language: string | null): Promise<Extension | null> {
-  switch (language) {
-    case 'typescript':
-    case 'javascript': {
-      const { javascript } = await import('@codemirror/lang-javascript');
-      return javascript({ typescript: language === 'typescript' });
-    }
-    case 'rust': {
-      const { rust } = await import('@codemirror/lang-rust');
-      return rust();
-    }
-    case 'json': {
-      const { json } = await import('@codemirror/lang-json');
-      return json();
-    }
-    case 'python': {
-      const { python } = await import('@codemirror/lang-python');
-      return python();
-    }
-    case 'css': {
-      const { css } = await import('@codemirror/lang-css');
-      return css();
-    }
-    case 'html': {
-      const { html } = await import('@codemirror/lang-html');
-      return html();
-    }
-    case 'markdown': {
-      const { markdown } = await import('@codemirror/lang-markdown');
-      return markdown();
-    }
-    default:
-      return null;
-  }
-}
-
 const FilePreview: Component<FilePreviewProps> = (props) => {
   const [copied, setCopied] = createSignal(false);
   const [loadedContent, setLoadedContent] = createSignal<FileContent | null>(null);
@@ -114,11 +68,8 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
   const [selectionStart, setSelectionStart] = createSignal<number | null>(null);
   const [isDragging, setIsDragging] = createSignal(false);
   let copyTimeout: ReturnType<typeof setTimeout> | null = null;
-  let saveDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   let rootRef: HTMLDivElement | undefined;
   let codeViewportRef: HTMLDivElement | undefined;
-  let editorContainerRef: HTMLDivElement | undefined;
-  let editorView: EditorView | undefined;
   let resizeMoveHandler: ((event: MouseEvent) => void) | null = null;
   let resizeUpHandler: (() => void) | null = null;
 
@@ -162,78 +113,6 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     setIsDragging(false);
   });
 
-  // Mount CodeMirror when entering edit mode; destroy when exiting.
-  createEffect(() => {
-    const editing = fileState.isEditing;
-    const filePath = fileState.editingFilePath;
-    const readonly = fileState.isReadonly;
-    void readonly;
-
-    if (editing && filePath === props.content.relative_path) {
-      void (async () => {
-        await Promise.resolve();
-        if (!editorContainerRef || editorView) return;
-
-        const langExt = await loadLanguageExtension(props.content.language);
-        const extensions: Extension[] = [
-          history(),
-          lineNumbers(),
-          highlightActiveLine(),
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-          oneDark,
-          keymap.of([indentWithTab, ...defaultKeymap, ...historyKeymap]),
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) {
-              setEditBuffer(update.state.doc.toString());
-              // Reset auto-save debounce
-              if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
-              saveDebounceTimer = setTimeout(() => {
-                const pid = projectState.activeProjectId;
-                if (pid && filePath) void saveFileEdit(pid, filePath);
-              }, 500);
-            }
-          }),
-          EditorView.domEventHandlers({
-            blur: () => {
-              // Trigger save on blur if dirty
-              const pid = projectState.activeProjectId;
-              if (fileState.isDirty && pid && filePath) {
-                if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
-                saveDebounceTimer = setTimeout(() => {
-                  void saveFileEdit(pid, filePath);
-                }, 500);
-              }
-            },
-            keydown: (e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault();
-                // Blur editor; edits retained in history
-                (document.activeElement as HTMLElement | null)?.blur();
-              }
-            },
-          }),
-          EditorView.editable.of(!fileState.isReadonly),
-        ];
-        if (langExt) extensions.push(langExt);
-
-        const startState = EditorState.create({
-          doc: fileState.fullContent ?? activeContent().content,
-          extensions,
-        });
-
-        editorView = new EditorView({
-          state: startState,
-          parent: editorContainerRef,
-        });
-      })();
-    } else if (!editing) {
-      if (editorView) {
-        editorView.destroy();
-        editorView = undefined;
-      }
-    }
-  });
-
   if (typeof window !== 'undefined') {
     window.addEventListener('mouseup', stopDragging);
     window.addEventListener('mousedown', handleOutsideMouseDown);
@@ -241,11 +120,6 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
 
   onCleanup(() => {
     if (copyTimeout) clearTimeout(copyTimeout);
-    if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
-    if (editorView) {
-      editorView.destroy();
-      editorView = undefined;
-    }
     cleanupResizeListeners();
     if (typeof window !== 'undefined') {
       window.removeEventListener('mouseup', stopDragging);
@@ -289,33 +163,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     !isBinaryFile() &&
     activeContent().content.length === 0 &&
     activeContent().size_bytes === 0;
-  const isLargeFile = () =>
-    props.content.size_bytes > 100 * 1024 || props.content.line_count > 5000;
   const canEdit = () => !isBinaryFile() && !props.content.is_readonly;
-  const saveStatusLabel = () => {
-    switch (fileState.saveStatus) {
-      case 'saving':
-        return 'Saving…';
-      case 'saved':
-        return 'Saved';
-      case 'error':
-        return 'Save failed';
-      default:
-        return fileState.isDirty ? 'Unsaved' : '';
-    }
-  };
-  const saveStatusColor = () => {
-    switch (fileState.saveStatus) {
-      case 'saving':
-        return 'var(--color-text-tertiary)';
-      case 'saved':
-        return 'var(--color-success)';
-      case 'error':
-        return 'var(--color-tool-permission-deny)';
-      default:
-        return fileState.isDirty ? 'var(--color-warning)' : 'transparent';
-    }
-  };
   const existingAttachment = () => {
     const editingId = fileState.editingAttachmentId;
     if (editingId) {
@@ -421,33 +269,6 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     }
   }
 
-  async function handleCodeViewportClick() {
-    if (fileState.isEditing) return;
-    if (!canEdit()) return;
-
-    const pid = projectState.activeProjectId;
-    if (!pid) return;
-
-    // Load full content for editing (current preview may only have 50 lines).
-    let fullContent = activeContent().content;
-    if (props.content.truncated || activeContent().line_count < props.content.line_count) {
-      try {
-        const full = await invoke<FileContent>('read_project_file', {
-          project_id: pid,
-          relative_path: props.content.relative_path,
-          start_line: null,
-          end_line: null,
-        });
-        fullContent = full.content;
-      } catch (err) {
-        log.error('Failed to load full content for editing: ' + String(err));
-        // Fall through with partial content.
-      }
-    }
-
-    await enterEditMode(fullContent, props.content.relative_path);
-  }
-
   function handleLineMouseDown(lineNum: number, e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -545,38 +366,98 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
         'overscroll-behavior': props.fillHeight ? 'contain' : undefined,
       }}
     >
-      <div class="flex items-center gap-2 min-w-0">
-        <File size={12} style={{ color: 'var(--color-accent)' }} />
-        <span
-          class="font-mono text-xs font-medium truncate"
-          style={{ color: 'var(--color-text-primary)' }}
-          title={fileName()}
-        >
-          {fileName()}
-        </span>
-
-        {/* Read-only lock icon */}
-        <Show when={props.content.is_readonly}>
-          <span title="File is read-only">
-            <Lock size={10} style={{ color: 'var(--color-text-tertiary)' }} />
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-2 min-w-0">
+          <File size={12} style={{ color: 'var(--color-accent)' }} />
+          <span
+            class="font-mono text-xs font-medium truncate"
+            style={{ color: 'var(--color-text-primary)' }}
+            title={props.content.relative_path}
+          >
+            {fileName()}
           </span>
-        </Show>
-
-        {/* Dirty/save status indicator */}
-        <Show
-          when={fileState.isEditing && fileState.editingFilePath === props.content.relative_path}
-        >
-          <span class="text-[10px] font-mono ml-1 shrink-0" style={{ color: saveStatusColor() }}>
-            {saveStatusLabel() || (fileState.isDirty ? '●' : '')}
+          <Show when={props.content.is_readonly}>
+            <span title="File is read-only">
+              <Lock size={10} style={{ color: 'var(--color-text-tertiary)' }} />
+            </span>
+          </Show>
+          <span
+            class="text-[9px] font-mono ml-auto shrink-0"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
+            ~{(activeContent().estimated_tokens / 1000).toFixed(1)}K
           </span>
-        </Show>
+        </div>
 
-        <span
-          class="text-[9px] font-mono ml-auto shrink-0"
-          style={{ color: 'var(--color-text-tertiary)' }}
+        <div
+          class="text-[9px] font-mono flex items-center gap-1"
+          style={{ color: 'var(--color-text-secondary)' }}
         >
-          ~{(activeContent().estimated_tokens / 1000).toFixed(1)}K
-        </span>
+          <Show when={activeContent().language}>
+            <span>{activeContent().language}</span>
+            <span style={{ opacity: 0.4 }}>·</span>
+          </Show>
+          <span>
+            {props.content.line_count} {t('editor.lines')}
+          </span>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <span>{(props.content.size_bytes / 1024).toFixed(1)}KB</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button
+            class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors"
+            style={{
+              color: 'var(--color-text-secondary)',
+              background: 'transparent',
+              'transition-duration': 'var(--duration-fast)',
+            }}
+          >
+            <Eye size={9} />
+            {t('editor.preview')}
+          </button>
+          <Show when={canEdit()}>
+            <button
+              class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors"
+              style={{
+                color: 'var(--color-accent)',
+                background: 'var(--color-accent-muted)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+              onClick={() => void openEditorTakeover(props.content.relative_path)}
+            >
+              <Pencil size={9} />
+              {t('editor.openInEditor')}
+            </button>
+          </Show>
+          <button
+            class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors"
+            style={{
+              color: 'var(--color-text-tertiary)',
+              background: 'transparent',
+              border: '1px solid var(--color-border-secondary)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
+            onClick={() => void handleCopyPath()}
+          >
+            <Show when={copied()} fallback={<Copy size={9} />}>
+              <Check size={9} style={{ color: 'var(--color-success)' }} />
+            </Show>
+            {t('editor.copyPath')}
+          </button>
+          <button
+            class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors"
+            style={{
+              color: 'var(--color-accent)',
+              background: 'var(--color-accent-muted)',
+              'transition-duration': 'var(--duration-fast)',
+            }}
+            onClick={handleAddToPrompt}
+          >
+            <Plus size={9} />
+            {t('editor.addToContext')}
+          </button>
+        </div>
       </div>
 
       {/* Breadcrumb path bar */}
@@ -664,101 +545,13 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
         </div>
       </Show>
 
-      {/* Conflict banner — file changed on disk while editing */}
-      <Show when={fileState.conflictDetected && fileState.isEditing}>
-        <div
-          class="flex items-center justify-between gap-2 px-2 py-1.5 rounded text-[10px]"
-          style={{
-            background: 'rgba(248, 81, 73, 0.08)',
-            border: '1px solid rgba(248, 81, 73, 0.3)',
-            color: 'var(--color-tool-permission-deny)',
-          }}
-        >
-          <span>File changed on disk.</span>
-          <div class="flex items-center gap-2">
-            <button
-              class="underline"
-              onClick={async () => {
-                // Reload from disk — discard local edits.
-                const pid = projectState.activeProjectId;
-                if (!pid) return;
-                exitEditMode();
-                clearConflict();
-                await selectFile(pid, props.content.relative_path);
-              }}
-            >
-              Reload
-            </button>
-            <button class="underline" onClick={clearConflict}>
-              Keep my edits
-            </button>
-          </div>
-        </div>
-      </Show>
-
-      {/* Large file warning */}
-      <Show when={isLargeFile() && fileState.isEditing}>
-        <div
-          class="px-2 py-1 rounded text-[10px]"
-          style={{
-            background: 'var(--color-bg-elevated)',
-            color: 'var(--color-text-tertiary)',
-            border: '1px solid var(--color-border-secondary)',
-          }}
-        >
-          Large file — use Cmd+Z to undo bulk changes
-        </div>
-      </Show>
-
-      {/* ── EDIT MODE: CodeMirror editor ── */}
-      <Show when={fileState.isEditing && fileState.editingFilePath === props.content.relative_path}>
-        <div
-          ref={editorContainerRef}
-          class="rounded overflow-hidden"
-          classList={{
-            'flex-1': props.fillHeight,
-            'min-h-0': props.fillHeight,
-          }}
-          style={{
-            height: props.fillHeight ? '100%' : `${previewHeight()}px`,
-            'min-height': props.fillHeight ? undefined : '200px',
-            border: fileState.isDirty
-              ? '1px solid var(--color-accent)'
-              : '1px solid var(--color-border-secondary)',
-            'font-size': '12px',
-          }}
-          aria-label="File editor"
-        />
-        <button
-          class="text-[10px] px-1.5 py-0.5 rounded self-start"
-          style={{
-            color: 'var(--color-text-tertiary)',
-            background: 'transparent',
-            border: '1px solid var(--color-border-secondary)',
-          }}
-          onClick={exitEditMode}
-        >
-          Stop editing
-        </button>
-      </Show>
-
-      {/* ── READ-ONLY MODE: existing static table view ── */}
-      <Show
-        when={
-          !fileState.isEditing &&
-          !props.isLoading &&
-          !isBinaryFile() &&
-          !isEmptyTextFile() &&
-          displayContent()
-        }
-      >
+      <Show when={!props.isLoading && !isBinaryFile() && !isEmptyTextFile() && displayContent()}>
         <div
           ref={codeViewportRef}
           class="overflow-auto rounded focus-ring"
           classList={{
             'flex-1': props.fillHeight,
             'min-h-[180px]': props.fillHeight,
-            'cursor-text': canEdit(),
           }}
           style={{
             height: props.fillHeight ? '100%' : `${previewHeight()}px`,
@@ -771,10 +564,17 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           tabindex={0}
           onMouseUp={stopDragging}
           onKeyDown={handlePreviewKeyDown}
-          onClick={() => {
-            if (!isDragging()) void handleCodeViewportClick();
+          onDblClick={(event) => {
+            if (!canEdit()) return;
+            const row = (event.target as HTMLElement).closest('tr');
+            const lineCell = row?.querySelector('td');
+            const line = Number.parseInt(lineCell?.textContent ?? '1', 10);
+            void openEditorTakeover(
+              props.content.relative_path,
+              Number.isFinite(line) && line > 0 ? line : 1,
+            );
           }}
-          aria-label="File preview — click to edit"
+          aria-label="File preview"
         >
           <table
             class="w-full text-[10px] font-mono leading-relaxed"
@@ -941,19 +741,6 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
       </Show>
 
       <div class="flex items-center gap-2 flex-wrap">
-        <button
-          class="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
-          style={{
-            color: 'var(--color-accent)',
-            background: 'var(--color-accent-muted)',
-            'transition-duration': 'var(--duration-fast)',
-          }}
-          onClick={handleAddToPrompt}
-        >
-          <Plus size={10} />
-          Add to prompt
-        </button>
-
         <Show when={optimizationSuggestion() && !isOptimizedAttachment()}>
           <button
             class="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
@@ -1005,22 +792,6 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
             border: '1px solid var(--color-border-secondary)',
             'transition-duration': 'var(--duration-fast)',
           }}
-          onClick={() => void handleCopyPath()}
-        >
-          <Show when={copied()} fallback={<Copy size={10} />}>
-            <Check size={10} style={{ color: 'var(--color-success)' }} />
-          </Show>
-          Copy path
-        </button>
-
-        <button
-          class="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
-          style={{
-            color: 'var(--color-text-tertiary)',
-            background: 'transparent',
-            border: '1px solid var(--color-border-secondary)',
-            'transition-duration': 'var(--duration-fast)',
-          }}
           onClick={() => void handleOpenInSystem()}
         >
           <ExternalLink size={10} />
@@ -1033,9 +804,16 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           class="h-1 rounded cursor-row-resize transition-colors"
           style={{
             'transition-duration': 'var(--duration-fast)',
-            background: isResizing() ? 'rgba(232, 130, 90, 0.2)' : 'transparent',
+            background: isResizing() ? 'var(--color-accent)' : 'var(--color-border-secondary)',
           }}
           onMouseDown={handleResizeStart}
+          onMouseEnter={(e) => {
+            if (!isResizing()) e.currentTarget.style.background = 'var(--color-accent)';
+          }}
+          onMouseLeave={(e) => {
+            if (!isResizing()) e.currentTarget.style.background = 'var(--color-border-secondary)';
+          }}
+          onDblClick={() => setPreviewHeight(300)}
           role="separator"
           aria-orientation="horizontal"
           aria-label="Resize file preview"

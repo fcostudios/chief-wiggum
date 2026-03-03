@@ -34,6 +34,9 @@ interface UIState {
   sidebarWidth: number;
   detailsPanelVisible: boolean;
   detailsPanelWidth: number;
+  zenModeActive: boolean;
+  zenPreviousSidebarState: SidebarState | null;
+  zenPreviousDetailsPanelVisible: boolean | null;
   settingsVisible: boolean;
   contextBreakdownVisible: boolean;
   activeView: ActiveView;
@@ -115,6 +118,9 @@ const [state, setState] = createStore<UIState>({
   sidebarWidth: persistedSidebarWidth,
   detailsPanelVisible: true,
   detailsPanelWidth: persistedDetailsPanelWidth,
+  zenModeActive: false,
+  zenPreviousSidebarState: null,
+  zenPreviousDetailsPanelVisible: null,
   settingsVisible: false,
   contextBreakdownVisible: false,
   activeView: 'conversation',
@@ -163,6 +169,39 @@ export function setSidebarWidth(width: number): void {
 
 export function toggleDetailsPanel() {
   setState('detailsPanelVisible', (prev) => !prev);
+}
+
+/** Enter zen mode: collapse side panels and keep previous state for restore. */
+export function enterZenMode(): void {
+  if (state.zenModeActive) return;
+  setState({
+    zenPreviousSidebarState: state.sidebarState,
+    zenPreviousDetailsPanelVisible: state.detailsPanelVisible,
+    zenModeActive: true,
+    sidebarState: 'hidden',
+    detailsPanelVisible: false,
+  });
+}
+
+/** Exit zen mode and restore panel visibility from the saved snapshot. */
+export function exitZenMode(): void {
+  if (!state.zenModeActive) return;
+  setState({
+    sidebarState: state.zenPreviousSidebarState ?? 'expanded',
+    detailsPanelVisible: state.zenPreviousDetailsPanelVisible ?? true,
+    zenModeActive: false,
+    zenPreviousSidebarState: null,
+    zenPreviousDetailsPanelVisible: null,
+  });
+}
+
+/** Toggle zen mode state. */
+export function toggleZenMode(): void {
+  if (state.zenModeActive) {
+    exitZenMode();
+    return;
+  }
+  enterZenMode();
 }
 
 /** Set custom details panel width, persisted locally. */

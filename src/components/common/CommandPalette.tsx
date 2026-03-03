@@ -18,6 +18,7 @@ import {
   Square,
   RotateCw,
   Download,
+  Pencil,
 } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import {
@@ -45,6 +46,7 @@ import {
 } from '@/stores/actionStore';
 import type { ActionDefinition } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
+import { fileState, openEditorTakeover } from '@/stores/fileStore';
 import {
   buildExportFilename,
   exportAsHtml,
@@ -182,6 +184,21 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       shortcut: '\u2318\u21E7 B',
       icon: () => <PanelRight size={16} />,
       action: () => toggleDetailsPanel(),
+    },
+    {
+      id: 'edit-file',
+      label: 'Edit file...',
+      category: 'File',
+      shortcut: '\u2318 E',
+      icon: () => <Pencil size={16} />,
+      action: () => {
+        const filePath = fileState.editingFilePath ?? fileState.selectedPath;
+        if (filePath) {
+          void openEditorTakeover(filePath);
+        } else {
+          addToast('No file selected — select a file first', 'info');
+        }
+      },
     },
 
     // Session

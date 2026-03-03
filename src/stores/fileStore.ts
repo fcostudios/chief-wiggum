@@ -82,6 +82,17 @@ interface FileState {
   conflictDetected: boolean;
   /** Whether the file is read-only on disk. */
   isReadonly: boolean;
+  // ── Editor Takeover (CHI-244) ──────────────────────
+  /** Whether Editor Takeover is active (Z3 shows the full editor). */
+  editorTakeoverActive: boolean;
+  /** Cursor line position (1-based). */
+  editorCursorLine: number;
+  /** Cursor column position (1-based). */
+  editorCursorCol: number;
+  /** File mtime captured when the editor opened (for conflict checks). */
+  editorFileMtime: number | null;
+  /** Conversation scroll position to restore after editor close. */
+  savedScrollTop: number;
 }
 
 const [state, setState] = createStore<FileState>({
@@ -108,6 +119,11 @@ const [state, setState] = createStore<FileState>({
   editingFilePath: null,
   conflictDetected: false,
   isReadonly: false,
+  editorTakeoverActive: false,
+  editorCursorLine: 1,
+  editorCursorCol: 1,
+  editorFileMtime: null,
+  savedScrollTop: 0,
 });
 
 export { state as fileState };
@@ -368,15 +384,6 @@ export async function selectFile(projectId: string, relativePath: string): Promi
       start_line: null,
       end_line: 50,
     });
-    // Exit any active edit session when switching files
-    setState({
-      isEditing: false,
-      isDirty: false,
-      saveStatus: 'idle',
-      fullContent: null,
-      editingFilePath: null,
-      conflictDetected: false,
-    });
     // Set read-only flag from file metadata
     setState('isReadonly', content.is_readonly ?? false);
     setState('previewContent', content);
@@ -532,6 +539,11 @@ export function clearFileState(): void {
     editingFilePath: null,
     conflictDetected: false,
     isReadonly: false,
+    editorTakeoverActive: false,
+    editorCursorLine: 1,
+    editorCursorCol: 1,
+    editorFileMtime: null,
+    savedScrollTop: 0,
   });
 }
 
@@ -559,6 +571,7 @@ export function setSelectedRange(range: { start: number; end: number } | null): 
 export async function enterEditMode(content: string, relativePath: string): Promise<void> {
   setState({
     isEditing: true,
+    editorTakeoverActive: true,
     isDirty: false,
     saveStatus: 'idle',
     fullContent: content,
@@ -571,11 +584,15 @@ export async function enterEditMode(content: string, relativePath: string): Prom
 export function exitEditMode(): void {
   setState({
     isEditing: false,
+    editorTakeoverActive: false,
     isDirty: false,
     saveStatus: 'idle',
     fullContent: null,
     editingFilePath: null,
     conflictDetected: false,
+    editorFileMtime: null,
+    editorCursorLine: 1,
+    editorCursorCol: 1,
   });
 }
 
@@ -584,9 +601,91 @@ export function clearConflict(): void {
   setState('conflictDetected', false);
 }
 
+/** Set conflict detected flag for external file modifications. */
+export function setConflictDetected(value: boolean): void {
+  setState('conflictDetected', value);
+}
+
 /** Update the editor buffer (called on every CodeMirror doc change). */
 export function setEditBuffer(content: string): void {
   setState({ fullContent: content, isDirty: true });
+}
+
+/** Save current conversation scroll position for restore after closing Editor Takeover. */
+export function saveConversationScrollTop(top: number): void {
+  setState('savedScrollTop', Math.max(0, Math.round(top)));
+}
+
+/** Update editor cursor position in store for the status bar. */
+export function setEditorCursorPosition(line: number, col: number): void {
+  setState({
+    editorCursorLine: Math.max(1, Math.floor(line)),
+    editorCursorCol: Math.max(1, Math.floor(col)),
+  });
+}
+
+/** Update tracked mtime for the active editor file. */
+export function setEditorFileMtime(mtime: number | null): void {
+  setState('editorFileMtime', mtime);
+}
+
+/** Open full-screen Editor Takeover for a file (single-file v1). */
+export async function openEditorTakeover(
+  relativePath: string,
+  cursorLine = 1,
+  scrollTop?: number,
+): Promise<void> {
+  const projectId = projectState.activeProjectId;
+  if (!projectId) return;
+
+  if (typeof scrollTop === 'number') {
+    saveConversationScrollTop(scrollTop);
+  }
+
+  try {
+    const content = await invoke<FileContent>('read_project_file', {
+      project_id: projectId,
+      relative_path: relativePath,
+      start_line: null,
+      end_line: null,
+    });
+
+    setState({
+      selectedPath: relativePath,
+      isEditing: true,
+      editorTakeoverActive: true,
+      isDirty: false,
+      saveStatus: 'idle',
+      fullContent: content.content,
+      editingFilePath: relativePath,
+      conflictDetected: false,
+      isReadonly: content.is_readonly ?? false,
+      editorFileMtime: content.modified_at_ms ?? null,
+      editorCursorLine: Math.max(1, Math.floor(cursorLine)),
+      editorCursorCol: 1,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log.error('Failed to open file for editor takeover: ' + msg);
+    addToast('Failed to open file: ' + msg, 'error');
+  }
+}
+
+/** Close Editor Takeover and clear edit lifecycle state. */
+export function closeEditorTakeover(): void {
+  setState({
+    isEditing: false,
+    editorTakeoverActive: false,
+    isDirty: false,
+    saveStatus: 'idle',
+    fullContent: null,
+    editingFilePath: null,
+    conflictDetected: false,
+    isReadonly: false,
+    editorFileMtime: null,
+    editorCursorLine: 1,
+    editorCursorCol: 1,
+  });
 }
 
 /** Persist the current edit buffer to disk. Shows toast on completion. */
@@ -600,7 +699,12 @@ export async function saveFileEdit(projectId: string, relativePath: string): Pro
       relative_path: relativePath,
       content,
     });
+    const latestMtime = await invoke<number | null>('get_file_mtime', {
+      project_id: projectId,
+      relative_path: relativePath,
+    });
     setState({ saveStatus: 'saved', isDirty: false });
+    setEditorFileMtime(latestMtime);
     addToast('File saved', 'success');
     // Reset to idle after 2s so the status label clears
     setTimeout(() => setState('saveStatus', 'idle'), 2000);

@@ -323,6 +323,11 @@ pub fn read_file(
     let metadata = std::fs::metadata(&safe_path)?;
     let size_bytes = metadata.len();
     let is_readonly = metadata.permissions().readonly();
+    let modified_at_ms = metadata
+        .modified()
+        .ok()
+        .and_then(|timestamp| timestamp.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis() as i64);
 
     // Binary check — read first 8KB
     if size_bytes > 0 {
@@ -339,7 +344,8 @@ pub fn read_file(
                     language: None,
                     estimated_tokens: 0,
                     truncated: false,
-                    is_readonly: false,
+                    is_readonly,
+                    modified_at_ms,
                 });
             }
         }
@@ -404,6 +410,7 @@ pub fn read_file(
         estimated_tokens,
         truncated,
         is_readonly,
+        modified_at_ms,
     })
 }
 
