@@ -11,7 +11,7 @@ import { onMount, onCleanup, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { platform } from '@tauri-apps/plugin-os';
-import { MessageSquare, Users, GitCompare, Terminal, Factory } from 'lucide-solid';
+import { MessageSquare, Users, GitCompare, Terminal, Zap } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -56,7 +56,7 @@ const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }
   agents: Users,
   diff: GitCompare,
   terminal: Terminal,
-  actions_center: Factory,
+  actions_center: Zap,
 };
 
 const MainLayout: Component = () => {
@@ -193,7 +193,11 @@ const MainLayout: Component = () => {
             <ViewTab label="Agents" view="agents" />
             <ViewTab label="Diff" view="diff" />
             <ViewTab label="Terminal" view="terminal" />
-            <ViewTab label="Center" view="actions_center" />
+            <ViewTab
+              label="Actions"
+              view="actions_center"
+              title="Background tasks & execution history"
+            />
           </div>
 
           {/* View content area */}
@@ -343,19 +347,21 @@ const MainLayout: Component = () => {
   );
 };
 
-/** View tab button — refined underline indicator with accent glow */
-const ViewTab: Component<{ label: string; view: ActiveView }> = (props) => {
+/** View tab button — pill indicator per CHI-234 */
+const ViewTab: Component<{ label: string; view: ActiveView; title?: string }> = (props) => {
   const isActive = () => uiState.activeView === props.view;
   const badge = () => uiState.viewBadges[props.view] ?? 0;
 
   return (
     <button
-      class={`relative flex items-center gap-1.5 px-3 py-2 text-xs font-medium tracking-wide transition-colors ${
-        isActive() ? 'text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
-      }`}
-      style={{ 'transition-duration': 'var(--duration-normal)' }}
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium tracking-wide transition-colors"
+      style={{
+        'transition-duration': 'var(--duration-normal)',
+        background: isActive() ? 'var(--color-tab-active-bg)' : 'transparent',
+        color: isActive() ? 'var(--color-tab-active-text)' : 'var(--color-tab-inactive-text)',
+      }}
       onClick={() => setActiveView(props.view)}
-      title={props.label}
+      title={props.title ?? props.label}
     >
       <Dynamic component={VIEW_ICONS[props.view]} size={13} />
       <span>{props.label}</span>
@@ -372,17 +378,6 @@ const ViewTab: Component<{ label: string; view: ActiveView }> = (props) => {
           {badge() > 99 ? '99+' : badge()}
         </span>
       </Show>
-      {/* Active indicator — warm accent line with subtle glow */}
-      <div
-        class="absolute bottom-0 left-2 right-2 h-[2px] rounded-full transition-all"
-        style={{
-          'transition-duration': 'var(--duration-normal)',
-          'transition-timing-function': 'var(--ease-default)',
-          background: isActive() ? 'var(--color-accent)' : 'transparent',
-          'box-shadow': isActive() ? '0 0 8px rgba(232, 130, 90, 0.4)' : 'none',
-          opacity: isActive() ? '1' : '0',
-        }}
-      />
     </button>
   );
 };
