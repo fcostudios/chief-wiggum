@@ -466,6 +466,130 @@ For the first 3 sessions, show contextual discovery tooltips.
 - Badge: count of currently running actions
 - Icon: Lucide `Zap` (was `LayoutGrid`)
 
+### 4.13 Permission Tier Rename: "YOLO" → "Auto-approve" (New)
+
+**Current:** Permission mode labeled "YOLO" — playful jargon that confuses non-native speakers and feels unprofessional in enterprise contexts.
+
+**New display names and descriptions:**
+
+| Internal value | Display Label | One-line Description (tooltip) |
+|----------------|--------------|-------------------------------|
+| `safe` | Safe | "Manual approval for all actions" |
+| `dev` | Developer | "Auto-approve safe operations, confirm destructive ones" |
+| `yolo` | Auto-approve | "All operations run without confirmation" |
+
+**Implementation:**
+- Rename all UI labels, tooltips, and dialog text from "YOLO" to "Auto-approve"
+- Rename `YoloWarningDialog` component → `AutoApproveWarningDialog`
+- Rename store references: `isYoloMode` → `isAutoApproveMode`
+- Keep backward compatibility in settings storage (migrate old `yolo` key gracefully)
+- Each permission tier badge gets a tooltip with its one-line description
+- Tooltip: dark bg, 200ms delay, 8px offset (standard tooltip pattern from §4.9)
+
+### 4.14 CTA Button Hierarchy (New)
+
+**Current:** Inconsistent button styles — some dialogs use accent fill for primary, others use ghost.
+
+**Standard hierarchy (applies to ALL buttons/CTAs across the app):**
+
+| Level | Style | Usage |
+|-------|-------|-------|
+| **Primary** | `background: var(--color-accent)`, white text, `border-radius: var(--radius-md)` | Main CTA: Send, Confirm, Save, Apply |
+| **Secondary** | Ghost: `border: 1px solid var(--color-border-primary)`, `--color-text-primary` | Alternative: Cancel, Back, Skip |
+| **Tertiary** | Text-only: `--color-text-secondary`, no border/bg | Minor: "Learn more", "Don't show again" |
+| **Destructive** | `background: var(--color-error)`, white text | Delete, Remove permanently |
+
+All button instances across PermissionDialog, AutoApproveWarningDialog, CommandPalette, ToastContainer, Settings, and modal dialogs must conform. Document in SPEC-002 §10 (Components).
+
+### 4.15 Help & Documentation System (New)
+
+**Current:** No in-app help, no changelog, no persistent help icon.
+
+**New components:**
+
+**Help menu ("?" in TitleBar Z1):**
+- Icon: Lucide `HelpCircle`, 16px, `--color-text-secondary`, right side of title bar
+- Dropdown: Keyboard Shortcuts, Documentation (external), What's New, Report Issue, About
+- Width: 200px
+
+**Persistent "?" in conversation area:**
+- Bottom-right of conversation view, subtle `--color-text-tertiary`
+- Click: opens keyboard shortcut overlay
+- Visible for first 10 sessions, then hidden (accessible via help menu)
+
+**"What's New" changelog banner:**
+- Top of conversation area after app update, dismissible
+- `--color-bg-elevated`, accent left border, `--text-sm`
+- Click: opens changelog modal (500px wide, 400px max height, scrollable, last 3 versions)
+
+### 4.16 Unsent Content Protection (New)
+
+When input textarea has >50 characters and user navigates away (session switch, app close), show confirmation: "You have an unsent message. Discard or keep editing?"
+
+- Buttons: "Keep Editing" (primary), "Discard" (secondary)
+- If draft auto-save (§4.6) is active, mention it in dialog copy
+- Threshold: 50 characters
+
+### 4.17 Command Palette Enhancements (New)
+
+**Recently Used section:**
+- Shown at top of Command Palette when opened with empty query
+- Max 5 recent commands, each with name + shortcut + time since last use
+- Section header: "Recent" with clock icon (Lucide `Clock`)
+- Persists across sessions (localStorage, max 20)
+
+**Context chip reason labels:**
+- Each context chip shows a 12px origin icon before filename:
+  - `@` AtSign — manually added via @-mention
+  - `↗` Scan — auto-detected from project
+  - `💬` MessageSquare — referenced in conversation
+  - `📌` Pin — pinned by user
+- Color: `--color-text-tertiary`; tooltip explains source on hover
+
+### 4.18 Session Management (New)
+
+**Session pinning:**
+- Right-click session → "Pin session" / "Unpin"
+- Pinned sessions: top of sidebar in "Pinned" section (max 5)
+- Pin icon: Lucide `Pin`, 12px, `--color-text-tertiary` (accent when pinned)
+- Stored in SQLite (`is_pinned` boolean on session)
+
+**Quick session switcher:**
+- Shortcut: `Ctrl+Tab`
+- Overlay: 400px wide, centered, lists 5 most recent sessions
+- Each item: session name + last message preview + time
+- Tab cycles, release switches, Escape cancels
+- Style: `--color-bg-elevated`, `--shadow-xl`, `--radius-lg`
+
+### 4.19 Saved Prompt Templates (New)
+
+**Save:** Right-click in input → "Save as template", or Command Palette action. Name + optional `{placeholder}` variables.
+
+**Use:** `/template` slash command, Command Palette "Insert template", or empty state cards (§4.7).
+
+**Manage:** Settings panel section — edit, duplicate, delete, export/import JSON.
+
+**Storage:** SQLite `prompt_templates(id, name, content, variables, created_at, usage_count)`. Sort by most-used.
+
+### 4.20 Persistent Error Log (New)
+
+**Error count badge in status bar:**
+- Position: left zone, after CLI status
+- Show red badge with count when errors > 0 (e.g., "⚠ 3")
+- Clears on view; no badge at 0 errors
+
+**Error log panel:**
+- Opens from badge click, 300px tall popover
+- Chronological entries: timestamp, severity icon, human-readable message, expandable details, copy button
+- Max 100 entries (FIFO)
+
+**Human-readable error mapping:**
+- `ECONNREFUSED` → "Can't connect to Claude CLI. Is it running?"
+- `EPERM` → "Permission denied. Check file access settings."
+- `TIMEOUT` → "Request timed out."
+- Rate limits → "Rate limited. Waiting before retrying..."
+- Each includes "What to try" suggestion
+
 ---
 
 ## 5. Interaction Patterns (New)

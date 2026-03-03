@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-03T02:44:30.858Z",
+  "last_updated": "2026-03-03T05:16:52.188Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1407,10 +1407,18 @@
         "CHI-249",
         "CHI-250",
         "CHI-251",
-        "CHI-252"
+        "CHI-252",
+        "CHI-253",
+        "CHI-254",
+        "CHI-255",
+        "CHI-256",
+        "CHI-257",
+        "CHI-258",
+        "CHI-259",
+        "CHI-260"
       ],
       "notes": "Parent epic for all CX/UX improvements from expert evaluation report. 5 tiers: T1 Foundation, T2 Information, T3 Emotional, T4 Workflow, T5 Future Investment.",
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T03:28:23Z"
     },
     "CHI-232": {
       "title": "T1.1: WCAG Contrast Fixes",
@@ -1517,7 +1525,7 @@
     "CHI-237": {
       "title": "T2.1: Response Progress Indicator",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "effort": "S",
       "parent": "CHI-231",
@@ -1525,18 +1533,39 @@
       "depends_on": [
         "CHI-235"
       ],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/styles/tokens.css",
+        "src/components/conversation/ResponseProgress.tsx",
+        "src/components/conversation/ResponseProgress.test.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/conversation/ConversationView.test.tsx"
+      ],
+      "notes": "Response progress indicator shipped with shimmer bar, elapsed timer, top-mounted placement, and fade-out behavior plus tests. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
     },
     "CHI-238": {
       "title": "T2.2: Cost Display Promotion",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "effort": "S",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/locales/en.json",
+        "src/locales/es.json",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/StatusBar.test.tsx"
+      ],
+      "notes": "Cost promotion complete: Coins icon in status pill and last-message row added to cost breakdown popover with test coverage. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
     },
     "CHI-239": {
       "title": "T2.3: Smart Details Panel",
@@ -1554,46 +1583,92 @@
     "CHI-240": {
       "title": "T2.4: Input Area Upgrade",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/components/conversation/MessageInput.tsx"
+      ],
+      "notes": "Input upgrade delivered: 36px icon send button, counter overlay with >500 threshold, newline hint lifecycle, and draft autosave/restore/clear flow. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
     },
     "CHI-241": {
       "title": "T2.5: Onboarding Tooltips",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/stores/onboardingStore.ts",
+        "src/stores/onboardingStore.test.ts",
+        "src/components/common/OnboardingTooltip.tsx",
+        "src/components/common/OnboardingTooltip.test.tsx",
+        "src/App.tsx",
+        "src/components/layout/TitleBar.tsx",
+        "src/components/common/ModelSelector.tsx",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/conversation/MessageInput.tsx"
+      ],
+      "notes": "Onboarding tooltip system implemented with session-gated store + reusable tooltip component and wiring across input/title/model/status surfaces. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
     },
     "CHI-242": {
       "title": "T3.1: Empty State Redesign",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/components/conversation/WelcomeScreen.tsx",
+        "src/components/conversation/WelcomeScreen.test.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/conversation/ConversationView.test.tsx",
+        "src/locales/en.json",
+        "src/locales/es.json"
+      ],
+      "notes": "Welcome screen redesign integrated into ConversationView empty state with prompt cards, rotating tips, model badge, and project CTA behavior. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
     },
     "CHI-243": {
       "title": "T3.2: Success Micro-Animations",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "S",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/styles/tokens.css",
+        "src/components/conversation/ToolUseBlock.tsx",
+        "src/components/conversation/ToolUseBlock.test.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/conversation/ConversationView.test.tsx",
+        "src/components/conversation/MessageInput.tsx"
+      ],
+      "notes": "Micro-animations delivered: celebration tokens/keyframe, completed tool-use check indicator, and send-success flash in message input. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
     },
     "CHI-244": {
       "title": "T4.1: File Preview/Edit Rework",
@@ -1705,6 +1780,126 @@
         "CHI-237"
       ],
       "updated_at": "2026-03-03T00:40:29Z"
+    },
+    "CHI-253": {
+      "title": "T1.6: Rename YOLO to Auto-approve + Permission Tier Descriptions",
+      "type": "task",
+      "status": "done",
+      "priority": "high",
+      "effort": "S",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [],
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/locales/en.json",
+        "src/locales/es.json",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/MainLayout.test.tsx",
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/StatusBar.test.tsx",
+        "src/components/permissions/AutoApproveWarningDialog.tsx",
+        "src/components/permissions/AutoApproveWarningDialog.test.tsx",
+        "src/components/conversation/PermissionRecordBlock.tsx",
+        "src/components/common/KeyboardHelp.tsx"
+      ],
+      "notes": "YOLO rename complete across user-visible UI: AUTO status label, Auto-approve dialog rename, and all related copy/keyboard-help updates. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
+    },
+    "CHI-254": {
+      "title": "T2.6: Help & Documentation System",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "effort": "M",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [],
+      "updated_at": "2026-03-03T03:28:23Z"
+    },
+    "CHI-255": {
+      "title": "T2.7: CTA Button Consistency Audit",
+      "type": "task",
+      "status": "done",
+      "priority": "medium",
+      "effort": "S",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [
+        "CHI-232"
+      ],
+      "updated_at": "2026-03-03T05:16:52.188Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T04:18:58.356Z",
+      "completed_at": "2026-03-03T05:16:52.188Z",
+      "files": [
+        "src/components/layout/StatusBar.tsx",
+        "src/components/layout/StatusBar.test.tsx"
+      ],
+      "notes": "CTA consistency pass applied in status popovers: minor actions now use tertiary text-only styling and audits validated. completed_by=claude-code; lock_acquired_at=2026-03-03T05:16:52.188Z"
+    },
+    "CHI-256": {
+      "title": "T2.8: Unsent Content Protection",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "effort": "S",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [
+        "CHI-240"
+      ],
+      "updated_at": "2026-03-03T03:28:23Z"
+    },
+    "CHI-257": {
+      "title": "T4.5: Command Palette Enhancements",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "effort": "M",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [],
+      "updated_at": "2026-03-03T03:28:23Z"
+    },
+    "CHI-258": {
+      "title": "T4.6: Session Pinning + Quick Switcher",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "effort": "M",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [],
+      "updated_at": "2026-03-03T03:28:23Z"
+    },
+    "CHI-259": {
+      "title": "T4.7: Saved Prompt Templates",
+      "type": "task",
+      "status": "backlog",
+      "priority": "low",
+      "effort": "M",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [
+        "CHI-240"
+      ],
+      "updated_at": "2026-03-03T03:28:23Z"
+    },
+    "CHI-260": {
+      "title": "T4.8: Persistent Error Log",
+      "type": "task",
+      "status": "backlog",
+      "priority": "medium",
+      "effort": "M",
+      "parent": "CHI-231",
+      "spec": "SPEC-006",
+      "depends_on": [
+        "CHI-246"
+      ],
+      "updated_at": "2026-03-03T03:28:23Z"
     }
   },
   "epics_new": {
@@ -3876,11 +4071,14 @@
     }
   },
   "recommended_next": [
-    "CHI-237",
-    "CHI-238",
+    "CHI-244",
     "CHI-239",
-    "CHI-240",
-    "CHI-241"
+    "CHI-245",
+    "CHI-246",
+    "CHI-254",
+    "CHI-256",
+    "CHI-257",
+    "CHI-258"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -5577,10 +5775,12 @@
     }
   },
   "warnings": [
-    "CHI-231 epic: Execute Tier 1 (CHI-232-236) first — all independent, can be parallelized.",
-    "Tier 2 (CHI-237-241): CHI-237 depends on CHI-235, CHI-239 depends on CHI-238. Others independent.",
-    "SPEC-006 is the authoritative spec for all CHI-231 children.",
-    "CHI-202 (Voice Input) deprioritized — still in backlog but not recommended_next."
+    "Wave 1 nearly complete: CHI-232/233/234/235/236 DONE. Only CHI-253 (YOLO rename) remains.",
+    "Wave 2 fully unblocked: CHI-238/240/255/242 have no remaining deps. CHI-237 needs CHI-235 (done).",
+    "Recommended: parallelize CHI-253 + Wave 2 items simultaneously.",
+    "CHI-244 (File Preview Rework) is L effort — start early when possible.",
+    "SPEC-006 is the authoritative spec for ALL CHI-231 children.",
+    "CHI-202 (Voice Input) deprioritized — not in execution plan."
   ],
   "development_protocol": {
     "guide": "docs/guides/GUIDE-003-development-protocol.md",
@@ -6045,5 +6245,108 @@
       }
     }
   },
-  "last_agent": "cowork-session"
+  "last_agent": "claude-code",
+  "execution_plan": {
+    "created": "2026-03-03T03:37:31Z",
+    "description": "CX/UX Excellence execution order based on dependency graph and impact analysis",
+    "waves": {
+      "wave_1_foundation": {
+        "description": "Token & layout foundation — all independent, parallelize freely",
+        "issues": [
+          "CHI-232",
+          "CHI-233",
+          "CHI-253",
+          "CHI-234",
+          "CHI-236"
+        ],
+        "rationale": "Touches tokens.css and layout-level CSS. Every subsequent wave builds on these.",
+        "status": "nearly_complete (4/5 done, CHI-253 remaining)"
+      },
+      "wave_2_core_components": {
+        "description": "Core component upgrades — some deps on Wave 1 tokens",
+        "issues": [
+          "CHI-235",
+          "CHI-238",
+          "CHI-240",
+          "CHI-255",
+          "CHI-242"
+        ],
+        "rationale": "Message differentiation, cost display, input area, CTA audit, empty states. CHI-255 needs CHI-232."
+      },
+      "wave_3_information": {
+        "description": "Information layer — feedback, details, onboarding, help",
+        "issues": [
+          "CHI-237",
+          "CHI-239",
+          "CHI-241",
+          "CHI-243",
+          "CHI-254"
+        ],
+        "rationale": "CHI-237 needs CHI-235. CHI-239 needs CHI-238. Others independent."
+      },
+      "wave_4_workflow": {
+        "description": "Workflow improvements — file preview, undo, errors, session mgmt",
+        "issues": [
+          "CHI-244",
+          "CHI-246",
+          "CHI-245",
+          "CHI-256",
+          "CHI-257",
+          "CHI-258"
+        ],
+        "rationale": "CHI-244 is biggest (L effort). CHI-256 needs CHI-240. CHI-246 unblocks CHI-260."
+      },
+      "wave_5_advanced": {
+        "description": "Advanced features — pause, error log, templates",
+        "issues": [
+          "CHI-247",
+          "CHI-260",
+          "CHI-259"
+        ],
+        "rationale": "CHI-247 needs CHI-237. CHI-260 needs CHI-246. CHI-259 needs CHI-240."
+      },
+      "wave_6_future": {
+        "description": "Future investment — defer until Waves 1-5 land",
+        "issues": [
+          "CHI-248",
+          "CHI-249",
+          "CHI-250",
+          "CHI-251",
+          "CHI-252"
+        ],
+        "rationale": "All L/M effort, low priority. Each depends on earlier wave items."
+      }
+    },
+    "full_order": [
+      "CHI-232",
+      "CHI-233",
+      "CHI-253",
+      "CHI-234",
+      "CHI-236",
+      "CHI-235",
+      "CHI-238",
+      "CHI-240",
+      "CHI-255",
+      "CHI-242",
+      "CHI-237",
+      "CHI-239",
+      "CHI-241",
+      "CHI-243",
+      "CHI-254",
+      "CHI-244",
+      "CHI-246",
+      "CHI-245",
+      "CHI-256",
+      "CHI-257",
+      "CHI-258",
+      "CHI-247",
+      "CHI-260",
+      "CHI-259",
+      "CHI-248",
+      "CHI-249",
+      "CHI-250",
+      "CHI-251",
+      "CHI-252"
+    ]
+  }
 }

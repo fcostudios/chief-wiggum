@@ -24,10 +24,10 @@ All in **Backlog** state. No task is currently `in_progress`. Check `.claude/han
 
 | Tier | Tasks | Priority | Spec |
 |------|-------|----------|------|
-| T1 Foundation | CHI-232 Contrast, CHI-233 Zones, CHI-234 Tabs, CHI-235 Messages, CHI-236 Borders | Urgent/High | SPEC-006 §3-4 |
-| T2 Information | CHI-237 Progress, CHI-238 Cost, CHI-239 Details, CHI-240 Input, CHI-241 Tooltips | High/Medium | SPEC-006 §4 |
+| T1 Foundation | CHI-232 Contrast, CHI-233 Zones, CHI-234 Tabs, CHI-235 Messages, CHI-236 Borders, CHI-253 YOLO→Auto-approve | Urgent/High | SPEC-006 §3-4 |
+| T2 Information | CHI-237 Progress, CHI-238 Cost, CHI-239 Details, CHI-240 Input, CHI-241 Tooltips, CHI-254 Help Menu, CHI-255 CTA Audit, CHI-256 Unsent Protection | High/Medium | SPEC-006 §4 |
 | T3 Emotional | CHI-242 Empty States, CHI-243 Micro-Animations | Medium | SPEC-006 §4 |
-| T4 Workflow | CHI-244 File Preview, CHI-245 Undo, CHI-246 Errors, CHI-247 Pause | High-Low | SPEC-006 §4-5 |
+| T4 Workflow | CHI-244 File Preview, CHI-245 Undo, CHI-246 Errors, CHI-247 Pause, CHI-257 Cmd Palette, CHI-258 Session Pin, CHI-259 Templates, CHI-260 Error Log | High-Low | SPEC-006 §4-5 |
 | T5 Future | CHI-248 Dashboard, CHI-249 Density, CHI-250 Walkthrough, CHI-251 Bookmarks, CHI-252 Notifications | Low | SPEC-006 §4 |
 
 **Start with Tier 1** (all independent, can parallelize). See each issue for deps and file lists.
