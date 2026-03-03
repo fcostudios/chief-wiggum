@@ -2,7 +2,7 @@
 
 > **Read this first.** Auto-loaded by Claude Code at session start. Keep under 150 lines.
 > Full completed task history → `.claude/COMPLETED.md`
-> Updated: 2026-03-02
+> Updated: 2026-03-03
 
 ---
 
@@ -20,19 +20,25 @@
 
 All in **Backlog** state. No task is currently `in_progress`. Check `.claude/handover.json` for latest.
 
-| Task | Priority | Depends on | Spec |
-|------|----------|-----------|------|
-| CHI-196: D3 Formatting Toggle | Medium | CHI-195 ✓ | Conversation Experience (Polish) |
-| CHI-197: D4 Anchor Links | Medium | CHI-196 | Conversation Experience (Polish) |
-| CHI-202: E3 Voice Input/Output | Medium | CHI-201 ✓ | Conversation Utility |
-| CHI-203: E4 @-Mention Command Suggestions | Medium | CHI-202 | Conversation Utility |
-| CHI-205/206: Unit coverage (rendering blocks) | High | CHI-199 epic | QA Coverage |
-| CHI-209/210: Unit coverage (polish/utility) | High | CHI-199 epic | QA Coverage |
-| CHI-211/212/213: E2E coverage expansion | High | CHI-199 epic | QA Coverage |
+### 🎯 CX/UX Excellence Epic (CHI-231) — PRIMARY FOCUS
 
-**Recently completed:** CHI-121 epic is now complete with CHI-131 + CHI-134 merged.
+| Tier | Tasks | Priority | Spec |
+|------|-------|----------|------|
+| T1 Foundation | CHI-232 Contrast, CHI-233 Zones, CHI-234 Tabs, CHI-235 Messages, CHI-236 Borders | Urgent/High | SPEC-006 §3-4 |
+| T2 Information | CHI-237 Progress, CHI-238 Cost, CHI-239 Details, CHI-240 Input, CHI-241 Tooltips | High/Medium | SPEC-006 §4 |
+| T3 Emotional | CHI-242 Empty States, CHI-243 Micro-Animations | Medium | SPEC-006 §4 |
+| T4 Workflow | CHI-244 File Preview, CHI-245 Undo, CHI-246 Errors, CHI-247 Pause | High-Low | SPEC-006 §4-5 |
+| T5 Future | CHI-248 Dashboard, CHI-249 Density, CHI-250 Walkthrough, CHI-251 Bookmarks, CHI-252 Notifications | Low | SPEC-006 §4 |
 
-**Suggested start order:** CHI-196 → CHI-197 → CHI-202 → CHI-203
+**Start with Tier 1** (all independent, can parallelize). See each issue for deps and file lists.
+
+### Other Backlog
+
+| Task | Priority | Spec |
+|------|----------|------|
+| CHI-202: E3 Voice Input/Output | Medium | Conversation Utility (deprioritized) |
+
+**Suggested start order:** CHI-232 → CHI-233 → CHI-234 → CHI-235 → CHI-236 (Tier 1, parallel-safe)
 
 ---
 
@@ -81,7 +87,7 @@ src/
 |------|------|
 | First time | `docs/reference/INDEX.md` → `SPEC-001` → `ADR-001/002` |
 | Backend work | `SPEC-004` (architecture) → `GUIDE-001` (coding standards) |
-| Frontend work | `SPEC-002` (design system) → `SPEC-003` (UX) → `GUIDE-001` |
+| Frontend work | `SPEC-002` (design system) → `SPEC-003` (UX) → `SPEC-006` (CX/UX) → `GUIDE-001` |
 | Any task | Spec sections referenced in the Linear issue description |
 | DB changes | `SPEC-005` (data/migration) — current: v4=action_history, v5=artifacts |
 | Completed history | `.claude/COMPLETED.md` |
