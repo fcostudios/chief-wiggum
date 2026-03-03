@@ -200,25 +200,30 @@ const MainLayout: Component = () => {
           </div>
 
           {/* View content area */}
-          <div class="flex-1 flex flex-col overflow-hidden">
-            <Show when={!fileState.editorTakeoverActive} fallback={<EditorTakeover />}>
-              <Show when={uiState.activeView === 'conversation'}>
+          <div class="flex-1 flex flex-col overflow-hidden relative">
+            <Show when={uiState.activeView === 'conversation'}>
+              <div class="flex-1 min-h-0" classList={{ hidden: fileState.editorTakeoverActive }}>
                 <Show when={viewState.layoutMode === 'single'} fallback={<SplitPaneContainer />}>
                   <ConversationView />
                 </Show>
-              </Show>
-              <Show when={uiState.activeView === 'agents'}>
-                <AgentsView />
-              </Show>
-              <Show when={uiState.activeView === 'diff'}>
-                <DiffPreviewPane />
-              </Show>
-              <Show when={uiState.activeView === 'terminal'}>
-                <TerminalPane />
-              </Show>
-              <Show when={uiState.activeView === 'actions_center'}>
-                <ActionsCenter />
-              </Show>
+              </div>
+            </Show>
+            <Show when={uiState.activeView === 'agents' && !fileState.editorTakeoverActive}>
+              <AgentsView />
+            </Show>
+            <Show when={uiState.activeView === 'diff' && !fileState.editorTakeoverActive}>
+              <DiffPreviewPane />
+            </Show>
+            <Show when={uiState.activeView === 'terminal' && !fileState.editorTakeoverActive}>
+              <TerminalPane />
+            </Show>
+            <Show when={uiState.activeView === 'actions_center' && !fileState.editorTakeoverActive}>
+              <ActionsCenter />
+            </Show>
+            <Show when={fileState.editorTakeoverActive}>
+              <div class="absolute inset-0 z-10">
+                <EditorTakeover />
+              </div>
             </Show>
           </div>
 

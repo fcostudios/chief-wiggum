@@ -27,6 +27,7 @@ let mockActivePaneId = 'main';
 let mockCliDetected = true;
 let mockSessionId: string | null = 'session-1';
 let mockIsLoading = false;
+let mockEditorTakeoverActive = false;
 
 const mockSetActiveView = vi.fn();
 const mockSetSidebarWidth = vi.fn((width: number) => {
@@ -144,6 +145,14 @@ vi.mock('@/stores/viewStore', () => ({
     (mockEnsureMainPaneSession as unknown as (...inner: unknown[]) => unknown)(...args),
 }));
 
+vi.mock('@/stores/fileStore', () => ({
+  fileState: {
+    get editorTakeoverActive() {
+      return mockEditorTakeoverActive;
+    },
+  },
+}));
+
 vi.mock('./TitleBar', () => ({ default: () => <div data-testid="titlebar">TitleBar</div> }));
 vi.mock('./Sidebar', () => ({ default: () => <div data-testid="sidebar">Sidebar</div> }));
 vi.mock('./StatusBar', () => ({ default: () => <div data-testid="statusbar">StatusBar</div> }));
@@ -192,6 +201,9 @@ vi.mock('@/components/conversation/ContextBreakdownModal', () => ({
 vi.mock('@/components/layout/SplitPaneContainer', () => ({
   default: () => <div data-testid="split-pane-container">SplitPaneContainer</div>,
 }));
+vi.mock('@/components/editor/EditorTakeover', () => ({
+  default: () => <div data-testid="editor-takeover">EditorTakeover</div>,
+}));
 
 import MainLayout from './MainLayout';
 
@@ -216,6 +228,7 @@ describe('MainLayout', () => {
     mockCliDetected = true;
     mockSessionId = 'session-1';
     mockIsLoading = false;
+    mockEditorTakeoverActive = false;
     vi.clearAllMocks();
   });
 
@@ -286,5 +299,14 @@ describe('MainLayout', () => {
     expect(screen.getByTestId('context-breakdown-modal')).toBeInTheDocument();
     expect(screen.getByTestId('export-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('toast-container')).toBeInTheDocument();
+  });
+
+  it('keeps conversation view mounted while editor takeover is active', () => {
+    mockEditorTakeoverActive = true;
+    render(() => <MainLayout />);
+
+    expect(screen.getByTestId('conversation-view')).toBeInTheDocument();
+    expect(screen.getByTestId('editor-takeover')).toBeInTheDocument();
+    expect(screen.queryByTestId('message-input')).toBeNull();
   });
 });
