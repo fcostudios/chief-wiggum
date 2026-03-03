@@ -128,7 +128,7 @@ const MainLayout: Component = () => {
   });
 
   return (
-    <div class="grain-overlay h-screen flex flex-col bg-bg-primary text-text-primary font-ui overflow-hidden">
+    <div class="h-screen flex flex-col bg-bg-primary text-text-primary font-ui overflow-hidden">
       {/* Skip navigation link — visible on keyboard focus */}
       <a href="#main-content" class="skip-to-content">
         Skip to content
@@ -149,8 +149,7 @@ const MainLayout: Component = () => {
                   : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
-            background: 'var(--color-chrome-bg)',
-            'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.05)',
+            background: 'var(--color-bg-sidebar)',
             'border-right':
               uiState.sidebarState !== 'hidden' ? '1px solid var(--color-chrome-border)' : 'none',
           }}
@@ -259,8 +258,7 @@ const MainLayout: Component = () => {
             width: uiState.detailsPanelVisible ? `${uiState.detailsPanelWidth}px` : '0px',
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
-            background: 'var(--color-chrome-bg)',
-            'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.05)',
+            background: 'var(--color-bg-details)',
             'border-left': uiState.detailsPanelVisible
               ? '1px solid var(--color-chrome-border)'
               : 'none',
