@@ -7,7 +7,7 @@
 
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, Show, For, onCleanup, onMount } from 'solid-js';
-import { Send, Square, Paperclip, Image as ImageIcon, X } from 'lucide-solid';
+import { Send, Square, Paperclip, Image as ImageIcon, X, Check } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type {
   SlashCommand,
@@ -27,6 +27,7 @@ import SlashCommandMenu from './SlashCommandMenu';
 import FileMentionMenu from './FileMentionMenu';
 import ContextChip from './ContextChip';
 import ContextSuggestions from './ContextSuggestions';
+import OnboardingTooltip from '@/components/common/OnboardingTooltip';
 import {
   slashState,
   filteredCommands,
@@ -54,11 +55,14 @@ import {
   addSymbolAttachment,
 } from '@/stores/contextStore';
 import { projectState } from '@/stores/projectStore';
+import { sessionState } from '@/stores/sessionStore';
 import { addToast } from '@/stores/toastStore';
 import { actionState, startAction } from '@/stores/actionStore';
 import { selectFileForEditing } from '@/stores/fileStore';
 import { t } from '@/stores/i18nStore';
 import { maybeShowHint } from '@/stores/hintStore';
+import { hasSeenHint, hintsEnabled, markHintSeen } from '@/stores/settingsStore';
+import { dismissTooltip, shouldShowTooltip } from '@/stores/onboardingStore';
 
 interface MessageInputProps {
   onSend: (content: string, images?: PromptImageInput[]) => void;
@@ -138,9 +142,13 @@ export function pickBestMentionResult(
 }
 
 const MessageInput: Component<MessageInputProps> = (props) => {
+  const NEWLINE_HINT_ID = 'input:newline-hint';
+  const SENDS_KEY = 'cw:send-count';
+
   const [content, setContent] = createSignal('');
   const [isFocused, setIsFocused] = createSignal(false);
   const [isDragOver, setIsDragOver] = createSignal(false);
+  const [sendSuccess, setSendSuccess] = createSignal(false);
   const [mentionOpen, setMentionOpen] = createSignal(false);
   const [mentionResults, setMentionResults] = createSignal<FileSearchResult[]>([]);
   const [symbolResults, setSymbolResults] = createSignal<SymbolSearchResult[]>([]);
@@ -148,6 +156,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   const [mentionBundleHints, setMentionBundleHints] = createSignal<Record<string, string>>({});
   const [mentionHighlight, setMentionHighlight] = createSignal(0);
   const [previewImage, setPreviewImage] = createSignal<ImageAttachment | null>(null);
+  const [lastDraftSessionKey, setLastDraftSessionKey] = createSignal<string | null>(null);
   let textareaRef: HTMLTextAreaElement | undefined;
   let fileInputRef: HTMLInputElement | undefined;
   const mentionBundleCache = new Map<string, string | null>();
@@ -160,6 +169,20 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   });
   createEffect(() => {
     mentionMenuOpen = mentionOpen();
+  });
+
+  createEffect(() => {
+    const sid = sessionState.activeSessionId ?? 'default';
+    const key = `cw:draft:${sid}`;
+    if (lastDraftSessionKey() === key) return;
+    setLastDraftSessionKey(key);
+
+    const saved = localStorage.getItem(key) ?? '';
+    setContent(saved);
+    if (textareaRef) {
+      textareaRef.value = saved;
+      adjustHeight();
+    }
   });
 
   // Debounce timer for mention search
@@ -380,6 +403,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const target = e.target as HTMLTextAreaElement;
     const value = target.value;
     setContent(value);
+    const draftKey = `cw:draft:${sessionState.activeSessionId ?? 'default'}`;
+    localStorage.setItem(draftKey, value);
     adjustHeight();
 
     const cursorPos = target.selectionStart ?? 0;
@@ -481,6 +506,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         setContent('');
         clearAttachments();
         setPreviewImage(null);
+        const draftKey = `cw:draft:${sessionState.activeSessionId ?? 'default'}`;
+        localStorage.removeItem(draftKey);
         if (textareaRef) {
           textareaRef.value = '';
           textareaRef.style.height = '80px';
@@ -500,6 +527,15 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     setContent('');
     clearAttachments();
     setPreviewImage(null);
+    const draftKey = `cw:draft:${sessionState.activeSessionId ?? 'default'}`;
+    localStorage.removeItem(draftKey);
+    const count = Number.parseInt(localStorage.getItem(SENDS_KEY) ?? '0', 10) + 1;
+    localStorage.setItem(SENDS_KEY, String(count));
+    if (count >= 5) {
+      markHintSeen(NEWLINE_HINT_ID);
+    }
+    setSendSuccess(true);
+    setTimeout(() => setSendSuccess(false), 1500);
     if (textareaRef) {
       textareaRef.value = '';
       textareaRef.style.height = '80px';
@@ -670,6 +706,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   async function handleDrop(e: DragEvent) {
     e.preventDefault();
     setIsDragOver(false);
+    dismissTooltip('onboarding:drag-attach');
 
     const dataTransfer = e.dataTransfer;
     if (!dataTransfer) return;
@@ -761,6 +798,10 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   }
 
   function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === '@') {
+      dismissTooltip('onboarding:at-mention');
+    }
+
     // When mention menu is open, intercept navigation keys
     if (mentionMenuOpen) {
       const optionCount =
@@ -880,6 +921,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   const charCount = () => content().length;
   const canSend = () => content().trim().length > 0 && !props.isLoading && !props.isDisabled;
+  const showNewlineHint = () => hintsEnabled() && !hasSeenHint(NEWLINE_HINT_ID);
   const tokenDisplay = () => {
     const t = getTotalEstimatedTokens();
     if (t === 0) return null;
@@ -1095,16 +1137,49 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           rows={1}
           aria-label="Message input"
         />
+        <Show when={charCount() > 500}>
+          <span
+            class="absolute bottom-2 right-2 font-mono pointer-events-none"
+            style={{
+              'font-size': '10px',
+              color: charCount() > 900 ? 'var(--color-error)' : 'var(--color-text-tertiary)',
+              opacity: 0.8,
+            }}
+          >
+            {charCount()}
+          </span>
+        </Show>
       </div>
+
+      <Show when={shouldShowTooltip('onboarding:at-mention', 1)}>
+        <div class="relative max-w-4xl mx-auto">
+          <OnboardingTooltip
+            id="onboarding:at-mention"
+            message="Type @ to mention files from your project"
+            placement="top"
+          />
+        </div>
+      </Show>
+
+      <Show when={shouldShowTooltip('onboarding:drag-attach', 3)}>
+        <div class="relative max-w-4xl mx-auto">
+          <OnboardingTooltip
+            id="onboarding:drag-attach"
+            message="Drag files into the input to attach them"
+            placement="top"
+          />
+        </div>
+      </Show>
+
+      <Show when={showNewlineHint()}>
+        <p class="px-3 pb-1 text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <kbd class="font-mono">Shift+Enter</kbd> for a new line
+        </p>
+      </Show>
 
       {/* Footer: character count + buttons */}
       <div class="flex items-center justify-between mt-2 max-w-4xl mx-auto">
         <div class="flex items-center gap-2">
-          {/* Left: character count */}
-          <span class="text-[10px] text-text-tertiary/40 font-mono tracking-wide">
-            <Show when={charCount() > 0}>{charCount()}</Show>
-          </span>
-
           {/* Attach file button */}
           <button
             class="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs transition-colors"
@@ -1142,11 +1217,12 @@ const MessageInput: Component<MessageInputProps> = (props) => {
           </Show>
 
           <button
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+            class="flex items-center justify-center h-9 w-9 rounded-md transition-colors flex-shrink-0"
             style={{
               'transition-duration': 'var(--duration-fast)',
               background: canSend() ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
               color: canSend() ? 'white' : 'var(--color-text-tertiary)',
+              border: canSend() ? 'none' : '1px solid var(--color-border-secondary)',
               'box-shadow': canSend() ? '0 0 12px rgba(232, 130, 90, 0.2)' : 'none',
               cursor: canSend() ? 'pointer' : 'not-allowed',
             }}
@@ -1154,8 +1230,15 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             disabled={!canSend()}
             aria-label="Send message"
           >
-            <Send size={11} />
-            <span class="tracking-wide">{t('common.send')}</span>
+            <Show when={sendSuccess()} fallback={<Send size={16} />}>
+              <Check
+                size={16}
+                style={{
+                  animation:
+                    'check-appear var(--duration-celebration) var(--ease-celebration) forwards',
+                }}
+              />
+            </Show>
           </button>
         </div>
       </div>

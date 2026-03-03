@@ -22,6 +22,7 @@ import {
 } from '@/stores/actionStore';
 import { sessionState } from '@/stores/sessionStore';
 import { switchLocale } from '@/stores/i18nStore';
+import { incrementSessionCount } from '@/stores/onboardingStore';
 import { HintTooltip } from '@/components/common/HintTooltip';
 // Renderer registrations (side effects — register into rendererRegistry)
 import './components/conversation/renderers/MermaidRenderer';
@@ -71,6 +72,7 @@ const App: Component = () => {
   });
 
   onMount(() => {
+    incrementSessionCount();
     detectCli();
     loadProjects();
     void startSdkCommandListener();

@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import { ChevronDown } from 'lucide-solid';
+import { ChevronDown, Coins } from 'lucide-solid';
 import {
   closeStatusCostPopover,
   setActiveView,
@@ -25,6 +25,8 @@ import {
   selectAction,
   stopAction,
 } from '@/stores/actionStore';
+import OnboardingTooltip from '@/components/common/OnboardingTooltip';
+import { shouldShowTooltip } from '@/stores/onboardingStore';
 
 function formatCost(cents: number | null | undefined): string {
   return `$${((cents ?? 0) / 100).toFixed(2)}`;
@@ -143,6 +145,16 @@ const StatusBar: Component = () => {
     );
     return formatCost(cents);
   });
+  const lastMessageCostDisplay = createMemo<string | null>(() => {
+    const msgs = conversationState.messages;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === 'assistant' && m.cost_cents != null) {
+        return formatCost(m.cost_cents);
+      }
+    }
+    return null;
+  });
 
   const statusPill = createMemo(() => {
     if (!cliState.isDetected) {
@@ -243,6 +255,13 @@ const StatusBar: Component = () => {
           >
             {uiState.yoloMode ? t('statusBar.yolo') : t('statusBar.dev')} ·
           </span>
+        </Show>
+        <Show when={shouldShowTooltip('onboarding:auto-approve', 2)}>
+          <OnboardingTooltip
+            id="onboarding:auto-approve"
+            message="Toggle Auto-approve for uninterrupted sessions (Cmd+Shift+Y)"
+            placement="top"
+          />
         </Show>
 
         <button
@@ -449,11 +468,13 @@ const StatusBar: Component = () => {
                             </div>
                           </div>
                           <button
-                            class="px-1.5 py-0.5 rounded text-[10px]"
+                            class="text-[10px] hover:underline"
                             style={{
                               color: 'var(--color-text-tertiary)',
-                              background: 'var(--color-bg-elevated)',
-                              border: '1px solid var(--color-border-secondary)',
+                              background: 'none',
+                              border: 'none',
+                              padding: '0',
+                              cursor: 'pointer',
                             }}
                             onClick={() => {
                               selectAction(evt.action_id);
@@ -496,6 +517,7 @@ const StatusBar: Component = () => {
           aria-label={t('statusBar.costBreakdown')}
           aria-expanded={uiState.statusCostPopoverVisible}
         >
+          <Coins size={10} class="text-text-tertiary" />
           <span class="font-mono">{sessionCostDisplay()}</span>
           <ChevronDown size={11} class="text-text-tertiary" />
         </button>
@@ -530,6 +552,16 @@ const StatusBar: Component = () => {
                   {sessionCostDisplay()}
                 </span>
               </div>
+              <Show when={lastMessageCostDisplay() !== null}>
+                <div class="flex items-center justify-between">
+                  <span style={{ color: 'var(--color-text-tertiary)' }}>
+                    {t('statusBar.lastMessageCost')}
+                  </span>
+                  <span class="font-mono" style={{ color: 'var(--color-text-secondary)' }}>
+                    {lastMessageCostDisplay()}
+                  </span>
+                </div>
+              </Show>
               <div class="flex items-center justify-between">
                 <span style={{ color: 'var(--color-text-tertiary)' }}>
                   {t('statusBar.todayCost')}
@@ -563,11 +595,12 @@ const StatusBar: Component = () => {
 
             <div class="px-3 pb-3">
               <button
-                class="w-full px-2 py-1 rounded text-xs transition-colors"
+                class="w-full text-xs text-center py-1 hover:underline"
                 style={{
                   color: 'var(--color-text-secondary)',
-                  background: 'var(--color-bg-elevated)',
-                  border: '1px solid var(--color-border-secondary)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                 }}
                 onClick={() => {
                   openExportDialog();

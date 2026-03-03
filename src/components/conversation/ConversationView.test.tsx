@@ -113,6 +113,15 @@ vi.mock('@/stores/uiStore', () => ({
   },
   closeMessageSearch: (...args: unknown[]) => mockCloseMessageSearch(...args),
 }));
+vi.mock('@/stores/settingsStore', () => ({
+  settingsState: {
+    settings: {
+      cli: {
+        default_model: 'claude-sonnet-4-6',
+      },
+    },
+  },
+}));
 
 vi.mock('./MessageBubble', () => ({
   default: (props: { message: Message }) => (
@@ -122,7 +131,11 @@ vi.mock('./MessageBubble', () => ({
 vi.mock('./MarkdownContent', () => ({
   default: (props: { content: string }) => <div data-testid="markdown">{props.content}</div>,
 }));
-vi.mock('./ToolUseBlock', () => ({ ToolUseBlock: () => <div data-testid="tool-use" /> }));
+vi.mock('./ToolUseBlock', () => ({
+  ToolUseBlock: (props: { isCompleted?: boolean }) => (
+    <div data-testid="tool-use" data-completed={props.isCompleted ? 'yes' : 'no'} />
+  ),
+}));
 vi.mock('./ToolResultBlock', () => ({ ToolResultBlock: () => <div data-testid="tool-result" /> }));
 vi.mock('./ThinkingBlock', () => ({ ThinkingBlock: () => <div data-testid="thinking-block" /> }));
 vi.mock('./StreamingThinkingBlock', () => ({
@@ -185,16 +198,16 @@ describe('ConversationView', () => {
     }
   });
 
-  it('renders empty state with project CTA and sample prompts', () => {
+  it('renders welcome screen with project CTA and sample prompts', () => {
     render(() => <ConversationView />);
-    expect(screen.getByText('Open a Project Folder')).toBeInTheDocument();
-    expect(screen.getByText('conversation.emptyTitle')).toBeInTheDocument();
+    expect(screen.getByText('Chief Wiggum')).toBeInTheDocument();
+    expect(screen.getByText('sidebar.openProject')).toBeInTheDocument();
     expect(screen.getAllByRole('button').length).toBeGreaterThan(1);
   });
 
   it('opens project picker from empty-state CTA', () => {
     render(() => <ConversationView />);
-    fireEvent.click(screen.getByRole('button', { name: /Open a Project Folder/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sidebar\.openProject/i }));
     expect(mockPickAndCreateProject).toHaveBeenCalled();
   });
 
@@ -332,6 +345,40 @@ describe('ConversationView', () => {
     render(() => <ConversationView />);
 
     expect(screen.getByTestId('tool-result')).toBeInTheDocument();
+  });
+
+  it('passes completion state to ToolUseBlock after tool_result arrives', () => {
+    mockMessages = [
+      makeMessage({
+        id: 'bash-use',
+        role: 'tool_use',
+        content: JSON.stringify({
+          tool_name: 'Bash',
+          tool_use_id: 'bash-1',
+          tool_input: JSON.stringify({ command: 'echo ok' }),
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+      makeMessage({
+        id: 'bash-result',
+        role: 'tool_result',
+        content: JSON.stringify({
+          tool_use_id: 'bash-1',
+          content: 'done',
+          is_error: false,
+        }),
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        cost_cents: null,
+      }),
+    ];
+
+    render(() => <ConversationView />);
+    expect(screen.getByTestId('tool-use')).toHaveAttribute('data-completed', 'yes');
   });
 
   it('still renders TodoWrite tool_result when it is an error', () => {

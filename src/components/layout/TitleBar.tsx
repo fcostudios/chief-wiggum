@@ -13,6 +13,8 @@ import { cliState } from '@/stores/cliStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { t } from '@/stores/i18nStore';
 import ModelSelector from '@/components/common/ModelSelector';
+import OnboardingTooltip from '@/components/common/OnboardingTooltip';
+import { shouldShowTooltip } from '@/stores/onboardingStore';
 
 const TitleBar: Component = () => {
   const [isMac, setIsMac] = createSignal(false);
@@ -132,6 +134,15 @@ const TitleBar: Component = () => {
             showModelWhenStatus={chipStatus().showModel}
           />
         </div>
+        <Show when={shouldShowTooltip('onboarding:cmd-k', 1)}>
+          <div class="relative">
+            <OnboardingTooltip
+              id="onboarding:cmd-k"
+              message="Press Cmd+K to open the command palette"
+              placement="bottom"
+            />
+          </div>
+        </Show>
 
         <div class="flex-1 h-full" data-tauri-drag-region />
       </div>

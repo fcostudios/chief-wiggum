@@ -25,6 +25,9 @@
   --color-tab-active-bg: rgba(232, 130, 90, 0.12);
   --color-tab-active-text: #e8825a;
   --color-tab-inactive-text: #7d8590;
+  /* --- Response progress (CHI-237) --- */
+  --color-progress-track: rgba(232, 130, 90, 0.12);
+  --color-progress-fill: #e8825a;
 
   --color-border-primary: #30363d;
   --color-border-secondary: #21262d;
@@ -128,9 +131,11 @@
   --duration-normal: 150ms;
   --duration-slow: 200ms;
   --duration-entrance: 300ms;
+  --duration-celebration: 400ms;
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-celebration: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ============================================================
@@ -178,6 +183,8 @@
   --color-tab-active-bg: rgba(207, 110, 62, 0.12);
   --color-tab-active-text: #cf6e3e;
   --color-tab-inactive-text: #8b949e;
+  --color-progress-track: rgba(207, 110, 62, 0.16);
+  --color-progress-fill: #cf6e3e;
 
   --color-border-primary: #d0d7de;
   --color-border-secondary: #e1e4e8;
@@ -299,6 +306,26 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+@keyframes check-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

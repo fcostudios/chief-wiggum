@@ -6,6 +6,8 @@ import type { Component } from 'solid-js';
 import { createSignal, onMount, onCleanup, Show, For } from 'solid-js';
 import { ChevronDown } from 'lucide-solid';
 import { sessionState, changeSessionModel, getActiveSession } from '@/stores/sessionStore';
+import OnboardingTooltip from '@/components/common/OnboardingTooltip';
+import { shouldShowTooltip } from '@/stores/onboardingStore';
 
 interface ModelOption {
   id: string;
@@ -103,6 +105,14 @@ const ModelSelector: Component<ModelSelectorProps> = (props) => {
         </Show>
         <ChevronDown size={11} class="text-text-tertiary" />
       </button>
+
+      <Show when={shouldShowTooltip('onboarding:cycle-model', 2)}>
+        <OnboardingTooltip
+          id="onboarding:cycle-model"
+          message="Press Tab to cycle through Claude models"
+          placement="bottom"
+        />
+      </Show>
 
       <Show when={isOpen()}>
         <div

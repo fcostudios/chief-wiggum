@@ -96,4 +96,16 @@ describe('ToolUseBlock', () => {
     vi.advanceTimersByTime(2000);
     expect(copyBtn.innerHTML).toBe(before);
   });
+
+  it('renders completion check when isCompleted is true', () => {
+    const msg = makeMsg('Bash', JSON.stringify({ command: 'npm run test' }));
+    render(() => <ToolUseBlock message={msg} isCompleted={true} />);
+    expect(screen.getByTestId('tool-use-complete')).toBeInTheDocument();
+  });
+
+  it('does not render completion check when isCompleted is false', () => {
+    const msg = makeMsg('Bash', JSON.stringify({ command: 'npm run test' }));
+    render(() => <ToolUseBlock message={msg} isCompleted={false} />);
+    expect(screen.queryByTestId('tool-use-complete')).not.toBeInTheDocument();
+  });
 });

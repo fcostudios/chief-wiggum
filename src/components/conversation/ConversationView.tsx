@@ -3,9 +3,9 @@
 // Uses @tanstack/solid-virtual for windowed rendering (CHI-132).
 
 import type { Component } from 'solid-js';
-import { createEffect, createSignal, Show, For, onCleanup, onMount } from 'solid-js';
+import { createEffect, createMemo, createSignal, Show, For, onCleanup, onMount } from 'solid-js';
 import { createVirtualizer } from '@tanstack/solid-virtual';
-import { ArrowDown, FolderOpen } from 'lucide-solid';
+import { ArrowDown } from 'lucide-solid';
 import {
   conversationState,
   deleteMessage,
@@ -37,31 +37,15 @@ import { StreamingThinkingBlock } from './StreamingThinkingBlock';
 import { StreamingActivitySection } from './StreamingActivitySection';
 import { PermissionRecordBlock } from './PermissionRecordBlock';
 import SessionResumeCard from './SessionResumeCard';
+import ResponseProgress from './ResponseProgress';
+import WelcomeScreen from './WelcomeScreen';
 import type { Message } from '@/lib/types';
 import type { SearchMatch } from '@/lib/messageSearch';
 import { extractResumeData } from '@/lib/resumeDetector';
 import { stabilizeStreamingMarkdown } from '@/lib/streamingMarkdown';
 import { t } from '@/stores/i18nStore';
 import { maybeShowHint } from '@/stores/hintStore';
-
-const SAMPLE_PROMPTS = [
-  {
-    titleKey: 'conversation.sampleExplain',
-    descriptionKey: 'conversation.sampleExplainDesc',
-    prompt:
-      'Give me a high-level overview of this codebase. What does it do, how is it structured, and what are the key files?',
-  },
-  {
-    titleKey: 'conversation.sampleBug',
-    descriptionKey: 'conversation.sampleBugDesc',
-    prompt: "Help me debug an issue I'm seeing. Let me describe what's happening...",
-  },
-  {
-    titleKey: 'conversation.sampleFeature',
-    descriptionKey: 'conversation.sampleFeatureDesc',
-    prompt: 'I want to add a new feature. Here is what it should do...',
-  },
-];
+import { settingsState } from '@/stores/settingsStore';
 
 /** Threshold for enabling virtual scrolling. Below this, use plain <For>. */
 const VIRTUALIZATION_THRESHOLD = 50;
@@ -130,11 +114,17 @@ function isTodoWriteSuccessEcho(message: Message): boolean {
   return parsedToolUse?.tool_name === 'TodoWrite';
 }
 
-function MessageRenderer(props: { message: Message }) {
+function MessageRenderer(props: {
+  message: Message;
+  isToolCompleted?: (message: Message) => boolean;
+}) {
   return (
     <>
       {props.message.role === 'tool_use' ? (
-        <ToolUseBlock message={props.message} />
+        <ToolUseBlock
+          message={props.message}
+          isCompleted={props.isToolCompleted?.(props.message) ?? false}
+        />
       ) : props.message.role === 'tool_result' ? (
         isTodoWriteSuccessEcho(props.message) ? null : (
           <ToolResultBlock message={props.message} />
@@ -181,6 +171,7 @@ function VirtualMessageRow(props: {
   virtualItem: { index: number; start: number };
   message: Message | undefined;
   virtualizer: { measureElement: (el: Element) => void };
+  isToolCompleted: (message: Message) => boolean;
 }) {
   let rowRef: HTMLDivElement | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -238,7 +229,7 @@ function VirtualMessageRow(props: {
     >
       <div class="pb-4">
         <Show when={props.message}>
-          <MessageRenderer message={props.message!} />
+          <MessageRenderer message={props.message!} isToolCompleted={props.isToolCompleted} />
         </Show>
       </div>
     </div>
@@ -321,6 +312,24 @@ const ConversationView: Component = () => {
     if (cents == null) return undefined;
     return `$${(cents / 100).toFixed(2)}`;
   };
+  const completedToolIds = createMemo<Set<string>>(() => {
+    const completed = new Set<string>();
+    for (const message of conversationState.messages) {
+      if (message.role !== 'tool_result') continue;
+      const parsed = parseToolResult(message.content);
+      if (parsed?.tool_use_id) {
+        completed.add(parsed.tool_use_id);
+      }
+    }
+    return completed;
+  });
+
+  function isToolCompleted(message: Message): boolean {
+    if (message.role !== 'tool_use') return false;
+    const parsed = parseToolUse(message.content);
+    if (!parsed?.tool_use_id) return false;
+    return completedToolIds().has(parsed.tool_use_id);
+  }
 
   // ── Virtual scroller (active when messages >= threshold) ──
   const virtualizer = createVirtualizer({
@@ -485,6 +494,7 @@ const ConversationView: Component = () => {
 
   return (
     <div class="relative flex-1 min-h-0">
+      <ResponseProgress />
       <Show when={uiState.messageSearchVisible}>
         <div class="absolute top-2 left-1/2 -translate-x-1/2 z-30 w-[400px] max-w-[90%]">
           <ConversationSearch
@@ -540,101 +550,13 @@ const ConversationView: Component = () => {
                   </div>
                 }
               >
-                <div class="text-center max-w-md mx-auto px-4">
-                  <div
-                    class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, rgba(232, 130, 90, 0.12) 0%, rgba(232, 130, 90, 0.04) 100%)',
-                      border: '1px solid rgba(232, 130, 90, 0.15)',
-                      'box-shadow': 'var(--glow-accent-subtle)',
-                    }}
-                  >
-                    <span
-                      class="text-xl font-bold"
-                      style={{ 'line-height': '1', color: 'var(--color-accent)' }}
-                    >
-                      CW
-                    </span>
-                  </div>
-                  <p
-                    class="text-sm font-medium text-text-primary mb-1"
-                    style={{ 'letter-spacing': '-0.01em' }}
-                  >
-                    {t('conversation.emptyTitle')}
-                  </p>
-                  <p class="text-xs text-text-tertiary/60 mb-6 tracking-wide">
-                    {t('conversation.emptySubtitle')}
-                  </p>
-                  <Show when={!projectState.activeProjectId}>
-                    <button
-                      type="button"
-                      class="w-full max-w-md mx-auto mb-4 flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors group"
-                      style={{
-                        background: 'var(--color-accent-muted)',
-                        border:
-                          '1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = 'var(--color-accent)';
-                        e.currentTarget.style.background =
-                          'color-mix(in srgb, var(--color-accent) 14%, transparent)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor =
-                          'color-mix(in srgb, var(--color-accent) 30%, transparent)';
-                        e.currentTarget.style.background = 'var(--color-accent-muted)';
-                      }}
-                      onClick={() => {
-                        void pickAndCreateProject();
-                      }}
-                    >
-                      <div
-                        class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-                        style={{
-                          background: 'color-mix(in srgb, var(--color-accent) 20%, transparent)',
-                        }}
-                      >
-                        <FolderOpen size={16} style={{ color: 'var(--color-accent)' }} />
-                      </div>
-                      <div class="min-w-0">
-                        <p class="text-xs font-medium text-text-primary">Open a Project Folder</p>
-                        <p class="text-[10px] text-text-tertiary mt-0.5 leading-relaxed">
-                          Select a folder to give Claude Code context about your codebase
-                        </p>
-                      </div>
-                    </button>
-                  </Show>
-                  <div class="space-y-2">
-                    <For each={SAMPLE_PROMPTS}>
-                      {(sample) => (
-                        <button
-                          class="w-full text-left px-3.5 py-2.5 rounded-lg transition-all group"
-                          style={{
-                            background: 'var(--color-bg-secondary)',
-                            border: '1px solid var(--color-border-secondary)',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
-                            e.currentTarget.style.background = 'var(--color-bg-elevated)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
-                            e.currentTarget.style.background = 'var(--color-bg-secondary)';
-                          }}
-                          onClick={() => handleSamplePrompt(sample.prompt)}
-                        >
-                          <p class="text-xs font-medium text-text-primary mb-0.5 group-hover:text-accent transition-colors">
-                            {t(sample.titleKey)}
-                          </p>
-                          <p class="text-[11px] text-text-tertiary/70 leading-relaxed">
-                            {t(sample.descriptionKey)}
-                          </p>
-                        </button>
-                      )}
-                    </For>
-                  </div>
-                </div>
+                <WelcomeScreen
+                  onPromptSelect={handleSamplePrompt}
+                  model={activeSession()?.model ?? settingsState.settings.cli.default_model}
+                  onOpenProject={() => {
+                    void pickAndCreateProject();
+                  }}
+                />
               </Show>
             </div>
           }
@@ -679,7 +601,7 @@ const ConversationView: Component = () => {
                           'animation-delay': `${Math.min(index() * 30, 200)}ms`,
                         }}
                       >
-                        <MessageRenderer message={msg} />
+                        <MessageRenderer message={msg} isToolCompleted={isToolCompleted} />
                       </div>
                     )}
                   </For>
@@ -701,6 +623,7 @@ const ConversationView: Component = () => {
                         virtualItem={virtualItem}
                         message={msg()}
                         virtualizer={virtualizer}
+                        isToolCompleted={isToolCompleted}
                       />
                     );
                   }}

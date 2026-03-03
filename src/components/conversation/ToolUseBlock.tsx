@@ -6,6 +6,7 @@ import { addToast } from '@/stores/toastStore';
 
 interface ToolUseBlockProps {
   message: Message;
+  isCompleted?: boolean;
 }
 
 /** Classify a tool name into a category for color-coding. */
@@ -136,6 +137,22 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
                   <span class="text-xs font-mono font-semibold" style={{ color: color() }}>
                     {data().tool_name}
                   </span>
+                  <Show when={props.isCompleted}>
+                    <span
+                      data-testid="tool-use-complete"
+                      class="inline-flex items-center justify-center rounded-full w-4 h-4"
+                      style={{
+                        background: 'rgba(63, 185, 80, 0.14)',
+                        color: 'var(--color-success)',
+                        animation:
+                          'check-appear var(--duration-celebration) var(--ease-celebration) forwards',
+                      }}
+                      aria-label="Tool completed"
+                      title="Tool completed"
+                    >
+                      <Check size={10} />
+                    </span>
+                  </Show>
                   <Show when={summary()}>
                     <span
                       class="text-xs truncate flex-1"

@@ -110,6 +110,7 @@ vi.mock('@/stores/i18nStore', () => ({
     if (key === 'statusBar.tokens') return `${vars?.value ?? '\u2013'} tokens`;
     if (key === 'statusBar.costBreakdown') return 'Cost breakdown';
     if (key === 'statusBar.sessionCost') return 'Session cost';
+    if (key === 'statusBar.lastMessageCost') return 'Last message';
     if (key === 'statusBar.todayCost') return 'Today';
     if (key === 'statusBar.weekCost') return 'This week';
     if (key === 'statusBar.runningAggregate') return 'Running total';
@@ -195,6 +196,42 @@ describe('StatusBar', () => {
     expect(screen.getByText('Session cost')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Export Diagnostics' }));
     expect(mockOpenExportDialog).toHaveBeenCalled();
+  });
+
+  it('shows last message cost row when popover is open', () => {
+    mockStatusCostPopoverVisible = true;
+    mockMessages = [
+      {
+        id: 'msg-user',
+        session_id: 's1',
+        role: 'user',
+        content: 'hello',
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        thinking_tokens: null,
+        cost_cents: null,
+        is_compacted: false,
+        created_at: '2026-03-02T00:00:00.000Z',
+      },
+      {
+        id: 'msg-assistant',
+        session_id: 's1',
+        role: 'assistant',
+        content: 'hi there',
+        model: null,
+        input_tokens: null,
+        output_tokens: null,
+        thinking_tokens: null,
+        cost_cents: 42,
+        is_compacted: false,
+        created_at: '2026-03-02T00:00:01.000Z',
+      },
+    ];
+
+    render(() => <StatusBar />);
+    expect(screen.getByText('Last message')).toBeInTheDocument();
+    expect(screen.getByText('$0.42')).toBeInTheDocument();
   });
 
   it('shows running count and running aggregate cost when multiple sessions are active', () => {
