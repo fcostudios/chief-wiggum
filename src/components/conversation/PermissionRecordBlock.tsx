@@ -37,7 +37,7 @@ function outcomeLabel(outcome: PermissionRecordData['outcome']): string {
     case 'denied':
       return 'Denied';
     case 'yolo':
-      return 'Auto-approved (YOLO)';
+      return 'Auto-approved';
   }
 }
 

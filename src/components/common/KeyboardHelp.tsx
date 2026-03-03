@@ -49,7 +49,7 @@ const SHORTCUTS: ShortcutGroup[] = [
     category: 'Runtime & Diagnostics',
     shortcuts: [
       { keys: 'Cmd+`', description: 'Toggle terminal view' },
-      { keys: 'Cmd+Shift+Y', description: 'Toggle YOLO mode' },
+      { keys: 'Cmd+Shift+Y', description: 'Toggle Auto-approve mode' },
       { keys: 'Cmd+Shift+F12', description: 'Toggle Developer mode' },
       { keys: 'Cmd+Shift+D', description: 'Copy debug info' },
       { keys: 'Cmd+Shift+.', description: 'Stop all running actions' },
