@@ -529,7 +529,7 @@ const ConversationView: Component = () => {
   }
 
   return (
-    <div class="relative flex-1 min-h-0">
+    <div class="relative h-full min-h-0">
       <ResponseProgress />
       <Show when={uiState.messageSearchVisible}>
         <div class="absolute top-2 left-1/2 -translate-x-1/2 z-30 w-[400px] max-w-[90%]">
