@@ -21,7 +21,7 @@
     "stopping": "Stopping...",
     "done": "Done",
     "ready": "Ready",
-    "yolo": "YOLO",
+    "yolo": "AUTO",
     "dev": "DEV",
     "nActive": "{{ n }} active",
     "tokens": "{{ value }} tokens",

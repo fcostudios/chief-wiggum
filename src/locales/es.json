@@ -21,7 +21,7 @@
     "stopping": "Deteniendo...",
     "done": "Listo",
     "ready": "Listo",
-    "yolo": "YOLO",
+    "yolo": "AUTO",
     "dev": "DEV",
     "nActive": "{{ n }} activas",
     "tokens": "{{ value }} tokens",
