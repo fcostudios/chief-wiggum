@@ -159,8 +159,8 @@ vi.mock('@/components/conversation/MessageInput', () => ({
 vi.mock('@/components/permissions/PermissionDialog', () => ({
   default: () => <div data-testid="permission-dialog">PermissionDialog</div>,
 }));
-vi.mock('@/components/permissions/YoloWarningDialog', () => ({
-  default: () => <div data-testid="yolo-warning">YoloWarningDialog</div>,
+vi.mock('@/components/permissions/AutoApproveWarningDialog', () => ({
+  default: () => <div data-testid="auto-approve-warning">AutoApproveWarningDialog</div>,
 }));
 vi.mock('@/components/terminal/TerminalPane', () => ({
   default: () => <div data-testid="terminal-pane">TerminalPane</div>,
@@ -279,7 +279,7 @@ describe('MainLayout', () => {
     expect(screen.getByTestId('split-pane-container')).toBeInTheDocument();
     expect(screen.queryByTestId('message-input')).toBeNull();
     expect(screen.getByTestId('permission-dialog')).toBeInTheDocument();
-    expect(screen.getByTestId('yolo-warning')).toBeInTheDocument();
+    expect(screen.getByTestId('auto-approve-warning')).toBeInTheDocument();
     expect(screen.getAllByTestId('command-palette')).toHaveLength(2);
     expect(screen.getByTestId('keyboard-help')).toBeInTheDocument();
     expect(screen.getByTestId('settings-modal')).toBeInTheDocument();

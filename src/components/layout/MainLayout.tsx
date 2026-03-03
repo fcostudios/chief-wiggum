@@ -30,7 +30,7 @@ import DetailsPanel from './DetailsPanel';
 import ConversationView from '@/components/conversation/ConversationView';
 import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
-import YoloWarningDialog from '@/components/permissions/YoloWarningDialog';
+import AutoApproveWarningDialog from '@/components/permissions/AutoApproveWarningDialog';
 import { sessionState, createNewSession } from '@/stores/sessionStore';
 import {
   sendMessage,
@@ -305,9 +305,9 @@ const MainLayout: Component = () => {
         )}
       </Show>
 
-      {/* YOLO warning dialog */}
+      {/* Auto-approve warning dialog */}
       <Show when={uiState.yoloDialogVisible}>
-        <YoloWarningDialog />
+        <AutoApproveWarningDialog />
       </Show>
 
       {/* Command palette (Cmd+K) */}

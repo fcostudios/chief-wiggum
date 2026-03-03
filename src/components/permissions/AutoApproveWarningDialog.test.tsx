@@ -9,36 +9,42 @@ vi.mock('@/stores/uiStore', () => ({
   dismissYoloDialog: () => mockDismissYoloDialog(),
 }));
 
-import YoloWarningDialog from './YoloWarningDialog';
+import AutoApproveWarningDialog from './AutoApproveWarningDialog';
 
-describe('YoloWarningDialog', () => {
+describe('AutoApproveWarningDialog', () => {
   beforeEach(() => {
     mockEnableYoloMode.mockClear();
     mockDismissYoloDialog.mockClear();
   });
 
   it('renders warning dialog with action buttons', () => {
-    render(() => <YoloWarningDialog />);
+    render(() => <AutoApproveWarningDialog />);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cancel/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Enable YOLO Mode/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Enable Auto-approve Mode/i })).toBeInTheDocument();
   });
 
   it('Escape dismisses the dialog', () => {
-    render(() => <YoloWarningDialog />);
+    render(() => <AutoApproveWarningDialog />);
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(mockDismissYoloDialog).toHaveBeenCalled();
   });
 
-  it('Enter enables YOLO mode', () => {
-    render(() => <YoloWarningDialog />);
+  it('Enter enables auto-approve mode', () => {
+    render(() => <AutoApproveWarningDialog />);
     fireEvent.keyDown(document, { key: 'Enter' });
     expect(mockEnableYoloMode).toHaveBeenCalled();
   });
 
   it('clicking the backdrop dismisses the dialog', () => {
-    render(() => <YoloWarningDialog />);
+    render(() => <AutoApproveWarningDialog />);
     fireEvent.click(screen.getByRole('dialog'));
     expect(mockDismissYoloDialog).toHaveBeenCalled();
+  });
+
+  it('dialog title says Auto-approve, not YOLO', () => {
+    render(() => <AutoApproveWarningDialog />);
+    expect(screen.getByText(/Enable Auto-approve Mode\?/i)).toBeInTheDocument();
+    expect(screen.queryByText(/YOLO/i)).not.toBeInTheDocument();
   });
 });

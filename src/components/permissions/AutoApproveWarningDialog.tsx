@@ -1,5 +1,5 @@
-// src/components/permissions/YoloWarningDialog.tsx
-// YOLO mode warning dialog per SPEC-001 §7.
+// src/components/permissions/AutoApproveWarningDialog.tsx
+// Auto-approve mode warning dialog per SPEC-001 §7.
 // Modal: warns user about auto-approving all permissions.
 // Keyboard: Enter=confirm, Escape=cancel.
 // Focus trap: Tab cycles within dialog.
@@ -9,7 +9,7 @@ import { onMount, onCleanup } from 'solid-js';
 import { AlertTriangle } from 'lucide-solid';
 import { enableYoloMode, dismissYoloDialog } from '@/stores/uiStore';
 
-const YoloWarningDialog: Component = () => {
+const AutoApproveWarningDialog: Component = () => {
   let dialogRef: HTMLDivElement | undefined;
 
   // --- Keyboard shortcuts ---
@@ -57,7 +57,7 @@ const YoloWarningDialog: Component = () => {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       role="dialog"
       aria-modal="true"
-      aria-label="YOLO mode warning"
+      aria-label="Auto-approve mode warning"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           dismissYoloDialog();
@@ -71,13 +71,13 @@ const YoloWarningDialog: Component = () => {
         {/* Header */}
         <div class="flex items-center gap-2 px-6 pt-5 pb-3">
           <AlertTriangle size={20} class="text-warning" />
-          <h2 class="text-xl font-semibold text-text-primary">Enable YOLO Mode?</h2>
+          <h2 class="text-xl font-semibold text-text-primary">Enable Auto-approve Mode?</h2>
         </div>
 
         {/* Content */}
         <div class="px-6 pb-4">
           <p class="text-sm text-text-secondary mb-3">
-            YOLO mode will{' '}
+            Auto-approve mode will{' '}
             <span class="font-semibold text-warning">auto-approve all permission requests</span>{' '}
             without showing the permission dialog.
           </p>
@@ -88,7 +88,7 @@ const YoloWarningDialog: Component = () => {
             </p>
           </div>
           <p class="text-xs text-text-tertiary">
-            You can disable YOLO mode at any time with Cmd+Shift+Y.
+            You can disable Auto-approve mode at any time with Cmd+Shift+Y.
           </p>
         </div>
 
@@ -108,7 +108,7 @@ const YoloWarningDialog: Component = () => {
             style={{ 'transition-duration': 'var(--duration-fast)' }}
             onClick={enableYoloMode}
           >
-            Enable YOLO Mode
+            Enable Auto-approve Mode
             <kbd class="ml-1.5 text-xs text-white/60">Enter</kbd>
           </button>
         </div>
@@ -117,4 +117,4 @@ const YoloWarningDialog: Component = () => {
   );
 };
 
-export default YoloWarningDialog;
+export default AutoApproveWarningDialog;
