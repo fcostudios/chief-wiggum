@@ -437,9 +437,11 @@ const ConversationView: Component = () => {
       });
       requestAnimationFrame(() => {
         virtualizer.measure();
-        if (scrollRef) {
+        requestAnimationFrame(() => {
+          if (!scrollRef) return;
           scrollRef.scrollTop = scrollRef.scrollHeight;
-        }
+          handleScroll();
+        });
       });
       return;
     }
@@ -464,7 +466,9 @@ const ConversationView: Component = () => {
   createEffect(() => {
     const editorActive = fileState.editorTakeoverActive;
     if (editorActive && !previousEditorTakeoverActive && scrollRef) {
-      shouldRestoreLatestOnEditorClose = isAutoScroll();
+      const distanceFromBottom =
+        scrollRef.scrollHeight - scrollRef.scrollTop - scrollRef.clientHeight;
+      shouldRestoreLatestOnEditorClose = distanceFromBottom < 120;
       saveConversationScrollTop(scrollRef.scrollTop);
     }
 
