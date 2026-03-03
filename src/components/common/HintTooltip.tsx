@@ -29,8 +29,9 @@ export const HintTooltip: Component<HintTooltipProps> = (props) => {
       <div
         class="rounded-lg px-3 py-2.5 shadow-lg max-w-[240px] animate-fade-in relative"
         style={{
-          background: 'var(--color-accent)',
-          color: 'var(--color-bg-primary)',
+          background: 'var(--color-bg-elevated)',
+          border: '1px solid var(--color-border-secondary)',
+          color: 'var(--color-text-primary)',
           'font-size': '11px',
           'line-height': '1.5',
         }}
@@ -44,7 +45,7 @@ export const HintTooltip: Component<HintTooltipProps> = (props) => {
             bottom: '-5px',
             width: '10px',
             height: '5px',
-            background: 'var(--color-accent)',
+            background: 'var(--color-bg-elevated)',
             'clip-path': 'polygon(0 0, 100% 0, 50% 100%)',
           }}
           aria-hidden="true"
@@ -54,7 +55,7 @@ export const HintTooltip: Component<HintTooltipProps> = (props) => {
           <p class="flex-1">{props.text}</p>
           <button
             class="shrink-0 mt-0.5 rounded p-0.5 hover:opacity-70 transition-opacity"
-            style={{ color: 'var(--color-bg-primary)' }}
+            style={{ color: 'var(--color-text-secondary)' }}
             onClick={dismiss}
             aria-label="Dismiss hint"
           >
@@ -66,8 +67,9 @@ export const HintTooltip: Component<HintTooltipProps> = (props) => {
           <kbd
             class="mt-1.5 inline-block rounded px-1 py-0.5 text-[9px] font-mono"
             style={{
-              background: 'rgba(0,0,0,0.2)',
-              color: 'var(--color-bg-primary)',
+              background: 'var(--color-bg-inset)',
+              color: 'var(--color-text-secondary)',
+              border: '1px solid var(--color-border-secondary)',
             }}
           >
             {props.shortcut}
