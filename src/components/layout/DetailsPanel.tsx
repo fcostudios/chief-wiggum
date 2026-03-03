@@ -344,7 +344,7 @@ const DetailsPanel: Component = () => {
           style={{ 'font-size': '10px', color: 'var(--color-text-tertiary)' }}
         >
           <span>Session total</span>
-          <span>{costDisplay()}</span>
+          <span style={{ color: 'var(--color-text-primary)' }}>{costDisplay()}</span>
         </div>
       </CollapsibleSection>
 
