@@ -185,10 +185,7 @@ const MainLayout: Component = () => {
         {/* Z3: Main Content */}
         <main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden" tabindex={-1}>
           {/* View tabs — refined with subtle bottom border */}
-          <div
-            class="flex items-center gap-0.5 px-3 bg-bg-primary"
-            style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
-          >
+          <div class="flex items-center gap-0.5 px-3 bg-bg-primary">
             <ViewTab label="Conversation" view="conversation" />
             <ViewTab label="Agents" view="agents" />
             <ViewTab label="Diff" view="diff" />
