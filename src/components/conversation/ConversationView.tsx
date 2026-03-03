@@ -241,6 +241,7 @@ const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
   let measureRaf: number | null = null;
   let previousEditorTakeoverActive = false;
+  let shouldRestoreLatestOnEditorClose = false;
   const [isAutoScroll, setIsAutoScroll] = createSignal(true);
   const [showJumpButton, setShowJumpButton] = createSignal(false);
   const [searchMatches, setSearchMatches] = createSignal<SearchMatch[]>([]);
@@ -463,6 +464,7 @@ const ConversationView: Component = () => {
   createEffect(() => {
     const editorActive = fileState.editorTakeoverActive;
     if (editorActive && !previousEditorTakeoverActive && scrollRef) {
+      shouldRestoreLatestOnEditorClose = isAutoScroll();
       saveConversationScrollTop(scrollRef.scrollTop);
     }
 
@@ -470,8 +472,16 @@ const ConversationView: Component = () => {
       const restoreTop = fileState.savedScrollTop;
       requestAnimationFrame(() => {
         if (!scrollRef) return;
-        scrollRef.scrollTop = restoreTop;
-        handleScroll();
+        scheduleVirtualMeasure();
+        if (shouldRestoreLatestOnEditorClose) {
+          scrollToLatest();
+          setIsAutoScroll(true);
+          setShowJumpButton(false);
+        } else {
+          scrollRef.scrollTop = restoreTop;
+          handleScroll();
+        }
+        shouldRestoreLatestOnEditorClose = false;
       });
     }
 

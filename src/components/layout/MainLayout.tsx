@@ -202,7 +202,14 @@ const MainLayout: Component = () => {
           {/* View content area */}
           <div class="flex-1 flex flex-col overflow-hidden relative">
             <Show when={uiState.activeView === 'conversation'}>
-              <div class="flex-1 min-h-0" classList={{ hidden: fileState.editorTakeoverActive }}>
+              <div
+                class={`flex-1 min-h-0 ${
+                  fileState.editorTakeoverActive
+                    ? 'absolute inset-0 opacity-0 pointer-events-none'
+                    : 'relative'
+                }`}
+                aria-hidden={fileState.editorTakeoverActive}
+              >
                 <Show when={viewState.layoutMode === 'single'} fallback={<SplitPaneContainer />}>
                   <ConversationView />
                 </Show>
