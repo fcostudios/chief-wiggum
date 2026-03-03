@@ -83,9 +83,9 @@ describe('MessageBubble', () => {
     });
 
     it('assistant message aligns left', () => {
-      const { container } = render(() =>
-        <MessageBubble message={makeMessage({ role: 'assistant', content: 'Hi' })} />,
-      );
+      const { container } = render(() => (
+        <MessageBubble message={makeMessage({ role: 'assistant', content: 'Hi' })} />
+      ));
       const wrapper = container.firstElementChild as HTMLElement;
       expect(wrapper.className).toContain('justify-start');
     });

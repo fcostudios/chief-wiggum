@@ -88,7 +88,8 @@ describe('External file drag-drop (CHI-191)', () => {
       dataTransfer: { types: ['Files'], dropEffect: 'none' },
     });
 
-    expect(dropTarget.style.borderTop).toContain('2px solid');
+    expect(dropTarget.style.background).toContain('var(--color-bg-elevated)');
+    expect(dropTarget.style.boxShadow).toContain('inset 0 2px 0');
   });
 
   it('processes dropped text files', async () => {

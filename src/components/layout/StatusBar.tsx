@@ -480,12 +480,12 @@ const StatusBar: Component = () => {
         <button
           ref={costButtonRef}
           class="flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-colors"
-        style={{
-          'font-size': '10px',
-          color: 'var(--color-text-primary)',
-          background: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border-secondary)',
-        }}
+          style={{
+            'font-size': '10px',
+            color: 'var(--color-text-primary)',
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-secondary)',
+          }}
           onClick={handleCostPillClick}
           aria-label={t('statusBar.costBreakdown')}
           aria-expanded={uiState.statusCostPopoverVisible}
