@@ -248,6 +248,8 @@ export interface FileContent {
   truncated: boolean;
   /** Whether the file is read-only on disk. */
   is_readonly: boolean;
+  /** Last modified timestamp in ms since Unix epoch. Null if unavailable. */
+  modified_at_ms: number | null;
 }
 
 /** Search result for file name matching. */

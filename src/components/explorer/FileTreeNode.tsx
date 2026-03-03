@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { Show, For, createSignal, onCleanup } from 'solid-js';
-import { ChevronRight, File, Folder, FolderOpen, Copy, Plus } from 'lucide-solid';
+import { ChevronRight, File, Folder, FolderOpen, Copy, Plus, Pencil } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type { FileNode, FileContent, FileBundleSuggestion } from '@/lib/types';
 import {
@@ -13,6 +13,7 @@ import {
   getChildren,
   toggleFolder,
   selectFile,
+  openEditorTakeover,
   getGitStatus,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
@@ -150,6 +151,12 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         label: isDir() ? (expanded() ? 'Collapse folder' : 'Expand folder') : 'Preview file',
         icon: isDir() ? FolderOpen : File,
         onClick: handleClick,
+      },
+      {
+        label: 'Edit',
+        icon: Pencil,
+        onClick: () => void openEditorTakeover(props.node.relative_path),
+        disabled: isDir() || props.node.is_binary,
       },
       { separator: true, label: 'separator' },
       {

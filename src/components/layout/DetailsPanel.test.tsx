@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import type { Session } from '@/lib/types';
+import {
+  PINNED_KEY_PREFIX,
+  loadPinnedSections,
+  savePinnedSections,
+} from '@/components/layout/detailsPanelPins';
 
 let mockSessions: Session[] = [];
 let mockActiveSessionId: string | null = null;
@@ -11,6 +16,14 @@ let mockPreviewContent: string | null = null;
 let mockPreviewLoading = false;
 let mockFileVisible = false;
 let mockSelectedActionId: string | null = null;
+let mockIsDirty = false;
+let mockEditingFilePath: string | null = null;
+let mockAttachmentsCount = 0;
+let mockIsStreaming = false;
+
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn().mockResolvedValue([]),
+}));
 
 vi.mock('@/stores/sessionStore', () => ({
   sessionState: {
@@ -20,7 +33,11 @@ vi.mock('@/stores/sessionStore', () => ({
     get activeSessionId() {
       return mockActiveSessionId;
     },
+    get sessionSummaries() {
+      return {};
+    },
   },
+  loadSessionSummary: vi.fn(),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
@@ -48,6 +65,12 @@ vi.mock('@/stores/fileStore', () => ({
     get isVisible() {
       return mockFileVisible;
     },
+    get isDirty() {
+      return mockIsDirty;
+    },
+    get editingFilePath() {
+      return mockEditingFilePath;
+    },
   },
 }));
 
@@ -56,6 +79,41 @@ vi.mock('@/stores/actionStore', () => ({
     get selectedActionId() {
       return mockSelectedActionId;
     },
+  },
+}));
+
+vi.mock('@/stores/conversationStore', () => ({
+  conversationState: {
+    get isStreaming() {
+      return mockIsStreaming;
+    },
+  },
+}));
+
+vi.mock('@/stores/contextStore', () => ({
+  contextState: {
+    get attachments() {
+      return Array.from({ length: mockAttachmentsCount }, (_, idx) => ({ id: String(idx) }));
+    },
+  },
+}));
+
+vi.mock('@/stores/i18nStore', () => ({
+  t: (key: string) => {
+    const map: Record<string, string> = {
+      'detailsPanel.actionOutput': 'Action Output',
+      'detailsPanel.filePreview': 'File Preview',
+      'detailsPanel.projectContext': 'Project Context',
+      'detailsPanel.context': 'Context',
+      'detailsPanel.cost': 'Cost',
+      'detailsPanel.history': 'History',
+      'detailsPanel.artifacts': 'Artifacts',
+      'detailsPanel.selectFileHint': 'Select a file from the sidebar to preview',
+      'detailsPanel.noArtifacts': 'No code blocks found in this session yet.',
+      'detailsPanel.pinSection': 'Pin open',
+      'detailsPanel.unpinSection': 'Unpin',
+    };
+    return map[key] ?? key;
   },
 }));
 
@@ -102,6 +160,11 @@ describe('DetailsPanel', () => {
     mockPreviewLoading = false;
     mockFileVisible = false;
     mockSelectedActionId = null;
+    mockIsDirty = false;
+    mockEditingFilePath = null;
+    mockAttachmentsCount = 0;
+    mockIsStreaming = false;
+    localStorage.clear();
   });
 
   it('renders details panel with Context and Cost sections', () => {
@@ -113,6 +176,8 @@ describe('DetailsPanel', () => {
 
   it('displays active session token and cost summaries', () => {
     render(() => <DetailsPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'Context' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cost' }));
     expect(screen.getByText('2.0K / 0.5K')).toBeInTheDocument();
     expect(screen.getByText('$3.21')).toBeInTheDocument();
   });
@@ -122,6 +187,7 @@ describe('DetailsPanel', () => {
     mockFileVisible = true;
     render(() => <DetailsPanel />);
     expect(screen.getByText('File Preview')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'File Preview' }));
     expect(screen.getByText(/Select a file from the sidebar to preview/)).toBeInTheDocument();
   });
 
@@ -140,5 +206,37 @@ describe('DetailsPanel', () => {
     expect(screen.getByText('Project Context')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Project Context'));
     expect(screen.getByTestId('markdown-project-context')).toBeInTheDocument();
+  });
+});
+
+describe('DetailsPanel pin persistence', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('returns empty set when no saved pins', () => {
+    expect(loadPinnedSections('proj-1')).toEqual(new Set());
+  });
+
+  it('returns empty set when projectId is null', () => {
+    expect(loadPinnedSections(null)).toEqual(new Set());
+  });
+
+  it('saves and loads pinned sections', () => {
+    const pinned = new Set(['context', 'cost']);
+    savePinnedSections('proj-1', pinned);
+    expect(loadPinnedSections('proj-1')).toEqual(pinned);
+  });
+
+  it('isolates per project', () => {
+    savePinnedSections('proj-1', new Set(['context']));
+    savePinnedSections('proj-2', new Set(['cost']));
+    expect(loadPinnedSections('proj-1')).toEqual(new Set(['context']));
+    expect(loadPinnedSections('proj-2')).toEqual(new Set(['cost']));
+  });
+
+  it('tolerates malformed persisted JSON', () => {
+    localStorage.setItem(`${PINNED_KEY_PREFIX}proj-1`, '{');
+    expect(loadPinnedSections('proj-1')).toEqual(new Set());
   });
 });

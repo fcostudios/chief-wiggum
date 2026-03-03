@@ -50,6 +50,8 @@ import ContextBreakdownModal from '@/components/conversation/ContextBreakdownMod
 import SplitPaneContainer from '@/components/layout/SplitPaneContainer';
 import AgentsView from '@/components/agents/AgentsView';
 import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
+import EditorTakeover from '@/components/editor/EditorTakeover';
+import { fileState } from '@/stores/fileStore';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -199,27 +201,35 @@ const MainLayout: Component = () => {
 
           {/* View content area */}
           <div class="flex-1 flex flex-col overflow-hidden">
-            <Show when={uiState.activeView === 'conversation'}>
-              <Show when={viewState.layoutMode === 'single'} fallback={<SplitPaneContainer />}>
-                <ConversationView />
+            <Show when={!fileState.editorTakeoverActive} fallback={<EditorTakeover />}>
+              <Show when={uiState.activeView === 'conversation'}>
+                <Show when={viewState.layoutMode === 'single'} fallback={<SplitPaneContainer />}>
+                  <ConversationView />
+                </Show>
               </Show>
-            </Show>
-            <Show when={uiState.activeView === 'agents'}>
-              <AgentsView />
-            </Show>
-            <Show when={uiState.activeView === 'diff'}>
-              <DiffPreviewPane />
-            </Show>
-            <Show when={uiState.activeView === 'terminal'}>
-              <TerminalPane />
-            </Show>
-            <Show when={uiState.activeView === 'actions_center'}>
-              <ActionsCenter />
+              <Show when={uiState.activeView === 'agents'}>
+                <AgentsView />
+              </Show>
+              <Show when={uiState.activeView === 'diff'}>
+                <DiffPreviewPane />
+              </Show>
+              <Show when={uiState.activeView === 'terminal'}>
+                <TerminalPane />
+              </Show>
+              <Show when={uiState.activeView === 'actions_center'}>
+                <ActionsCenter />
+              </Show>
             </Show>
           </div>
 
           {/* Message input — only visible in conversation view */}
-          <Show when={uiState.activeView === 'conversation' && viewState.layoutMode === 'single'}>
+          <Show
+            when={
+              uiState.activeView === 'conversation' &&
+              viewState.layoutMode === 'single' &&
+              !fileState.editorTakeoverActive
+            }
+          >
             <MessageInput
               onSend={(text, images) => {
                 const sessionId = sessionState.activeSessionId;

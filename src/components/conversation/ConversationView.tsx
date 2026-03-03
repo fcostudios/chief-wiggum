@@ -46,6 +46,7 @@ import { stabilizeStreamingMarkdown } from '@/lib/streamingMarkdown';
 import { t } from '@/stores/i18nStore';
 import { maybeShowHint } from '@/stores/hintStore';
 import { settingsState } from '@/stores/settingsStore';
+import { fileState, saveConversationScrollTop } from '@/stores/fileStore';
 
 /** Threshold for enabling virtual scrolling. Below this, use plain <For>. */
 const VIRTUALIZATION_THRESHOLD = 50;
@@ -239,6 +240,7 @@ function VirtualMessageRow(props: {
 const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
   let measureRaf: number | null = null;
+  let previousEditorTakeoverActive = false;
   const [isAutoScroll, setIsAutoScroll] = createSignal(true);
   const [showJumpButton, setShowJumpButton] = createSignal(false);
   const [searchMatches, setSearchMatches] = createSignal<SearchMatch[]>([]);
@@ -457,6 +459,25 @@ const ConversationView: Component = () => {
     }
   });
 
+  // Preserve and restore conversation scroll around Editor Takeover transitions.
+  createEffect(() => {
+    const editorActive = fileState.editorTakeoverActive;
+    if (editorActive && !previousEditorTakeoverActive && scrollRef) {
+      saveConversationScrollTop(scrollRef.scrollTop);
+    }
+
+    if (!editorActive && previousEditorTakeoverActive && scrollRef) {
+      const restoreTop = fileState.savedScrollTop;
+      requestAnimationFrame(() => {
+        if (!scrollRef) return;
+        scrollRef.scrollTop = restoreTop;
+        handleScroll();
+      });
+    }
+
+    previousEditorTakeoverActive = editorActive;
+  });
+
   function handleSamplePrompt(prompt: string) {
     const sessionId = sessionState.activeSessionId;
     if (!sessionId) return;
@@ -466,6 +487,7 @@ const ConversationView: Component = () => {
   function handleScroll() {
     if (!scrollRef) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollRef;
+    saveConversationScrollTop(scrollTop);
     const distFromBottom = scrollHeight - scrollTop - clientHeight;
     const atBottom = distFromBottom < 50;
     setIsAutoScroll(atBottom);

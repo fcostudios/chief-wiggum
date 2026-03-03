@@ -16,6 +16,7 @@ import {
   openSessionSwitcher,
   openSettings,
   openMessageSearch,
+  toggleZenMode,
   toggleContextBreakdown,
   toggleKeyboardHelp,
   type ActiveView,
@@ -24,7 +25,12 @@ import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore
 import { conversationState } from '@/stores/conversationStore';
 import { cycleModel } from '@/stores/sessionStore';
 import { copyDebugInfo } from '@/stores/diagnosticsStore';
-import { toggleShowIgnoredFiles } from '@/stores/fileStore';
+import {
+  closeEditorTakeover,
+  fileState,
+  openEditorTakeover,
+  toggleShowIgnoredFiles,
+} from '@/stores/fileStore';
 import { addToast } from '@/stores/toastStore';
 import { closePane, splitView, unsplit, viewState } from '@/stores/viewStore';
 
@@ -130,6 +136,34 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
       addToast(`Stopping ${running.length} action${running.length === 1 ? '' : 's'}`, 'warning');
     });
     return;
+  }
+
+  // Cmd+E — toggle Editor Takeover on selected/active file.
+  if (e.code === 'KeyE' && !e.shiftKey) {
+    e.preventDefault();
+    if (fileState.editorTakeoverActive) {
+      closeEditorTakeover();
+    } else {
+      const filePath = fileState.editingFilePath ?? fileState.selectedPath;
+      if (filePath) {
+        void openEditorTakeover(filePath);
+      } else {
+        addToast('No file selected — select a file first', 'info');
+      }
+    }
+    return;
+  }
+
+  // Cmd+Shift+Z — toggle zen mode when editor is active and focus is outside CodeMirror.
+  if (e.code === 'KeyZ' && e.shiftKey && fileState.editorTakeoverActive) {
+    const activeElement = document.activeElement;
+    const inEditor =
+      activeElement instanceof HTMLElement && Boolean(activeElement.closest('.cm-editor'));
+    if (!inEditor) {
+      e.preventDefault();
+      toggleZenMode();
+      return;
+    }
   }
 
   // Cmd+B — toggle sidebar

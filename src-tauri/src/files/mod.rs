@@ -56,6 +56,8 @@ pub struct FileContent {
     pub truncated: bool,
     /// Whether the file is read-only on disk (permissions check).
     pub is_readonly: bool,
+    /// Last modified timestamp in milliseconds since Unix epoch. None if unavailable.
+    pub modified_at_ms: Option<i64>,
 }
 
 /// Search result for file name matching.
@@ -103,6 +105,7 @@ mod tests {
             estimated_tokens: 3,
             truncated: false,
             is_readonly: false,
+            modified_at_ms: Some(1_709_500_000_000),
         };
         let json = serde_json::to_string(&content).expect("should serialize");
         assert!(json.contains("\"estimated_tokens\":3"));

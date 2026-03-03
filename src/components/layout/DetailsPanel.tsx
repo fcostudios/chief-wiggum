@@ -1,20 +1,23 @@
 // src/components/layout/DetailsPanel.tsx
-// Right details panel (280px) per SPEC-003 §2 Z4.
-// Sections: Context Meter (placeholder), Cost Breakdown (placeholder).
-// Each section is a collapsible accordion.
+// Right details panel (Z4) per SPEC-003 §2.
+// CHI-239: smart collapse defaults, auto-expand rules, and per-project pin persistence.
 
 import type { Component, JSX } from 'solid-js';
 import { createEffect, createSignal, For, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
-import { ChevronDown, ChevronRight } from 'lucide-solid';
+import { ChevronDown, ChevronRight, Pin } from 'lucide-solid';
 import type { Artifact } from '@/lib/types';
 import { loadSessionSummary, sessionState } from '@/stores/sessionStore';
 import { projectState } from '@/stores/projectStore';
 import { fileState } from '@/stores/fileStore';
 import { actionState } from '@/stores/actionStore';
+import { conversationState } from '@/stores/conversationStore';
+import { contextState } from '@/stores/contextStore';
+import { t } from '@/stores/i18nStore';
 import MarkdownContent from '@/components/conversation/MarkdownContent';
 import FilePreview from '@/components/explorer/FilePreview';
 import ActionOutputPanel from '@/components/actions/ActionOutputPanel';
+import { loadPinnedSections, savePinnedSections } from '@/components/layout/detailsPanelPins';
 
 interface SectionProps {
   id: string;
@@ -22,7 +25,9 @@ interface SectionProps {
   children: JSX.Element;
   open: boolean;
   focused: boolean;
+  pinned: boolean;
   onHeaderClick: () => void;
+  onPinToggle: () => void;
 }
 
 const CollapsibleSection: Component<SectionProps> = (props) => {
@@ -32,42 +37,62 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
       classList={{ 'flex-1': props.open && props.focused, 'min-h-0': props.open && props.focused }}
       data-section-id={props.id}
     >
-      <button
-        class="flex items-center gap-2 w-full px-3 py-2.5 text-left transition-colors"
-        style={{
-          'transition-duration': 'var(--duration-fast)',
-          background: props.focused ? 'rgba(232, 130, 90, 0.07)' : 'transparent',
-        }}
-        onClick={() => props.onHeaderClick()}
-        aria-expanded={props.open}
-        onMouseEnter={(e) => {
-          if (!props.focused) {
-            e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = props.focused
-            ? 'rgba(232, 130, 90, 0.07)'
-            : 'transparent';
-        }}
-      >
-        <Show
-          when={props.open}
-          fallback={<ChevronRight size={11} style={{ color: 'var(--color-text-tertiary)' }} />}
-        >
-          <ChevronDown size={11} style={{ color: 'var(--color-text-tertiary)' }} />
-        </Show>
-        <span
-          class="font-semibold uppercase"
+      <div class="group flex items-center">
+        <button
+          class="flex-1 flex items-center gap-2 min-w-0 px-3 py-2.5 text-left transition-colors"
           style={{
-            'font-size': '10px',
-            color: 'var(--color-text-tertiary)',
-            'letter-spacing': '0.1em',
+            'transition-duration': 'var(--duration-fast)',
+            background: props.focused ? 'rgba(232, 130, 90, 0.07)' : 'transparent',
+          }}
+          onClick={() => props.onHeaderClick()}
+          aria-expanded={props.open}
+          onMouseEnter={(e) => {
+            if (!props.focused) {
+              e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = props.focused
+              ? 'rgba(232, 130, 90, 0.07)'
+              : 'transparent';
           }}
         >
-          {props.title}
-        </span>
-      </button>
+          <Show
+            when={props.open}
+            fallback={<ChevronRight size={11} style={{ color: 'var(--color-text-tertiary)' }} />}
+          >
+            <ChevronDown size={11} style={{ color: 'var(--color-text-tertiary)' }} />
+          </Show>
+          <span
+            class="font-semibold uppercase truncate"
+            style={{
+              'font-size': '10px',
+              color: 'var(--color-text-tertiary)',
+              'letter-spacing': '0.1em',
+            }}
+          >
+            {props.title}
+          </span>
+        </button>
+
+        <button
+          class="mr-2 p-0.5 rounded transition-opacity opacity-0 group-hover:opacity-100"
+          classList={{ 'opacity-100': props.pinned }}
+          style={{
+            color: props.pinned ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
+            'transition-duration': 'var(--duration-fast)',
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onPinToggle();
+          }}
+          title={props.pinned ? t('detailsPanel.unpinSection') : t('detailsPanel.pinSection')}
+          aria-label={props.pinned ? t('detailsPanel.unpinSection') : t('detailsPanel.pinSection')}
+        >
+          <Pin size={10} />
+        </button>
+      </div>
+
       <Show when={props.open}>
         <div
           class="px-3 pb-3 animate-fade-in"
@@ -93,14 +118,15 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
 const DetailsPanel: Component = () => {
   const [focusedSectionId, setFocusedSectionId] = createSignal<string | null>(null);
   const [sectionOpenState, setSectionOpenState] = createSignal<Record<string, boolean>>({
-    actionOutput: true,
-    filePreview: true,
+    actionOutput: false,
+    filePreview: false,
     projectContext: false,
-    context: true,
-    cost: true,
+    context: false,
+    cost: false,
     history: false,
     artifacts: false,
   });
+  const [pinnedSections, setPinnedSections] = createSignal<Set<string>>(new Set());
 
   const activeSession = () =>
     sessionState.sessions.find((s) => s.id === sessionState.activeSessionId);
@@ -128,10 +154,15 @@ const DetailsPanel: Component = () => {
   const [artifacts, setArtifacts] = createSignal<Artifact[]>([]);
   const [artifactsLoading, setArtifactsLoading] = createSignal(false);
   const [artifactSearch, setArtifactSearch] = createSignal('');
+  let previousStreaming = false;
 
   async function loadArtifacts() {
     const sid = sessionState.activeSessionId;
-    if (!sid) return;
+    if (!sid) {
+      setArtifacts([]);
+      return;
+    }
+
     setArtifactsLoading(true);
     try {
       const result = await invoke<Artifact[]>('extract_session_artifacts', {
@@ -157,11 +188,13 @@ const DetailsPanel: Component = () => {
     );
   };
 
-  const isSectionOpen = (id: string, fallback = true) => sectionOpenState()[id] ?? fallback;
+  const isSectionOpen = (id: string, fallback = false) => sectionOpenState()[id] ?? fallback;
   const isFocused = (id: string) => focusedSectionId() === id;
+  const isPinned = (id: string) => pinnedSections().has(id);
+
   const filePreviewTitle = (
     <>
-      File Preview
+      {t('detailsPanel.filePreview')}
       <Show when={fileState.isDirty && fileState.editingFilePath === fileState.selectedPath}>
         <span
           class="ml-1 text-[8px]"
@@ -175,7 +208,28 @@ const DetailsPanel: Component = () => {
     </>
   );
 
-  function handleSectionHeaderClick(id: string, fallback = true) {
+  function openSection(id: string): void {
+    setSectionOpenState((prev) => {
+      if (prev[id]) return prev;
+      return { ...prev, [id]: true };
+    });
+  }
+
+  function togglePin(id: string): void {
+    setPinnedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      savePinnedSections(projectState.activeProjectId, next);
+      return next;
+    });
+    openSection(id);
+  }
+
+  function handleSectionHeaderClick(id: string, fallback = false) {
     const currentlyOpen = isSectionOpen(id, fallback);
     const currentlyFocused = isFocused(id);
 
@@ -190,28 +244,102 @@ const DetailsPanel: Component = () => {
       return;
     }
 
+    if (isPinned(id)) {
+      setFocusedSectionId((prev) => (prev === id ? null : prev));
+      return;
+    }
+
     setSectionOpenState((prev) => ({ ...prev, [id]: false }));
     setFocusedSectionId((prev) => (prev === id ? null : prev));
   }
 
+  // Restore pin preferences per project.
   createEffect(() => {
-    const hasActionOutput = Boolean(actionState.selectedActionId);
-    const hasFilePreview = Boolean(fileState.selectedPath && fileState.previewContent);
-    const focused = focusedSectionId();
-
-    if (focused === 'actionOutput' && !hasActionOutput) {
-      setFocusedSectionId(null);
-    }
-    if (focused === 'filePreview' && !hasFilePreview && !fileState.isVisible) {
-      setFocusedSectionId(null);
-    }
-
-    if (!focusedSectionId()) {
-      if (hasActionOutput) {
-        setFocusedSectionId('actionOutput');
-      } else if (hasFilePreview) {
-        setFocusedSectionId('filePreview');
+    const pid = projectState.activeProjectId;
+    const pinned = loadPinnedSections(pid);
+    setPinnedSections(pinned);
+    setSectionOpenState((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const id of pinned) {
+        if (id in next && !next[id]) {
+          next[id] = true;
+          changed = true;
+        }
       }
+      return changed ? next : prev;
+    });
+  });
+
+  // Keep focus valid when sections disappear.
+  createEffect(() => {
+    const focused = focusedSectionId();
+    if (!focused) return;
+    if (focused === 'actionOutput' && !actionState.selectedActionId) {
+      setFocusedSectionId(null);
+      return;
+    }
+    if (
+      focused === 'filePreview' &&
+      !(fileState.selectedPath || (fileState.isVisible && projectState.activeProjectId))
+    ) {
+      setFocusedSectionId(null);
+    }
+  });
+
+  // Auto-expand: context when attachments are present.
+  createEffect(() => {
+    const attachmentCount = contextState.attachments.length;
+    if (attachmentCount > 0) {
+      openSection('context');
+      setFocusedSectionId('context');
+    }
+  });
+
+  // Auto-expand: context while streaming. Cost when stream completes.
+  createEffect(() => {
+    const isStreaming = conversationState.isStreaming;
+    if (isStreaming) {
+      openSection('context');
+      setFocusedSectionId('context');
+    } else if (previousStreaming) {
+      openSection('cost');
+      setFocusedSectionId('cost');
+    }
+    previousStreaming = isStreaming;
+  });
+
+  // Auto-expand: file preview when file is selected.
+  createEffect(() => {
+    const hasFile = Boolean(fileState.selectedPath);
+    if (!hasFile) return;
+    openSection('filePreview');
+    setFocusedSectionId('filePreview');
+  });
+
+  // Auto-expand: action output when action selected.
+  createEffect(() => {
+    const hasAction = Boolean(actionState.selectedActionId);
+    if (!hasAction) return;
+    openSection('actionOutput');
+    setFocusedSectionId('actionOutput');
+  });
+
+  // Keep artifact list in sync with active session.
+  createEffect(() => {
+    const sessionId = sessionState.activeSessionId;
+    if (!sessionId) {
+      setArtifacts([]);
+      setArtifactSearch('');
+      return;
+    }
+    void loadArtifacts();
+  });
+
+  // Auto-expand: artifacts if any found for this session.
+  createEffect(() => {
+    if (artifacts().length > 0) {
+      openSection('artifacts');
     }
   });
 
@@ -227,10 +355,12 @@ const DetailsPanel: Component = () => {
       <Show when={actionState.selectedActionId}>
         <CollapsibleSection
           id="actionOutput"
-          title={<>Action Output</>}
+          title={<>{t('detailsPanel.actionOutput')}</>}
           open={isSectionOpen('actionOutput')}
           focused={isFocused('actionOutput')}
+          pinned={isPinned('actionOutput')}
           onHeaderClick={() => handleSectionHeaderClick('actionOutput')}
+          onPinToggle={() => togglePin('actionOutput')}
         >
           <div
             class="min-h-0"
@@ -251,7 +381,9 @@ const DetailsPanel: Component = () => {
           title={filePreviewTitle}
           open={isSectionOpen('filePreview')}
           focused={isFocused('filePreview')}
+          pinned={isPinned('filePreview')}
           onHeaderClick={() => handleSectionHeaderClick('filePreview')}
+          onPinToggle={() => togglePin('filePreview')}
         >
           <div
             classList={{ 'h-full': isFocused('filePreview'), 'min-h-0': isFocused('filePreview') }}
@@ -271,10 +403,12 @@ const DetailsPanel: Component = () => {
           title={filePreviewTitle}
           open={isSectionOpen('filePreview', false)}
           focused={isFocused('filePreview')}
+          pinned={isPinned('filePreview')}
           onHeaderClick={() => handleSectionHeaderClick('filePreview', false)}
+          onPinToggle={() => togglePin('filePreview')}
         >
           <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
-            Select a file from the sidebar to preview
+            {t('detailsPanel.selectFileHint')}
           </p>
         </CollapsibleSection>
       </Show>
@@ -282,10 +416,12 @@ const DetailsPanel: Component = () => {
       <Show when={projectState.claudeMdContent}>
         <CollapsibleSection
           id="projectContext"
-          title={<>Project Context</>}
+          title={<>{t('detailsPanel.projectContext')}</>}
           open={isSectionOpen('projectContext', false)}
           focused={isFocused('projectContext')}
+          pinned={isPinned('projectContext')}
           onHeaderClick={() => handleSectionHeaderClick('projectContext', false)}
+          onPinToggle={() => togglePin('projectContext')}
         >
           <div
             class="text-xs"
@@ -303,10 +439,12 @@ const DetailsPanel: Component = () => {
 
       <CollapsibleSection
         id="context"
-        title={<>Context</>}
+        title={<>{t('detailsPanel.context')}</>}
         open={isSectionOpen('context')}
         focused={isFocused('context')}
+        pinned={isPinned('context')}
         onHeaderClick={() => handleSectionHeaderClick('context')}
+        onPinToggle={() => togglePin('context')}
       >
         <div
           class="flex items-center justify-between font-mono"
@@ -332,10 +470,12 @@ const DetailsPanel: Component = () => {
 
       <CollapsibleSection
         id="cost"
-        title={<>Cost</>}
+        title={<>{t('detailsPanel.cost')}</>}
         open={isSectionOpen('cost')}
         focused={isFocused('cost')}
+        pinned={isPinned('cost')}
         onHeaderClick={() => handleSectionHeaderClick('cost')}
+        onPinToggle={() => togglePin('cost')}
       >
         <div
           class="flex items-center justify-between font-mono"
@@ -348,15 +488,17 @@ const DetailsPanel: Component = () => {
 
       <CollapsibleSection
         id="history"
-        title={<>History</>}
+        title={<>{t('detailsPanel.history')}</>}
         open={isSectionOpen('history', false)}
         focused={isFocused('history')}
+        pinned={isPinned('history')}
         onHeaderClick={() => {
           handleSectionHeaderClick('history', false);
           if (!sessionSummary() && sessionState.activeSessionId) {
             void loadSessionSummary(sessionState.activeSessionId);
           }
         }}
+        onPinToggle={() => togglePin('history')}
       >
         <Show
           when={sessionSummary()}
@@ -423,7 +565,7 @@ const DetailsPanel: Component = () => {
         id="artifacts"
         title={
           <>
-            Artifacts
+            {t('detailsPanel.artifacts')}
             <Show when={artifacts().length > 0}>
               <span
                 class="ml-1 px-1 py-0.5 rounded text-[8px] font-mono"
@@ -439,13 +581,14 @@ const DetailsPanel: Component = () => {
         }
         open={isSectionOpen('artifacts', false)}
         focused={isFocused('artifacts')}
+        pinned={isPinned('artifacts')}
         onHeaderClick={() => {
-          const wasOpen = isSectionOpen('artifacts', false);
           handleSectionHeaderClick('artifacts', false);
-          if (!wasOpen && artifacts().length === 0) {
+          if (artifacts().length === 0) {
             void loadArtifacts();
           }
         }}
+        onPinToggle={() => togglePin('artifacts')}
       >
         <Show when={artifactsLoading()}>
           <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
@@ -455,7 +598,7 @@ const DetailsPanel: Component = () => {
         <Show when={!artifactsLoading()}>
           <Show when={artifacts().length === 0}>
             <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
-              No code blocks found in this session yet.
+              {t('detailsPanel.noArtifacts')}
             </p>
           </Show>
           <Show when={artifacts().length > 0}>

@@ -53,6 +53,29 @@ pub fn read_project_file(
     scanner::read_file(project_root, &relative_path, start_line, end_line)
 }
 
+/// Get file modification time in milliseconds since Unix epoch.
+/// Used by editor takeover conflict detection polling.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path))]
+pub fn get_file_mtime(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+) -> Result<Option<i64>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let project_root = std::path::Path::new(&project.path);
+    let full_path = project_root.join(&relative_path);
+
+    let mtime = std::fs::metadata(&full_path)
+        .ok()
+        .and_then(|metadata| metadata.modified().ok())
+        .and_then(|timestamp| timestamp.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis() as i64);
+
+    Ok(mtime)
+}
+
 /// Write content to a project file (inline editor save).
 #[tauri::command(rename_all = "snake_case")]
 #[tracing::instrument(skip(db, content), fields(
