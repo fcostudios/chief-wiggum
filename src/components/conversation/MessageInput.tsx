@@ -891,12 +891,9 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     <div
       class={`px-4 py-3 ${props.isDisabled ? 'opacity-50' : ''}`}
       style={{
-        background:
-          'linear-gradient(180deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%)',
-        'border-top': isDragOver()
-          ? '2px solid var(--color-accent)'
-          : '1px solid var(--color-border-secondary)',
-        transition: 'border-color 150ms ease',
+        background: isDragOver() ? 'var(--color-bg-elevated)' : 'var(--color-bg-secondary)',
+        'box-shadow': isDragOver() ? 'inset 0 2px 0 var(--color-accent)' : 'none',
+        transition: 'background 150ms ease, box-shadow 150ms ease',
       }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
