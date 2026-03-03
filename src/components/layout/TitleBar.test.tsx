@@ -139,4 +139,10 @@ describe('TitleBar', () => {
     render(() => <TitleBar />);
     expect(document.querySelector('[data-tauri-drag-region]')).toBeTruthy();
   });
+
+  it('keeps titlebar above conversation overlays for selector popovers', () => {
+    render(() => <TitleBar />);
+    const header = screen.getByLabelText('Open settings').closest('header');
+    expect(header).toHaveStyle({ 'z-index': '20' });
+  });
 });

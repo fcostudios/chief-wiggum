@@ -83,6 +83,7 @@ const TitleBar: Component = () => {
     <header
       class="flex items-center select-none relative"
       style={{
+        'z-index': '20',
         height: 'var(--title-bar-height)',
         background:
           'linear-gradient(180deg, var(--color-chrome-bg-strong) 0%, var(--color-chrome-bg) 100%)',
