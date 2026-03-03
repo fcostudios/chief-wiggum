@@ -75,6 +75,22 @@ describe('MessageBubble', () => {
     expect(screen.getByTestId('markdown-content')).toHaveTextContent('Hello, world!');
   });
 
+  describe('role differentiation', () => {
+    it('user message aligns right', () => {
+      const { container } = render(() => <MessageBubble message={makeMessage({ role: 'user' })} />);
+      const wrapper = container.firstElementChild as HTMLElement;
+      expect(wrapper.className).toContain('justify-end');
+    });
+
+    it('assistant message aligns left', () => {
+      const { container } = render(() =>
+        <MessageBubble message={makeMessage({ role: 'assistant', content: 'Hi' })} />,
+      );
+      const wrapper = container.firstElementChild as HTMLElement;
+      expect(wrapper.className).toContain('justify-start');
+    });
+  });
+
   it('renders user messages as plain text with You label', () => {
     render(() => <MessageBubble message={makeMessage({ role: 'user', content: 'My prompt' })} />);
     expect(screen.getByText('You')).toBeInTheDocument();

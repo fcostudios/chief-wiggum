@@ -126,6 +126,13 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isUser = () => props.message.role === 'user';
   const isSystem = () => props.message.role === 'system';
   const isAssistant = () => props.message.role === 'assistant';
+  const modelBorderColor = () => {
+    const model = props.message.model ?? '';
+    if (model.includes('opus')) return 'var(--color-model-opus)';
+    if (model.includes('sonnet')) return 'var(--color-model-sonnet)';
+    if (model.includes('haiku')) return 'var(--color-model-haiku)';
+    return 'var(--color-accent)';
+  };
   const [isEditing, setIsEditing] = createSignal(false);
   const [showRaw, setShowRaw] = createSignal(false);
   const [editContent, setEditContent] = createSignal('');
@@ -222,34 +229,23 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>
       <div
-        class="max-w-[85%] rounded-lg px-4 py-3 relative hover-lift"
+        class={`max-w-[85%] rounded-lg px-4 py-3 relative${isAssistant() ? ' hover-lift' : ''}`}
         style={{
           background: isUser()
-            ? 'rgba(232, 130, 90, 0.08)'
+            ? 'transparent'
             : isSystem()
-              ? 'var(--color-bg-inset)'
+              ? 'rgba(28, 33, 40, 0.5)'
               : 'var(--color-bg-secondary)',
-          border: isUser()
-            ? '1px solid rgba(232, 130, 90, 0.15)'
-            : isSystem()
-              ? '1px solid var(--color-border-secondary)'
-              : '1px solid var(--color-border-secondary)',
+          'border-left': isUser()
+            ? '3px solid rgba(232, 130, 90, 0.4)'
+            : isAssistant()
+              ? `3px solid ${modelBorderColor()}`
+              : 'none',
         }}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyboardContextMenu}
         tabindex="0"
       >
-        {/* Left accent stripe for assistant messages */}
-        <Show when={!isUser() && !isSystem()}>
-          <div
-            class="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
-            style={{
-              background:
-                'linear-gradient(180deg, var(--color-accent) 0%, rgba(232, 130, 90, 0.2) 100%)',
-            }}
-          />
-        </Show>
-
         {/* Role label + model badge */}
         <div class="flex items-center gap-2 mb-1.5">
           <span
@@ -284,28 +280,30 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
         <Show
           when={isUser()}
           fallback={
-            <Show
-              when={!(isAssistant() && showRaw())}
-              fallback={
-                <pre
-                  class="text-[11px] font-mono whitespace-pre-wrap rounded-lg p-3 overflow-x-auto"
-                  style={{ background: 'var(--color-bg-inset)' }}
-                >
-                  <code
-                    class="hljs language-markdown"
-                    // eslint-disable-next-line solid/no-innerhtml -- syntax-highlighted markdown source preview
-                    innerHTML={
-                      hljs.highlight(props.message.content ?? '', {
-                        language: 'markdown',
-                        ignoreIllegals: true,
-                      }).value
-                    }
-                  />
-                </pre>
-              }
-            >
-              <MarkdownContent content={props.message.content} messageId={props.message.id} />
-            </Show>
+            <div style={{ 'text-align': isSystem() ? 'center' : undefined }}>
+              <Show
+                when={!(isAssistant() && showRaw())}
+                fallback={
+                  <pre
+                    class="text-[11px] font-mono whitespace-pre-wrap rounded-lg p-3 overflow-x-auto"
+                    style={{ background: 'var(--color-bg-inset)' }}
+                  >
+                    <code
+                      class="hljs language-markdown"
+                      // eslint-disable-next-line solid/no-innerhtml -- syntax-highlighted markdown source preview
+                      innerHTML={
+                        hljs.highlight(props.message.content ?? '', {
+                          language: 'markdown',
+                          ignoreIllegals: true,
+                        }).value
+                      }
+                    />
+                  </pre>
+                }
+              >
+                <MarkdownContent content={props.message.content} messageId={props.message.id} />
+              </Show>
+            </div>
           }
         >
           <Show
