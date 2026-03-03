@@ -248,7 +248,7 @@ describe('MainLayout', () => {
     expect(screen.getByRole('button', { name: 'Agents' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Diff' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Terminal' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Center' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument();
     expect(mockEnsureMainPaneSession).toHaveBeenCalledWith('session-1');
   });
 
