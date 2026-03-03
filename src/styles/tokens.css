@@ -21,6 +21,10 @@
   --color-bg-sidebar: #0f1519;
   --color-bg-content: #0d1117;
   --color-bg-details: #111820;
+  /* --- Tab indicator tokens (CHI-234 §4.1) --- */
+  --color-tab-active-bg: rgba(232, 130, 90, 0.12);
+  --color-tab-active-text: #e8825a;
+  --color-tab-inactive-text: #7d8590;
 
   --color-border-primary: #30363d;
   --color-border-secondary: #21262d;
@@ -171,6 +175,9 @@
   --color-bg-sidebar: #f0f2f5;
   --color-bg-content: #ffffff;
   --color-bg-details: #f6f8fa;
+  --color-tab-active-bg: rgba(207, 110, 62, 0.12);
+  --color-tab-active-text: #cf6e3e;
+  --color-tab-inactive-text: #8b949e;
 
   --color-border-primary: #d0d7de;
   --color-border-secondary: #e1e4e8;
