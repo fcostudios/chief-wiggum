@@ -5,6 +5,13 @@
 import { hasSeenHint, hintsEnabled, markHintSeen } from '@/stores/settingsStore';
 
 const STORAGE_KEY = 'cw:onboarding:session-count';
+const TOOLTIP_FLOW: Array<{ id: string; requiredSession: number }> = [
+  { id: 'onboarding:at-mention', requiredSession: 1 },
+  { id: 'onboarding:cmd-k', requiredSession: 1 },
+  { id: 'onboarding:cycle-model', requiredSession: 2 },
+  { id: 'onboarding:auto-approve', requiredSession: 2 },
+  { id: 'onboarding:drag-attach', requiredSession: 3 },
+];
 
 function readStoredCount(): number {
   const raw = localStorage.getItem(STORAGE_KEY) ?? '0';
@@ -23,6 +30,16 @@ export function incrementSessionCount(): void {
   localStorage.setItem(STORAGE_KEY, String(next));
 }
 
+function firstEligibleFlowTooltipId(): string | null {
+  const sessions = sessionCount();
+  for (const tooltip of TOOLTIP_FLOW) {
+    if (sessions < tooltip.requiredSession) continue;
+    if (hasSeenHint(tooltip.id)) continue;
+    return tooltip.id;
+  }
+  return null;
+}
+
 /**
  * Returns true if this tooltip should show:
  * - hints are enabled globally
@@ -30,7 +47,18 @@ export function incrementSessionCount(): void {
  * - hint has not been dismissed
  */
 export function shouldShowTooltip(id: string, requiredSession: number): boolean {
-  return hintsEnabled() && sessionCount() >= requiredSession && !hasSeenHint(id);
+  if (!hintsEnabled()) return false;
+  if (sessionCount() < requiredSession) return false;
+  if (hasSeenHint(id)) return false;
+
+  // Prevent stacked overlays: only the first eligible onboarding tooltip in the
+  // flow is allowed to render at a time. Unknown IDs keep legacy behavior.
+  const activeFlowId = firstEligibleFlowTooltipId();
+  if (activeFlowId) {
+    return activeFlowId === id;
+  }
+
+  return true;
 }
 
 /** Dismiss a tooltip permanently. */
