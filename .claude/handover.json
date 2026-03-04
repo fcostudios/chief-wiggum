@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-03T05:16:52.188Z",
+  "last_updated": "2026-03-04T01:36:25Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1415,10 +1415,11 @@
         "CHI-257",
         "CHI-258",
         "CHI-259",
-        "CHI-260"
+        "CHI-260",
+        "CHI-261"
       ],
       "notes": "Parent epic for all CX/UX improvements from expert evaluation report. 5 tiers: T1 Foundation, T2 Information, T3 Emotional, T4 Workflow, T5 Future Investment.",
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-03T14:01:57.129967+00:00Z"
     },
     "CHI-232": {
       "title": "T1.1: WCAG Contrast Fixes",
@@ -1570,7 +1571,7 @@
     "CHI-239": {
       "title": "T2.3: Smart Details Panel",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
@@ -1578,7 +1579,40 @@
       "depends_on": [
         "CHI-238"
       ],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T14:29:52.052Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T13:28:25.888Z",
+      "worktree": ".worktrees/chi244-chi239-editor-takeover-smart-details",
+      "completed_at": "2026-03-03T14:29:52.052Z",
+      "files": [
+        "package-lock.json",
+        "package.json",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/mod.rs",
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/main.rs",
+        "src/components/common/CommandPalette.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/editor/EditorStatusBar.test.tsx",
+        "src/components/editor/EditorStatusBar.tsx",
+        "src/components/editor/EditorTakeover.test.tsx",
+        "src/components/editor/EditorTakeover.tsx",
+        "src/components/editor/EditorToolbar.tsx",
+        "src/components/explorer/FilePreview.test.tsx",
+        "src/components/explorer/FilePreview.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/components/layout/DetailsPanel.test.tsx",
+        "src/components/layout/DetailsPanel.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/detailsPanelPins.ts",
+        "src/lib/keybindings.ts",
+        "src/lib/types.ts",
+        "src/locales/en.json",
+        "src/stores/fileStore.ts",
+        "src/stores/uiStore.ts",
+        "src/styles/tokens.css"
+      ],
+      "notes": "Implemented smart details panel defaults, pin persistence, and auto-expand behavior with test coverage. completed_by=claude-code; lock_acquired_at=2026-03-03T14:29:26.046Z"
     },
     "CHI-240": {
       "title": "T2.4: Input Area Upgrade",
@@ -1673,35 +1707,94 @@
     "CHI-244": {
       "title": "T4.1: File Preview/Edit Rework",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "effort": "L",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T14:29:52.052Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T13:28:25.888Z",
+      "worktree": ".worktrees/chi244-chi239-editor-takeover-smart-details",
+      "completed_at": "2026-03-03T14:29:52.052Z",
+      "files": [
+        "package-lock.json",
+        "package.json",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/mod.rs",
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/main.rs",
+        "src/components/common/CommandPalette.tsx",
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/editor/EditorStatusBar.test.tsx",
+        "src/components/editor/EditorStatusBar.tsx",
+        "src/components/editor/EditorTakeover.test.tsx",
+        "src/components/editor/EditorTakeover.tsx",
+        "src/components/editor/EditorToolbar.tsx",
+        "src/components/explorer/FilePreview.test.tsx",
+        "src/components/explorer/FilePreview.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/components/layout/DetailsPanel.test.tsx",
+        "src/components/layout/DetailsPanel.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/detailsPanelPins.ts",
+        "src/lib/keybindings.ts",
+        "src/lib/types.ts",
+        "src/locales/en.json",
+        "src/stores/fileStore.ts",
+        "src/stores/uiStore.ts",
+        "src/styles/tokens.css"
+      ],
+      "notes": "Implemented editor takeover architecture with read-only file preview, entry points, zen mode, conflict checks, and tests. completed_by=claude-code; lock_acquired_at=2026-03-03T14:29:26.046Z"
     },
     "CHI-245": {
       "title": "T4.2: Soft Undo System",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-04T01:36:25Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-04T00:18:56Z",
+      "completed_at": "2026-03-04T01:36:25Z",
+      "worktree": null,
+      "notes": "Implemented soft-undo flows for message/session/context deletion with delayed hard-delete and undo toasts. completed_by=claude-code; lock_acquired_at=2026-03-04T01:35:47Z",
+      "files": [
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/conversation/MessageBubble.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/stores/conversationStore.ts",
+        "src/stores/contextStore.ts",
+        "src/stores/toastStore.ts",
+        "src/locales/en.json"
+      ]
     },
     "CHI-246": {
       "title": "T4.3: Persistent Error Toasts",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "S",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-03T20:01:24Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T19:37:47Z",
+      "completed_at": "2026-03-03T15:00:00Z",
+      "worktree": null,
+      "notes": "Persistent session error log added with status badge + popover, copy/clear actions, and human-readable mapping. completed_by=claude-code; lock_acquired_at=2026-03-03T20:00:49Z",
+      "files": [
+        "src/locales/en.json",
+        "src/stores/errorLogStore.ts",
+        "src/stores/errorLogStore.test.ts",
+        "src/stores/toastStore.ts",
+        "src/components/layout/StatusBar.tsx"
+      ]
     },
     "CHI-247": {
       "title": "T4.4: Pause Response",
@@ -1811,13 +1904,28 @@
     "CHI-254": {
       "title": "T2.6: Help & Documentation System",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-04T01:36:25Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-04T00:18:56Z",
+      "completed_at": "2026-03-04T01:36:25Z",
+      "worktree": null,
+      "notes": "Implemented title-bar Help menu, About/What's New modals, and read_changelog backend command wiring. completed_by=claude-code; lock_acquired_at=2026-03-04T01:35:47Z",
+      "files": [
+        "src/components/common/AboutModal.tsx",
+        "src/components/common/ChangelogModal.tsx",
+        "src/components/common/HelpMenu.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/TitleBar.tsx",
+        "src/locales/en.json",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/main.rs"
+      ]
     },
     "CHI-255": {
       "title": "T2.7: CTA Button Consistency Audit",
@@ -1843,7 +1951,7 @@
     "CHI-256": {
       "title": "T2.8: Unsent Content Protection",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "S",
       "parent": "CHI-231",
@@ -1851,29 +1959,68 @@
       "depends_on": [
         "CHI-240"
       ],
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-04T01:36:25Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-04T00:18:56Z",
+      "completed_at": "2026-03-04T01:36:25Z",
+      "worktree": null,
+      "notes": "Implemented unsent-content guard for session switching and window close flow with discard/continue behavior. completed_by=claude-code; lock_acquired_at=2026-03-04T01:35:47Z",
+      "files": [
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/stores/sessionStore.ts",
+        "src/stores/unsentStore.ts",
+        "src/locales/en.json"
+      ]
     },
     "CHI-257": {
       "title": "T4.5: Command Palette Enhancements",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-04T01:36:25Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-04T00:18:56Z",
+      "completed_at": "2026-03-04T01:36:25Z",
+      "worktree": null,
+      "notes": "Implemented command-palette recent history and context source metadata/icons/tooltips across attachment flows. completed_by=claude-code; lock_acquired_at=2026-03-04T01:35:47Z",
+      "files": [
+        "src/components/common/CommandPalette.tsx",
+        "src/components/conversation/ContextChip.tsx",
+        "src/components/conversation/ContextSuggestions.tsx",
+        "src/components/conversation/MessageInput.tsx",
+        "src/lib/types.ts",
+        "src/stores/contextStore.ts",
+        "src/stores/recentCommandStore.ts",
+        "src/locales/en.json"
+      ]
     },
     "CHI-258": {
       "title": "T4.6: Session Pinning + Quick Switcher",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
       "spec": "SPEC-006",
       "depends_on": [],
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-04T01:36:25Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-04T00:18:56Z",
+      "completed_at": "2026-03-04T01:36:25Z",
+      "worktree": null,
+      "notes": "Implemented quick session switcher overlay and Ctrl+Tab shortcut integration. completed_by=claude-code; lock_acquired_at=2026-03-04T01:35:47Z",
+      "files": [
+        "src/components/common/QuickSessionSwitcher.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/lib/keybindings.ts",
+        "src/stores/uiStore.ts",
+        "src/locales/en.json"
+      ]
     },
     "CHI-259": {
       "title": "T4.7: Saved Prompt Templates",
@@ -1891,7 +2038,7 @@
     "CHI-260": {
       "title": "T4.8: Persistent Error Log",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "effort": "M",
       "parent": "CHI-231",
@@ -1899,7 +2046,48 @@
       "depends_on": [
         "CHI-246"
       ],
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-04T01:36:25Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-04T00:18:56Z",
+      "completed_at": "2026-03-04T01:36:25Z",
+      "worktree": null,
+      "notes": "Implemented severity-aware error history with unseen badge tracking and mark-as-seen behavior in StatusBar. completed_by=claude-code; lock_acquired_at=2026-03-04T01:35:47Z",
+      "files": [
+        "src/components/layout/StatusBar.tsx",
+        "src/stores/errorLogStore.ts",
+        "src/stores/toastStore.ts",
+        "src/locales/en.json"
+      ]
+    },
+    "CHI-261": {
+      "id": "CHI-261",
+      "title": "T2.9: Toast & Notification System Rework — Semantic Color Enforcement",
+      "status": "done",
+      "priority": "high",
+      "size": "M",
+      "tier": "T2",
+      "spec_ref": "SPEC-006 §5.3, §4.9",
+      "deps": [
+        "CHI-241"
+      ],
+      "files": [
+        "src/locales/en.json",
+        "src/stores/toastStore.ts",
+        "src/stores/toastStore.test.ts",
+        "src/styles/tokens.css",
+        "src/components/common/ToastContainer.tsx",
+        "src/components/common/OnboardingTooltip.tsx",
+        "src/stores/fileStore.ts",
+        "src/stores/sessionStore.ts",
+        "src/stores/settingsStore.ts",
+        "src/components/common/CommandPalette.tsx",
+        "src/components/layout/Sidebar.tsx"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-03T19:37:47Z",
+      "completed_at": "2026-03-03T15:00:00Z",
+      "worktree": null,
+      "notes": "Toast variants expanded to 6, onboarding contrast fixed, undo countdown and error details/copy implemented. completed_by=claude-code; lock_acquired_at=2026-03-03T20:00:49Z"
     }
   },
   "epics_new": {
@@ -4071,14 +4259,13 @@
     }
   },
   "recommended_next": [
-    "CHI-244",
-    "CHI-239",
-    "CHI-245",
-    "CHI-246",
-    "CHI-254",
-    "CHI-256",
-    "CHI-257",
-    "CHI-258"
+    "CHI-247",
+    "CHI-259",
+    "CHI-248",
+    "CHI-249",
+    "CHI-250",
+    "CHI-251",
+    "CHI-252"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -5775,12 +5962,20 @@
     }
   },
   "warnings": [
-    "Wave 1 nearly complete: CHI-232/233/234/235/236 DONE. Only CHI-253 (YOLO rename) remains.",
-    "Wave 2 fully unblocked: CHI-238/240/255/242 have no remaining deps. CHI-237 needs CHI-235 (done).",
-    "Recommended: parallelize CHI-253 + Wave 2 items simultaneously.",
-    "CHI-244 (File Preview Rework) is L effort — start early when possible.",
+    "Waves 1-2 COMPLETE. 13/29 issues done.",
+    "Wave 3 nearly done: CHI-239 and CHI-254 remaining.",
+    "Wave 4 fully unblocked: all deps satisfied.",
+    "CHI-244 (File Preview Rework) is L effort — largest remaining task.",
     "SPEC-006 is the authoritative spec for ALL CHI-231 children.",
-    "CHI-202 (Voice Input) deprioritized — not in execution plan."
+    "CHI-202 (Voice Input) deprioritized — not in execution plan.",
+    {
+      "timestamp": "2026-03-03T14:01:37.952899+00:00",
+      "severity": "medium",
+      "component": "OnboardingTooltip.tsx",
+      "issue": "Accent background color not respecting semantic tokens — needs audit during CHI-261",
+      "file": "src/components/common/OnboardingTooltip.tsx",
+      "task": "CHI-261"
+    }
   ],
   "development_protocol": {
     "guide": "docs/guides/GUIDE-003-development-protocol.md",
@@ -5800,10 +5995,16 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-02T03:17:18Z",
-    "last_updated_by": "claude-code",
-    "last_sync": "2026-03-02T03:17:18Z",
-    "last_sync_by": "claude-code"
+    "last_updated": "2026-03-03T15:00:00Z",
+    "last_updated_by": "cowork",
+    "last_sync": "2026-03-03T15:00:00Z",
+    "last_sync_by": "claude-code",
+    "total_tasks": 96,
+    "task_status_counts": {
+      "done": 80,
+      "backlog": 16,
+      "in_progress": 0
+    }
   },
   "conversation_experience_epic": {
     "CHI-177": {
@@ -6245,7 +6446,7 @@
       }
     }
   },
-  "last_agent": "claude-code",
+  "last_agent": "cowork-session",
   "execution_plan": {
     "created": "2026-03-03T03:37:31Z",
     "description": "CX/UX Excellence execution order based on dependency graph and impact analysis",
@@ -6260,7 +6461,7 @@
           "CHI-236"
         ],
         "rationale": "Touches tokens.css and layout-level CSS. Every subsequent wave builds on these.",
-        "status": "nearly_complete (4/5 done, CHI-253 remaining)"
+        "status": "COMPLETE"
       },
       "wave_2_core_components": {
         "description": "Core component upgrades — some deps on Wave 1 tokens",
@@ -6271,7 +6472,8 @@
           "CHI-255",
           "CHI-242"
         ],
-        "rationale": "Message differentiation, cost display, input area, CTA audit, empty states. CHI-255 needs CHI-232."
+        "rationale": "Message differentiation, cost display, input area, CTA audit, empty states. CHI-255 needs CHI-232.",
+        "status": "COMPLETE"
       },
       "wave_3_information": {
         "description": "Information layer — feedback, details, onboarding, help",
@@ -6282,7 +6484,8 @@
           "CHI-243",
           "CHI-254"
         ],
-        "rationale": "CHI-237 needs CHI-235. CHI-239 needs CHI-238. Others independent."
+        "rationale": "CHI-237 needs CHI-235. CHI-239 needs CHI-238. Others independent.",
+        "status": "mostly_complete (CHI-239/254 remaining)"
       },
       "wave_4_workflow": {
         "description": "Workflow improvements — file preview, undo, errors, session mgmt",
