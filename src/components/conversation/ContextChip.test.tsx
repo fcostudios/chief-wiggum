@@ -26,6 +26,12 @@ vi.mock('@/stores/contextStore', () => ({
   applyAttachmentOptimization: () => mockApplyAttachmentOptimization(),
   revertAttachmentOptimization: () => mockRevertAttachmentOptimization(),
 }));
+vi.mock('@/stores/i18nStore', () => ({
+  t: (key: string) => {
+    if (key === 'contextSource.mention') return 'Added via @-mention';
+    return key;
+  },
+}));
 
 function makeAttachment(overrides?: Partial<ContextAttachment>): ContextAttachment {
   return {
@@ -133,5 +139,13 @@ describe('ContextChip', () => {
     const optimizeButton = screen.getByLabelText('Optimize helper.ts');
     fireEvent.click(optimizeButton);
     expect(mockApplyAttachmentOptimization).toHaveBeenCalled();
+  });
+
+  it('renders source tooltip when source is present', () => {
+    render(() => (
+      <ContextChip attachment={makeAttachment({ source: 'mention' })} onRemove={() => {}} />
+    ));
+
+    expect(screen.getByLabelText('Added via @-mention')).toBeInTheDocument();
   });
 });

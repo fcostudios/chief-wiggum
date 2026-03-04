@@ -4,8 +4,8 @@
 
 import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
-import { Sparkles, X, File } from 'lucide-solid';
-import type { ContextAttachment } from '@/lib/types';
+import { AtSign, File, MessageSquare, Pin, Scan, Sparkles, X } from 'lucide-solid';
+import type { ContextAttachment, ContextSource } from '@/lib/types';
 import { qualityColor } from '@/lib/contextScoring';
 import {
   applyAttachmentOptimization,
@@ -13,12 +13,27 @@ import {
   revertAttachmentOptimization,
 } from '@/stores/contextStore';
 import { addToast } from '@/stores/toastStore';
+import { t } from '@/stores/i18nStore';
 
 interface ContextChipProps {
   attachment: ContextAttachment;
   onRemove: (id: string) => void;
   onEdit?: (attachment: ContextAttachment) => void;
 }
+
+const SOURCE_ICONS: Record<ContextSource, Component<{ size?: number }>> = {
+  mention: AtSign,
+  auto: Scan,
+  referenced: MessageSquare,
+  pinned: Pin,
+};
+
+const SOURCE_I18N: Record<ContextSource, string> = {
+  mention: 'contextSource.mention',
+  auto: 'contextSource.auto',
+  referenced: 'contextSource.referenced',
+  pinned: 'contextSource.pinned',
+};
 
 const ContextChip: Component<ContextChipProps> = (props) => {
   const ref = () => props.attachment.reference;
@@ -69,6 +84,21 @@ const ContextChip: Component<ContextChipProps> = (props) => {
       role={props.onEdit ? 'button' : undefined}
       title={`${ref().relative_path} (~${ref().estimated_tokens} tokens)${props.onEdit ? ' — click to edit range' : ''}`}
     >
+      <Show when={props.attachment.source}>
+        {(source) => {
+          const Icon = SOURCE_ICONS[source()];
+          return (
+            <span
+              class="shrink-0"
+              style={{ color: 'var(--color-text-tertiary)' }}
+              title={t(SOURCE_I18N[source()])}
+              aria-label={t(SOURCE_I18N[source()])}
+            >
+              <Icon size={10} />
+            </span>
+          );
+        }}
+      </Show>
       <File size={10} class="shrink-0" style={{ color: 'var(--color-accent)' }} />
       <span class="truncate max-w-[120px]">{ref().name}</span>
       <Show when={lineRange()}>

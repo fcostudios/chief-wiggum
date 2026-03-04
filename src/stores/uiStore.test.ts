@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  closeAbout,
+  closeChangelog,
+  closeQuickSwitcher,
   closeStatusCostPopover,
+  openAbout,
+  openChangelog,
+  openQuickSwitcher,
   setDetailsPanelWidth,
   setSidebarWidth,
   openStatusCostPopover,
@@ -74,5 +80,27 @@ describe('uiStore', () => {
     expect(uiState.detailsPanelWidth).toBe(520);
     setDetailsPanelWidth(340);
     expect(uiState.detailsPanelWidth).toBe(340);
+  });
+
+  it('opens and closes quick switcher', () => {
+    closeQuickSwitcher();
+    expect(uiState.quickSwitcherVisible).toBe(false);
+    openQuickSwitcher();
+    expect(uiState.quickSwitcherVisible).toBe(true);
+    closeQuickSwitcher();
+    expect(uiState.quickSwitcherVisible).toBe(false);
+  });
+
+  it('opens and closes changelog/about modals', () => {
+    closeChangelog();
+    closeAbout();
+    openChangelog();
+    openAbout();
+    expect(uiState.changelogVisible).toBe(true);
+    expect(uiState.aboutVisible).toBe(true);
+    closeChangelog();
+    closeAbout();
+    expect(uiState.changelogVisible).toBe(false);
+    expect(uiState.aboutVisible).toBe(false);
   });
 });

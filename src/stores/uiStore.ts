@@ -48,10 +48,13 @@ interface UIState {
   commandPaletteVisible: boolean;
   commandPaletteMode: CommandPaletteMode;
   sessionSwitcherVisible: boolean;
+  quickSwitcherVisible: boolean;
   keyboardHelpVisible: boolean;
   messageSearchVisible: boolean;
   statusCostPopoverVisible: boolean;
   actionTechnicalMode: boolean;
+  changelogVisible: boolean;
+  aboutVisible: boolean;
 }
 
 /** Restore persisted permission tier from localStorage. */
@@ -132,10 +135,13 @@ const [state, setState] = createStore<UIState>({
   commandPaletteVisible: false,
   commandPaletteMode: 'all',
   sessionSwitcherVisible: false,
+  quickSwitcherVisible: false,
   keyboardHelpVisible: false,
   messageSearchVisible: false,
   statusCostPopoverVisible: false,
   actionTechnicalMode: false,
+  changelogVisible: false,
+  aboutVisible: false,
 });
 
 // Sync persisted tier to backend on startup
@@ -369,6 +375,36 @@ export function openSessionSwitcher() {
 /** Close the session quick-switcher. */
 export function closeSessionSwitcher() {
   setState('sessionSwitcherVisible', false);
+}
+
+/** Open the Ctrl+Tab quick switcher overlay. */
+export function openQuickSwitcher() {
+  setState('quickSwitcherVisible', true);
+}
+
+/** Close the Ctrl+Tab quick switcher overlay. */
+export function closeQuickSwitcher() {
+  setState('quickSwitcherVisible', false);
+}
+
+/** Open the "What's New" changelog modal. */
+export function openChangelog() {
+  setState('changelogVisible', true);
+}
+
+/** Close the "What's New" changelog modal. */
+export function closeChangelog() {
+  setState('changelogVisible', false);
+}
+
+/** Open the About modal. */
+export function openAbout() {
+  setState('aboutVisible', true);
+}
+
+/** Close the About modal. */
+export function closeAbout() {
+  setState('aboutVisible', false);
 }
 
 /** Toggle the keyboard shortcuts help overlay (Cmd+/). */

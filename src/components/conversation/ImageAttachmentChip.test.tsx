@@ -52,6 +52,7 @@ vi.mock('@/stores/contextStore', () => ({
   addFileReference: vi.fn(),
   addExternalFileAttachment: vi.fn(),
   removeAttachment: vi.fn(),
+  softRemoveAttachment: vi.fn(),
   addImageAttachment: (...args: unknown[]) => mockAddImageAttachment(...args),
   removeImageAttachment: (...args: unknown[]) => mockRemoveImageAttachment(...args),
   clearAttachments: vi.fn(),

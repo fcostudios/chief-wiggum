@@ -4,7 +4,8 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import { ChevronDown, Coins, Copy, XCircle } from 'lucide-solid';
+import { AlertTriangle, ChevronDown, Coins, Copy, Info, XCircle } from 'lucide-solid';
+import { Dynamic } from 'solid-js/web';
 import {
   closeStatusCostPopover,
   setActiveView,
@@ -17,7 +18,13 @@ import { sessionState, setActiveSession } from '@/stores/sessionStore';
 import { openExportDialog } from '@/stores/diagnosticsStore';
 import { t } from '@/stores/i18nStore';
 import { addToast } from '@/stores/toastStore';
-import { clearErrorLog, errorLogState, getErrorCount } from '@/stores/errorLogStore';
+import {
+  clearErrorLog,
+  errorLogState,
+  getUnseenErrorCount,
+  markErrorsSeen,
+  type ErrorSeverity,
+} from '@/stores/errorLogStore';
 import type { ProcessStatus, Session, TodoItem } from '@/lib/types';
 import {
   actionState,
@@ -51,6 +58,30 @@ function parseSessionTimestamp(session: Session): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function severityIcon(severity: ErrorSeverity): Component<{ size?: number }> {
+  switch (severity) {
+    case 'warning':
+      return AlertTriangle;
+    case 'info':
+      return Info;
+    case 'error':
+    default:
+      return XCircle;
+  }
+}
+
+function severityColor(severity: ErrorSeverity): string {
+  switch (severity) {
+    case 'warning':
+      return 'var(--color-warning)';
+    case 'info':
+      return 'var(--color-text-link)';
+    case 'error':
+    default:
+      return 'var(--color-error)';
+  }
+}
+
 const StatusBar: Component = () => {
   let statusButtonRef: HTMLButtonElement | undefined;
   let statusPopoverRef: HTMLDivElement | undefined;
@@ -65,7 +96,7 @@ const StatusBar: Component = () => {
   const activeSessionId = () => sessionState.activeSessionId;
   const runningActions = createMemo(() => getRunningActions());
   const runningActionsCenterCount = createMemo(() => actionState.crossProjectRunning.length);
-  const errorCount = createMemo(() => getErrorCount());
+  const errorCount = createMemo(() => getUnseenErrorCount());
   const recentActions = createMemo(() => getRecentActionEvents().slice(0, 3));
   const runningActionCount = () => runningActions().length;
 
@@ -330,7 +361,14 @@ const StatusBar: Component = () => {
               border: '1px solid color-mix(in srgb, var(--color-error) 25%, transparent)',
             }}
             aria-label={`${errorCount()} ${t('errorLog.badge')}`}
-            onClick={() => setErrorLogOpen((prev) => !prev)}
+            onClick={() =>
+              setErrorLogOpen((prev) => {
+                if (!prev) {
+                  markErrorsSeen();
+                }
+                return !prev;
+              })
+            }
           >
             <XCircle size={10} />
             {errorCount()}
@@ -422,11 +460,9 @@ const StatusBar: Component = () => {
                                 second: '2-digit',
                               })}
                             </span>
-                            <XCircle
-                              size={10}
-                              class="shrink-0"
-                              style={{ color: 'var(--color-error)' }}
-                            />
+                            <span class="shrink-0" style={{ color: severityColor(entry.severity) }}>
+                              <Dynamic component={severityIcon(entry.severity)} size={10} />
+                            </span>
                           </div>
                           <p class="mt-0.5 text-xs" style={{ color: 'var(--color-text-primary)' }}>
                             {entry.humanMessage ?? entry.message}

@@ -10,12 +10,16 @@ import type { Component } from 'solid-js';
 import { onMount, onCleanup, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
 import { MessageSquare, Users, GitCompare, Terminal, Zap } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
   dismissPermissionDialog,
+  closeChangelog,
+  closeAbout,
+  closeQuickSwitcher,
   closeSessionSwitcher,
   setDetailsPanelWidth,
   setSidebarWidth,
@@ -52,6 +56,11 @@ import AgentsView from '@/components/agents/AgentsView';
 import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
 import EditorTakeover from '@/components/editor/EditorTakeover';
 import { fileState } from '@/stores/fileStore';
+import ChangelogModal from '@/components/common/ChangelogModal';
+import AboutModal from '@/components/common/AboutModal';
+import QuickSessionSwitcher from '@/components/common/QuickSessionSwitcher';
+import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
+import { t } from '@/stores/i18nStore';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -127,6 +136,32 @@ const MainLayout: Component = () => {
   // Seed the primary pane with the current active session after app/session restore.
   onMount(() => {
     ensureMainPaneSession(sessionState.activeSessionId);
+  });
+
+  // Warn before closing the app when there is unsent content.
+  onMount(() => {
+    let unlisten: (() => void) | null = null;
+    try {
+      void getCurrentWindow()
+        .onCloseRequested((event) => {
+          if (!hasUnsentContent()) return;
+          const confirmed = window.confirm(t('unsent.message'));
+          if (!confirmed) {
+            event.preventDefault();
+            return;
+          }
+          discardUnsentContent();
+        })
+        .then((fn) => {
+          unlisten = fn;
+        });
+    } catch {
+      // Browser mode: no native window API.
+    }
+
+    onCleanup(() => {
+      unlisten?.();
+    });
   });
 
   return (
@@ -342,6 +377,11 @@ const MainLayout: Component = () => {
         <CommandPalette mode="sessions" onClose={closeSessionSwitcher} />
       </Show>
 
+      {/* Ctrl+Tab quick switcher */}
+      <Show when={uiState.quickSwitcherVisible}>
+        <QuickSessionSwitcher onClose={closeQuickSwitcher} />
+      </Show>
+
       {/* Keyboard shortcuts help (Cmd+/) */}
       <Show when={uiState.keyboardHelpVisible}>
         <KeyboardHelp />
@@ -358,6 +398,14 @@ const MainLayout: Component = () => {
       {/* Context budget breakdown (CHI-125) */}
       <Show when={uiState.contextBreakdownVisible}>
         <ContextBreakdownModal />
+      </Show>
+
+      <Show when={uiState.changelogVisible}>
+        <ChangelogModal onClose={closeChangelog} />
+      </Show>
+
+      <Show when={uiState.aboutVisible}>
+        <AboutModal onClose={closeAbout} />
       </Show>
 
       {/* Toast notifications — fixed bottom-right overlay */}

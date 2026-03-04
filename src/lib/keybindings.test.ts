@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => {
       openMessageSearch: vi.fn(),
       toggleContextBreakdown: vi.fn(),
       toggleKeyboardHelp: vi.fn(),
+      openQuickSwitcher: vi.fn(),
     },
     actions: {
       getRunningActionIds: vi.fn(() => []),
@@ -214,6 +215,11 @@ describe('keybindings', () => {
     mocks.actions.getRunningActionIds.mockReturnValue([]);
     handleGlobalKeyDown(createKeyEvent('Period', { shiftKey: true }));
     expect(mocks.toast.addToast).toHaveBeenCalledWith('No running actions', 'info');
+  });
+
+  it('Ctrl+Tab opens quick session switcher', () => {
+    handleGlobalKeyDown(createKeyEvent('Tab', { metaKey: false, ctrlKey: true }));
+    expect(mocks.ui.openQuickSwitcher).toHaveBeenCalled();
   });
 
   it('supports Ctrl as modifier on non-mac keyboards', () => {

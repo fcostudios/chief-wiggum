@@ -11,10 +11,13 @@ let mockPermissionRequest: unknown = null;
 let mockYoloDialogVisible = false;
 let mockCommandPaletteVisible = false;
 let mockSessionSwitcherVisible = false;
+let mockQuickSwitcherVisible = false;
 let mockKeyboardHelpVisible = false;
 let mockSettingsVisible = false;
 let mockContextBreakdownVisible = false;
-let mockCommandPaletteMode: 'commands' | 'sessions' = 'commands';
+let mockChangelogVisible = false;
+let mockAboutVisible = false;
+let mockCommandPaletteMode: 'all' | 'sessions' | 'actions' = 'all';
 let mockViewBadges: Record<string, number> = {
   conversation: 0,
   agents: 0,
@@ -38,12 +41,20 @@ const mockSetDetailsPanelWidth = vi.fn((width: number) => {
 });
 const mockDismissPermissionDialog = vi.fn();
 const mockCloseSessionSwitcher = vi.fn();
+const mockCloseQuickSwitcher = vi.fn();
+const mockCloseChangelog = vi.fn();
+const mockCloseAbout = vi.fn();
 const mockCreateNewSession = vi.fn(() => Promise.resolve({ id: 'session-new' }));
 const mockSendMessage = vi.fn();
 const mockRecordPermissionOutcome = vi.fn();
 const mockEnsureMainPaneSession = vi.fn();
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(() => Promise.resolve()) }));
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({
+    onCloseRequested: vi.fn(async () => () => {}),
+  }),
+}));
 vi.mock('@tauri-apps/plugin-os', () => ({ platform: () => 'macos' }));
 vi.mock('@/lib/keybindings', () => ({ handleGlobalKeyDown: vi.fn() }));
 
@@ -76,6 +87,9 @@ vi.mock('@/stores/uiStore', () => ({
     get sessionSwitcherVisible() {
       return mockSessionSwitcherVisible;
     },
+    get quickSwitcherVisible() {
+      return mockQuickSwitcherVisible;
+    },
     get keyboardHelpVisible() {
       return mockKeyboardHelpVisible;
     },
@@ -84,6 +98,12 @@ vi.mock('@/stores/uiStore', () => ({
     },
     get contextBreakdownVisible() {
       return mockContextBreakdownVisible;
+    },
+    get changelogVisible() {
+      return mockChangelogVisible;
+    },
+    get aboutVisible() {
+      return mockAboutVisible;
     },
     get commandPaletteMode() {
       return mockCommandPaletteMode;
@@ -100,6 +120,9 @@ vi.mock('@/stores/uiStore', () => ({
     (mockSetDetailsPanelWidth as unknown as (...inner: unknown[]) => unknown)(...args),
   dismissPermissionDialog: () => mockDismissPermissionDialog(),
   closeSessionSwitcher: () => mockCloseSessionSwitcher(),
+  closeQuickSwitcher: () => mockCloseQuickSwitcher(),
+  closeChangelog: () => mockCloseChangelog(),
+  closeAbout: () => mockCloseAbout(),
 }));
 
 vi.mock('@/stores/sessionStore', () => ({
@@ -164,6 +187,8 @@ vi.mock('@/components/conversation/ConversationView', () => ({
 }));
 vi.mock('@/components/conversation/MessageInput', () => ({
   default: () => <div data-testid="message-input">MessageInput</div>,
+  hasUnsentContent: () => false,
+  discardUnsentContent: vi.fn(),
 }));
 vi.mock('@/components/permissions/PermissionDialog', () => ({
   default: () => <div data-testid="permission-dialog">PermissionDialog</div>,
@@ -198,6 +223,15 @@ vi.mock('@/components/settings/SettingsModal', () => ({
 vi.mock('@/components/conversation/ContextBreakdownModal', () => ({
   default: () => <div data-testid="context-breakdown-modal">ContextBreakdownModal</div>,
 }));
+vi.mock('@/components/common/ChangelogModal', () => ({
+  default: () => <div data-testid="changelog-modal">ChangelogModal</div>,
+}));
+vi.mock('@/components/common/AboutModal', () => ({
+  default: () => <div data-testid="about-modal">AboutModal</div>,
+}));
+vi.mock('@/components/common/QuickSessionSwitcher', () => ({
+  default: () => <div data-testid="quick-session-switcher">QuickSessionSwitcher</div>,
+}));
 vi.mock('@/components/layout/SplitPaneContainer', () => ({
   default: () => <div data-testid="split-pane-container">SplitPaneContainer</div>,
 }));
@@ -218,10 +252,13 @@ describe('MainLayout', () => {
     mockYoloDialogVisible = false;
     mockCommandPaletteVisible = false;
     mockSessionSwitcherVisible = false;
+    mockQuickSwitcherVisible = false;
     mockKeyboardHelpVisible = false;
     mockSettingsVisible = false;
     mockContextBreakdownVisible = false;
-    mockCommandPaletteMode = 'commands';
+    mockChangelogVisible = false;
+    mockAboutVisible = false;
+    mockCommandPaletteMode = 'all';
     mockViewBadges = { conversation: 0, agents: 0, diff: 0, terminal: 0, actions_center: 0 };
     mockLayoutMode = 'single';
     mockActivePaneId = 'main';
@@ -282,9 +319,12 @@ describe('MainLayout', () => {
     mockYoloDialogVisible = true;
     mockCommandPaletteVisible = true;
     mockSessionSwitcherVisible = true;
+    mockQuickSwitcherVisible = true;
     mockKeyboardHelpVisible = true;
     mockSettingsVisible = true;
     mockContextBreakdownVisible = true;
+    mockChangelogVisible = true;
+    mockAboutVisible = true;
     mockLayoutMode = 'split';
 
     render(() => <MainLayout />);
@@ -294,9 +334,12 @@ describe('MainLayout', () => {
     expect(screen.getByTestId('permission-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('auto-approve-warning')).toBeInTheDocument();
     expect(screen.getAllByTestId('command-palette')).toHaveLength(2);
+    expect(screen.getByTestId('quick-session-switcher')).toBeInTheDocument();
     expect(screen.getByTestId('keyboard-help')).toBeInTheDocument();
     expect(screen.getByTestId('settings-modal')).toBeInTheDocument();
     expect(screen.getByTestId('context-breakdown-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('changelog-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('about-modal')).toBeInTheDocument();
     expect(screen.getByTestId('export-dialog')).toBeInTheDocument();
     expect(screen.getByTestId('toast-container')).toBeInTheDocument();
   });

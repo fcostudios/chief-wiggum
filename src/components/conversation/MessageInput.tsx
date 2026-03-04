@@ -42,7 +42,7 @@ import {
   contextState,
   addFileReference,
   addExternalFileAttachment,
-  removeAttachment,
+  softRemoveAttachment,
   addImageAttachment,
   removeImageAttachment,
   clearAttachments,
@@ -63,6 +63,12 @@ import { t } from '@/stores/i18nStore';
 import { maybeShowHint } from '@/stores/hintStore';
 import { hasSeenHint, hintsEnabled, markHintSeen } from '@/stores/settingsStore';
 import { dismissTooltip, shouldShowTooltip } from '@/stores/onboardingStore';
+import {
+  discardUnsentContent as discardUnsentFromStore,
+  hasUnsentContent as hasUnsentFromStore,
+  registerUnsentAccessors,
+  unregisterUnsentAccessor,
+} from '@/stores/unsentStore';
 
 interface MessageInputProps {
   onSend: (content: string, images?: PromptImageInput[]) => void;
@@ -86,6 +92,16 @@ const SYMBOL_KIND_MAP: Record<string, SymbolSearchResult['kind']> = {
   'class:': 'class',
   'var:': 'variable',
 };
+
+/** True when the active input has meaningful unsent content. */
+export function hasUnsentContent(): boolean {
+  return hasUnsentFromStore();
+}
+
+/** Clear current input + draft for the active session. */
+export function discardUnsentContent(): void {
+  discardUnsentFromStore();
+}
 
 export function getSymbolPrefix(
   query: string,
@@ -379,7 +395,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         }
 
         const ref = await buildFileReference(resolved, { start, end });
-        addFileReference(ref);
+        addFileReference(ref, 'mention');
         rebuilt += prefix;
       } catch {
         rebuilt += fullMatch;
@@ -598,13 +614,16 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         }
       }
 
-      addFileReference({
-        relative_path: fileData.relative_path,
-        name: fileData.name,
-        extension: fileData.extension,
-        estimated_tokens: estimatedTokens,
-        is_directory: fileData.node_type === 'Directory',
-      });
+      addFileReference(
+        {
+          relative_path: fileData.relative_path,
+          name: fileData.name,
+          extension: fileData.extension,
+          estimated_tokens: estimatedTokens,
+          is_directory: fileData.node_type === 'Directory',
+        },
+        'auto',
+      );
       addToast(`Added ${fileData.name} to prompt`, 'success');
     } catch {
       addToast('Failed to attach file', 'error');
@@ -786,7 +805,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const parsedMention = parseMentionQuery(mentionToken?.[1] ?? '');
 
     const ref = await buildFileReference(result, parsedMention.range);
-    addFileReference(ref);
+    addFileReference(ref, 'mention');
     stripCurrentMentionToken();
     closeMentionMenu();
   }
@@ -918,6 +937,19 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   // Focus textarea when component mounts
   const focusTimeout = setTimeout(() => textareaRef?.focus(), 0);
   onCleanup(() => clearTimeout(focusTimeout));
+  const unsentAccessor = () => textareaRef?.value ?? '';
+  registerUnsentAccessors(unsentAccessor, () => {
+    setContent('');
+    const draftKey = `cw:draft:${sessionState.activeSessionId ?? 'default'}`;
+    localStorage.removeItem(draftKey);
+    if (textareaRef) {
+      textareaRef.value = '';
+      textareaRef.style.height = '80px';
+    }
+  });
+  onCleanup(() => {
+    unregisterUnsentAccessor(unsentAccessor);
+  });
 
   const charCount = () => content().length;
   const canSend = () => content().trim().length > 0 && !props.isLoading && !props.isDisabled;
@@ -949,7 +981,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             {(attachment) => (
               <ContextChip
                 attachment={attachment}
-                onRemove={removeAttachment}
+                onRemove={softRemoveAttachment}
                 onEdit={(att) => {
                   void selectFileForEditing(
                     att.reference.relative_path,

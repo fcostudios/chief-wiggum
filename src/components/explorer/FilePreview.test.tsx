@@ -143,6 +143,7 @@ describe('FilePreview', () => {
     fireEvent.click(screen.getByRole('button', { name: /\+ Context/i }));
     expect(mockAddFileReference).toHaveBeenCalledWith(
       expect.objectContaining({ relative_path: 'src/test.ts', name: 'test.ts' }),
+      'auto',
     );
   });
 

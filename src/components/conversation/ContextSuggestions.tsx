@@ -18,7 +18,7 @@ const ContextSuggestions: Component = () => {
       is_directory: false,
     };
 
-    addFileReference(ref);
+    addFileReference(ref, 'referenced');
   }
 
   return (

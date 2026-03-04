@@ -11,7 +11,7 @@ import {
   contextState,
   getTotalEstimatedTokens,
   recalculateScores,
-  removeAttachment,
+  softRemoveAttachment,
 } from '@/stores/contextStore';
 
 const TOKEN_BUDGET = 100_000;
@@ -153,7 +153,7 @@ const ContextBreakdownModal: Component = () => {
                       <button
                         class="p-0.5 rounded text-text-tertiary hover:text-error transition-colors"
                         style={{ 'transition-duration': 'var(--duration-fast)' }}
-                        onClick={() => removeAttachment(attachment.id)}
+                        onClick={() => softRemoveAttachment(attachment.id)}
                         aria-label={`Remove ${attachment.reference.name}`}
                       >
                         <X size={11} />

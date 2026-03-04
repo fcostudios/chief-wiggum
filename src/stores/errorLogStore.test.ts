@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { clearErrorLog, errorLogState, getErrorCount, logError } from './errorLogStore';
+import {
+  clearErrorLog,
+  errorLogState,
+  getErrorCount,
+  getUnseenErrorCount,
+  logError,
+  markErrorsSeen,
+} from './errorLogStore';
 
 describe('errorLogStore', () => {
   afterEach(() => {
@@ -9,6 +16,7 @@ describe('errorLogStore', () => {
   it('starts with empty log', () => {
     expect(errorLogState.entries).toEqual([]);
     expect(getErrorCount()).toBe(0);
+    expect(getUnseenErrorCount()).toBe(0);
   });
 
   it('logs an error entry', () => {
@@ -17,6 +25,7 @@ describe('errorLogStore', () => {
     expect(errorLogState.entries[0]?.message).toBe('CLI failed');
     expect(errorLogState.entries[0]?.details).toBe('Process exited with code 137');
     expect(getErrorCount()).toBe(1);
+    expect(getUnseenErrorCount()).toBe(1);
   });
 
   it('logs without details', () => {
@@ -45,6 +54,7 @@ describe('errorLogStore', () => {
     clearErrorLog();
     expect(errorLogState.entries).toEqual([]);
     expect(getErrorCount()).toBe(0);
+    expect(getUnseenErrorCount()).toBe(0);
   });
 
   it('entries have timestamps', () => {
@@ -67,5 +77,18 @@ describe('errorLogStore', () => {
   it('returns null humanMessage for unknown errors', () => {
     logError('Random error', 'UNKNOWN_CODE_XYZ');
     expect(errorLogState.entries[0]?.humanMessage).toBeUndefined();
+  });
+
+  it('supports severity values', () => {
+    logError('Warning test', undefined, 'warning');
+    expect(errorLogState.entries[0]?.severity).toBe('warning');
+  });
+
+  it('marks errors as seen', () => {
+    logError('One');
+    logError('Two');
+    expect(getUnseenErrorCount()).toBe(2);
+    markErrorsSeen();
+    expect(getUnseenErrorCount()).toBe(0);
   });
 });

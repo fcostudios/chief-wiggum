@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 import CommandPalette from './CommandPalette';
+import type { RecentCommand } from '@/stores/recentCommandStore';
 
 const mocks = vi.hoisted(() => ({
   ui: {
@@ -35,6 +36,10 @@ const mocks = vi.hoisted(() => ({
     stopAction: vi.fn(() => Promise.resolve()),
     restartAction: vi.fn(() => Promise.resolve()),
   },
+  recent: {
+    getRecentCommands: vi.fn<() => RecentCommand[]>(() => []),
+    recordCommand: vi.fn(),
+  },
 }));
 
 vi.mock('@/stores/uiStore', () => ({
@@ -60,12 +65,17 @@ vi.mock('@/stores/actionStore', () => ({
   stopAction: mocks.actions.stopAction,
   restartAction: mocks.actions.restartAction,
 }));
+vi.mock('@/stores/recentCommandStore', () => ({
+  getRecentCommands: mocks.recent.getRecentCommands,
+  recordCommand: mocks.recent.recordCommand,
+}));
 
 describe('CommandPalette', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.project.projectState.activeProjectId = null;
     mocks.actions.actionState.actions = [];
+    mocks.recent.getRecentCommands.mockReturnValue([]);
   });
 
   it('renders search input', () => {
@@ -122,5 +132,17 @@ describe('CommandPalette', () => {
       currentTarget: backdrop,
     });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows recent section when recent commands exist', () => {
+    mocks.recent.getRecentCommands.mockReturnValue([
+      { id: 'view-terminal', label: 'Go to Terminal', timestamp: Date.now() },
+    ]);
+
+    render(() => <CommandPalette />);
+    expect(screen.getByText('Recent')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByText('Go to Terminal')[0]!);
+    expect(mocks.ui.setActiveView).toHaveBeenCalledWith('terminal');
+    expect(mocks.recent.recordCommand).toHaveBeenCalled();
   });
 });

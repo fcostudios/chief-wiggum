@@ -8,11 +8,11 @@ import { createVirtualizer } from '@tanstack/solid-virtual';
 import { ArrowDown } from 'lucide-solid';
 import {
   conversationState,
-  deleteMessage,
   editMessage,
   regenerateResponse,
   retryLastMessage,
   sendMessage,
+  softDeleteMessage,
   switchSession,
   typewriter,
 } from '@/stores/conversationStore';
@@ -150,7 +150,7 @@ function MessageRenderer(props: {
           onDelete={(id) => {
             const sid = sessionState.activeSessionId;
             if (!sid) return;
-            void deleteMessage(id, sid);
+            softDeleteMessage(id, sid);
           }}
           onFork={(id) => {
             const currentSessionId = sessionState.activeSessionId;

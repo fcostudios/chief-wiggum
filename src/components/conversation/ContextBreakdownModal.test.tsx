@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@solidjs/testing-library';
 import type { ContextAttachment, ContextQualityScore } from '@/lib/types';
 
 const mockCloseContextBreakdown = vi.fn();
-const mockRemoveAttachment = vi.fn();
+const mockSoftRemoveAttachment = vi.fn();
 const mockRecalculateScores = vi.fn();
 
 function makeAttachment(id: string, name: string, tokens: number): ContextAttachment {
@@ -49,7 +49,7 @@ vi.mock('@/stores/contextStore', () => ({
   },
   getTotalEstimatedTokens: () =>
     mockAttachments.reduce((sum, a) => sum + a.reference.estimated_tokens, 0),
-  removeAttachment: (...args: unknown[]) => mockRemoveAttachment(...args),
+  softRemoveAttachment: (...args: unknown[]) => mockSoftRemoveAttachment(...args),
   recalculateScores: () => mockRecalculateScores(),
 }));
 
@@ -70,7 +70,7 @@ import ContextBreakdownModal from './ContextBreakdownModal';
 describe('ContextBreakdownModal', () => {
   beforeEach(() => {
     mockCloseContextBreakdown.mockClear();
-    mockRemoveAttachment.mockClear();
+    mockSoftRemoveAttachment.mockClear();
     mockRecalculateScores.mockClear();
     mockAttachments = [
       makeAttachment('att-1', 'helper.ts', 5000),
@@ -126,11 +126,11 @@ describe('ContextBreakdownModal', () => {
     expect(screen.getByText(/has low relevance/)).toBeInTheDocument();
   });
 
-  it('calls removeAttachment when remove button is clicked', () => {
+  it('calls softRemoveAttachment when remove button is clicked', () => {
     render(() => <ContextBreakdownModal />);
     const removeButtons = screen.getAllByLabelText(/Remove/);
     fireEvent.click(removeButtons[0]);
-    expect(mockRemoveAttachment).toHaveBeenCalledWith('att-1');
+    expect(mockSoftRemoveAttachment).toHaveBeenCalledWith('att-1');
   });
 
   it('calls closeContextBreakdown when close button is clicked', () => {

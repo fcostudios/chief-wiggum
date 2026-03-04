@@ -231,13 +231,16 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
 
   function handleAddToPrompt() {
     const content = activeContent();
-    addFileReference({
-      relative_path: content.relative_path,
-      name: fileName(),
-      extension: fileExtension(),
-      estimated_tokens: content.estimated_tokens,
-      is_directory: false,
-    });
+    addFileReference(
+      {
+        relative_path: content.relative_path,
+        name: fileName(),
+        extension: fileExtension(),
+        estimated_tokens: content.estimated_tokens,
+        is_directory: false,
+      },
+      'auto',
+    );
     addToast(`Added ${fileName()} to prompt`, 'success');
   }
 
@@ -315,15 +318,18 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
   function handleAddSelectionToPrompt() {
     const range = selectedRange();
     if (!range) return;
-    addFileReference({
-      relative_path: props.content.relative_path,
-      name: fileName(),
-      extension: fileExtension(),
-      estimated_tokens: selectionTokenEstimate(),
-      start_line: range.start,
-      end_line: range.end,
-      is_directory: false,
-    });
+    addFileReference(
+      {
+        relative_path: props.content.relative_path,
+        name: fileName(),
+        extension: fileExtension(),
+        estimated_tokens: selectionTokenEstimate(),
+        start_line: range.start,
+        end_line: range.end,
+        is_directory: false,
+      },
+      'auto',
+    );
     addToast(`Added ${fileName()}:${range.start}-${range.end} to prompt`, 'success');
     clearSelection();
   }

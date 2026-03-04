@@ -109,13 +109,16 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
       // Fallback estimate from file size.
     }
 
-    addFileReference({
-      relative_path: props.node.relative_path,
-      name: props.node.name,
-      extension: props.node.extension,
-      estimated_tokens: Math.max(1, estimatedTokens),
-      is_directory: false,
-    });
+    addFileReference(
+      {
+        relative_path: props.node.relative_path,
+        name: props.node.name,
+        extension: props.node.extension,
+        estimated_tokens: Math.max(1, estimatedTokens),
+        is_directory: false,
+      },
+      'auto',
+    );
     addToast(`Added ${props.node.name} to prompt`, 'success');
   }
 

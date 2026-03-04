@@ -53,7 +53,9 @@ export function addToast(
     toast.countdown = AUTO_DISMISS_MS.undo ?? 5000;
   }
   if (variant === 'error') {
-    logError(message, details);
+    logError(message, details, 'error');
+  } else if (variant === 'warning') {
+    logError(message, details, 'warning');
   }
 
   setState('toasts', (prev) => {

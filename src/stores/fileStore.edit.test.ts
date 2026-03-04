@@ -77,6 +77,11 @@ describe('fileStore editing state (CHI-217)', () => {
     setEditBuffer('modified');
     await saveFileEdit('proj-1', 'src/a.ts');
     expect(fileState.saveStatus).toBe('error');
-    expect(addToast).toHaveBeenCalledWith(expect.stringContaining('disk full'), 'error');
+    expect(addToast).toHaveBeenCalledWith(
+      expect.stringContaining('disk full'),
+      'error',
+      undefined,
+      expect.stringContaining('disk full'),
+    );
   });
 });
