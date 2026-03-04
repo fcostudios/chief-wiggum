@@ -27,6 +27,7 @@ import { getActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog } from '@/stores/uiStore';
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
+import { t } from '@/stores/i18nStore';
 
 const log = createLogger('ui/conversation');
 
@@ -72,6 +73,7 @@ export function getDiffState(key: string): 'pending' | 'applied' | 'rejected' {
 
 /** Typewriter buffer for smooth streaming rendering (CHI-73). */
 const typewriter = createTypewriterBuffer();
+const pendingDeleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Per-session event listener cleanup functions. */
 const sessionListeners = new Map<string, UnlistenFn[]>();
@@ -830,16 +832,56 @@ export async function regenerateResponse(
 }
 
 /** Delete a single message from a session and refresh the message list. */
-export async function deleteMessage(messageId: string, sessionId: string): Promise<void> {
+export async function deleteMessage(
+  messageId: string,
+  sessionId: string,
+  options?: { silent?: boolean },
+): Promise<void> {
+  const timer = pendingDeleteTimers.get(messageId);
+  if (timer) {
+    clearTimeout(timer);
+    pendingDeleteTimers.delete(messageId);
+  }
   try {
     await invoke('delete_single_message', { session_id: sessionId, message_id: messageId });
     await loadMessages(sessionId);
-    addToast('Message deleted', 'success');
+    if (!options?.silent) {
+      addToast('Message deleted', 'success');
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     setState('error', `Failed to delete message: ${message}`);
     log.error('Failed to delete message: ' + message);
   }
+}
+
+/** Soft-delete a message with 5s undo before final DB removal. */
+export function softDeleteMessage(messageId: string, sessionId: string): void {
+  const message = state.messages.find(
+    (entry) => entry.id === messageId && entry.session_id === sessionId,
+  );
+  if (!message || message.pendingDelete) return;
+
+  setState('messages', (entry) => entry.id === messageId, 'pendingDelete', true);
+
+  addToast(t('softUndo.messageDeleted'), 'undo', {
+    label: t('softUndo.undo'),
+    onClick: () => {
+      const timer = pendingDeleteTimers.get(messageId);
+      if (timer) {
+        clearTimeout(timer);
+        pendingDeleteTimers.delete(messageId);
+      }
+      setState('messages', (entry) => entry.id === messageId, 'pendingDelete', false);
+    },
+  });
+
+  const timer = setTimeout(() => {
+    pendingDeleteTimers.delete(messageId);
+    void deleteMessage(messageId, sessionId, { silent: true });
+  }, 5_000);
+
+  pendingDeleteTimers.set(messageId, timer);
 }
 
 /** Check if a session has an active CLI bridge in the backend. */

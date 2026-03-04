@@ -16,6 +16,8 @@ vi.mock('@/stores/uiStore', () => ({
     },
   },
   openSettings: () => mockOpenSettings(),
+  openChangelog: vi.fn(),
+  openAbout: vi.fn(),
 }));
 
 vi.mock('@/stores/cliStore', () => ({
@@ -77,6 +79,9 @@ vi.mock('@/components/common/ModelSelector', () => ({
       ModelSelector
     </div>
   ),
+}));
+vi.mock('@/components/common/HelpMenu', () => ({
+  default: () => <div data-testid="help-menu">HelpMenu</div>,
 }));
 
 vi.mock('@tauri-apps/plugin-os', () => ({ platform: () => 'macos' }));

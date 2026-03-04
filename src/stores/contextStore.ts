@@ -6,6 +6,7 @@ import { createStore, reconcile } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import type {
   ContextAttachment,
+  ContextSource,
   ContextQualityScore,
   FileBundleSuggestion,
   FileReference,
@@ -21,6 +22,7 @@ import { buildSymbolSnippet, extractSymbols, pickRelevantSymbols } from '@/lib/s
 import { getActiveProject, projectState } from '@/stores/projectStore';
 import { conversationState } from '@/stores/conversationStore';
 import { addToast } from '@/stores/toastStore';
+import { t } from '@/stores/i18nStore';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ui/context');
@@ -31,6 +33,7 @@ const TOKEN_WARNING_THRESHOLD = 50_000;
 const TOKEN_HARD_CAP = 100_000;
 /** Max image size accepted from clipboard paste. */
 const IMAGE_MAX_SIZE = 5 * 1024 * 1024;
+const SOFT_REMOVE_DELAY_MS = 5_000;
 
 interface ContextState {
   attachments: ContextAttachment[];
@@ -51,6 +54,7 @@ const [state, setState] = createStore<ContextState>({
 });
 
 export { state as contextState };
+const pendingRemoveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function updateSymbolSuggestions(
   updater: (
@@ -78,7 +82,7 @@ function clearSymbolSuggestion(attachmentId: string): void {
 }
 
 /** Add a file reference to the prompt context. */
-export function addFileReference(ref: FileReference): void {
+export function addFileReference(ref: FileReference, source: ContextSource = 'mention'): void {
   // Dedup by path + line range
   const exists = state.attachments.some(
     (a) =>
@@ -100,6 +104,7 @@ export function addFileReference(ref: FileReference): void {
   const attachment: ContextAttachment = {
     id: crypto.randomUUID(),
     reference: ref,
+    source,
   };
   setState('attachments', (prev) => [...prev, attachment]);
   recalculateScores();
@@ -112,7 +117,10 @@ export function addFileReference(ref: FileReference): void {
 }
 
 /** Add a symbol snippet as a context attachment without requiring file IPC reads. */
-export function addSymbolAttachment(symbol: SymbolSearchResult): void {
+export function addSymbolAttachment(
+  symbol: SymbolSearchResult,
+  source: ContextSource = 'mention',
+): void {
   const exists = state.attachments.some(
     (attachment) =>
       attachment.reference.relative_path === symbol.file_path &&
@@ -147,6 +155,7 @@ export function addSymbolAttachment(symbol: SymbolSearchResult): void {
     reference,
     content: symbol.snippet,
     actual_tokens: Math.max(1, symbol.estimated_tokens),
+    source,
   };
 
   setState('attachments', (prev) => [...prev, attachment]);
@@ -200,6 +209,7 @@ export function addExternalFileAttachment(
     reference: ref,
     content,
     actual_tokens: estimatedTokens,
+    source: 'auto',
   };
   setState('attachments', (prev) => [...prev, attachment]);
   recalculateScores();
@@ -212,6 +222,11 @@ export function addExternalFileAttachment(
 
 /** Remove an attachment by ID. */
 export function removeAttachment(id: string): void {
+  const timer = pendingRemoveTimers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    pendingRemoveTimers.delete(id);
+  }
   setState(
     'attachments',
     state.attachments.filter((a) => a.id !== id),
@@ -219,6 +234,40 @@ export function removeAttachment(id: string): void {
   clearSymbolSuggestion(id);
   recalculateScores();
   void refreshSuggestions();
+}
+
+/** Remove an attachment with a 5s undo grace period. */
+export function softRemoveAttachment(id: string): void {
+  const index = state.attachments.findIndex((attachment) => attachment.id === id);
+  if (index < 0) return;
+
+  const removed = state.attachments[index];
+  removeAttachment(id);
+
+  addToast(t('softUndo.contextRemoved'), 'undo', {
+    label: t('softUndo.undo'),
+    onClick: () => {
+      const timer = pendingRemoveTimers.get(id);
+      if (timer) {
+        clearTimeout(timer);
+        pendingRemoveTimers.delete(id);
+      }
+      setState('attachments', (prev) => {
+        const next = [...prev];
+        const insertionIndex = Math.min(index, next.length);
+        next.splice(insertionIndex, 0, removed);
+        return next;
+      });
+      recalculateScores();
+      void refreshSuggestions();
+      void refreshSymbolSuggestionForAttachment(removed.id);
+    },
+  });
+
+  const timer = setTimeout(() => {
+    pendingRemoveTimers.delete(id);
+  }, SOFT_REMOVE_DELAY_MS);
+  pendingRemoveTimers.set(id, timer);
 }
 
 function estimateImageTokens(width: number, height: number): number {
@@ -323,6 +372,10 @@ export function updateAttachmentRange(
 
 /** Clear all attachments. */
 export function clearAttachments(): void {
+  for (const timer of pendingRemoveTimers.values()) {
+    clearTimeout(timer);
+  }
+  pendingRemoveTimers.clear();
   setState('attachments', []);
   setState('images', []);
   setState('scores', reconcile({}, { merge: false }));

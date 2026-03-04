@@ -30,7 +30,6 @@ import {
   toggleSessionPinned,
   updateSessionTitle,
   duplicateSession,
-  sessionHasMessages,
   loadSessionSummary,
 } from '@/stores/sessionStore';
 import {
@@ -849,6 +848,8 @@ const SessionItem: Component<{
   const [menuOpen, setMenuOpen] = createSignal(false);
   const [isRenaming, setIsRenaming] = createSignal(false);
   const [draftTitle, setDraftTitle] = createSignal('');
+  const [pendingDelete, setPendingDelete] = createSignal(false);
+  let deleteTimer: ReturnType<typeof setTimeout> | null = null;
   const [sessionContextPos, setSessionContextPos] = createSignal<{ x: number; y: number } | null>(
     null,
   );
@@ -902,14 +903,27 @@ const SessionItem: Component<{
   async function handleDeleteRequest(e?: MouseEvent) {
     e?.stopPropagation();
     setMenuOpen(false);
+    if (pendingDelete()) return;
+    setPendingDelete(true);
 
-    const hasMessages = await sessionHasMessages(props.session.id);
-    if (hasMessages) {
-      const confirmed = window.confirm(t('sidebar.deleteConfirm'));
-      if (!confirmed) return;
-    }
+    addToast(t('softUndo.sessionDeleted'), 'undo', {
+      label: t('softUndo.undo'),
+      onClick: () => {
+        if (deleteTimer) {
+          clearTimeout(deleteTimer);
+          deleteTimer = null;
+        }
+        setPendingDelete(false);
+      },
+    });
 
-    await props.onDelete(props.session.id);
+    deleteTimer = setTimeout(() => {
+      deleteTimer = null;
+      void Promise.resolve(props.onDelete(props.session.id)).catch(() => {
+        setPendingDelete(false);
+        addToast('Failed to delete session', 'error');
+      });
+    }, 5_000);
   }
 
   async function handleExportSession(): Promise<void> {
@@ -1010,6 +1024,10 @@ const SessionItem: Component<{
   });
 
   onCleanup(() => {
+    if (deleteTimer) {
+      clearTimeout(deleteTimer);
+      deleteTimer = null;
+    }
     document.removeEventListener('mousedown', handleClickOutside);
     document.removeEventListener('keydown', handleDocumentKeyDown);
   });
@@ -1022,6 +1040,8 @@ const SessionItem: Component<{
         'transition-duration': 'var(--duration-fast)',
         background: props.isActive ? 'var(--color-bg-elevated)' : 'transparent',
         color: props.isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+        opacity: pendingDelete() ? 0.5 : 1,
+        'pointer-events': pendingDelete() ? 'none' : 'auto',
       }}
       onMouseEnter={(e) => {
         if (!props.isActive) {

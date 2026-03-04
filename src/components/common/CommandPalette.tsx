@@ -19,6 +19,7 @@ import {
   RotateCw,
   Download,
   Pencil,
+  Clock,
 } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import {
@@ -47,6 +48,7 @@ import {
 import type { ActionDefinition } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
 import { fileState, openEditorTakeover } from '@/stores/fileStore';
+import { getRecentCommands, recordCommand } from '@/stores/recentCommandStore';
 import {
   buildExportFilename,
   exportAsHtml,
@@ -54,6 +56,7 @@ import {
   exportAsText,
   type ExportFormat,
 } from '@/lib/conversationExport';
+import { t } from '@/stores/i18nStore';
 
 // ---------------------------------------------------------------------------
 // Command types
@@ -345,8 +348,31 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
   // Filter by query (simple case-insensitive substring match)
   const filteredCommands = createMemo<Command[]>(() => {
     const q = query().toLowerCase().trim();
-    if (!q) return modeCommands();
-    return modeCommands().filter(
+    const commands = modeCommands();
+
+    if (!q) {
+      if (mode() !== 'all') return commands;
+
+      const recentResolved: Command[] = [];
+      for (const recent of getRecentCommands(5)) {
+        const resolved =
+          commands.find((command) => command.id === recent.id) ??
+          commands.find((command) => command.label === recent.label);
+        if (resolved) {
+          recentResolved.push({
+            ...resolved,
+            category: t('recentCommands.sectionTitle'),
+            icon: () => <Clock size={16} />,
+          });
+        }
+      }
+
+      const recentIds = new Set(recentResolved.map((command) => command.id));
+      const remaining = commands.filter((command) => !recentIds.has(command.id));
+      return [...recentResolved, ...remaining];
+    }
+
+    return commands.filter(
       (cmd) =>
         cmd.label.toLowerCase().includes(q) ||
         cmd.category.toLowerCase().includes(q) ||
@@ -377,6 +403,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
   // Execute a command and close the palette
   function executeCommand(cmd: Command) {
     handleClose();
+    recordCommand(cmd.id, cmd.label, cmd.shortcut);
     cmd.action();
   }
 

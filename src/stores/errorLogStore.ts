@@ -4,10 +4,12 @@
 import { createStore } from 'solid-js/store';
 
 const MAX_ENTRIES = 100;
+export type ErrorSeverity = 'error' | 'warning' | 'info';
 
 export interface ErrorLogEntry {
   id: string;
   timestamp: Date;
+  severity: ErrorSeverity;
   message: string;
   details?: string;
   humanMessage?: string;
@@ -16,6 +18,7 @@ export interface ErrorLogEntry {
 
 interface ErrorLogState {
   entries: ErrorLogEntry[];
+  unseenCount: number;
 }
 
 const ERROR_MAP: { pattern: string; humanMessage: string; suggestion: string }[] = [
@@ -64,13 +67,19 @@ function matchError(details?: string): { humanMessage?: string; suggestion?: str
 
 const [state, setState] = createStore<ErrorLogState>({
   entries: [],
+  unseenCount: 0,
 });
 
-export function logError(message: string, details?: string): void {
+export function logError(
+  message: string,
+  details?: string,
+  severity: ErrorSeverity = 'error',
+): void {
   const { humanMessage, suggestion } = matchError(details);
   const entry: ErrorLogEntry = {
     id: crypto.randomUUID(),
     timestamp: new Date(),
+    severity,
     message,
     details,
     humanMessage,
@@ -78,14 +87,24 @@ export function logError(message: string, details?: string): void {
   };
 
   setState('entries', (prev) => [entry, ...prev].slice(0, MAX_ENTRIES));
+  setState('unseenCount', (prev) => prev + 1);
 }
 
 export function clearErrorLog(): void {
   setState('entries', []);
+  setState('unseenCount', 0);
 }
 
 export function getErrorCount(): number {
   return state.entries.length;
+}
+
+export function getUnseenErrorCount(): number {
+  return state.unseenCount;
+}
+
+export function markErrorsSeen(): void {
+  setState('unseenCount', 0);
 }
 
 export { state as errorLogState };

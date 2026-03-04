@@ -20,12 +20,20 @@ let mockRecentActionEvents: Array<{
   finished_at: string | null;
 }> = [];
 let mockMessages: Message[] = [];
+let mockUnseenErrorCount = 0;
+let mockErrorEntries: Array<{
+  id: string;
+  timestamp: Date;
+  message: string;
+  severity: 'error' | 'warning' | 'info';
+}> = [];
 
 const mockOpenExportDialog = vi.fn();
 const mockSetActiveSession = vi.fn();
 const mockSelectAction = vi.fn();
 const mockStopAction = vi.fn();
 const mockRestartAction = vi.fn();
+const mockMarkErrorsSeen = vi.fn();
 
 vi.mock('@/stores/uiStore', () => ({
   uiState: {
@@ -123,8 +131,19 @@ vi.mock('@/stores/i18nStore', () => ({
     if (key === 'statusBar.yolo') return 'AUTO';
     if (key === 'common.stop') return 'Stop';
     if (key === 'common.retry') return 'Retry';
+    if (key === 'errorLog.badge') return 'errors';
     return key;
   },
+}));
+vi.mock('@/stores/errorLogStore', () => ({
+  errorLogState: {
+    get entries() {
+      return mockErrorEntries;
+    },
+  },
+  getUnseenErrorCount: () => mockUnseenErrorCount,
+  markErrorsSeen: () => mockMarkErrorsSeen(),
+  clearErrorLog: vi.fn(),
 }));
 
 import StatusBar from './StatusBar';
@@ -163,11 +182,14 @@ describe('StatusBar', () => {
     mockRunningActions = [];
     mockRecentActionEvents = [];
     mockMessages = [];
+    mockUnseenErrorCount = 0;
+    mockErrorEntries = [];
     mockOpenExportDialog.mockClear();
     mockSetActiveSession.mockClear();
     mockSelectAction.mockClear();
     mockStopAction.mockClear();
     mockRestartAction.mockClear();
+    mockMarkErrorsSeen.mockClear();
   });
 
   it('renders 3-zone summary: status, tokens, and session cost', () => {
@@ -248,6 +270,22 @@ describe('StatusBar', () => {
     expect(screen.getByText('2 running')).toBeInTheDocument();
     expect(screen.getByText('Running total')).toBeInTheDocument();
     expect(screen.getAllByText('$3.50').length).toBeGreaterThan(0);
+  });
+
+  it('marks errors as seen when opening error log', () => {
+    mockUnseenErrorCount = 2;
+    mockErrorEntries = [
+      {
+        id: 'err-1',
+        timestamp: new Date('2026-03-03T00:00:00.000Z'),
+        message: 'Something failed',
+        severity: 'error',
+      },
+    ];
+
+    render(() => <StatusBar />);
+    fireEvent.click(screen.getByRole('button', { name: '2 errors' }));
+    expect(mockMarkErrorsSeen).toHaveBeenCalled();
   });
 
   function makeTodoMsg(

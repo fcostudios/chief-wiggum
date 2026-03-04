@@ -202,6 +202,47 @@
     "size": "Size",
     "lines": "lines"
   },
+  "help": {
+    "menuLabel": "Help",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "documentation": "Documentation",
+    "whatsNew": "What's New",
+    "reportIssue": "Report an Issue",
+    "about": "About Chief Wiggum",
+    "version": "Version",
+    "build": "Build",
+    "changelogTitle": "What's New",
+    "changelogEmpty": "No recent changes",
+    "dismiss": "Dismiss"
+  },
+  "unsent": {
+    "title": "Unsent Message",
+    "message": "You have an unsent message. Discard or keep editing?",
+    "messageDraftSaved": "Your draft will be saved automatically.",
+    "keepEditing": "Keep Editing",
+    "discard": "Discard"
+  },
+  "recentCommands": {
+    "sectionTitle": "Recent",
+    "empty": "No recent commands"
+  },
+  "contextSource": {
+    "mention": "Added via @-mention",
+    "auto": "Auto-detected from project",
+    "referenced": "Referenced in conversation",
+    "pinned": "Pinned by user"
+  },
+  "quickSwitcher": {
+    "title": "Switch Session",
+    "noSessions": "No recent sessions",
+    "current": "Current"
+  },
+  "softUndo": {
+    "messageDeleted": "Message deleted.",
+    "sessionDeleted": "Session deleted.",
+    "contextRemoved": "Context removed.",
+    "undo": "Undo"
+  },
   "actions_center": {
     "title": "Actions Center",
     "summary": "{n} projects · {m} lanes active",

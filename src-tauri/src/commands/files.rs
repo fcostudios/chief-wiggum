@@ -76,6 +76,30 @@ pub fn get_file_mtime(
     Ok(mtime)
 }
 
+/// Read changelog markdown used by the "What's New" modal (CHI-254).
+#[tauri::command]
+#[tracing::instrument]
+pub fn read_changelog() -> Result<String, AppError> {
+    let cwd = std::env::current_dir()?;
+    let candidates = [
+        cwd.join("CHANGELOG.md"),
+        cwd.join("docs").join("CHANGELOG.md"),
+        cwd.join("README.md"),
+    ];
+
+    for path in candidates {
+        if !path.exists() {
+            continue;
+        }
+        let content = std::fs::read_to_string(&path)?;
+        if !content.trim().is_empty() {
+            return Ok(content);
+        }
+    }
+
+    Err(AppError::Other("Changelog not found".to_string()))
+}
+
 /// Write content to a project file (inline editor save).
 #[tauri::command(rename_all = "snake_case")]
 #[tracing::instrument(skip(db, content), fields(

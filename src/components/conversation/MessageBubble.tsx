@@ -126,6 +126,7 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   const isUser = () => props.message.role === 'user';
   const isSystem = () => props.message.role === 'system';
   const isAssistant = () => props.message.role === 'assistant';
+  const isPendingDelete = () => props.message.pendingDelete === true;
   const modelBorderColor = () => {
     const model = props.message.model ?? '';
     if (model.includes('opus')) return 'var(--color-model-opus)';
@@ -241,6 +242,9 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
             : isAssistant()
               ? `3px solid ${modelBorderColor()}`
               : 'none',
+          opacity: isPendingDelete() ? 0.5 : 1,
+          'pointer-events': isPendingDelete() ? 'none' : 'auto',
+          transition: 'opacity 0.3s ease',
         }}
         onContextMenu={handleContextMenu}
         onKeyDown={handleKeyboardContextMenu}

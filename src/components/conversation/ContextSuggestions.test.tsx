@@ -74,6 +74,7 @@ describe('ContextSuggestions', () => {
     expect(ref.extension).toBe('ts');
     expect(ref.estimated_tokens).toBe(200);
     expect(ref.is_directory).toBe(false);
+    expect(mockAddFileReference.mock.calls[0][1]).toBe('referenced');
   });
 
   it('extracts filename from path correctly', () => {

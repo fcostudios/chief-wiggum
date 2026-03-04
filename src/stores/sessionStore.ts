@@ -9,6 +9,8 @@ import { createLogger } from '@/lib/logger';
 import { settingsState } from '@/stores/settingsStore';
 import { addToast } from '@/stores/toastStore';
 import { bindActiveSessionToFocusedPane, ensureMainPaneSession } from '@/stores/viewStore';
+import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
+import { t } from '@/stores/i18nStore';
 
 const log = createLogger('ui/session');
 
@@ -92,10 +94,22 @@ export async function createNewSession(model: string, projectId?: string): Promi
 
 /** Switch to an existing session. Does NOT load messages — caller must do that. */
 export function setActiveSession(sessionId: string): void {
+  if (sessionId === state.activeSessionId) return;
+  if (!checkUnsentGuard()) return;
   setState('activeSessionId', sessionId);
   bindActiveSessionToFocusedPane(sessionId);
   // Load summary for the active session (fire-and-forget).
   void loadSessionSummary(sessionId);
+}
+
+/** Confirm switching when the active composer contains unsent text. */
+export function checkUnsentGuard(): boolean {
+  if (!hasUnsentContent()) return true;
+  const proceed = window.confirm(t('unsent.message'));
+  if (proceed) {
+    discardUnsentContent();
+  }
+  return proceed;
 }
 
 /** Delete a session and switch to the next one. */

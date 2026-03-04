@@ -7,7 +7,7 @@ import { Show, createMemo, createSignal, onMount } from 'solid-js';
 import { ChevronDown, Minus, Maximize2, X, Settings } from 'lucide-solid';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
-import { uiState, openSettings } from '@/stores/uiStore';
+import { openAbout, openChangelog, openSettings, uiState } from '@/stores/uiStore';
 import { conversationState } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
 import { getActiveProject } from '@/stores/projectStore';
@@ -15,6 +15,7 @@ import { t } from '@/stores/i18nStore';
 import ModelSelector from '@/components/common/ModelSelector';
 import OnboardingTooltip from '@/components/common/OnboardingTooltip';
 import { shouldShowTooltip } from '@/stores/onboardingStore';
+import HelpMenu from '@/components/common/HelpMenu';
 
 const TitleBar: Component = () => {
   const [isMac, setIsMac] = createSignal(false);
@@ -150,6 +151,7 @@ const TitleBar: Component = () => {
 
       {/* Right: settings + window controls */}
       <div class="flex items-center shrink-0">
+        <HelpMenu onOpenChangelog={openChangelog} onOpenAbout={openAbout} />
         <button
           class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
           style={{ 'transition-duration': 'var(--duration-fast)' }}

@@ -19,6 +19,7 @@ import {
   toggleZenMode,
   toggleContextBreakdown,
   toggleKeyboardHelp,
+  openQuickSwitcher,
   type ActiveView,
 } from '@/stores/uiStore';
 import { getRunningActionIds, stopAllRunningActions } from '@/stores/actionStore';
@@ -42,6 +43,13 @@ const viewMap: Record<string, ActiveView> = {
 };
 
 export function handleGlobalKeyDown(e: KeyboardEvent): void {
+  // Ctrl+Tab — quick session switcher (Cmd+Tab is reserved by macOS app switcher).
+  if (e.code === 'Tab' && e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    openQuickSwitcher();
+    return;
+  }
+
   // Use metaKey on macOS, ctrlKey elsewhere
   const mod = e.metaKey || e.ctrlKey;
   if (!mod) return;

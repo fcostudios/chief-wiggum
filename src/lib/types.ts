@@ -56,6 +56,8 @@ export interface Message {
   cost_cents: number | null;
   is_compacted: boolean;
   created_at: string;
+  /** Soft-delete visual state during undo grace period. */
+  pendingDelete?: boolean;
 }
 
 /** Structured data stored in tool_use message content (JSON string). */
@@ -291,11 +293,15 @@ export interface FileReference {
 }
 
 /** An attached file in the context assembly. */
+export type ContextSource = 'mention' | 'auto' | 'referenced' | 'pinned';
+
+/** An attached file in the context assembly. */
 export interface ContextAttachment {
   id: string;
   reference: FileReference;
   content?: string;
   actual_tokens?: number;
+  source?: ContextSource;
 }
 
 /** An image pasted from clipboard, stored in-memory as base64 data URL. */

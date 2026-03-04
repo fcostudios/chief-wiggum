@@ -21,9 +21,11 @@ import {
   removeAttachment,
   removeImageAttachment,
   revertAttachmentOptimization,
+  softRemoveAttachment,
   updateAttachmentRange,
 } from './contextStore';
 import type { FileReference } from '@/lib/types';
+import { toastState } from './toastStore';
 
 function makeRef(overrides?: Partial<FileReference>): FileReference {
   return {
@@ -75,6 +77,12 @@ describe('contextStore', () => {
     addFileReference(makeRef());
     expect(getAttachmentCount()).toBe(1);
     expect(contextState.attachments[0].reference.relative_path).toBe('src/main.ts');
+    expect(contextState.attachments[0].source).toBe('mention');
+  });
+
+  it('addFileReference supports explicit source', () => {
+    addFileReference(makeRef({ relative_path: 'src/auto.ts', name: 'auto.ts' }), 'auto');
+    expect(contextState.attachments[0].source).toBe('auto');
   });
 
   it('addFileReference deduplicates by path + range', () => {
@@ -102,6 +110,18 @@ describe('contextStore', () => {
     const id = contextState.attachments[0].id;
     removeAttachment(id);
     expect(getAttachmentCount()).toBe(0);
+  });
+
+  it('softRemoveAttachment can be undone from toast action', () => {
+    addFileReference(makeRef());
+    const id = contextState.attachments[0].id;
+
+    softRemoveAttachment(id);
+    expect(getAttachmentCount()).toBe(0);
+
+    const undoToast = toastState.toasts.find((toast) => toast.variant === 'undo');
+    undoToast?.action?.onClick();
+    expect(getAttachmentCount()).toBe(1);
   });
 
   it('getTotalEstimatedTokens sums all attachments', () => {
