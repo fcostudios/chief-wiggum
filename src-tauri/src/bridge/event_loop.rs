@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 use super::manager::{BufferedEvent, SessionRuntime};
 use super::permission::{PermissionAction, PermissionManager};
 use super::process::BridgeInterface;
-use super::{BridgeEvent, BridgeOutput};
+use super::{BridgeEvent, BridgeOutput, QuestionRequestPayload};
 
 /// Event payloads emitted to the frontend.
 
@@ -548,6 +548,62 @@ async fn emit_bridge_output(
                         rt.buffer_event(BufferedEvent::PermissionRequest(payload.clone()));
                     }
                 }
+            }
+        }
+        BridgeOutput::QuestionRequired(req) => {
+            tracing::info!(
+                "Event loop [{}]: emitting question:request ({} questions)",
+                session_id,
+                req.questions.len()
+            );
+
+            let payload = QuestionRequestPayload {
+                session_id: session_id.to_string(),
+                request_id: req.request_id.clone(),
+                questions: req.questions.clone(),
+            };
+
+            if let Err(e) = app.emit("question:request", &payload) {
+                tracing::warn!("Failed to emit question:request: {}", e);
+            }
+
+            // Questions are never auto-approved (including YOLO mode).
+            if let Some(pm) = permission_manager.as_ref() {
+                let request_id = req.request_id.clone();
+                let rx = pm.store_pending_question(request_id.clone(), req).await;
+                let bridge_clone = Arc::clone(bridge);
+                let session_id = session_id.to_string();
+
+                tokio::spawn(async move {
+                    match rx.await {
+                        Ok(updated_input) => {
+                            if let Err(e) = bridge_clone
+                                .send_control_response(&request_id, true, None, Some(updated_input))
+                                .await
+                            {
+                                tracing::warn!(
+                                    "Event loop [{}]: failed to send question response for {}: {}",
+                                    session_id,
+                                    request_id,
+                                    e
+                                );
+                            }
+                        }
+                        Err(_) => {
+                            tracing::warn!(
+                                "Event loop [{}]: question {} cancelled (receiver dropped)",
+                                session_id,
+                                request_id
+                            );
+                        }
+                    }
+                });
+            } else {
+                tracing::warn!(
+                    "Event loop [{}]: QuestionRequired without PermissionManager; question {} cannot be resolved",
+                    session_id,
+                    req.request_id
+                );
             }
         }
         BridgeOutput::ProcessExited { exit_code } => {

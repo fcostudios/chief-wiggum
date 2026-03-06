@@ -24,6 +24,7 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{oneshot, RwLock};
 
+use super::QuestionRequest;
 use crate::{AppError, AppResult};
 
 /// Default timeout for permission requests (seconds).
@@ -100,6 +101,9 @@ pub struct PermissionManager {
     /// Key: request_id, Value: oneshot sender to resolve the request.
     pending: Arc<RwLock<HashMap<String, PendingPermission>>>,
 
+    /// Pending AskUserQuestion requests waiting for user response.
+    pending_questions: Arc<RwLock<HashMap<String, PendingQuestion>>>,
+
     /// Auto-allow rules for this session.
     allow_rules: Arc<RwLock<Vec<AllowRule>>>,
 
@@ -121,11 +125,21 @@ struct PendingPermission {
     created_at: Instant,
 }
 
+/// A pending AskUserQuestion with its resolution channel.
+struct PendingQuestion {
+    #[allow(dead_code)]
+    request: QuestionRequest,
+    resolver: oneshot::Sender<serde_json::Map<String, serde_json::Value>>,
+    #[allow(dead_code)]
+    created_at: Instant,
+}
+
 impl PermissionManager {
     /// Create a new permission manager with default timeout.
     pub fn new() -> Self {
         Self {
             pending: Arc::new(RwLock::new(HashMap::new())),
+            pending_questions: Arc::new(RwLock::new(HashMap::new())),
             allow_rules: Arc::new(RwLock::new(Vec::new())),
             timeout: Duration::from_secs(DEFAULT_PERMISSION_TIMEOUT_SECS),
             yolo_mode: Arc::new(RwLock::new(false)),
@@ -137,6 +151,7 @@ impl PermissionManager {
     pub fn with_timeout(timeout_secs: u64) -> Self {
         Self {
             pending: Arc::new(RwLock::new(HashMap::new())),
+            pending_questions: Arc::new(RwLock::new(HashMap::new())),
             allow_rules: Arc::new(RwLock::new(Vec::new())),
             timeout: Duration::from_secs(timeout_secs),
             yolo_mode: Arc::new(RwLock::new(false)),
@@ -344,6 +359,43 @@ impl PermissionManager {
             .iter()
             .map(|r| (r.tool.clone(), r.pattern.clone()))
             .collect()
+    }
+
+    /// Store a pending AskUserQuestion request and return a receiver for the answer payload.
+    pub async fn store_pending_question(
+        &self,
+        request_id: String,
+        request: QuestionRequest,
+    ) -> oneshot::Receiver<serde_json::Map<String, serde_json::Value>> {
+        let (tx, rx) = oneshot::channel();
+        self.pending_questions.write().await.insert(
+            request_id,
+            PendingQuestion {
+                request,
+                resolver: tx,
+                created_at: Instant::now(),
+            },
+        );
+        rx
+    }
+
+    /// Resolve a pending AskUserQuestion request with an updated input payload.
+    pub async fn resolve_question(
+        &self,
+        request_id: &str,
+        updated_input: serde_json::Map<String, serde_json::Value>,
+    ) -> Result<(), AppError> {
+        let pending = self.pending_questions.write().await.remove(request_id);
+        match pending {
+            Some(p) => {
+                let _ = p.resolver.send(updated_input);
+                Ok(())
+            }
+            None => Err(AppError::Validation(format!(
+                "No pending question with id: {}",
+                request_id
+            ))),
+        }
     }
 
     /// Remove a pending request without resolving it.
