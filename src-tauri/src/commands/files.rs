@@ -8,12 +8,19 @@ use crate::files::watcher::FileWatcherManager;
 use crate::files::{scanner, FileContent, FileNode, FileSearchResult};
 use crate::AppError;
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
 use tauri::State;
 
 /// Git file status (porcelain v1 format).
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct GitFileStatus {
     pub status: String, // "modified", "untracked", "staged", "deleted", "renamed", "conflict"
+}
+
+fn get_project_root(db: &Database, project_id: &str) -> Result<PathBuf, AppError> {
+    let project = queries::get_project(db, project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    Ok(PathBuf::from(project.path))
 }
 
 /// List files/directories under a project path.
@@ -117,6 +124,69 @@ pub fn write_file_content(
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
     let project_root = std::path::Path::new(&project.path);
     scanner::write_file(project_root, &relative_path, &content)
+}
+
+/// Create a new file in the project tree.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db, content), fields(project_id = %project_id, relative_path = %relative_path))]
+pub fn create_file(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+    content: Option<String>,
+) -> Result<FileNode, AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::create_file(&project_root, &relative_path, &content.unwrap_or_default())
+}
+
+/// Create a new directory in the project tree.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path))]
+pub fn create_directory(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+) -> Result<FileNode, AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::create_directory(&project_root, &relative_path)
+}
+
+/// Delete a file or directory. Defaults to OS trash/recycle bin.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path, use_trash = ?use_trash))]
+pub fn delete_file(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+    use_trash: Option<bool>,
+) -> Result<(), AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::delete_file(&project_root, &relative_path, use_trash.unwrap_or(true))
+}
+
+/// Rename or move a file/directory.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, old_relative_path = %old_relative_path, new_relative_path = %new_relative_path))]
+pub fn rename_file(
+    db: State<'_, Database>,
+    project_id: String,
+    old_relative_path: String,
+    new_relative_path: String,
+) -> Result<FileNode, AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::rename_file(&project_root, &old_relative_path, &new_relative_path)
+}
+
+/// Duplicate a file with "(copy)" suffix.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path))]
+pub fn duplicate_file(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+) -> Result<FileNode, AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::duplicate_file(&project_root, &relative_path)
 }
 
 /// Search for files by name within a project.

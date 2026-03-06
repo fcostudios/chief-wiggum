@@ -149,6 +149,11 @@ fn main() {
             chief_wiggum_lib::commands::files::start_project_file_watcher,
             chief_wiggum_lib::commands::files::stop_project_file_watcher,
             chief_wiggum_lib::commands::files::write_file_content,
+            chief_wiggum_lib::commands::files::create_file,
+            chief_wiggum_lib::commands::files::create_directory,
+            chief_wiggum_lib::commands::files::delete_file,
+            chief_wiggum_lib::commands::files::rename_file,
+            chief_wiggum_lib::commands::files::duplicate_file,
             chief_wiggum_lib::commands::files::read_changelog,
         ])
         .setup(|app| {
