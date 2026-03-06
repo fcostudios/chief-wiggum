@@ -64,6 +64,8 @@ tauri-plugin-store = "2"
 
 # Home directory detection
 dirs = "6"
+# Native OS trash/recycle bin support for safe delete operations (CHI-270)
+trash = "5"
 # Gitignore-aware directory walking (same engine as ripgrep)
 ignore = "0.4"
 # Filesystem watching for project file changes (CHI-115)
