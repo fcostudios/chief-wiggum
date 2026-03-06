@@ -636,7 +636,10 @@ mod tests {
         assert!(updated_input.contains_key("questions"));
         assert!(updated_input.contains_key("answers"));
         let answers_val = updated_input.get("answers").expect("answers");
-        assert_eq!(answers_val.get("Which auth?").and_then(|v| v.as_str()), Some("JWT"));
+        assert_eq!(
+            answers_val.get("Which auth?").and_then(|v| v.as_str()),
+            Some("JWT")
+        );
     }
 
     #[tokio::test]
