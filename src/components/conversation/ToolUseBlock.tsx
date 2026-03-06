@@ -1,6 +1,15 @@
-import { Component, Show, Switch, Match, createSignal } from 'solid-js';
-import { ChevronDown, ChevronRight, Wrench, Terminal, FileEdit, Copy, Check } from 'lucide-solid';
-import type { Message, ToolUseData, ToolCategory } from '../../lib/types';
+import { Component, Show, Switch, Match, For, createMemo, createSignal } from 'solid-js';
+import {
+  ChevronDown,
+  ChevronRight,
+  Wrench,
+  Terminal,
+  FileEdit,
+  MessageCircleQuestion,
+  Copy,
+  Check,
+} from 'lucide-solid';
+import type { Message, ToolUseData, ToolCategory, QuestionItem } from '../../lib/types';
 import { TodoWriteBlock } from './TodoWriteBlock';
 import { addToast } from '@/stores/toastStore';
 
@@ -18,6 +27,8 @@ function classifyTool(toolName: string): ToolCategory {
       return 'file';
     case 'Bash':
       return 'bash';
+    case 'AskUserQuestion':
+      return 'question';
     default:
       return 'neutral';
   }
@@ -30,6 +41,8 @@ function toolColor(category: ToolCategory): string {
       return 'var(--color-tool-file)';
     case 'bash':
       return 'var(--color-tool-bash)';
+    case 'question':
+      return '#a371f7';
     case 'neutral':
       return 'var(--color-tool-neutral)';
   }
@@ -44,6 +57,9 @@ function ToolIcon(props: { category: ToolCategory; color: string }) {
       </Match>
       <Match when={props.category === 'bash'}>
         <Terminal size={14} color={props.color} />
+      </Match>
+      <Match when={props.category === 'question'}>
+        <MessageCircleQuestion size={14} color={props.color} />
       </Match>
     </Switch>
   );
@@ -90,6 +106,16 @@ function toolSummary(toolName: string, toolInput: string): string {
 
 export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
   const data = () => parseToolUseContent(props.message.content);
+  const parsedInput = createMemo(() => {
+    try {
+      return JSON.parse(data().tool_input) as {
+        questions?: QuestionItem[];
+        answers?: Record<string, string>;
+      };
+    } catch {
+      return null;
+    }
+  });
   const category = () => classifyTool(data().tool_name);
   const color = () => toolColor(category());
   const summary = () => toolSummary(data().tool_name, data().tool_input);
@@ -195,18 +221,47 @@ export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
                   class="px-3 pb-2 border-t"
                   style={{ 'border-color': 'var(--color-border-secondary)' }}
                 >
-                  <pre
-                    class="mt-2 rounded overflow-x-auto text-xs leading-5"
-                    style={{
-                      'font-family': 'var(--font-mono)',
-                      background: 'var(--color-bg-inset)',
-                      padding: '8px 12px',
-                      color: 'var(--color-text-secondary)',
-                      border: '1px solid var(--color-border-secondary)',
-                    }}
+                  <Show
+                    when={data().tool_name === 'AskUserQuestion' && parsedInput()?.answers}
+                    fallback={
+                      <pre
+                        class="mt-2 rounded overflow-x-auto text-xs leading-5"
+                        style={{
+                          'font-family': 'var(--font-mono)',
+                          background: 'var(--color-bg-inset)',
+                          padding: '8px 12px',
+                          color: 'var(--color-text-secondary)',
+                          border: '1px solid var(--color-border-secondary)',
+                        }}
+                      >
+                        <code>{data().tool_input}</code>
+                      </pre>
+                    }
                   >
-                    <code>{data().tool_input}</code>
-                  </pre>
+                    <div
+                      class="mt-2 space-y-1 rounded text-xs px-3 py-2"
+                      style={{
+                        background: 'rgba(163, 113, 247, 0.06)',
+                        border: '1px solid rgba(163, 113, 247, 0.2)',
+                      }}
+                    >
+                      <For each={Object.entries(parsedInput()?.answers ?? {})}>
+                        {([question, answer]) => {
+                          const item = (parsedInput()?.questions ?? []).find(
+                            (q) => q.question === question,
+                          );
+                          return (
+                            <div class="text-xs">
+                              <span class="font-medium" style={{ color: '#a371f7' }}>
+                                {item?.header ?? 'Q'}:
+                              </span>
+                              <span class="ml-1.5 text-text-primary">{String(answer)}</span>
+                            </div>
+                          );
+                        }}
+                      </For>
+                    </div>
+                  </Show>
                 </div>
               </Show>
             </div>

@@ -83,7 +83,7 @@ export interface PermissionRecordData {
 }
 
 /** Tool classification category for color-coding. */
-export type ToolCategory = 'file' | 'bash' | 'neutral';
+export type ToolCategory = 'file' | 'bash' | 'question' | 'neutral';
 
 /** A single todo item from a TodoWrite tool call. */
 export interface TodoItem {
