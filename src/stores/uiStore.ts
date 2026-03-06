@@ -4,7 +4,7 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
-import type { PermissionRequest } from '@/lib/types';
+import type { PermissionRequest, QuestionRequest } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('ui/state');
@@ -42,6 +42,7 @@ interface UIState {
   activeView: ActiveView;
   viewBadges: Record<ActiveView, number>;
   permissionRequest: PermissionRequest | null;
+  questionRequest: QuestionRequest | null;
   yoloMode: boolean;
   yoloDialogVisible: boolean;
   developerMode: boolean;
@@ -129,6 +130,7 @@ const [state, setState] = createStore<UIState>({
   activeView: 'conversation',
   viewBadges: { conversation: 0, agents: 0, diff: 0, terminal: 0, actions_center: 0 },
   permissionRequest: null,
+  questionRequest: null,
   yoloMode: persisted.yoloMode,
   yoloDialogVisible: false,
   developerMode: persisted.developerMode,
@@ -261,6 +263,14 @@ export function showPermissionDialog(request: PermissionRequest) {
 
 export function dismissPermissionDialog() {
   setState('permissionRequest', null);
+}
+
+export function showQuestionDialog(request: QuestionRequest) {
+  setState('questionRequest', request);
+}
+
+export function dismissQuestionDialog() {
+  setState('questionRequest', null);
 }
 
 /** Show the YOLO mode warning dialog. */
