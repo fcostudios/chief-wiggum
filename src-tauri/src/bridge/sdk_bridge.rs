@@ -11,7 +11,7 @@ use tokio::sync::{mpsc, oneshot, watch, Mutex, RwLock};
 
 use super::control::{self, ControlRequest, ControlResponse, UserImageInput, UserMessage};
 use super::process::{BridgeConfig, BridgeInterface, ProcessStatus};
-use super::{BridgeOutput, PermissionRequest, StreamParser};
+use super::{BridgeOutput, PermissionRequest, QuestionItem, QuestionRequest, StreamParser};
 use crate::{AppError, AppResult};
 
 /// AgentSdkBridge: persistent CLI session with bidirectional JSONL protocol.
@@ -351,6 +351,30 @@ impl AgentSdkBridge {
                     .unwrap_or("unknown")
                     .to_string();
                 let tool_input = request.get("input").cloned().unwrap_or_default();
+
+                // Intercept AskUserQuestion before the permission flow.
+                if tool_name == "AskUserQuestion" {
+                    let questions = tool_input
+                        .get("questions")
+                        .and_then(|v| serde_json::from_value::<Vec<QuestionItem>>(v.clone()).ok())
+                        .unwrap_or_default();
+
+                    let question_request = QuestionRequest {
+                        request_id: request_id.clone(),
+                        questions,
+                        tool_input: tool_input.as_object().cloned().unwrap_or_default(),
+                    };
+
+                    tracing::info!(
+                        "AgentSdkBridge: can_use_tool → QuestionRequired ({} questions)",
+                        question_request.questions.len()
+                    );
+
+                    let _ = output_tx
+                        .send(BridgeOutput::QuestionRequired(question_request))
+                        .await;
+                    return;
+                }
 
                 let command = tool_input
                     .get("command")
