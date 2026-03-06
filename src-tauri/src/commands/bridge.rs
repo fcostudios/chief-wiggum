@@ -619,6 +619,26 @@ mod tests {
         }
     }
 
+    #[test]
+    fn build_question_response_payload() {
+        let mut answers = HashMap::new();
+        answers.insert("Which auth?".to_string(), "JWT".to_string());
+
+        let original_questions = serde_json::json!([{
+            "question": "Which auth?",
+            "header": "Auth",
+            "options": [{ "label": "JWT", "description": "Stateless" }],
+            "multiSelect": false
+        }]);
+
+        let updated_input =
+            build_question_updated_input(&answers, original_questions).expect("build payload");
+        assert!(updated_input.contains_key("questions"));
+        assert!(updated_input.contains_key("answers"));
+        let answers_val = updated_input.get("answers").expect("answers");
+        assert_eq!(answers_val.get("Which auth?").and_then(|v| v.as_str()), Some("JWT"));
+    }
+
     #[tokio::test]
     async fn toggle_yolo_mode_manager_logic() {
         let manager = PermissionManager::new();

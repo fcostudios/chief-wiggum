@@ -274,4 +274,61 @@ mod tests {
         let raw = "Claude Code v2.2.1";
         assert_eq!(parse_cli_version_token(raw), Some("2.2.1".to_string()));
     }
+
+    mod question_tests {
+        use super::*;
+
+        #[test]
+        fn parse_question_request_single_select() {
+            let input = serde_json::json!([{
+                "question": "Which auth method?",
+                "header": "Auth",
+                "options": [
+                    { "label": "JWT", "description": "Stateless" },
+                    { "label": "Sessions", "description": "Stateful" }
+                ],
+                "multiSelect": false
+            }]);
+
+            let questions: Vec<QuestionItem> =
+                serde_json::from_value(input).expect("parse question items");
+            assert_eq!(questions.len(), 1);
+            assert_eq!(questions[0].question, "Which auth method?");
+            assert_eq!(questions[0].header, "Auth");
+            assert_eq!(questions[0].options.len(), 2);
+            assert!(!questions[0].multi_select);
+        }
+
+        #[test]
+        fn parse_question_request_multi_select() {
+            let input = serde_json::json!([{
+                "question": "Which features?",
+                "header": "Features",
+                "options": [
+                    { "label": "Dark mode", "description": "Theme toggle" },
+                    { "label": "Notifications", "description": "Push alerts" }
+                ],
+                "multiSelect": true
+            }]);
+
+            let questions: Vec<QuestionItem> =
+                serde_json::from_value(input).expect("parse question items");
+            assert_eq!(questions.len(), 1);
+            assert!(questions[0].multi_select);
+        }
+
+        #[test]
+        fn parse_question_request_missing_multi_select_defaults_false() {
+            let input = serde_json::json!([{
+                "question": "Q?",
+                "header": "H",
+                "options": [{ "label": "A", "description": "a" }]
+            }]);
+
+            let questions: Vec<QuestionItem> =
+                serde_json::from_value(input).expect("parse question items");
+            assert_eq!(questions.len(), 1);
+            assert!(!questions[0].multi_select);
+        }
+    }
 }
