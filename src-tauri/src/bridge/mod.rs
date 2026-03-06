@@ -40,8 +40,45 @@ pub enum BridgeOutput {
     /// A permission request that must be resolved before continuing.
     PermissionRequired(PermissionRequest),
 
+    /// A question from AskUserQuestion that must be answered by the user.
+    /// Never auto-approved, even in YOLO mode.
+    QuestionRequired(QuestionRequest),
+
     /// The CLI process has exited.
     ProcessExited { exit_code: Option<i32> },
+}
+
+/// Structured question from AskUserQuestion tool.
+/// Claude asks the user clarifying questions with selectable options.
+/// SPEC-006 §4.24.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QuestionRequest {
+    pub request_id: String,
+    pub questions: Vec<QuestionItem>,
+    pub tool_input: serde_json::Map<String, serde_json::Value>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QuestionItem {
+    pub question: String,
+    pub header: String,
+    pub options: Vec<QuestionOption>,
+    #[serde(rename = "multiSelect", default)]
+    pub multi_select: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QuestionOption {
+    pub label: String,
+    pub description: String,
+}
+
+/// Payload for `question:request` frontend event.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct QuestionRequestPayload {
+    pub session_id: String,
+    pub request_id: String,
+    pub questions: Vec<QuestionItem>,
 }
 
 /// Configuration for locating the Claude Code CLI binary.
