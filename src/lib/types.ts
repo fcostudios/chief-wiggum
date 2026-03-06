@@ -673,3 +673,22 @@ export interface ActionArgTemplate {
   options?: string[];
   default?: string;
 }
+
+/** Question from AskUserQuestion tool (Claude asking the user). SPEC-006 §4.24 */
+export interface QuestionRequest {
+  request_id: string;
+  session_id: string;
+  questions: QuestionItem[];
+}
+
+export interface QuestionItem {
+  question: string;
+  header: string;
+  options: QuestionOption[];
+  multiSelect: boolean;
+}
+
+export interface QuestionOption {
+  label: string;
+  description: string;
+}

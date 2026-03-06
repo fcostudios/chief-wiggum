@@ -109,6 +109,15 @@
     "autoDenyIn": "Auto-deny in",
     "path": "Path:"
   },
+  "questionDialog": {
+    "title": "Claude is asking...",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "otherLabel": "Other:",
+    "otherPlaceholder": "Type your answer...",
+    "timeoutWarning": "Auto-submitting in {{ seconds }}s",
+    "defaultAnswer": "No answer provided"
+  },
   "input": {
     "placeholder": "Message Chief Wiggum... (@ to mention files)",
     "noBridge": "No CLI bridge connected"
