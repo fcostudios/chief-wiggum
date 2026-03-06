@@ -131,8 +131,7 @@ fn validate_filename(name: &OsStr) -> Result<(), AppError> {
     }
 
     let reserved = [
-        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "LPT1", "LPT2", "LPT3",
-        "LPT4",
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "LPT1", "LPT2", "LPT3", "LPT4",
     ];
     let upper = name_str.to_uppercase();
     let stem = upper.split('.').next().unwrap_or(&upper);
@@ -619,7 +618,11 @@ pub fn create_directory(project_root: &Path, relative_path: &str) -> Result<File
 }
 
 /// Delete a file or directory. Uses OS trash when `use_trash` is true.
-pub fn delete_file(project_root: &Path, relative_path: &str, use_trash: bool) -> Result<(), AppError> {
+pub fn delete_file(
+    project_root: &Path,
+    relative_path: &str,
+    use_trash: bool,
+) -> Result<(), AppError> {
     let full_path = project_root.join(relative_path);
     validate_path_within_root(&full_path, project_root)?;
 
@@ -639,7 +642,11 @@ pub fn delete_file(project_root: &Path, relative_path: &str, use_trash: bool) ->
 }
 
 /// Rename or move a file/folder within the project.
-pub fn rename_file(project_root: &Path, old_path: &str, new_path: &str) -> Result<FileNode, AppError> {
+pub fn rename_file(
+    project_root: &Path,
+    old_path: &str,
+    new_path: &str,
+) -> Result<FileNode, AppError> {
     let old_full = project_root.join(old_path);
     let new_full = project_root.join(new_path);
 
@@ -1465,8 +1472,7 @@ mod tests {
     #[test]
     fn create_file_with_nested_dirs() {
         let tmp = tempfile::tempdir().expect("temp dir");
-        let node =
-            create_file(tmp.path(), "src/lib/util.rs", "fn main() {}").expect("create file");
+        let node = create_file(tmp.path(), "src/lib/util.rs", "fn main() {}").expect("create file");
         assert_eq!(node.relative_path, "src/lib/util.rs");
         assert!(tmp.path().join("src/lib/util.rs").exists());
     }
