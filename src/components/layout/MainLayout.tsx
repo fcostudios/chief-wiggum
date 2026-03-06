@@ -34,6 +34,7 @@ import DetailsPanel from './DetailsPanel';
 import ConversationView from '@/components/conversation/ConversationView';
 import MessageInput from '@/components/conversation/MessageInput';
 import PermissionDialog from '@/components/permissions/PermissionDialog';
+import QuestionDialog from '@/components/questions/QuestionDialog';
 import AutoApproveWarningDialog from '@/components/permissions/AutoApproveWarningDialog';
 import { sessionState, createNewSession } from '@/stores/sessionStore';
 import {
@@ -360,6 +361,11 @@ const MainLayout: Component = () => {
             }}
           />
         )}
+      </Show>
+
+      {/* AskUserQuestion dialog (CHI-283) */}
+      <Show when={uiState.questionRequest}>
+        {(request) => <QuestionDialog request={request()} />}
       </Show>
 
       {/* Auto-approve warning dialog */}
