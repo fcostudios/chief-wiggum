@@ -2,6 +2,7 @@
 //! Provides directory listing, file reading, and fuzzy name search.
 
 use std::collections::HashSet;
+use std::ffi::OsStr;
 use std::io::{BufRead, Read};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -57,6 +58,103 @@ fn ensure_within_project_root(
         )));
     }
     Ok(resolved)
+}
+
+/// Normalize path components without requiring the full path to exist.
+fn normalize_path(path: &Path) -> PathBuf {
+    use std::path::Component;
+
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Prefix(prefix) => out.push(prefix.as_os_str()),
+            Component::RootDir => out.push(component.as_os_str()),
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            Component::Normal(seg) => out.push(seg),
+        }
+    }
+    out
+}
+
+/// Validate that a path resolves within the project root (path traversal prevention).
+fn validate_path_within_root(path: &Path, root: &Path) -> Result<(), AppError> {
+    let root_resolved = root.canonicalize()?;
+    let absolute_path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    };
+
+    let resolved = if absolute_path.exists() {
+        absolute_path.canonicalize()?
+    } else {
+        // Resolve via nearest existing ancestor to catch symlink escapes.
+        let mut ancestor = absolute_path.clone();
+        let mut suffix: Vec<std::ffi::OsString> = Vec::new();
+        while !ancestor.exists() {
+            let name = ancestor
+                .file_name()
+                .ok_or_else(|| AppError::InvalidPath)?
+                .to_os_string();
+            suffix.push(name);
+            if !ancestor.pop() {
+                return Err(AppError::InvalidPath);
+            }
+        }
+        let mut rebuilt = ancestor.canonicalize()?;
+        for segment in suffix.iter().rev() {
+            rebuilt.push(segment);
+        }
+        normalize_path(&rebuilt)
+    };
+
+    if !resolved.starts_with(&root_resolved) {
+        return Err(AppError::PathTraversal(path.display().to_string()));
+    }
+    Ok(())
+}
+
+/// Validate that a filename doesn't contain reserved names or invalid characters.
+fn validate_filename(name: &OsStr) -> Result<(), AppError> {
+    let name_str = name.to_string_lossy();
+    if name_str.trim().is_empty() {
+        return Err(AppError::InvalidFileName("empty filename".to_string()));
+    }
+    if name_str == "." || name_str == ".." {
+        return Err(AppError::InvalidFileName(format!(
+            "invalid filename segment: {}",
+            name_str
+        )));
+    }
+
+    let reserved = [
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "LPT1", "LPT2", "LPT3",
+        "LPT4",
+    ];
+    let upper = name_str.to_uppercase();
+    let stem = upper.split('.').next().unwrap_or(&upper);
+    if reserved.contains(&stem) {
+        return Err(AppError::InvalidFileName(format!(
+            "reserved name: {}",
+            name_str
+        )));
+    }
+
+    let invalid_chars = ['<', '>', ':', '"', '|', '?', '*', '\0'];
+    if name_str
+        .chars()
+        .any(|ch| invalid_chars.contains(&ch) || ch.is_control())
+    {
+        return Err(AppError::InvalidFileName(format!(
+            "invalid characters in: {}",
+            name_str
+        )));
+    }
+
+    Ok(())
 }
 
 /// Count lines in a UTF-8 text file without loading the entire file into memory.
@@ -448,6 +546,201 @@ pub fn write_file(project_root: &Path, relative_path: &str, content: &str) -> Re
     std::fs::write(&full_path, content).map_err(AppError::from)?;
     tracing::debug!(relative_path = %relative_path, "wrote project file");
     Ok(())
+}
+
+/// Create a new file at the given relative path within the project root.
+/// Creates parent directories as needed.
+pub fn create_file(
+    project_root: &Path,
+    relative_path: &str,
+    content: &str,
+) -> Result<FileNode, AppError> {
+    let full_path = project_root.join(relative_path);
+    validate_path_within_root(&full_path, project_root)?;
+
+    let name = full_path.file_name().ok_or(AppError::InvalidPath)?;
+    validate_filename(name)?;
+
+    if full_path.exists() {
+        return Err(AppError::FileAlreadyExists(relative_path.to_string()));
+    }
+
+    if let Some(parent) = full_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&full_path, content)?;
+
+    Ok(FileNode {
+        name: full_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        relative_path: relative_path.replace('\\', "/"),
+        node_type: FileNodeType::File,
+        size_bytes: Some(content.len() as u64),
+        extension: full_path
+            .extension()
+            .map(|value| value.to_string_lossy().to_string()),
+        children: None,
+        is_binary: false,
+        is_git_ignored: false,
+    })
+}
+
+/// Create a new directory at the given relative path.
+pub fn create_directory(project_root: &Path, relative_path: &str) -> Result<FileNode, AppError> {
+    let full_path = project_root.join(relative_path);
+    validate_path_within_root(&full_path, project_root)?;
+
+    let name = full_path.file_name().ok_or(AppError::InvalidPath)?;
+    validate_filename(name)?;
+
+    if full_path.exists() {
+        return Err(AppError::FileAlreadyExists(relative_path.to_string()));
+    }
+
+    std::fs::create_dir_all(&full_path)?;
+
+    Ok(FileNode {
+        name: full_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        relative_path: relative_path.replace('\\', "/"),
+        node_type: FileNodeType::Directory,
+        size_bytes: None,
+        extension: None,
+        children: Some(Vec::new()),
+        is_binary: false,
+        is_git_ignored: false,
+    })
+}
+
+/// Delete a file or directory. Uses OS trash when `use_trash` is true.
+pub fn delete_file(project_root: &Path, relative_path: &str, use_trash: bool) -> Result<(), AppError> {
+    let full_path = project_root.join(relative_path);
+    validate_path_within_root(&full_path, project_root)?;
+
+    if !full_path.exists() {
+        return Err(AppError::FileNotFound(relative_path.to_string()));
+    }
+
+    if use_trash {
+        trash::delete(&full_path).map_err(|err| AppError::TrashError(err.to_string()))?;
+    } else if full_path.is_dir() {
+        std::fs::remove_dir_all(&full_path)?;
+    } else {
+        std::fs::remove_file(&full_path)?;
+    }
+
+    Ok(())
+}
+
+/// Rename or move a file/folder within the project.
+pub fn rename_file(project_root: &Path, old_path: &str, new_path: &str) -> Result<FileNode, AppError> {
+    let old_full = project_root.join(old_path);
+    let new_full = project_root.join(new_path);
+
+    validate_path_within_root(&old_full, project_root)?;
+    validate_path_within_root(&new_full, project_root)?;
+
+    if !old_full.exists() {
+        return Err(AppError::FileNotFound(old_path.to_string()));
+    }
+    if new_full.exists() {
+        return Err(AppError::FileAlreadyExists(new_path.to_string()));
+    }
+
+    let new_name = new_full.file_name().ok_or(AppError::InvalidPath)?;
+    validate_filename(new_name)?;
+
+    if let Some(parent) = new_full.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::rename(&old_full, &new_full)?;
+
+    let is_dir = new_full.is_dir();
+    Ok(FileNode {
+        name: new_full
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        relative_path: new_path.replace('\\', "/"),
+        node_type: if is_dir {
+            FileNodeType::Directory
+        } else {
+            FileNodeType::File
+        },
+        size_bytes: if is_dir {
+            None
+        } else {
+            std::fs::metadata(&new_full).ok().map(|meta| meta.len())
+        },
+        extension: new_full
+            .extension()
+            .map(|value| value.to_string_lossy().to_string()),
+        children: if is_dir { Some(Vec::new()) } else { None },
+        is_binary: false,
+        is_git_ignored: false,
+    })
+}
+
+/// Duplicate a file in the same directory with "(copy)" suffix.
+pub fn duplicate_file(project_root: &Path, relative_path: &str) -> Result<FileNode, AppError> {
+    let full_path = project_root.join(relative_path);
+    validate_path_within_root(&full_path, project_root)?;
+
+    if !full_path.exists() {
+        return Err(AppError::FileNotFound(relative_path.to_string()));
+    }
+    if full_path.is_dir() {
+        return Err(AppError::InvalidOperation(
+            "Can only duplicate files".to_string(),
+        ));
+    }
+
+    let stem = full_path
+        .file_stem()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+    let ext = full_path
+        .extension()
+        .map(|value| format!(".{}", value.to_string_lossy()))
+        .unwrap_or_default();
+    let parent = full_path.parent().ok_or(AppError::InvalidPath)?;
+
+    let mut copy_path = parent.join(format!("{stem} (copy){ext}"));
+    let mut counter = 2usize;
+    while copy_path.exists() {
+        copy_path = parent.join(format!("{stem} (copy {counter}){ext}"));
+        counter += 1;
+    }
+    std::fs::copy(&full_path, &copy_path)?;
+    let relative_copy = copy_path
+        .strip_prefix(project_root)
+        .map(|path| path.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| copy_path.to_string_lossy().replace('\\', "/"));
+
+    Ok(FileNode {
+        name: copy_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string(),
+        relative_path: relative_copy,
+        node_type: FileNodeType::File,
+        size_bytes: std::fs::metadata(&copy_path).ok().map(|meta| meta.len()),
+        extension: copy_path
+            .extension()
+            .map(|value| value.to_string_lossy().to_string()),
+        children: None,
+        is_binary: false,
+        is_git_ignored: false,
+    })
 }
 
 /// Search for files by name. Returns matches sorted by relevance score.
@@ -1114,6 +1407,161 @@ mod tests {
     fn is_binary_detects_null_bytes() {
         assert!(is_binary(&[0x89, 0x50, 0x4E, 0x47, 0x00]));
         assert!(!is_binary(b"Hello world"));
+    }
+
+    #[test]
+    fn validate_path_within_root_allows_valid() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let root = tmp.path();
+        std::fs::create_dir_all(root.join("src")).expect("create src");
+        let child = root.join("src/main.rs");
+        assert!(validate_path_within_root(&child, root).is_ok());
+    }
+
+    #[test]
+    fn validate_path_within_root_rejects_traversal() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let root = tmp.path().join("root");
+        std::fs::create_dir_all(&root).expect("create root");
+        let escaped = root.join("../../etc/passwd");
+        assert!(validate_path_within_root(&escaped, &root).is_err());
+    }
+
+    #[test]
+    fn validate_filename_allows_valid() {
+        assert!(validate_filename(OsStr::new("main.rs")).is_ok());
+        assert!(validate_filename(OsStr::new("my-file.test.ts")).is_ok());
+    }
+
+    #[test]
+    fn validate_filename_rejects_reserved() {
+        assert!(validate_filename(OsStr::new("CON")).is_err());
+        assert!(validate_filename(OsStr::new("NUL.txt")).is_err());
+    }
+
+    #[test]
+    fn validate_filename_rejects_invalid_chars() {
+        assert!(validate_filename(OsStr::new("file<>.rs")).is_err());
+        assert!(validate_filename(OsStr::new("file?.rs")).is_err());
+    }
+
+    #[test]
+    fn validate_filename_rejects_empty() {
+        assert!(validate_filename(OsStr::new("")).is_err());
+        assert!(validate_filename(OsStr::new("   ")).is_err());
+    }
+
+    #[test]
+    fn create_file_basic() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let node = create_file(tmp.path(), "hello.txt", "content").expect("create file");
+        assert_eq!(node.name, "hello.txt");
+        assert_eq!(
+            std::fs::read_to_string(tmp.path().join("hello.txt")).expect("read"),
+            "content"
+        );
+    }
+
+    #[test]
+    fn create_file_with_nested_dirs() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let node =
+            create_file(tmp.path(), "src/lib/util.rs", "fn main() {}").expect("create file");
+        assert_eq!(node.relative_path, "src/lib/util.rs");
+        assert!(tmp.path().join("src/lib/util.rs").exists());
+    }
+
+    #[test]
+    fn create_file_rejects_existing() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::write(tmp.path().join("exists.txt"), "data").expect("seed");
+        let result = create_file(tmp.path(), "exists.txt", "new");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_file_rejects_traversal() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let result = create_file(tmp.path(), "../escape.txt", "bad");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn create_directory_basic() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let node = create_directory(tmp.path(), "new-dir").expect("create dir");
+        assert_eq!(node.name, "new-dir");
+        assert!(tmp.path().join("new-dir").is_dir());
+    }
+
+    #[test]
+    fn create_directory_nested() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let _node = create_directory(tmp.path(), "a/b/c").expect("create nested");
+        assert!(tmp.path().join("a/b/c").is_dir());
+    }
+
+    #[test]
+    fn delete_file_permanent() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::write(tmp.path().join("del.txt"), "bye").expect("seed");
+        delete_file(tmp.path(), "del.txt", false).expect("delete");
+        assert!(!tmp.path().join("del.txt").exists());
+    }
+
+    #[test]
+    fn delete_file_not_found() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        let result = delete_file(tmp.path(), "nope.txt", false);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rename_file_basic() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::write(tmp.path().join("old.txt"), "data").expect("seed");
+        let node = rename_file(tmp.path(), "old.txt", "new.txt").expect("rename");
+        assert_eq!(node.name, "new.txt");
+        assert!(!tmp.path().join("old.txt").exists());
+        assert!(tmp.path().join("new.txt").exists());
+    }
+
+    #[test]
+    fn rename_file_rejects_overwrite() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::write(tmp.path().join("a.txt"), "a").expect("seed a");
+        std::fs::write(tmp.path().join("b.txt"), "b").expect("seed b");
+        let result = rename_file(tmp.path(), "a.txt", "b.txt");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn duplicate_file_basic() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::write(tmp.path().join("orig.txt"), "data").expect("seed");
+        let node = duplicate_file(tmp.path(), "orig.txt").expect("duplicate");
+        assert_eq!(node.name, "orig (copy).txt");
+        assert_eq!(
+            std::fs::read_to_string(tmp.path().join("orig (copy).txt")).expect("read copy"),
+            "data"
+        );
+    }
+
+    #[test]
+    fn duplicate_file_handles_collision() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::write(tmp.path().join("file.rs"), "code").expect("seed");
+        std::fs::write(tmp.path().join("file (copy).rs"), "old copy").expect("seed copy");
+        let node = duplicate_file(tmp.path(), "file.rs").expect("duplicate");
+        assert_eq!(node.name, "file (copy 2).rs");
+    }
+
+    #[test]
+    fn duplicate_rejects_directory() {
+        let tmp = tempfile::tempdir().expect("temp dir");
+        std::fs::create_dir(tmp.path().join("dir")).expect("seed dir");
+        let result = duplicate_file(tmp.path(), "dir");
+        assert!(result.is_err());
     }
 }
 
