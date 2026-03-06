@@ -36,6 +36,27 @@ pub enum AppError {
     #[error("Validation error: {0}")]
     Validation(String),
 
+    #[error("File already exists: {0}")]
+    FileAlreadyExists(String),
+
+    #[error("Path traversal attempt: {0}")]
+    PathTraversal(String),
+
+    #[error("Invalid file path")]
+    InvalidPath,
+
+    #[error("Invalid filename: {0}")]
+    InvalidFileName(String),
+
+    #[error("Trash operation failed: {0}")]
+    TrashError(String),
+
+    #[error("Invalid operation: {0}")]
+    InvalidOperation(String),
+
+    #[error("File not found: {0}")]
+    FileNotFound(String),
+
     #[error("Budget exceeded: {scope} limit of {limit_cents} cents reached")]
     BudgetExceeded { scope: String, limit_cents: i64 },
 
