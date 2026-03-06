@@ -129,6 +129,7 @@ fn main() {
             chief_wiggum_lib::commands::bridge::stop_session_cli,
             chief_wiggum_lib::commands::bridge::get_cli_status,
             chief_wiggum_lib::commands::bridge::respond_permission,
+            chief_wiggum_lib::commands::bridge::respond_question,
             chief_wiggum_lib::commands::bridge::toggle_yolo_mode,
             chief_wiggum_lib::commands::bridge::toggle_developer_mode,
             chief_wiggum_lib::commands::bridge::list_active_bridges,

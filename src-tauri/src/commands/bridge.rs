@@ -10,6 +10,7 @@ use crate::bridge::process::{BridgeConfig, ProcessStatus};
 use crate::bridge::CliLocation;
 use crate::bridge::{control, ControlRequest};
 use crate::AppError;
+use std::collections::HashMap;
 use tauri::State;
 
 const MAX_PROMPT_IMAGE_BYTES: u64 = 5 * 1024 * 1024;
@@ -62,6 +63,21 @@ fn validate_message_images(images: &[control::UserImageInput]) -> Result<(), App
     }
 
     Ok(())
+}
+
+fn build_question_updated_input(
+    answers: &HashMap<String, String>,
+    original_questions: serde_json::Value,
+) -> Result<serde_json::Map<String, serde_json::Value>, AppError> {
+    let mut updated_input = serde_json::Map::new();
+    updated_input.insert("questions".to_string(), original_questions);
+    updated_input.insert(
+        "answers".to_string(),
+        serde_json::to_value(answers).map_err(|e| {
+            AppError::Validation(format!("Failed to serialize question answers: {}", e))
+        })?,
+    );
+    Ok(updated_input)
 }
 
 /// Start a persistent CLI session using the Agent SDK control protocol.
@@ -432,6 +448,37 @@ pub async fn respond_permission(
     };
 
     permission_manager.resolve_permission(response).await
+}
+
+/// Resolve a pending AskUserQuestion request with the user's selected answers.
+#[tauri::command(rename_all = "snake_case")]
+pub async fn respond_question(
+    session_id: String,
+    request_id: String,
+    answers: HashMap<String, String>,
+    original_questions: serde_json::Value,
+    bridge_map: State<'_, SessionBridgeMap>,
+    permission_manager: State<'_, PermissionManager>,
+) -> Result<(), AppError> {
+    if bridge_map.get(&session_id).await.is_none() {
+        return Err(AppError::Bridge(format!(
+            "No active bridge for session: {}",
+            session_id
+        )));
+    }
+
+    let updated_input = build_question_updated_input(&answers, original_questions)?;
+    permission_manager
+        .resolve_question(&request_id, updated_input)
+        .await?;
+
+    tracing::info!(
+        "Responded to question {} for session {} with {} answers",
+        request_id,
+        session_id,
+        answers.len()
+    );
+    Ok(())
 }
 
 /// Toggle YOLO mode for the permission system.
