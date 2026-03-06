@@ -15,6 +15,8 @@ import type {
   CliLocation,
   PromptImageInput,
   ToolOutputEvent,
+  QuestionItem,
+  QuestionRequest,
 } from '@/lib/types';
 import {
   updateSessionTitle,
@@ -24,7 +26,7 @@ import {
   touchSessionActivity,
 } from '@/stores/sessionStore';
 import { getActiveProject } from '@/stores/projectStore';
-import { showPermissionDialog } from '@/stores/uiStore';
+import { showPermissionDialog, showQuestionDialog } from '@/stores/uiStore';
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
 import { t } from '@/stores/i18nStore';
@@ -461,6 +463,24 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         addToast('Background session requires permission', 'warning');
       }
       showPermissionDialog(req);
+    }),
+  );
+
+  listeners.push(
+    await listen<{
+      session_id: string;
+      request_id: string;
+      questions: QuestionItem[];
+    }>('question:request', (event) => {
+      if (event.payload.session_id !== sessionId) return;
+      const activeId = getActiveSession()?.id;
+      if (sessionId !== activeId) return;
+      const request: QuestionRequest = {
+        request_id: event.payload.request_id,
+        session_id: event.payload.session_id,
+        questions: event.payload.questions,
+      };
+      showQuestionDialog(request);
     }),
   );
 
