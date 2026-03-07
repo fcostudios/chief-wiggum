@@ -1,6 +1,6 @@
 {
-  "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-07T00:10:05Z",
+  "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
+  "last_updated": "2026-03-07T22:11:02Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -451,7 +451,7 @@
       "notes": "Implemented CodeMirror inline editing in FilePreview with click-to-edit, blur auto-save pipeline via write_file_content IPC, dirty/save status indicators, conflict handling, read-only lock behavior, and store-level edit state with tests."
     },
     "CHI-216": {
-      "title": "G1: Gitignore Toggle — Optional File Visibility in Explorer",
+      "title": "G1: Gitignore Toggle \u2014 Optional File Visibility in Explorer",
       "epic": "CHI-224",
       "status": "done",
       "priority": "High",
@@ -494,7 +494,7 @@
       "notes": "Closure normalization: merged to main + origin/main and Linear set Done. Commits: 58940fc, 8155539, 606c19f, 5958e5c, 32fd99a.\n2026-03-01T13:09:11Z: completed_by=claude-code; lock_acquired_at=2026-03-01T13:09:11Z; protocol_audit_fix=true"
     },
     "CHI-227": {
-      "title": "CHI-227: Agents View — Parallel Session Manager",
+      "title": "CHI-227: Agents View \u2014 Parallel Session Manager",
       "epic": "CHI-224",
       "status": "done",
       "priority": "Medium",
@@ -625,7 +625,7 @@
       "notes": "Implemented secure inline image renderer (HTTPS/data URI allowlist, lazy loading, preview modal) integrated through markdown renderer placeholders. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
     },
     "CHI-219": {
-      "title": "H1a — Backend: list_all_running_actions IPC + ActionHistory DB table",
+      "title": "H1a \u2014 Backend: list_all_running_actions IPC + ActionHistory DB table",
       "epic": "CHI-218",
       "status": "done",
       "priority": "High",
@@ -660,7 +660,7 @@
       "notes": "Implemented ActionRuntime metadata snapshots, DB migration v4 action_history table, typed history queries, status-changed emissions, and new backend IPC endpoints for cross-project running actions/history. completed_by=claude-code; lock_acquired_at=2026-03-01T18:16:57Z"
     },
     "CHI-220": {
-      "title": "H1b — WarehouseCard + ActionsCenter Overview UI",
+      "title": "H1b \u2014 WarehouseCard + ActionsCenter Overview UI",
       "epic": "CHI-218",
       "status": "done",
       "priority": "High",
@@ -803,7 +803,7 @@
       "completed_at": "2026-03-02T00:18:43Z",
       "worktree": null,
       "files": [],
-      "notes": "Epic wrapper. CHI-188 (Live Tool Output) and CHI-189 (Response Content Priority Layout) are done. | NOTE: Linear epic still shows Backlog — needs manual close on Linear."
+      "notes": "Epic wrapper. CHI-188 (Live Tool Output) and CHI-189 (Response Content Priority Layout) are done. | NOTE: Linear epic still shows Backlog \u2014 needs manual close on Linear."
     },
     "CHI-179": {
       "title": "Epic C: File Attachments & Input",
@@ -848,7 +848,7 @@
       "notes": "Epic E: Conversation Utility. CHI-202 (Voice Input/Output) is the only remaining open sub-task. CHI-201/203 done."
     },
     "CHI-199": {
-      "title": "Epic F: QA Test Coverage — Conversation Experience",
+      "title": "Epic F: QA Test Coverage \u2014 Conversation Experience",
       "epic": null,
       "status": "done",
       "priority": "High",
@@ -913,7 +913,7 @@
       "notes": "Implemented contextual hint discovery engine with persisted seen-hints/settings schema updates, hint store cooldown queue, dismissible HintTooltip, global renderer, and 5 trigger wires (at-mention, slash commands, artifacts, session resume, idle keyboard shortcut). Checks: cargo test/clippy/fmt, tsc, eslint, prettier --check src/, vitest (MessageInput/MarkdownContent/ConversationView). Commits: 64c4e5a, f7dc45d, d4bec16, aef23e7, 0ccbf14. completed_by=claude-code; lock_acquired_at=2026-03-02T03:16:29Z"
     },
     "CHI-221": {
-      "title": "H1c — LaneCard + Warehouse Detail UI + conveyor animations",
+      "title": "H1c \u2014 LaneCard + Warehouse Detail UI + conveyor animations",
       "epic": "CHI-218",
       "status": "done",
       "priority": "High",
@@ -938,7 +938,7 @@
       "notes": "Implemented LaneCard, LaneLogScreen, warehouse-detail routing, action output listener, technical-mode UI toggle, lane/log i18n, and lane tests. Checks: cargo test/clippy/fmt, tsc, eslint, prettier --check src/. Commits: 3f62c2a, 5a6c139, 43ff1b3, d476b21, f543f7d, 5990e92. completed_by=claude-code; lock_acquired_at=2026-03-02T03:16:29Z"
     },
     "CHI-222": {
-      "title": "H1d — History tab + LaneHistory component",
+      "title": "H1d \u2014 History tab + LaneHistory component",
       "epic": "CHI-218",
       "status": "done",
       "priority": "Medium",
@@ -961,7 +961,7 @@
       "notes": "Implemented paginated action history (limit+offset), lane history UI, load-more behavior, and project history auto-refresh on completed/failed status events. Checks: cargo test/fmt/clippy, npm format:check/lint/build, vitest. completed_by=claude-code; lock_acquired_at=2026-03-02T04:48:42Z | plan=2026-03-01-chi222-chi192-chi193-chi201-chi195-lanehistory-attachments-export-copy.md"
     },
     "CHI-223": {
-      "title": "H1e — ActionQuickLaunch modal + Cmd+Shift+A shortcut + sidebar integration",
+      "title": "H1e \u2014 ActionQuickLaunch modal + Cmd+Shift+A shortcut + sidebar integration",
       "epic": "CHI-218",
       "status": "done",
       "priority": "High",
@@ -1079,7 +1079,7 @@
       "notes": "Implemented streaming split layout: historical messages remain in list while current-turn tool events render in collapsible Activity section with response text kept visually dominant. completed_by=claude-code; lock_acquired_at=2026-03-02T00:18:43Z"
     },
     "CHI-121": {
-      "title": "Context Intelligence — File Explorer v2",
+      "title": "Context Intelligence \u2014 File Explorer v2",
       "epic": null,
       "status": "done",
       "priority": "High",
@@ -1090,7 +1090,7 @@
       "completed_at": "2026-03-02T05:50:20Z",
       "worktree": null,
       "files": [],
-      "notes": "EPIC: Context Intelligence — File Explorer v2. All sub-tasks complete. completed_by=claude-code; confirmed on Linear 2026-03-02."
+      "notes": "EPIC: Context Intelligence \u2014 File Explorer v2. All sub-tasks complete. completed_by=claude-code; confirmed on Linear 2026-03-02."
     },
     "CHI-131": {
       "title": "Token-Optimized Snippets",
@@ -1217,7 +1217,7 @@
       "notes": "@fn:/@class:/@var: symbol search. Extends FileMentionMenu. Independent. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
     },
     "CHI-205": {
-      "title": "F2: Unit Tests — Code Block & Mermaid Renderers",
+      "title": "F2: Unit Tests \u2014 Code Block & Mermaid Renderers",
       "epic": "CHI-199",
       "status": "done",
       "priority": "High",
@@ -1234,7 +1234,7 @@
       "notes": "CodeBlockRenderer + MermaidRenderer unit tests. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
     },
     "CHI-206": {
-      "title": "F3: Unit Tests — Math & Image Renderers",
+      "title": "F3: Unit Tests \u2014 Math & Image Renderers",
       "epic": "CHI-199",
       "status": "done",
       "priority": "Medium",
@@ -1252,7 +1252,7 @@
       "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-209": {
-      "title": "F6: Unit Tests — Polish Features",
+      "title": "F6: Unit Tests \u2014 Polish Features",
       "epic": "CHI-199",
       "status": "done",
       "priority": "Medium",
@@ -1272,7 +1272,7 @@
       "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-210": {
-      "title": "F7: Unit Tests — Utility Features",
+      "title": "F7: Unit Tests \u2014 Utility Features",
       "epic": "CHI-199",
       "status": "done",
       "priority": "Medium",
@@ -1293,7 +1293,7 @@
       "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-211": {
-      "title": "F8: E2E Tests — Rich Content Rendering",
+      "title": "F8: E2E Tests \u2014 Rich Content Rendering",
       "epic": "CHI-199",
       "status": "done",
       "priority": "High",
@@ -1309,7 +1309,7 @@
       "notes": "Playwright E2E for CHI-186/181/182/183 rendering features. completed_by=claude-code; lock_acquired_at=2026-03-02T16:28:25Z; merged_commit=b28d129"
     },
     "CHI-212": {
-      "title": "F9: E2E Tests — Attachments & Input",
+      "title": "F9: E2E Tests \u2014 Attachments & Input",
       "epic": "CHI-199",
       "status": "done",
       "priority": "High",
@@ -1325,7 +1325,7 @@
       "notes": "Implemented and verified. completed_by=claude-code; lock_acquired_at=2026-03-02T18:08:06Z; commit=2b993f7; linear=Done"
     },
     "CHI-213": {
-      "title": "F10: E2E Tests — Conversation Utility",
+      "title": "F10: E2E Tests \u2014 Conversation Utility",
       "epic": "CHI-199",
       "status": "done",
       "priority": "Medium",
@@ -1371,7 +1371,7 @@
       "notes": "Confirmed done on Linear 2026-02-26; added to handover during reconciliation 2026-03-02"
     },
     "CHI-208": {
-      "title": "F5: Unit Tests — File Attachments",
+      "title": "F5: Unit Tests \u2014 File Attachments",
       "status": "done",
       "priority": "high",
       "epic": "CHI-199",
@@ -1381,7 +1381,7 @@
       "notes": "Confirmed done on Linear 2026-02-27; added to handover during reconciliation 2026-03-02"
     },
     "CHI-231": {
-      "title": "CX/UX Excellence — Phase 3 Overhaul",
+      "title": "CX/UX Excellence \u2014 Phase 3 Overhaul",
       "type": "epic",
       "status": "backlog",
       "priority": "urgent",
@@ -1423,27 +1423,27 @@
     },
     "CHI-262": {
       "title": "Enqueue & Steer",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "78d82e16-0231-4f27-b4bd-3802843a32cd",
-      "notes": "New epic: lets users queue follow-up messages during agent streaming or steer (interrupt + redirect) the agent. 6 sub-tasks (CHI-263 through CHI-268). Spec: SPEC-006 §4.21."
+      "notes": "New epic: lets users queue follow-up messages during agent streaming or steer (interrupt + redirect) the agent. 6 sub-tasks (CHI-263 through CHI-268). Spec: SPEC-006 \u00a74.21."
     },
     "CHI-269": {
-      "title": "File & Folder Creation — Full File Management",
+      "title": "File & Folder Creation \u2014 Full File Management",
       "status": "backlog",
       "linear_id": "cab2c794-ca7a-472a-8d2d-58fe389b7a7b",
-      "notes": "New epic: user-initiated file creation/delete/rename/duplicate. 6 sub-tasks (CHI-270 through CHI-275). Spec: SPEC-006 §4.22."
+      "notes": "New epic: user-initiated file creation/delete/rename/duplicate. 6 sub-tasks (CHI-270 through CHI-275). Spec: SPEC-006 \u00a74.22."
     },
     "CHI-276": {
-      "title": "Binary File Preview — Images, PDFs, Audio & More",
-      "status": "backlog",
+      "title": "Binary File Preview \u2014 Images, PDFs, Audio & More",
+      "status": "done",
       "linear_id": "05c904f6-0770-4c60-9348-44554341d2f5",
-      "notes": "New epic: native preview for images, SVGs, PDFs, audio via Tauri asset protocol. 4 sub-tasks (CHI-278 through CHI-281). Spec: SPEC-006 §4.23."
+      "notes": "New epic: native preview for images, SVGs, PDFs, audio via Tauri asset protocol. 4 sub-tasks (CHI-278 through CHI-281). Spec: SPEC-006 \u00a74.23."
     },
     "CHI-277": {
-      "title": "AskUserQuestion Dialog — Interactive Agent Questions",
-      "status": "backlog",
+      "title": "AskUserQuestion Dialog \u2014 Interactive Agent Questions",
+      "status": "done",
       "linear_id": "db417b17-036e-45a8-bbf0-e9f85ecda8a5",
-      "notes": "New epic: intercept AskUserQuestion tool calls and show interactive QuestionDialog. 4 sub-tasks (CHI-282 through CHI-285). Spec: SPEC-006 §4.24."
+      "notes": "New epic: intercept AskUserQuestion tool calls and show interactive QuestionDialog. 4 sub-tasks (CHI-282 through CHI-285). Spec: SPEC-006 \u00a74.24."
     },
     "CHI-232": {
       "title": "T1.1: WCAG Contrast Fixes",
@@ -1823,7 +1823,7 @@
     "CHI-247": {
       "title": "T4.4: Pause Response",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "low",
       "effort": "M",
       "parent": "CHI-231",
@@ -1831,7 +1831,10 @@
       "depends_on": [
         "CHI-237"
       ],
-      "updated_at": "2026-03-03T00:40:29Z"
+      "updated_at": "2026-03-07T15:30:17.826Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T15:30:17.826Z",
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-248": {
       "title": "T5.1: Session Efficiency Dashboard",
@@ -2085,12 +2088,12 @@
     },
     "CHI-261": {
       "id": "CHI-261",
-      "title": "T2.9: Toast & Notification System Rework — Semantic Color Enforcement",
+      "title": "T2.9: Toast & Notification System Rework \u2014 Semantic Color Enforcement",
       "status": "done",
       "priority": "high",
       "size": "M",
       "tier": "T2",
-      "spec_ref": "SPEC-006 §5.3, §4.9",
+      "spec_ref": "SPEC-006 \u00a75.3, \u00a74.9",
       "deps": [
         "CHI-241"
       ],
@@ -2116,73 +2119,80 @@
     "CHI-263": {
       "id": "CHI-263",
       "title": "EQ-1: Fix Cancel Button + Wire Interrupt",
-      "status": "backlog",
+      "status": "done",
       "priority": "urgent",
       "size": "S",
       "parent": "CHI-262",
-      "spec_ref": "SPEC-006 §4.21",
+      "spec_ref": "SPEC-006 \u00a74.21",
       "deps": [],
       "files": [
         "src/components/layout/MainLayout.tsx",
         "src/components/conversation/MessageInput.tsx",
         "src/stores/conversationStore.ts"
-      ]
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T15:30:17.826Z",
+      "updated_at": "2026-03-07T15:30:17.826Z",
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-264": {
       "id": "CHI-264",
       "title": "EQ-2: Enable Input During Streaming + Queue/Steer Buttons",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
-      "spec_ref": "SPEC-006 §4.21.2",
+      "spec_ref": "SPEC-006 \u00a74.21.2",
       "deps": [
         "CHI-263"
       ],
       "files": [
         "src/components/conversation/MessageInput.tsx"
-      ]
+      ],
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-265": {
       "id": "CHI-265",
       "title": "EQ-3: Message Queue Store + Auto-Send Logic",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
-      "spec_ref": "SPEC-006 §4.21.3, §4.21.5",
+      "spec_ref": "SPEC-006 \u00a74.21.3, \u00a74.21.5",
       "deps": [
         "CHI-264"
       ],
       "files": [
         "src/stores/conversationStore.ts",
         "src/locales/en.json"
-      ]
+      ],
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-266": {
       "id": "CHI-266",
       "title": "EQ-4: Queue Panel UI Component",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
-      "spec_ref": "SPEC-006 §4.21.3",
+      "spec_ref": "SPEC-006 \u00a74.21.3",
       "deps": [
         "CHI-265"
       ],
       "files": [
         "src/components/conversation/QueuePanel.tsx",
         "src/locales/en.json"
-      ]
+      ],
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-267": {
       "id": "CHI-267",
-      "title": "EQ-5: Steer Flow — Interrupt + Redirect",
-      "status": "backlog",
+      "title": "EQ-5: Steer Flow \u2014 Interrupt + Redirect",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
-      "spec_ref": "SPEC-006 §4.21.4",
+      "spec_ref": "SPEC-006 \u00a74.21.4",
       "deps": [
         "CHI-263",
         "CHI-264"
@@ -2190,16 +2200,17 @@
       "files": [
         "src/stores/conversationStore.ts",
         "src/components/conversation/MessageInput.tsx"
-      ]
+      ],
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-268": {
       "id": "CHI-268",
       "title": "EQ-6: Interrupted Message Marker",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "size": "S",
       "parent": "CHI-262",
-      "spec_ref": "SPEC-006 §4.21.4",
+      "spec_ref": "SPEC-006 \u00a74.21.4",
       "deps": [
         "CHI-263",
         "CHI-267"
@@ -2208,16 +2219,17 @@
         "src/components/conversation/InterruptedMarker.tsx",
         "src/components/conversation/MessageBubble.tsx",
         "src/lib/types.ts"
-      ]
+      ],
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-270": {
       "id": "CHI-270",
-      "title": "FM-1: Backend File Operations — Create, Delete, Rename, Duplicate",
+      "title": "FM-1: Backend File Operations \u2014 Create, Delete, Rename, Duplicate",
       "status": "done",
       "priority": "urgent",
       "size": "M",
       "parent": "CHI-269",
-      "spec_ref": "SPEC-006 §4.22.8, §4.22.10",
+      "spec_ref": "SPEC-006 \u00a74.22.8, \u00a74.22.10",
       "deps": [],
       "files": [
         "src-tauri/src/lib.rs",
@@ -2241,7 +2253,7 @@
       "priority": "high",
       "size": "L",
       "parent": "CHI-269",
-      "spec_ref": "SPEC-006 §4.22.3, §4.22.4",
+      "spec_ref": "SPEC-006 \u00a74.22.3, \u00a74.22.4",
       "deps": [
         "CHI-270"
       ],
@@ -2263,12 +2275,12 @@
     },
     "CHI-272": {
       "id": "CHI-272",
-      "title": "FM-3: Context Menu — Rename, Delete, Duplicate + Create Actions",
-      "status": "backlog",
+      "title": "FM-3: Context Menu \u2014 Rename, Delete, Duplicate + Create Actions",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-269",
-      "spec_ref": "SPEC-006 §4.22.7, §4.22.8",
+      "spec_ref": "SPEC-006 \u00a74.22.7, \u00a74.22.8",
       "deps": [
         "CHI-270",
         "CHI-271"
@@ -2276,135 +2288,253 @@
       "files": [
         "src/components/explorer/FileTreeNode.tsx",
         "src/stores/fileStore.ts"
-      ]
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T15:30:17.826Z",
+      "updated_at": "2026-03-07T15:30:17.826Z",
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-273": {
       "id": "CHI-273",
       "title": "FM-4: Command Palette File Commands + Path Input Mode",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "size": "M",
       "parent": "CHI-269",
-      "spec_ref": "SPEC-006 §4.22.5",
+      "spec_ref": "SPEC-006 \u00a74.22.5",
       "deps": [
         "CHI-270",
         "CHI-271"
       ],
       "files": [
-        "src/components/common/CommandPalette.tsx"
-      ]
+        "src/components/common/CommandPalette.tsx",
+        "src/components/common/CommandPalette.test.tsx",
+        "src/locales/en.json"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T21:00:38Z",
+      "updated_at": "2026-03-07T22:11:02Z",
+      "worktree": null,
+      "completed_at": "2026-03-07T22:11:02Z",
+      "notes": "Implemented command palette file CRUD commands + path input mode. Verified with format/lint/typecheck/unit/rust/build checks. completed_by=claude-code; lock_acquired_at=2026-03-07T22:10:14Z; commit=2845924"
     },
     "CHI-274": {
       "id": "CHI-274",
       "title": "FM-5: Keyboard Shortcuts + /create Slash Command",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "size": "S",
       "parent": "CHI-269",
-      "spec_ref": "SPEC-006 §4.22.6, §4.22.9",
+      "spec_ref": "SPEC-006 \u00a74.22.6, \u00a74.22.9",
       "deps": [
         "CHI-270",
         "CHI-271"
       ],
       "files": [
         "src/lib/keybindings.ts",
+        "src/lib/keybindings.test.ts",
         "src/components/conversation/MessageInput.tsx",
-        "src/components/explorer/FileTree.tsx"
-      ]
+        "src/components/conversation/MessageInput.test.ts",
+        "src/stores/slashStore.ts",
+        "src/stores/slashStore.test.ts",
+        "src/stores/__integration__/slash-message-input.test.ts",
+        "src/locales/en.json"
+      ],
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-07T22:11:02Z",
+      "updated_at": "2026-03-07T22:11:02Z",
+      "worktree": null,
+      "notes": "Implemented Cmd+N/Cmd+Shift+N and /create command handling + slash menu builtin. Verified with full check suite. completed_by=claude-code; lock_acquired_at=2026-03-07T22:10:14Z; commit=2845924"
     },
     "CHI-275": {
       "id": "CHI-275",
       "title": "FM-6: Save As in Editor Takeover",
-      "status": "backlog",
+      "status": "done",
       "priority": "low",
       "size": "S",
       "parent": "CHI-269",
-      "spec_ref": "SPEC-006 §4.22.2, §4.22.9",
+      "spec_ref": "SPEC-006 \u00a74.22.2, \u00a74.22.9",
       "deps": [
         "CHI-270"
       ],
       "files": [
-        "src/components/editor/EditorTakeover.tsx",
-        "src/components/editor/SaveAsModal.tsx"
-      ]
+        "src/stores/fileStore.ts",
+        "src/stores/fileStore.edit.test.ts",
+        "src/components/editor/EditorToolbar.tsx",
+        "src/components/editor/EditorToolbar.test.tsx",
+        "src/lib/keybindings.ts",
+        "src/lib/keybindings.test.ts",
+        "src/locales/en.json"
+      ],
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-07T22:11:02Z",
+      "updated_at": "2026-03-07T22:11:02Z",
+      "worktree": null,
+      "notes": "Implemented saveFileAs flow, Cmd+Shift+S shortcut, and toolbar Save As action with tests. Verified with full check suite. completed_by=claude-code; lock_acquired_at=2026-03-07T22:10:14Z; commit=2845924"
     },
     "CHI-278": {
       "id": "CHI-278",
       "title": "BP-1: Asset Protocol Setup + resolve_file_path IPC + CSP Config",
-      "status": "backlog",
+      "status": "done",
       "priority": "urgent",
       "size": "S",
       "parent": "CHI-276",
-      "spec_ref": "SPEC-006 §4.23.2, §4.23.8",
+      "spec_ref": "SPEC-006 \u00a74.23.2, \u00a74.23.8",
       "deps": [],
       "files": [
-        "src-tauri/tauri.conf.json",
+        "src-tauri/Cargo.lock",
+        "src-tauri/Cargo.toml",
         "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/mod.rs",
         "src-tauri/src/files/scanner.rs",
-        "src/lib/types.ts"
-      ]
+        "src-tauri/src/main.rs",
+        "src-tauri/tauri.conf.json",
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/explorer/FilePreview.tsx",
+        "src/components/explorer/FileTreeNode.test.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/components/explorer/previews/AudioPreview.tsx",
+        "src/components/explorer/previews/BinaryFallback.tsx",
+        "src/components/explorer/previews/ImagePreview.test.tsx",
+        "src/components/explorer/previews/ImagePreview.tsx",
+        "src/components/explorer/previews/PdfPreview.tsx",
+        "src/components/explorer/previews/SvgPreview.tsx",
+        "src/lib/types.ts",
+        "src/locales/en.json",
+        "src/stores/fileStore.test.ts"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T19:14:13Z",
+      "updated_at": "2026-03-07T19:14:13Z",
+      "worktree": null,
+      "completed_at": "2026-03-07T19:57:20Z",
+      "notes": "Implemented binary file preview foundation/renderers. completed_by=claude-code; lock_acquired_at=2026-03-07T19:57:20Z"
     },
     "CHI-279": {
       "id": "CHI-279",
       "title": "BP-2: Image Preview Renderer (PNG, JPG, GIF, WebP, BMP, ICO)",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-276",
-      "spec_ref": "SPEC-006 §4.23.3, §4.23.9",
+      "spec_ref": "SPEC-006 \u00a74.23.3, \u00a74.23.9",
       "deps": [
         "CHI-278"
       ],
       "files": [
-        "src/components/explorer/previews/ImagePreview.tsx",
+        "src-tauri/Cargo.lock",
+        "src-tauri/Cargo.toml",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/mod.rs",
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/main.rs",
+        "src-tauri/tauri.conf.json",
+        "src/components/conversation/MessageInput.tsx",
         "src/components/explorer/FilePreview.tsx",
-        "src/stores/fileStore.ts"
-      ]
+        "src/components/explorer/FileTreeNode.test.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/components/explorer/previews/AudioPreview.tsx",
+        "src/components/explorer/previews/BinaryFallback.tsx",
+        "src/components/explorer/previews/ImagePreview.test.tsx",
+        "src/components/explorer/previews/ImagePreview.tsx",
+        "src/components/explorer/previews/PdfPreview.tsx",
+        "src/components/explorer/previews/SvgPreview.tsx",
+        "src/lib/types.ts",
+        "src/locales/en.json",
+        "src/stores/fileStore.test.ts"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T19:57:20Z",
+      "completed_at": "2026-03-07T19:57:20Z",
+      "worktree": null,
+      "notes": "Implemented binary file preview foundation/renderers. completed_by=claude-code; lock_acquired_at=2026-03-07T19:57:20Z"
     },
     "CHI-280": {
       "id": "CHI-280",
       "title": "BP-3: SVG Dual Preview (Rendered + Code Toggle) + PDF Embed",
-      "status": "backlog",
+      "status": "done",
       "priority": "high",
       "size": "M",
       "parent": "CHI-276",
-      "spec_ref": "SPEC-006 §4.23.4, §4.23.5, §4.23.9",
+      "spec_ref": "SPEC-006 \u00a74.23.4, \u00a74.23.5, \u00a74.23.9",
       "deps": [
         "CHI-278"
       ],
       "files": [
-        "src/components/explorer/previews/SvgPreview.tsx",
-        "src/components/explorer/previews/PdfPreview.tsx",
+        "src-tauri/Cargo.lock",
+        "src-tauri/Cargo.toml",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/mod.rs",
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/main.rs",
+        "src-tauri/tauri.conf.json",
+        "src/components/conversation/MessageInput.tsx",
         "src/components/explorer/FilePreview.tsx",
-        "src-tauri/src/files/scanner.rs"
-      ]
+        "src/components/explorer/FileTreeNode.test.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/components/explorer/previews/AudioPreview.tsx",
+        "src/components/explorer/previews/BinaryFallback.tsx",
+        "src/components/explorer/previews/ImagePreview.test.tsx",
+        "src/components/explorer/previews/ImagePreview.tsx",
+        "src/components/explorer/previews/PdfPreview.tsx",
+        "src/components/explorer/previews/SvgPreview.tsx",
+        "src/lib/types.ts",
+        "src/locales/en.json",
+        "src/stores/fileStore.test.ts"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T19:57:20Z",
+      "completed_at": "2026-03-07T19:57:20Z",
+      "worktree": null,
+      "notes": "Implemented binary file preview foundation/renderers. completed_by=claude-code; lock_acquired_at=2026-03-07T19:57:20Z"
     },
     "CHI-281": {
       "id": "CHI-281",
       "title": "BP-4: Audio Player + Binary Fallback UI + File Tree Icons",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "size": "M",
       "parent": "CHI-276",
-      "spec_ref": "SPEC-006 §4.23.6, §4.23.7, §4.23.11, §4.23.9",
+      "spec_ref": "SPEC-006 \u00a74.23.6, \u00a74.23.7, \u00a74.23.11, \u00a74.23.9",
       "deps": [
         "CHI-278"
       ],
       "files": [
+        "src-tauri/Cargo.lock",
+        "src-tauri/Cargo.toml",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/mod.rs",
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/main.rs",
+        "src-tauri/tauri.conf.json",
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/explorer/FilePreview.tsx",
+        "src/components/explorer/FileTreeNode.test.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
         "src/components/explorer/previews/AudioPreview.tsx",
         "src/components/explorer/previews/BinaryFallback.tsx",
-        "src/components/explorer/FileTreeNode.tsx",
-        "src/components/explorer/FilePreview.tsx"
-      ]
+        "src/components/explorer/previews/ImagePreview.test.tsx",
+        "src/components/explorer/previews/ImagePreview.tsx",
+        "src/components/explorer/previews/PdfPreview.tsx",
+        "src/components/explorer/previews/SvgPreview.tsx",
+        "src/lib/types.ts",
+        "src/locales/en.json",
+        "src/stores/fileStore.test.ts"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T19:57:20Z",
+      "completed_at": "2026-03-07T19:57:20Z",
+      "worktree": null,
+      "notes": "Implemented binary file preview foundation/renderers. completed_by=claude-code; lock_acquired_at=2026-03-07T19:57:20Z"
     },
     "CHI-282": {
       "id": "CHI-282",
-      "title": "AQ-1: Backend — QuestionRequired Flow + respond_question IPC",
+      "title": "AQ-1: Backend \u2014 QuestionRequired Flow + respond_question IPC",
       "status": "done",
       "priority": "urgent",
       "size": "M",
       "parent": "CHI-277",
-      "spec_ref": "SPEC-006 §4.24.1, §4.24.2, §4.24.7",
+      "spec_ref": "SPEC-006 \u00a74.24.1, \u00a74.24.2, \u00a74.24.7",
       "deps": [],
       "files": [
         "src-tauri/src/bridge/mod.rs",
@@ -2423,12 +2553,12 @@
     },
     "CHI-283": {
       "id": "CHI-283",
-      "title": "AQ-2: QuestionDialog Component — Modal with Radio/Checkbox/Other",
+      "title": "AQ-2: QuestionDialog Component \u2014 Modal with Radio/Checkbox/Other",
       "status": "done",
       "priority": "high",
       "size": "L",
       "parent": "CHI-277",
-      "spec_ref": "SPEC-006 §4.24.3, §4.24.5, §4.24.9",
+      "spec_ref": "SPEC-006 \u00a74.24.3, \u00a74.24.5, \u00a74.24.9",
       "deps": [
         "CHI-282"
       ],
@@ -2450,34 +2580,42 @@
     },
     "CHI-284": {
       "id": "CHI-284",
-      "title": "AQ-3: ToolUseBlock Question Category — Compact Answer Summary",
-      "status": "backlog",
+      "title": "AQ-3: ToolUseBlock Question Category \u2014 Compact Answer Summary",
+      "status": "done",
       "priority": "high",
       "size": "S",
       "parent": "CHI-277",
-      "spec_ref": "SPEC-006 §4.24.4",
+      "spec_ref": "SPEC-006 \u00a74.24.4",
       "deps": [
         "CHI-282"
       ],
       "files": [
         "src/components/conversation/ToolUseBlock.tsx"
-      ]
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T15:30:17.826Z",
+      "updated_at": "2026-03-07T15:30:17.826Z",
+      "completed_at": "2026-03-07T00:00:00Z"
     },
     "CHI-285": {
       "id": "CHI-285",
       "title": "AQ-4: Accessibility + Edge Cases (Timeout, YOLO Skip, Escape)",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "size": "M",
       "parent": "CHI-277",
-      "spec_ref": "SPEC-006 §4.24.6, §4.24.8",
+      "spec_ref": "SPEC-006 \u00a74.24.6, \u00a74.24.8",
       "deps": [
         "CHI-283"
       ],
       "files": [
         "src/components/questions/QuestionDialog.tsx",
         "src-tauri/src/bridge/event_loop.rs"
-      ]
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-07T15:30:17.826Z",
+      "updated_at": "2026-03-07T15:30:17.826Z",
+      "completed_at": "2026-03-07T00:00:00Z"
     }
   },
   "epics_new": {
@@ -2648,7 +2786,7 @@
       "notes": "ALL 6 tasks complete. App now talks to real Claude Code CLI via PTY.",
       "tasks": {
         "CHI-44": {
-          "title": "SessionBridgeMap — session→process manager",
+          "title": "SessionBridgeMap \u2014 session\u2192process manager",
           "status": "done",
           "priority": "P0",
           "linear_id": "b315f4c2",
@@ -2672,7 +2810,7 @@
           ]
         },
         "CHI-46": {
-          "title": "Streaming event loop (bridge output → Tauri events)",
+          "title": "Streaming event loop (bridge output \u2192 Tauri events)",
           "status": "done",
           "priority": "P0",
           "linear_id": "202107e7",
@@ -2850,7 +2988,7 @@
             "src/stores/conversationStore.ts",
             "src/components/layout/Sidebar.tsx"
           ],
-          "notes": "switchSession() orchestrates: stop old CLI → cleanup listeners → clear state → load messages → setup new listeners. handleNewSession stops old CLI before creating new session."
+          "notes": "switchSession() orchestrates: stop old CLI \u2192 cleanup listeners \u2192 clear state \u2192 load messages \u2192 setup new listeners. handleNewSession stops old CLI before creating new session."
         },
         "CHI-58": {
           "title": "Graceful shutdown on session delete/close",
@@ -3276,7 +3414,7 @@
   },
   "resilience_epic": {
     "CHI-103": {
-      "title": "HMR Resilience — Event Buffering & Frontend Reconnection",
+      "title": "HMR Resilience \u2014 Event Buffering & Frontend Reconnection",
       "status": "done",
       "priority": "Urgent",
       "linear_id": "CHI-103",
@@ -3290,10 +3428,10 @@
         "src/stores/conversationStore.ts (reconnectAfterReload, replayBufferedEvent)",
         "src/App.tsx (onMount reconnect call)"
       ],
-      "notes": "Backend survives HMR — only webview reloads. 200-event ring buffer per session with chunk coalescing. Frontend queries active bridges on mount, replays buffered events with deduplication. 84 Rust tests pass."
+      "notes": "Backend survives HMR \u2014 only webview reloads. 200-event ring buffer per session with chunk coalescing. Frontend queries active bridges on mount, replays buffered events with deduplication. 84 Rust tests pass."
     },
     "CHI-104": {
-      "title": "Parallel Sessions — Per-Session State & Non-Destructive Switching",
+      "title": "Parallel Sessions \u2014 Per-Session State & Non-Destructive Switching",
       "status": "done",
       "priority": "High",
       "linear_id": "CHI-104",
@@ -3349,7 +3487,7 @@
         "src/components/layout/TitleBar.tsx",
         "src/lib/keybindings.ts"
       ],
-      "notes": "Three-tier permission model: Safe → Developer → YOLO. Developer mode adds 20 Bash(pattern) allowedTools for common dev commands (git, gh, npm, cargo, etc.). TitleBar shows cycling Shield/ShieldCheck/Zap icons. StatusBar shows DEV/YOLO indicators. Cmd+Shift+D keyboard shortcut. 3 new tests (78 total)."
+      "notes": "Three-tier permission model: Safe \u2192 Developer \u2192 YOLO. Developer mode adds 20 Bash(pattern) allowedTools for common dev commands (git, gh, npm, cargo, etc.). TitleBar shows cycling Shield/ShieldCheck/Zap icons. StatusBar shows DEV/YOLO indicators. Cmd+Shift+D keyboard shortcut. 3 new tests (78 total)."
     }
   },
   "logging_epic": {
@@ -3561,7 +3699,7 @@
   },
   "parallel_sessions_v2_epic": {
     "CHI-109": {
-      "title": "Parallel Sessions v2 — Split Panes & Resource Management",
+      "title": "Parallel Sessions v2 \u2014 Split Panes & Resource Management",
       "status": "done",
       "priority": "High",
       "linear_id": "2ef13626-852d-4e3e-a4ab-a1d78ba309b3",
@@ -3782,7 +3920,7 @@
   },
   "context_intelligence_epic": {
     "CHI-121": {
-      "title": "Context Intelligence — File Explorer v2",
+      "title": "Context Intelligence \u2014 File Explorer v2",
       "status": "done",
       "tasks": {
         "CHI-123": {
@@ -3826,7 +3964,7 @@
   },
   "ux_hardening_epic": {
     "CHI-129": {
-      "title": "UX Hardening — Performance, Accessibility & Missing States",
+      "title": "UX Hardening \u2014 Performance, Accessibility & Missing States",
       "status": "done",
       "tasks": {
         "CHI-132": {
@@ -3839,7 +3977,7 @@
           "status": "done",
           "priority": "High",
           "completed_at": "2026-02-24T21:38:22Z",
-          "notes": "Implemented CHI-133 across plan Tasks 12-13: FilePreview is resizable in non-fillHeight mode via drag handle (200–600px clamp), line number gutter is sticky during horizontal scroll, ContextChip supports click/keyboard edit activation, fileStore supports attachment-aware selectFileForEditing + editingAttachmentId, and FilePreview can update an existing attachment's selected range via contextStore.updateAttachmentRange (with refreshed token estimate)."
+          "notes": "Implemented CHI-133 across plan Tasks 12-13: FilePreview is resizable in non-fillHeight mode via drag handle (200\u2013600px clamp), line number gutter is sticky during horizontal scroll, ContextChip supports click/keyboard edit activation, fileStore supports attachment-aware selectFileForEditing + editingAttachmentId, and FilePreview can update an existing attachment's selected range via contextStore.updateAttachmentRange (with refreshed token estimate)."
         },
         "CHI-135": {
           "title": "Missing Error States",
@@ -3868,7 +4006,7 @@
   },
   "project_actions_epic": {
     "CHI-138": {
-      "title": "Project Actions — AI-Aware Command Runner",
+      "title": "Project Actions \u2014 AI-Aware Command Runner",
       "status": "done",
       "priority": "Urgent",
       "linear_id": "8db84aff-b9e5-42ac-9cdf-3abac8dab2bc",
@@ -3967,7 +4105,7 @@
           "completed_at": "2026-02-23T21:08:52Z"
         }
       },
-      "critical_path": "CHI-139 → CHI-140 → CHI-141 → CHI-142/CHI-143 → CHI-144/CHI-145"
+      "critical_path": "CHI-139 \u2192 CHI-140 \u2192 CHI-141 \u2192 CHI-142/CHI-143 \u2192 CHI-144/CHI-145"
     },
     "CHI-146": {
       "title": "Test Coverage to 90%+ (Code Quality Gate)",
@@ -4084,7 +4222,7 @@
           }
         },
         "CHI-152": {
-          "title": "Permission Security Tests 🔒",
+          "title": "Permission Security Tests \ud83d\udd12",
           "status": "done",
           "priority": "urgent",
           "track": "B5",
@@ -4294,7 +4432,7 @@
           }
         },
         "CHI-161": {
-          "title": "E2E: Permissions + YOLO + DevMode 🔒",
+          "title": "E2E: Permissions + YOLO + DevMode \ud83d\udd12",
           "status": "done",
           "priority": "high",
           "track": "D4",
@@ -4474,7 +4612,7 @@
           }
         },
         "CHI-170": {
-          "title": "Component Tests — Conversation Rendering",
+          "title": "Component Tests \u2014 Conversation Rendering",
           "status": "done",
           "priority": "high",
           "track": "G1",
@@ -4496,7 +4634,7 @@
           }
         },
         "CHI-171": {
-          "title": "Component Tests — Slash & Context UI",
+          "title": "Component Tests \u2014 Slash & Context UI",
           "status": "done",
           "priority": "urgent",
           "track": "G2",
@@ -4519,7 +4657,7 @@
           }
         },
         "CHI-172": {
-          "title": "Component Tests — Layout Shell",
+          "title": "Component Tests \u2014 Layout Shell",
           "status": "done",
           "priority": "high",
           "track": "G3",
@@ -4543,7 +4681,7 @@
           }
         },
         "CHI-173": {
-          "title": "Component Tests — Settings & Onboarding",
+          "title": "Component Tests \u2014 Settings & Onboarding",
           "status": "done",
           "priority": "medium",
           "track": "G4",
@@ -4566,7 +4704,7 @@
           }
         },
         "CHI-174": {
-          "title": "Component Tests — Explorer & Actions",
+          "title": "Component Tests \u2014 Explorer & Actions",
           "status": "done",
           "priority": "medium",
           "track": "G5",
@@ -4649,9 +4787,6 @@
     }
   },
   "recommended_next": [
-    "CHI-278",
-    "CHI-263",
-    "CHI-247",
     "CHI-259",
     "CHI-248"
   ],
@@ -4668,15 +4803,15 @@
     "completed_at": "2026-02-25T21:12:32Z",
     "SPEC-002": {
       "version": "2.0",
-      "changes": "Added tool use colors (§3.5), toast colors (§3.6), 7 new component specs (§10.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
+      "changes": "Added tool use colors (\u00a73.5), toast colors (\u00a73.6), 7 new component specs (\u00a710.11-10.17: ToolUseBlock, ThinkingBlock, Toast, CommandPalette, ProjectSelector, StreamingBubble, Scrollbar)"
     },
     "SPEC-003": {
       "version": "2.5",
-      "changes": "v2.0: Added 6 Phase 2 interaction flows (§4.7-4.12). v2.1: Added §4.13 Slash Command Interaction Flow, §4.14 Split Pane Layout Flow, §10.7 Slash Commands spec, §10.8 Split Pane spec. v2.2: Added §4.15 File Explorer & @-Mention Context Flow, §10.9 File Explorer & @-Mention Context System spec. v2.3: Added §3.5 Settings Screen, §4.16 Settings Flow, §4.17 Context Intelligence Flow, §10.10-10.12 (Settings, Context Intelligence, UX Hardening) v2.4: Implementation status follow-through notes for CHI-125/126/127/128/137 (context scoring + smart suggestions, i18n locale coverage, message edit/regenerate UX). v2.5: Implementation status follow-through notes for CHI-63/64/109/130/27 (context menus + keyboard help, onboarding/empty states, split panes aggregate/activity, theme system, Playwright E2E + CI integration)."
+      "changes": "v2.0: Added 6 Phase 2 interaction flows (\u00a74.7-4.12). v2.1: Added \u00a74.13 Slash Command Interaction Flow, \u00a74.14 Split Pane Layout Flow, \u00a710.7 Slash Commands spec, \u00a710.8 Split Pane spec. v2.2: Added \u00a74.15 File Explorer & @-Mention Context Flow, \u00a710.9 File Explorer & @-Mention Context System spec. v2.3: Added \u00a73.5 Settings Screen, \u00a74.16 Settings Flow, \u00a74.17 Context Intelligence Flow, \u00a710.10-10.12 (Settings, Context Intelligence, UX Hardening) v2.4: Implementation status follow-through notes for CHI-125/126/127/128/137 (context scoring + smart suggestions, i18n locale coverage, message edit/regenerate UX). v2.5: Implementation status follow-through notes for CHI-63/64/109/130/27 (context menus + keyboard help, onboarding/empty states, split panes aggregate/activity, theme system, Playwright E2E + CI integration)."
     },
     "SPEC-004": {
       "version": "3.2",
-      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol §5.6. v2.2: slash/ module, §4.4.7-4.4.8 IPC, §5.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, §4.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), §5.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up — MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands. v3.0: CHI-81 onboarding settings-schema persistence, CHI-130 theme propagation note, and CHI-27 Playwright/CI E2E architecture follow-through (browser-safe TitleBar + failure artifact reporter). v3.1: CHI-146 Track A/B test-infrastructure foundation (Vitest + IPC mocks + CI frontend unit step, Rust coverage expansion), and GUIDE-003 / TESTING-MATRIX documentation references. v3.2: CHI-146 Track C frontend unit-test coverage follow-through (stores/components/utilities), plus architecture implementation-status note for test-driven fixes (contextStore score-map replacement + MessageInput mention range parsing)."
+      "changes": "v2.0: Phase 2 IPC contracts, data flows, types. v2.1: Agent SDK protocol \u00a75.6. v2.2: slash/ module, \u00a74.4.7-4.4.8 IPC, \u00a75.7-5.8 flows, SlashCommand + ViewState types. v2.3: Added files/ module to monorepo, \u00a74.4.9 File Explorer IPC (FileNode, FileContent, FileSearchResult types), \u00a75.9 File Explorer data flow. v2.4: CHI-101 implemented status updates + SDK control_response envelope/permission updatedInput semantics and legacy fallback limitation note. v2.5: CHI-108 SDK slash discovery integration (cli:init tools/mcp_servers payload, backend merge flow) and CHI-96 diagnostic bundle export IPC. v2.6: CHI-138 Project Actions architecture updates (actions/ backend module, actions IPC commands/events, actionStore, /run Action slash category). v2.7: CHI-144/145 Project Actions polish (StatusBar + Command Palette integration, custom action CRUD IPC, inline editor advanced fields, argument prompt metadata). v2.8: UI stability follow-up \u2014 MainLayout full-height propagation for side panels, single-scroll focused pane behavior (Sidebar/DetailsPanel), ConversationView virtualization fallback for complex/active-turn layouts, and stale CLI resume error recovery note. v2.9: CHI-127 smart file suggestions IPC note, CHI-137 message edit/regenerate IPC contracts, and implemented status updates for context/settings/i18n stores + session editing commands. v3.0: CHI-81 onboarding settings-schema persistence, CHI-130 theme propagation note, and CHI-27 Playwright/CI E2E architecture follow-through (browser-safe TitleBar + failure artifact reporter). v3.1: CHI-146 Track A/B test-infrastructure foundation (Vitest + IPC mocks + CI frontend unit step, Rust coverage expansion), and GUIDE-003 / TESTING-MATRIX documentation references. v3.2: CHI-146 Track C frontend unit-test coverage follow-through (stores/components/utilities), plus architecture implementation-status note for test-driven fixes (contextStore score-map replacement + MessageInput mention range parsing)."
     },
     "TASKS-002": {
       "version": "1.0",
@@ -4688,7 +4823,7 @@
     "GUIDE-003": {
       "version": "1.0",
       "created": true,
-      "changes": "Added mandatory development protocol for planning→implementation→verification lifecycle, handover testing metadata, and TESTING-MATRIX maintenance rules."
+      "changes": "Added mandatory development protocol for planning\u2192implementation\u2192verification lifecycle, handover testing metadata, and TESTING-MATRIX maintenance rules."
     }
   },
   "session_work_log": {
@@ -4870,7 +5005,7 @@
         },
         {
           "task": "BUG FIX: Session restore missing assistant messages",
-          "root_cause": "Two bugs: (1) Race condition — event listeners set up AFTER send_to_cli, missing fast CLI events. (2) cost_cents type mismatch — f64 from backend failed i64 deserialization in save_message IPC, silently dropping all assistant message saves.",
+          "root_cause": "Two bugs: (1) Race condition \u2014 event listeners set up AFTER send_to_cli, missing fast CLI events. (2) cost_cents type mismatch \u2014 f64 from backend failed i64 deserialization in save_message IPC, silently dropping all assistant message saves.",
           "fix": [
             "Swapped order: setupEventListeners() BEFORE invoke('send_to_cli')",
             "Added Math.round() on cost_cents before save_message invocation",
@@ -4912,7 +5047,7 @@
             "src-tauri/src/bridge/event_loop.rs (normalize server names, populate cache from init event)",
             "src-tauri/src/commands/bridge.rs (pass cached server prefixes as --allowedTools)"
           ],
-          "notes": "mcp__* wildcard broken (GitHub #13077, #14730). Per docs, mcp__servername (no wildcard) matches all tools. Discovery: parse mcp_servers from CLI system:init event, normalize (: . / → _), cache as mcp__<prefix>. First message has no MCP; subsequent messages have all MCP tools authorized."
+          "notes": "mcp__* wildcard broken (GitHub #13077, #14730). Per docs, mcp__servername (no wildcard) matches all tools. Discovery: parse mcp_servers from CLI system:init event, normalize (: . / \u2192 _), cache as mcp__<prefix>. First message has no MCP; subsequent messages have all MCP tools authorized."
         }
       ],
       "tests": "75 Rust tests pass (1 new parser test for MCP server extraction). Frontend compiles clean.",
@@ -5341,7 +5476,7 @@
         "Rust fmt check caught formatting-only diffs in newly added scanner and commands/bridge tests; resolved by running cargo fmt --all before final verification."
       ],
       "tests": "Batch 3 verification passed in feature worktree: cargo test --lib files::scanner::tests (25 passed), cargo test --lib bridge::permission::tests (29 passed), cargo test --lib commands::bridge::tests (12 passed), cargo fmt --all -- --check, cargo test --lib (278 passed), npx vitest run (4 files/12 tests), npx tsc --noEmit && npx eslint ., npm run format:check.",
-      "verified": "Track B tasks CHI-148, CHI-149, CHI-151, and CHI-152 are now complete in this plan path. Next batch should run CHI-150 actions-system tests (Task 10) and then the plan’s full verification task, using docs/TESTING-MATRIX.md as the completion verification checklist artifact."
+      "verified": "Track B tasks CHI-148, CHI-149, CHI-151, and CHI-152 are now complete in this plan path. Next batch should run CHI-150 actions-system tests (Task 10) and then the plan\u2019s full verification task, using docs/TESTING-MATRIX.md as the completion verification checklist artifact."
     },
     "2026-02-25_chi147_chi152_batch4": {
       "description": "Batch 4 for CHI-147/CHI-152 plan: completed CHI-150 actions manager tests (Task 10) and finished the plan verification sweep (Task 11), then updated TESTING-MATRIX and handover testing metadata for CHI-150.",
@@ -5833,8 +5968,8 @@
         "Focused Prettier check for CHI-165/171 touched files passed, and all test/lint/typecheck regressions were green.",
         "Cross-artifact consistency fix applied: worktree TESTING-MATRIX had drifted to an older pre-CHI-164 version; resynced from root local baseline before applying CHI-165/171 row updates and summary counts."
       ],
-      "tests": "Task 6 verification results: cargo test && cargo clippy -- -D warnings ✅ (282 Rust tests); npx vitest run ✅ (26 files / 229 tests); npx tsc --noEmit && npx eslint src/ ✅; npx prettier --check . ❌ (pre-existing repo baseline drift), focused Prettier check on CHI-165/171 files ✅; npx playwright test tests/e2e/conversation/slash-commands.spec.ts ✅ (8 passed); npx vitest run src/stores/slashStore.test.ts src/stores/contextStore.test.ts src/components/conversation/ContextChip.test.tsx ✅ (37 passed).",
-      "verified": "CHI-165 and CHI-171 are complete and verified with testing metadata recorded and TESTING-MATRIX rows updated (165: E2E ✅8 COVERED, 171: Unit(F) ✅26 COVERED). CHI-164 remains in progress for remaining Track F/G/H tasks."
+      "tests": "Task 6 verification results: cargo test && cargo clippy -- -D warnings \u2705 (282 Rust tests); npx vitest run \u2705 (26 files / 229 tests); npx tsc --noEmit && npx eslint src/ \u2705; npx prettier --check . \u274c (pre-existing repo baseline drift), focused Prettier check on CHI-165/171 files \u2705; npx playwright test tests/e2e/conversation/slash-commands.spec.ts \u2705 (8 passed); npx vitest run src/stores/slashStore.test.ts src/stores/contextStore.test.ts src/components/conversation/ContextChip.test.tsx \u2705 (37 passed).",
+      "verified": "CHI-165 and CHI-171 are complete and verified with testing metadata recorded and TESTING-MATRIX rows updated (165: E2E \u27058 COVERED, 171: Unit(F) \u270526 COVERED). CHI-164 remains in progress for remaining Track F/G/H tasks."
     },
     "2026-02-26_chi164_remaining_batch1": {
       "description": "Batch 1 for CHI-164 remaining coverage plan: implemented Track F2-F4 Playwright E2E specs (session actions, settings interactions, diff review) with selector fixes aligned to current UI labels and documented handover/matrix updates for CHI-166/167/168.",
@@ -6353,14 +6488,14 @@
     "Waves 1-2 COMPLETE. 13/29 issues done.",
     "Wave 3 nearly done: CHI-239 and CHI-254 remaining.",
     "Wave 4 fully unblocked: all deps satisfied.",
-    "CHI-244 (File Preview Rework) is L effort — largest remaining task.",
+    "CHI-244 (File Preview Rework) is L effort \u2014 largest remaining task.",
     "SPEC-006 is the authoritative spec for ALL CHI-231 children.",
-    "CHI-202 (Voice Input) deprioritized — not in execution plan.",
+    "CHI-202 (Voice Input) deprioritized \u2014 not in execution plan.",
     {
       "timestamp": "2026-03-03T14:01:37.952899+00:00",
       "severity": "medium",
       "component": "OnboardingTooltip.tsx",
-      "issue": "Accent background color not respecting semantic tokens — needs audit during CHI-261",
+      "issue": "Accent background color not respecting semantic tokens \u2014 needs audit during CHI-261",
       "file": "src/components/common/OnboardingTooltip.tsx",
       "task": "CHI-261"
     }
@@ -6370,7 +6505,7 @@
     "testing_matrix": "docs/TESTING-MATRIX.md",
     "created_at": "2026-02-25T02:00:00Z",
     "version": "1.0",
-    "notes": "Three-protocol lifecycle: Planning (§2) → Implementation (§3) → Verification (§4). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
+    "notes": "Three-protocol lifecycle: Planning (\u00a72) \u2192 Implementation (\u00a73) \u2192 Verification (\u00a74). All new features must follow GUIDE-003. Tasks cannot be marked done without testing metadata and regression_verified: true."
   },
   "notes": "CHI-221/223/228 closure complete: all implementation batches finished, checks passed, and handover normalized with assigned_to/lock metadata.",
   "environment": {
@@ -6387,12 +6522,16 @@
     "last_updated_by": "cowork",
     "last_sync": "2026-03-03T15:00:00Z",
     "last_sync_by": "claude-code",
-    "total_tasks": 118,
+    "total_tasks": 120,
     "task_status_counts": {
       "done": 80,
       "backlog": 38,
       "in_progress": 0
-    }
+    },
+    "done": 107,
+    "backlog": 13,
+    "in_progress": 0,
+    "updated_at": "2026-03-07T12:00:00Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
@@ -6712,7 +6851,7 @@
           "notes": "MessageInput now accepts external Files drags, validates MIME/extension, and stores dropped text as in-memory external attachments so assembleContext can include content without backend file reads."
         },
         "CHI-208": {
-          "title": "F5: Unit Tests — File Attachments",
+          "title": "F5: Unit Tests \u2014 File Attachments",
           "status": "done",
           "completed_at": "2026-02-27T15:26:55Z",
           "priority": "high",
@@ -6801,14 +6940,14 @@
       }
     },
     "CHI-199": {
-      "title": "Epic F: QA Test Coverage — Conversation Experience",
+      "title": "Epic F: QA Test Coverage \u2014 Conversation Experience",
       "status": "in_progress",
       "linear_id": "61a238d6-7ec0-4596-9c68-f564ab69ecfa",
       "linear_url": "https://linear.app/chief-wiggum/issue/CHI-199/epic-f-qa-test-coverage-conversation-experience",
       "notes": "CHI-215 coverage follow-through is complete in this branch.",
       "tasks": {
         "CHI-215": {
-          "title": "F11: Unit Tests — TodoWrite Block & StatusBar Badge",
+          "title": "F11: Unit Tests \u2014 TodoWrite Block & StatusBar Badge",
           "status": "done",
           "completed_at": "2026-02-27T17:36:48Z",
           "priority": "high",
@@ -6840,7 +6979,7 @@
     "description": "CX/UX Excellence execution order based on dependency graph and impact analysis",
     "waves": {
       "wave_1_foundation": {
-        "description": "Token & layout foundation — all independent, parallelize freely",
+        "description": "Token & layout foundation \u2014 all independent, parallelize freely",
         "issues": [
           "CHI-232",
           "CHI-233",
@@ -6852,7 +6991,7 @@
         "status": "COMPLETE"
       },
       "wave_2_core_components": {
-        "description": "Core component upgrades — some deps on Wave 1 tokens",
+        "description": "Core component upgrades \u2014 some deps on Wave 1 tokens",
         "issues": [
           "CHI-235",
           "CHI-238",
@@ -6864,7 +7003,7 @@
         "status": "COMPLETE"
       },
       "wave_3_information": {
-        "description": "Information layer — feedback, details, onboarding, help",
+        "description": "Information layer \u2014 feedback, details, onboarding, help",
         "issues": [
           "CHI-237",
           "CHI-239",
@@ -6876,7 +7015,7 @@
         "status": "mostly_complete (CHI-239/254 remaining)"
       },
       "wave_4_workflow": {
-        "description": "Workflow improvements — file preview, undo, errors, session mgmt",
+        "description": "Workflow improvements \u2014 file preview, undo, errors, session mgmt",
         "issues": [
           "CHI-244",
           "CHI-246",
@@ -6888,7 +7027,7 @@
         "rationale": "CHI-244 is biggest (L effort). CHI-256 needs CHI-240. CHI-246 unblocks CHI-260."
       },
       "wave_5_advanced": {
-        "description": "Advanced features — pause, error log, templates",
+        "description": "Advanced features \u2014 pause, error log, templates",
         "issues": [
           "CHI-247",
           "CHI-260",
@@ -6897,7 +7036,7 @@
         "rationale": "CHI-247 needs CHI-237. CHI-260 needs CHI-246. CHI-259 needs CHI-240."
       },
       "wave_6_future": {
-        "description": "Future investment — defer until Waves 1-5 land",
+        "description": "Future investment \u2014 defer until Waves 1-5 land",
         "issues": [
           "CHI-248",
           "CHI-249",
