@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { getSymbolPrefix, parseMentionQuery, pickBestMentionResult } from './MessageInput';
+import {
+  getSymbolPrefix,
+  parseCreateSlashPath,
+  parseMentionQuery,
+  pickBestMentionResult,
+} from './MessageInput';
 import type { FileSearchResult } from '@/lib/types';
 
 describe('parseMentionQuery', () => {
@@ -109,5 +114,19 @@ describe('getSymbolPrefix', () => {
 
   it('returns null for non-symbol prefixes', () => {
     expect(getSymbolPrefix('utils.ts')).toBeNull();
+  });
+});
+
+describe('parseCreateSlashPath', () => {
+  it('returns null for non-create commands', () => {
+    expect(parseCreateSlashPath('/run build')).toBeNull();
+  });
+
+  it('returns empty string when /create has no path', () => {
+    expect(parseCreateSlashPath('/create')).toBe('');
+  });
+
+  it('extracts and trims path for /create', () => {
+    expect(parseCreateSlashPath('/create   src/utils/helper.ts  ')).toBe('src/utils/helper.ts');
   });
 });

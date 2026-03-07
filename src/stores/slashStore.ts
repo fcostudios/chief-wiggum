@@ -12,6 +12,17 @@ import { addToast } from '@/stores/toastStore';
 
 const log = createLogger('ui/slash');
 
+const CLIENT_BUILTINS: SlashCommand[] = [
+  {
+    name: 'create',
+    description: 'Create a new file and add it to prompt context',
+    category: 'Builtin',
+    args_hint: '<path>',
+    source_path: null,
+    from_sdk: false,
+  },
+];
+
 interface SlashState {
   /** All discovered commands (built-in + project + user). */
   commands: SlashCommand[];
@@ -39,6 +50,24 @@ let sdkInitUnlisten: UnlistenFn | null = null;
 
 function normalizeFilter(filter: string): string {
   return filter.trim().replace(/^\//, '').toLowerCase();
+}
+
+function mergeClientBuiltins(commands: SlashCommand[]): SlashCommand[] {
+  const seen = new Set<string>();
+  const merged: SlashCommand[] = [];
+
+  for (const builtin of CLIENT_BUILTINS) {
+    seen.add(builtin.name);
+    merged.push(builtin);
+  }
+
+  for (const command of commands) {
+    if (seen.has(command.name)) continue;
+    seen.add(command.name);
+    merged.push(command);
+  }
+
+  return merged;
 }
 
 function sdkNameMatches(name: string, filter: string): boolean {
@@ -126,10 +155,11 @@ export async function loadCommands(projectPath?: string): Promise<void> {
     const commands = await invoke<SlashCommand[]>('list_slash_commands', {
       project_path: projectPath ?? null,
     });
-    setState('commands', commands);
+    setState('commands', mergeClientBuiltins(commands));
   } catch (err) {
     setState('loadError', 'Failed to load slash commands');
     addToast('Could not load slash commands', 'error');
+    setState('commands', [...CLIENT_BUILTINS]);
     log.error(
       'Failed to load slash commands: ' + (err instanceof Error ? err.message : String(err)),
     );
@@ -142,7 +172,7 @@ export async function refreshCommands(projectPath?: string): Promise<void> {
     const commands = await invoke<SlashCommand[]>('refresh_slash_commands', {
       project_path: projectPath ?? null,
     });
-    setState('commands', commands);
+    setState('commands', mergeClientBuiltins(commands));
   } catch (err) {
     log.error(
       'Failed to refresh slash commands: ' + (err instanceof Error ? err.message : String(err)),

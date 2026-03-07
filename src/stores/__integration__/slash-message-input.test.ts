@@ -26,8 +26,8 @@ describe('Integration: slash -> message input state flow', () => {
     const mod = await import('@/stores/slashStore');
     await mod.loadCommands('/repo');
 
-    expect(mod.slashState.commands).toHaveLength(1);
-    expect(mod.slashState.commands[0]?.name).toBe('help');
+    expect(mod.slashState.commands).toHaveLength(2);
+    expect(mod.slashState.commands.map((command) => command.name)).toEqual(['create', 'help']);
   });
 
   it('filteredCommands returns matches after setting a filter', async () => {

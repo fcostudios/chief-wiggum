@@ -888,6 +888,46 @@ export async function saveFileEdit(projectId: string, relativePath: string): Pro
   }
 }
 
+/** Save editor buffer into a new path and switch Editor Takeover to that file. */
+export async function saveFileAs(projectId: string, newRelativePath: string): Promise<void> {
+  const content = state.fullContent;
+  const targetPath = newRelativePath.trim();
+  if (content == null || !targetPath) return;
+
+  setState('saveStatus', 'saving');
+  try {
+    await invoke('create_file', {
+      project_id: projectId,
+      relative_path: targetPath,
+      content,
+    });
+
+    await refreshParentDirectory(projectId, targetPath);
+    const latestMtime = await invoke<number | null>('get_file_mtime', {
+      project_id: projectId,
+      relative_path: targetPath,
+    });
+
+    setState({
+      selectedPath: targetPath,
+      editingFilePath: targetPath,
+      saveStatus: 'saved',
+      isDirty: false,
+      editorFileMtime: latestMtime,
+      isReadonly: false,
+    });
+    addToast(t('editor.savedAs', { path: targetPath }), 'success');
+    setTimeout(() => {
+      if (state.saveStatus === 'saved') setState('saveStatus', 'idle');
+    }, 2000);
+  } catch (err) {
+    setState('saveStatus', 'error');
+    const msg = err instanceof Error ? err.message : String(err);
+    log.error('Failed to save file as: ' + msg);
+    addToast(t('editor.saveAsFailed'), 'error', undefined, msg);
+  }
+}
+
 /** Get estimated tokens for the selected range. */
 export function getSelectedRangeTokens(): number {
   if (!state.selectedRange || !state.previewContent) return 0;

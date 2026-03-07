@@ -30,8 +30,11 @@ import {
   closeEditorTakeover,
   fileState,
   openEditorTakeover,
+  saveFileAs,
+  startCreating,
   toggleShowIgnoredFiles,
 } from '@/stores/fileStore';
+import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import { closePane, splitView, unsplit, viewState } from '@/stores/viewStore';
 
@@ -41,6 +44,13 @@ const viewMap: Record<string, ActiveView> = {
   Digit3: 'diff',
   Digit4: 'terminal',
 };
+
+function selectedFolderPath(): string {
+  const selectedPath = fileState.selectedPath;
+  if (!selectedPath) return '';
+  const selectedIsFile = selectedPath.includes('.');
+  return selectedIsFile ? selectedPath.split('/').slice(0, -1).join('/') : selectedPath;
+}
 
 export function handleGlobalKeyDown(e: KeyboardEvent): void {
   // Ctrl+Tab — quick session switcher (Cmd+Tab is reserved by macOS app switcher).
@@ -146,6 +156,24 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
     return;
   }
 
+  // Cmd+N — create file in the selected folder when a project is active.
+  if (e.code === 'KeyN' && !e.shiftKey) {
+    if (projectState.activeProjectId) {
+      e.preventDefault();
+      startCreating(selectedFolderPath(), 'file');
+      return;
+    }
+  }
+
+  // Cmd+Shift+N — create folder in the selected folder when a project is active.
+  if (e.code === 'KeyN' && e.shiftKey) {
+    if (projectState.activeProjectId) {
+      e.preventDefault();
+      startCreating(selectedFolderPath(), 'folder');
+      return;
+    }
+  }
+
   // Cmd+E — toggle Editor Takeover on selected/active file.
   if (e.code === 'KeyE' && !e.shiftKey) {
     e.preventDefault();
@@ -159,6 +187,21 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
         addToast('No file selected — select a file first', 'info');
       }
     }
+    return;
+  }
+
+  // Cmd+Shift+S — Save As while Editor Takeover is active.
+  if (e.code === 'KeyS' && e.shiftKey && fileState.editorTakeoverActive) {
+    e.preventDefault();
+    const projectId = projectState.activeProjectId;
+    const currentPath = fileState.editingFilePath;
+    if (!projectId || !currentPath) return;
+
+    const requestedPath = window.prompt('Save As — enter new file path:', currentPath);
+    const nextPath = requestedPath?.trim();
+    if (!nextPath || nextPath === currentPath) return;
+
+    void saveFileAs(projectId, nextPath);
     return;
   }
 

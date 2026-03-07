@@ -116,6 +116,12 @@ export function getSymbolPrefix(
   return null;
 }
 
+export function parseCreateSlashPath(rawText: string): string | null {
+  const match = rawText.trim().match(/^\/create(?:\s+(.+))?$/);
+  if (!match) return null;
+  return (match[1] ?? '').trim();
+}
+
 function getFileExtension(fileName: string): string | null {
   const dotIndex = fileName.lastIndexOf('.');
   if (dotIndex === -1) return null;
@@ -514,6 +520,20 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     const cleanedText = (await resolveInlineRangeMentions(text)).trim();
     const finalText = cleanedText || text;
 
+    const createPath = parseCreateSlashPath(finalText);
+    if (createPath !== null) {
+      await handleCreateCommand(createPath);
+      setContent('');
+      closeMenu();
+      const draftKey = `cw:draft:${sessionState.activeSessionId ?? 'default'}`;
+      localStorage.removeItem(draftKey);
+      if (textareaRef) {
+        textareaRef.value = '';
+        textareaRef.style.height = '80px';
+      }
+      return;
+    }
+
     const runMatch = finalText.match(/^\/run\s+(.+)$/);
     if (runMatch) {
       const requested = runMatch[1].trim();
@@ -557,6 +577,55 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     if (textareaRef) {
       textareaRef.value = '';
       textareaRef.style.height = '80px';
+    }
+  }
+
+  async function handleCreateCommand(rawPath: string): Promise<void> {
+    const relativePath = rawPath.trim();
+    if (!relativePath) {
+      addToast(t('slashCreate.noPath'), 'warning');
+      return;
+    }
+
+    const projectId = projectState.activeProjectId;
+    if (!projectId) {
+      addToast(t('commandPalette.noProject'), 'warning');
+      return;
+    }
+
+    try {
+      await invoke('create_file', {
+        project_id: projectId,
+        relative_path: relativePath,
+        content: '',
+      });
+
+      const fileName = relativePath.split('/').pop() ?? relativePath;
+      const extensionIndex = fileName.lastIndexOf('.');
+      const extension =
+        extensionIndex > 0 && extensionIndex < fileName.length - 1
+          ? fileName.slice(extensionIndex + 1).toLowerCase()
+          : null;
+
+      addFileReference(
+        {
+          relative_path: relativePath,
+          name: fileName,
+          extension,
+          estimated_tokens: 0,
+          is_directory: false,
+        },
+        'mention',
+      );
+      addToast(t('slashCreate.success', { path: relativePath }), 'success');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const lower = message.toLowerCase();
+      if (lower.includes('already exists')) {
+        addToast(t('slashCreate.alreadyExists', { path: relativePath }), 'warning');
+        return;
+      }
+      addToast(t('slashCreate.error', { error: message }), 'error', undefined, message);
     }
   }
 

@@ -1,7 +1,7 @@
 import type { Component } from 'solid-js';
 import { Show } from 'solid-js';
-import { File, Save, GitCompare, Maximize2, X } from 'lucide-solid';
-import { fileState, saveFileEdit } from '@/stores/fileStore';
+import { File, Save, SaveAll, GitCompare, Maximize2, X } from 'lucide-solid';
+import { fileState, saveFileAs, saveFileEdit } from '@/stores/fileStore';
 import { uiState, toggleZenMode } from '@/stores/uiStore';
 import { projectState } from '@/stores/projectStore';
 import { t } from '@/stores/i18nStore';
@@ -42,6 +42,16 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
     if (projectId && path) {
       await saveFileEdit(projectId, path);
     }
+  }
+
+  function handleSaveAs() {
+    const projectId = projectState.activeProjectId;
+    const currentPath = fileState.editingFilePath;
+    if (!projectId || !currentPath) return;
+    const requestedPath = window.prompt(t('editor.saveAsPrompt'), currentPath);
+    const nextPath = requestedPath?.trim();
+    if (!nextPath || nextPath === currentPath) return;
+    void saveFileAs(projectId, nextPath);
   }
 
   return (
@@ -96,6 +106,21 @@ const EditorToolbar: Component<EditorToolbarProps> = (props) => {
         >
           <Save size={12} />
           {t('editor.save')}
+        </button>
+
+        <button
+          class="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors"
+          style={{
+            color: 'var(--color-text-secondary)',
+            background: 'transparent',
+            border: '1px solid var(--color-border-secondary)',
+            'transition-duration': 'var(--duration-fast)',
+          }}
+          onClick={handleSaveAs}
+          title="Save As (⌘⇧S)"
+        >
+          <SaveAll size={12} />
+          {t('editor.saveAs')}
         </button>
 
         <button
