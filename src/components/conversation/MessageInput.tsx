@@ -16,9 +16,11 @@ import type {
   FileBundleSuggestion,
   PromptImageInput,
   ImageAttachment,
+  PreviewType,
   SymbolSearchResult,
 } from '@/lib/types';
 import {
+  canAddToPrompt as canAddByPreviewType,
   SUPPORTED_IMAGE_MIMES,
   SUPPORTED_TEXT_EXTENSIONS,
   SUPPORTED_TEXT_MIMES,
@@ -593,9 +595,11 @@ const MessageInput: Component<MessageInputProps> = (props) => {
         size_bytes: number | null;
         node_type: string;
         is_binary: boolean;
+        preview_type?: PreviewType;
       };
 
-      if (fileData.is_binary) {
+      const previewType = fileData.preview_type ?? (fileData.is_binary ? 'binary' : 'text');
+      if (!canAddByPreviewType(previewType)) {
         addToast('Cannot attach binary files', 'warning');
         return;
       }

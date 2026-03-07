@@ -202,6 +202,10 @@
     "selectFileHint": "Select a file from the sidebar to preview",
     "noArtifacts": "No code blocks found in this session yet."
   },
+  "filePreview": {
+    "openExternally": "Open externally",
+    "imageLoadError": "Could not load image preview"
+  },
   "editor": {
     "openInEditor": "Open in Editor",
     "preview": "Preview",
