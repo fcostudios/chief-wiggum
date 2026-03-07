@@ -59,7 +59,8 @@ describe('slashStore', () => {
 
   it('loadCommands fetches from backend', async () => {
     await mod.loadCommands();
-    expect(mod.slashState.commands).toHaveLength(4);
+    expect(mod.slashState.commands).toHaveLength(5);
+    expect(mod.slashState.commands.some((cmd) => cmd.name === 'create')).toBe(true);
     expect(mod.slashState.loadError).toBeNull();
   });
 
@@ -69,6 +70,8 @@ describe('slashStore', () => {
     });
     await mod.loadCommands();
     expect(mod.slashState.loadError).toBe('Failed to load slash commands');
+    expect(mod.slashState.commands).toHaveLength(1);
+    expect(mod.slashState.commands[0]?.name).toBe('create');
   });
 
   it('openMenu sets isOpen and resets highlight', () => {
@@ -97,7 +100,7 @@ describe('slashStore', () => {
   it('filteredCommands returns all when no filter', async () => {
     await mod.loadCommands();
     mod.setFilter('');
-    expect(mod.filteredCommands()).toHaveLength(4);
+    expect(mod.filteredCommands()).toHaveLength(5);
   });
 
   it('filteredCommands filters by name substring', async () => {

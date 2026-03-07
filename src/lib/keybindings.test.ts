@@ -44,7 +44,21 @@ const mocks = vi.hoisted(() => {
       copyDebugInfo: vi.fn(() => Promise.resolve('debug info')),
     },
     fileStore: {
+      fileState: {
+        selectedPath: null as string | null,
+        editingFilePath: null as string | null,
+        editorTakeoverActive: false,
+      },
+      startCreating: vi.fn(),
+      saveFileAs: vi.fn(),
+      openEditorTakeover: vi.fn(() => Promise.resolve()),
+      closeEditorTakeover: vi.fn(),
       toggleShowIgnoredFiles: vi.fn(),
+    },
+    project: {
+      projectState: {
+        activeProjectId: null as string | null,
+      },
     },
     toast: {
       addToast: vi.fn(),
@@ -82,6 +96,10 @@ vi.mock('@/stores/fileStore', () => ({
   ...mocks.fileStore,
 }));
 
+vi.mock('@/stores/projectStore', () => ({
+  projectState: mocks.project.projectState,
+}));
+
 vi.mock('@/stores/toastStore', () => ({
   ...mocks.toast,
 }));
@@ -117,6 +135,10 @@ describe('keybindings', () => {
     mocks.conversationState.processStatus = 'not_started';
     mocks.conversationState.isStreaming = false;
     mocks.actions.getRunningActionIds.mockReturnValue([]);
+    mocks.project.projectState.activeProjectId = null;
+    mocks.fileStore.fileState.selectedPath = null;
+    mocks.fileStore.fileState.editingFilePath = null;
+    mocks.fileStore.fileState.editorTakeoverActive = false;
   });
 
   it('Cmd+K toggles command palette', () => {
@@ -172,6 +194,40 @@ describe('keybindings', () => {
   it('Cmd+Shift+A opens Actions Center', () => {
     handleGlobalKeyDown(createKeyEvent('KeyA', { shiftKey: true }));
     expect(mocks.ui.setActiveView).toHaveBeenCalledWith('actions_center');
+  });
+
+  it('Cmd+N starts creating a file when a project is active', () => {
+    mocks.project.projectState.activeProjectId = 'proj-1';
+    mocks.fileStore.fileState.selectedPath = 'src/app.ts';
+    handleGlobalKeyDown(createKeyEvent('KeyN'));
+    expect(mocks.fileStore.startCreating).toHaveBeenCalledWith('src', 'file');
+  });
+
+  it('Cmd+Shift+N starts creating a folder when a project is active', () => {
+    mocks.project.projectState.activeProjectId = 'proj-1';
+    mocks.fileStore.fileState.selectedPath = 'src';
+    handleGlobalKeyDown(createKeyEvent('KeyN', { shiftKey: true }));
+    expect(mocks.fileStore.startCreating).toHaveBeenCalledWith('src', 'folder');
+  });
+
+  it('Cmd+Shift+S triggers Save As when editor takeover is active', () => {
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('src/new.ts');
+    mocks.project.projectState.activeProjectId = 'proj-1';
+    mocks.fileStore.fileState.editorTakeoverActive = true;
+    mocks.fileStore.fileState.editingFilePath = 'src/current.ts';
+
+    handleGlobalKeyDown(createKeyEvent('KeyS', { shiftKey: true }));
+
+    expect(promptSpy).toHaveBeenCalledWith('Save As — enter new file path:', 'src/current.ts');
+    expect(mocks.fileStore.saveFileAs).toHaveBeenCalledWith('proj-1', 'src/new.ts');
+    promptSpy.mockRestore();
+  });
+
+  it('Cmd+N does not intercept when no project is active', () => {
+    const event = createKeyEvent('KeyN');
+    handleGlobalKeyDown(event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(mocks.fileStore.startCreating).not.toHaveBeenCalled();
   });
 
   it('Cmd+M cycles model', () => {

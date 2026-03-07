@@ -212,10 +212,14 @@
     "copyPath": "Copy Path",
     "addToContext": "+ Context",
     "save": "Save",
+    "saveAs": "Save As",
     "saving": "Saving...",
     "saved": "Saved",
+    "savedAs": "Saved as {{ path }}",
     "unsaved": "Unsaved",
     "saveFailed": "Save failed",
+    "saveAsFailed": "Save As failed",
+    "saveAsPrompt": "Save As — enter new file path:",
     "diff": "Diff",
     "zen": "Zen",
     "close": "Close",
@@ -235,6 +239,16 @@
     "modified": "Modified",
     "size": "Size",
     "lines": "lines"
+  },
+  "commandPalette": {
+    "noProject": "Open a project first",
+    "noFileSelected": "No file selected — select a file in the explorer first"
+  },
+  "slashCreate": {
+    "noPath": "/create requires a file path, e.g. /create src/utils/helper.ts",
+    "success": "Created {{ path }} and added to prompt",
+    "alreadyExists": "{{ path }} already exists. Did you mean to @-mention it?",
+    "error": "Failed to create file: {{ error }}"
   },
   "help": {
     "menuLabel": "Help",

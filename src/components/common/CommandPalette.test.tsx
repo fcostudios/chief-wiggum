@@ -36,6 +36,22 @@ const mocks = vi.hoisted(() => ({
     stopAction: vi.fn(() => Promise.resolve()),
     restartAction: vi.fn(() => Promise.resolve()),
   },
+  files: {
+    fileState: {
+      selectedPath: null as string | null,
+      previewContent: null as { relative_path: string } | null,
+      editingFilePath: null as string | null,
+    },
+    openEditorTakeover: vi.fn(() => Promise.resolve()),
+    createFileInProject: vi.fn(() => Promise.resolve()),
+    createDirectoryInProject: vi.fn(() => Promise.resolve()),
+    deleteFileInProject: vi.fn(() => Promise.resolve()),
+    renameFileInProject: vi.fn(() => Promise.resolve()),
+    duplicateFileInProject: vi.fn(() => Promise.resolve()),
+  },
+  toast: {
+    addToast: vi.fn(),
+  },
   recent: {
     getRecentCommands: vi.fn<() => RecentCommand[]>(() => []),
     recordCommand: vi.fn(),
@@ -65,6 +81,18 @@ vi.mock('@/stores/actionStore', () => ({
   stopAction: mocks.actions.stopAction,
   restartAction: mocks.actions.restartAction,
 }));
+vi.mock('@/stores/fileStore', () => ({
+  fileState: mocks.files.fileState,
+  openEditorTakeover: mocks.files.openEditorTakeover,
+  createFileInProject: mocks.files.createFileInProject,
+  createDirectoryInProject: mocks.files.createDirectoryInProject,
+  deleteFileInProject: mocks.files.deleteFileInProject,
+  renameFileInProject: mocks.files.renameFileInProject,
+  duplicateFileInProject: mocks.files.duplicateFileInProject,
+}));
+vi.mock('@/stores/toastStore', () => ({
+  addToast: mocks.toast.addToast,
+}));
 vi.mock('@/stores/recentCommandStore', () => ({
   getRecentCommands: mocks.recent.getRecentCommands,
   recordCommand: mocks.recent.recordCommand,
@@ -75,6 +103,9 @@ describe('CommandPalette', () => {
     vi.clearAllMocks();
     mocks.project.projectState.activeProjectId = null;
     mocks.actions.actionState.actions = [];
+    mocks.files.fileState.selectedPath = null;
+    mocks.files.fileState.previewContent = null;
+    mocks.files.fileState.editingFilePath = null;
     mocks.recent.getRecentCommands.mockReturnValue([]);
   });
 
@@ -87,6 +118,7 @@ describe('CommandPalette', () => {
     render(() => <CommandPalette />);
     expect(screen.getByText('Views')).toBeInTheDocument();
     expect(screen.getByText('Panels')).toBeInTheDocument();
+    expect(screen.getByText('File')).toBeInTheDocument();
     expect(screen.getByText('Session')).toBeInTheDocument();
   });
 
@@ -144,5 +176,26 @@ describe('CommandPalette', () => {
     fireEvent.click(screen.getAllByText('Go to Terminal')[0]!);
     expect(mocks.ui.setActiveView).toHaveBeenCalledWith('terminal');
     expect(mocks.recent.recordCommand).toHaveBeenCalled();
+  });
+
+  it('enters file path input mode from Create File command', async () => {
+    mocks.project.projectState.activeProjectId = 'proj-1';
+    render(() => <CommandPalette />);
+
+    fireEvent.click(screen.getByText('Create File'));
+
+    expect(screen.getByPlaceholderText('path/to/new-file.ts')).toBeInTheDocument();
+  });
+
+  it('shows no file selected toast for rename without selection', () => {
+    mocks.project.projectState.activeProjectId = 'proj-1';
+    render(() => <CommandPalette />);
+
+    fireEvent.click(screen.getByText('Rename File'));
+
+    expect(mocks.toast.addToast).toHaveBeenCalledWith(
+      'No file selected — select a file in the explorer first',
+      'info',
+    );
   });
 });

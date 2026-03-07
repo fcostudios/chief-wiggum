@@ -20,6 +20,10 @@ import {
   Download,
   Pencil,
   Clock,
+  FilePlus,
+  FolderPlus,
+  Trash2,
+  Copy,
 } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import {
@@ -47,7 +51,15 @@ import {
 } from '@/stores/actionStore';
 import type { ActionDefinition } from '@/lib/types';
 import { addToast } from '@/stores/toastStore';
-import { fileState, openEditorTakeover } from '@/stores/fileStore';
+import {
+  fileState,
+  openEditorTakeover,
+  createFileInProject,
+  createDirectoryInProject,
+  deleteFileInProject,
+  duplicateFileInProject,
+  renameFileInProject,
+} from '@/stores/fileStore';
 import { getRecentCommands, recordCommand } from '@/stores/recentCommandStore';
 import {
   buildExportFilename,
@@ -86,14 +98,66 @@ interface CommandPaletteProps {
 const CommandPalette: Component<CommandPaletteProps> = (props) => {
   const [query, setQuery] = createSignal('');
   const [selectedIndex, setSelectedIndex] = createSignal(0);
+  const [pathInputMode, setPathInputMode] = createSignal<'file' | 'folder' | null>(null);
+  const [pathInputValue, setPathInputValue] = createSignal('');
   let inputRef: HTMLInputElement | undefined;
+  let pathInputRef: HTMLInputElement | undefined;
 
   const mode = () => props.mode ?? 'all';
 
   const handleClose = () => {
+    setPathInputMode(null);
+    setPathInputValue('');
     if (props.onClose) props.onClose();
     else closeCommandPalette();
   };
+
+  function isSelectedPathFile(path: string): boolean {
+    if (!path) return false;
+    if (fileState.previewContent?.relative_path === path) return true;
+    return path.includes('.');
+  }
+
+  function selectedFolderPath(): string {
+    const path = fileState.selectedPath;
+    if (!path) return '';
+    if (isSelectedPathFile(path)) {
+      return path.split('/').slice(0, -1).join('/');
+    }
+    return path;
+  }
+
+  function selectedPathOrToast(): string | null {
+    const path = fileState.selectedPath;
+    if (!path) {
+      addToast(t('commandPalette.noFileSelected'), 'info');
+      return null;
+    }
+    return path;
+  }
+
+  function activeProjectIdOrToast(): string | null {
+    const pid = projectState.activeProjectId;
+    if (!pid) {
+      addToast(t('commandPalette.noProject'), 'info');
+      return null;
+    }
+    return pid;
+  }
+
+  async function submitPathInput(): Promise<void> {
+    const mode = pathInputMode();
+    const raw = pathInputValue().trim();
+    const pid = projectState.activeProjectId;
+    if (!mode || !pid || !raw) return;
+
+    if (mode === 'folder') {
+      await createDirectoryInProject(pid, raw.replace(/\/+$/, ''));
+    } else {
+      await createFileInProject(pid, raw.replace(/\/+$/, ''));
+    }
+    handleClose();
+  }
 
   async function exportConversation(format: ExportFormat): Promise<void> {
     const sessionId = sessionState.activeSessionId;
@@ -206,6 +270,88 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
         } else {
           addToast('No file selected — select a file first', 'info');
         }
+      },
+    },
+    {
+      id: 'create-file',
+      label: 'Create File',
+      category: 'File',
+      shortcut: '\u2318 N',
+      icon: () => <FilePlus size={16} />,
+      action: () => {
+        const pid = activeProjectIdOrToast();
+        if (!pid) return;
+        const folder = selectedFolderPath();
+        setPathInputMode('file');
+        setPathInputValue(folder ? `${folder}/` : '');
+      },
+    },
+    {
+      id: 'create-folder',
+      label: 'Create Folder',
+      category: 'File',
+      shortcut: '\u2318\u21E7 N',
+      icon: () => <FolderPlus size={16} />,
+      action: () => {
+        const pid = activeProjectIdOrToast();
+        if (!pid) return;
+        const folder = selectedFolderPath();
+        setPathInputMode('folder');
+        setPathInputValue(folder ? `${folder}/` : '');
+      },
+    },
+    {
+      id: 'rename-file',
+      label: 'Rename File',
+      category: 'File',
+      shortcut: 'F2',
+      icon: () => <Pencil size={16} />,
+      action: () => {
+        const pid = activeProjectIdOrToast();
+        const oldPath = selectedPathOrToast();
+        if (!pid || !oldPath) return;
+
+        const oldName = oldPath.split('/').pop() ?? oldPath;
+        const requestedName = window.prompt(t('files.rename'), oldName);
+        if (!requestedName) return;
+        const nextName = requestedName.trim();
+        if (!nextName || nextName === oldName) return;
+
+        const parent = oldPath.split('/').slice(0, -1).join('/');
+        const newPath = parent ? `${parent}/${nextName}` : nextName;
+        void renameFileInProject(pid, oldPath, newPath);
+      },
+    },
+    {
+      id: 'delete-file',
+      label: 'Delete File',
+      category: 'File',
+      shortcut: 'Del',
+      icon: () => <Trash2 size={16} />,
+      action: () => {
+        const pid = activeProjectIdOrToast();
+        const path = selectedPathOrToast();
+        if (!pid || !path) return;
+
+        const name = path.split('/').pop() ?? path;
+        const message = isSelectedPathFile(path)
+          ? t('files.deleteConfirm', { name })
+          : t('files.deleteConfirmDir', { name });
+        if (window.confirm(message)) {
+          void deleteFileInProject(pid, path);
+        }
+      },
+    },
+    {
+      id: 'duplicate-file',
+      label: 'Duplicate File',
+      category: 'File',
+      icon: () => <Copy size={16} />,
+      action: () => {
+        const pid = activeProjectIdOrToast();
+        const path = selectedPathOrToast();
+        if (!pid || !path) return;
+        void duplicateFileInProject(pid, path);
       },
     },
 
@@ -402,9 +548,11 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
 
   // Execute a command and close the palette
   function executeCommand(cmd: Command) {
-    handleClose();
     recordCommand(cmd.id, cmd.label, cmd.shortcut);
     cmd.action();
+    if (!pathInputMode()) {
+      handleClose();
+    }
   }
 
   // Execute the currently selected command
@@ -418,6 +566,17 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
 
   // Keyboard navigation handler (on document, not the container div)
   function handleKeyDown(e: KeyboardEvent) {
+    if (pathInputMode()) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        setPathInputMode(null);
+        setPathInputValue('');
+        setTimeout(() => inputRef?.focus(), 0);
+      }
+      return;
+    }
+
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
@@ -490,47 +649,105 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
         }}
       >
         {/* Search input */}
-        <div
-          class="flex items-center gap-2 px-3 py-2.5 shrink-0"
-          style={{ 'border-bottom': '1px solid var(--color-border-primary)' }}
+        <Show
+          when={!pathInputMode()}
+          fallback={
+            <div
+              class="flex items-center gap-2 px-3 py-2.5 shrink-0"
+              style={{ 'border-bottom': '1px solid var(--color-border-primary)' }}
+            >
+              <Show when={pathInputMode() === 'folder'} fallback={<FilePlus size={16} />}>
+                <FolderPlus size={16} />
+              </Show>
+              <input
+                ref={(el) => {
+                  pathInputRef = el;
+                  setTimeout(() => pathInputRef?.focus(), 0);
+                }}
+                type="text"
+                placeholder={
+                  pathInputMode() === 'folder' ? 'path/to/new-folder' : 'path/to/new-file.ts'
+                }
+                class="flex-1 bg-transparent text-sm outline-none font-mono"
+                style={{
+                  color: 'var(--color-text-primary)',
+                  'font-family': 'var(--font-mono)',
+                  'font-size': 'var(--text-base)',
+                  'line-height': 'var(--text-base--line-height)',
+                }}
+                value={pathInputValue()}
+                onInput={(e) => setPathInputValue(e.currentTarget.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void submitPathInput();
+                    return;
+                  }
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    setPathInputMode(null);
+                    setPathInputValue('');
+                    setTimeout(() => inputRef?.focus(), 0);
+                  }
+                }}
+              />
+              <kbd
+                class="text-xs px-1.5 py-0.5 rounded shrink-0"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  'background-color': 'var(--color-bg-elevated)',
+                  border: '1px solid var(--color-border-primary)',
+                  'font-family': 'var(--font-ui)',
+                  'font-size': 'var(--text-xs)',
+                }}
+              >
+                enter
+              </kbd>
+            </div>
+          }
         >
-          <Search size={16} style={{ color: 'var(--color-text-tertiary)', 'flex-shrink': '0' }} />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder={
-              mode() === 'sessions'
-                ? 'Switch to session...'
-                : mode() === 'actions'
-                  ? 'Run, stop, or restart actions...'
-                  : 'Type a command...'
-            }
-            class="flex-1 bg-transparent text-sm outline-none"
-            style={{
-              color: 'var(--color-text-primary)',
-              'font-family': 'var(--font-ui)',
-              'font-size': 'var(--text-base)',
-              'line-height': 'var(--text-base--line-height)',
-            }}
-            value={query()}
-            onInput={(e) => {
-              setQuery(e.currentTarget.value);
-              resetSelection();
-            }}
-          />
-          <kbd
-            class="text-xs px-1.5 py-0.5 rounded shrink-0"
-            style={{
-              color: 'var(--color-text-tertiary)',
-              'background-color': 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border-primary)',
-              'font-family': 'var(--font-ui)',
-              'font-size': 'var(--text-xs)',
-            }}
+          <div
+            class="flex items-center gap-2 px-3 py-2.5 shrink-0"
+            style={{ 'border-bottom': '1px solid var(--color-border-primary)' }}
           >
-            esc
-          </kbd>
-        </div>
+            <Search size={16} style={{ color: 'var(--color-text-tertiary)', 'flex-shrink': '0' }} />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder={
+                mode() === 'sessions'
+                  ? 'Switch to session...'
+                  : mode() === 'actions'
+                    ? 'Run, stop, or restart actions...'
+                    : 'Type a command...'
+              }
+              class="flex-1 bg-transparent text-sm outline-none"
+              style={{
+                color: 'var(--color-text-primary)',
+                'font-family': 'var(--font-ui)',
+                'font-size': 'var(--text-base)',
+                'line-height': 'var(--text-base--line-height)',
+              }}
+              value={query()}
+              onInput={(e) => {
+                setQuery(e.currentTarget.value);
+                resetSelection();
+              }}
+            />
+            <kbd
+              class="text-xs px-1.5 py-0.5 rounded shrink-0"
+              style={{
+                color: 'var(--color-text-tertiary)',
+                'background-color': 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-primary)',
+                'font-family': 'var(--font-ui)',
+                'font-size': 'var(--text-xs)',
+              }}
+            >
+              esc
+            </kbd>
+          </div>
+        </Show>
 
         {/* Command list */}
         <div class="overflow-y-auto flex-1 py-1">

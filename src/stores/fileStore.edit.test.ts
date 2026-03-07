@@ -84,4 +84,50 @@ describe('fileStore editing state (CHI-217)', () => {
       expect.stringContaining('disk full'),
     );
   });
+
+  it('saveFileAs creates new file and switches editor path', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(1234);
+    const { enterEditMode, setEditBuffer, saveFileAs, fileState } =
+      await import('@/stores/fileStore');
+    await enterEditMode('original', 'src/current.ts');
+    setEditBuffer('updated content');
+
+    await saveFileAs('proj-1', 'src/new.ts');
+
+    expect(invoke).toHaveBeenCalledWith('create_file', {
+      project_id: 'proj-1',
+      relative_path: 'src/new.ts',
+      content: 'updated content',
+    });
+    expect(invoke).toHaveBeenCalledWith('get_file_mtime', {
+      project_id: 'proj-1',
+      relative_path: 'src/new.ts',
+    });
+    expect(fileState.editingFilePath).toBe('src/new.ts');
+    expect(fileState.selectedPath).toBe('src/new.ts');
+    expect(fileState.isDirty).toBe(false);
+    expect(fileState.saveStatus).toBe('saved');
+    expect(addToast).toHaveBeenCalledWith('Saved as src/new.ts', 'success');
+  });
+
+  it('saveFileAs sets saveStatus=error on IPC failure', async () => {
+    vi.mocked(invoke).mockRejectedValueOnce(new Error('already exists'));
+    const { enterEditMode, setEditBuffer, saveFileAs, fileState } =
+      await import('@/stores/fileStore');
+    await enterEditMode('original', 'src/current.ts');
+    setEditBuffer('updated content');
+
+    await saveFileAs('proj-1', 'src/new.ts');
+
+    expect(fileState.saveStatus).toBe('error');
+    expect(addToast).toHaveBeenCalledWith(
+      'Save As failed',
+      'error',
+      undefined,
+      expect.stringContaining('already exists'),
+    );
+  });
 });
