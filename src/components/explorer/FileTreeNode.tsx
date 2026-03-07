@@ -4,7 +4,18 @@
 
 import type { Component } from 'solid-js';
 import { Show, For, createSignal, onCleanup } from 'solid-js';
-import { ChevronRight, File, Folder, FolderOpen, Copy, Plus, Pencil } from 'lucide-solid';
+import {
+  ChevronRight,
+  File,
+  Folder,
+  FolderOpen,
+  Copy,
+  Plus,
+  Pencil,
+  FilePlus,
+  FolderPlus,
+  Trash2,
+} from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type { FileNode, FileContent, FileBundleSuggestion } from '@/lib/types';
 import {
@@ -15,11 +26,21 @@ import {
   selectFile,
   openEditorTakeover,
   getGitStatus,
+  startCreating,
+  setRenamingPath,
+  createFileInProject,
+  createDirectoryInProject,
+  renameFileInProject,
+  duplicateFileInProject,
+  deleteFileInProject,
+  cancelCreating,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { addFileBundle, addFileReference } from '@/stores/contextStore';
 import { addToast } from '@/stores/toastStore';
+import { t } from '@/stores/i18nStore';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
+import InlineFileInput from './InlineFileInput';
 
 interface FileTreeNodeProps {
   node: FileNode;
@@ -161,6 +182,25 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         onClick: () => void openEditorTakeover(props.node.relative_path),
         disabled: isDir() || props.node.is_binary,
       },
+      { separator: true, label: 'separator-create' },
+      {
+        label: t('files.newFile'),
+        icon: FilePlus,
+        onClick: () =>
+          startCreating(
+            isDir() ? props.node.relative_path : props.node.relative_path.split('/').slice(0, -1).join('/'),
+            'file',
+          ),
+      },
+      {
+        label: t('files.newFolder'),
+        icon: FolderPlus,
+        onClick: () =>
+          startCreating(
+            isDir() ? props.node.relative_path : props.node.relative_path.split('/').slice(0, -1).join('/'),
+            'folder',
+          ),
+      },
       { separator: true, label: 'separator' },
       {
         label: 'Add to prompt',
@@ -169,6 +209,52 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           void handleAddToPrompt();
         },
         disabled: isDir() || props.node.is_binary,
+      },
+      { separator: true, label: 'separator-manage' },
+      {
+        label: t('files.rename'),
+        icon: Pencil,
+        onClick: () => {
+          const pid = projectId();
+          if (!pid) return;
+          setRenamingPath(props.node.relative_path);
+          const baseName = props.node.name;
+          const nextName = window.prompt(t('files.rename'), baseName);
+          if (!nextName || nextName.trim() === '' || nextName.trim() === baseName) {
+            setRenamingPath(null);
+            return;
+          }
+          const parent = props.node.relative_path.split('/').slice(0, -1).join('/');
+          const nextPath = parent ? `${parent}/${nextName.trim()}` : nextName.trim();
+          void renameFileInProject(pid, props.node.relative_path, nextPath).finally(() =>
+            setRenamingPath(null),
+          );
+        },
+      },
+      {
+        label: t('files.duplicate'),
+        icon: Copy,
+        onClick: () => {
+          const pid = projectId();
+          if (!pid) return;
+          void duplicateFileInProject(pid, props.node.relative_path);
+        },
+        disabled: isDir(),
+      },
+      {
+        label: t('files.delete'),
+        icon: Trash2,
+        danger: true,
+        onClick: () => {
+          const pid = projectId();
+          if (!pid) return;
+          const message = isDir()
+            ? t('files.deleteConfirmDir', { name: props.node.name })
+            : t('files.deleteConfirm', { name: props.node.name });
+          if (window.confirm(message)) {
+            void deleteFileInProject(pid, props.node.relative_path);
+          }
+        },
       },
     ];
 
@@ -439,6 +525,32 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
       {/* Recursive children */}
       <Show when={isDir() && expanded()}>
         <div role="group">
+          <Show
+            when={
+              fileState.creatingInFolder === props.node.relative_path &&
+              fileState.creatingType &&
+              isDir()
+            }
+          >
+            <InlineFileInput
+              parentPath={props.node.relative_path}
+              type={fileState.creatingType!}
+              depth={props.depth + 1}
+              onConfirm={(name) => {
+                const pid = projectId();
+                if (!pid) return;
+                const fullPath = props.node.relative_path
+                  ? `${props.node.relative_path}/${name}`
+                  : name;
+                if (fileState.creatingType === 'folder') {
+                  void createDirectoryInProject(pid, fullPath);
+                } else {
+                  void createFileInProject(pid, fullPath);
+                }
+              }}
+              onCancel={cancelCreating}
+            />
+          </Show>
           <For each={children()}>
             {(child) => <FileTreeNode node={child} depth={props.depth + 1} />}
           </For>
