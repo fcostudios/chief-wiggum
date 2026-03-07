@@ -10,6 +10,7 @@ import type { FileNode, FileContent, FileSearchResult, GitFileStatus } from '@/l
 import { projectState } from '@/stores/projectStore';
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
+import { t } from '@/stores/i18nStore';
 
 const log = createLogger('ui/files');
 const SHOW_IGNORED_KEY_PREFIX = 'cw:showIgnoredFiles:';
@@ -67,6 +68,12 @@ interface FileState {
   selectedRange: { start: number; end: number } | null;
   /** Attachment currently being edited from ContextChip click, if any. */
   editingAttachmentId: string | null;
+  /** Parent folder currently receiving an inline create input. Empty string means root. */
+  creatingInFolder: string | null;
+  /** Whether inline create target is a file or folder. */
+  creatingType: 'file' | 'folder' | null;
+  /** Relative path currently being renamed. */
+  renamingPath: string | null;
   // ── Inline editing (CHI-217) ──────────────────────
   /** Whether the file is currently open in the inline editor. */
   isEditing: boolean;
@@ -112,6 +119,9 @@ const [state, setState] = createStore<FileState>({
   showIgnoredFiles: false,
   selectedRange: null,
   editingAttachmentId: null,
+  creatingInFolder: null,
+  creatingType: null,
+  renamingPath: null,
   isEditing: false,
   isDirty: false,
   saveStatus: 'idle',
@@ -354,6 +364,162 @@ export async function loadDirectoryChildren(
   }
 }
 
+function addExpandedPath(path: string): void {
+  if (!path) return;
+  if (state.expandedPaths.includes(path)) return;
+  setState('expandedPaths', (prev) => [...prev, path]);
+}
+
+function mapFileOpError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('File already exists')) return t('files.alreadyExists');
+  if (message.includes('Path traversal attempt')) return t('files.outsideProject');
+  if (message.includes('reserved name')) return t('files.reservedName');
+  if (message.includes('Invalid filename') || message.includes('invalid characters')) {
+    return t('files.invalidChar');
+  }
+  return message;
+}
+
+async function refreshParentDirectory(projectId: string, relativePath: string): Promise<void> {
+  const parentPath = relativePath.split('/').slice(0, -1).join('/');
+  if (parentPath) {
+    await loadDirectoryChildren(projectId, parentPath);
+    return;
+  }
+  await loadRootFiles(projectId);
+}
+
+/** Start inline creation in a folder path (empty string for root). */
+export function startCreating(folderPath: string, type: 'file' | 'folder'): void {
+  setState({
+    creatingInFolder: folderPath,
+    creatingType: type,
+    renamingPath: null,
+  });
+  addExpandedPath(folderPath);
+}
+
+/** Cancel any inline creation state. */
+export function cancelCreating(): void {
+  setState({
+    creatingInFolder: null,
+    creatingType: null,
+  });
+}
+
+/** Set/clear current inline rename target. */
+export function setRenamingPath(path: string | null): void {
+  setState('renamingPath', path);
+}
+
+/** Create a file via IPC and refresh explorer tree. */
+export async function createFileInProject(
+  projectId: string,
+  relativePath: string,
+  content = '',
+): Promise<void> {
+  try {
+    const node = await invoke<FileNode>('create_file', {
+      project_id: projectId,
+      relative_path: relativePath,
+      content,
+    });
+    await refreshParentDirectory(projectId, relativePath);
+    cancelCreating();
+    await selectFile(projectId, relativePath);
+    await openEditorTakeover(relativePath);
+    addToast(t('files.created', { name: node.name }), 'success');
+  } catch (err) {
+    addToast(mapFileOpError(err), 'error', undefined, String(err));
+  }
+}
+
+/** Create a folder via IPC and refresh explorer tree. */
+export async function createDirectoryInProject(
+  projectId: string,
+  relativePath: string,
+): Promise<void> {
+  try {
+    const node = await invoke<FileNode>('create_directory', {
+      project_id: projectId,
+      relative_path: relativePath,
+    });
+    await refreshParentDirectory(projectId, relativePath);
+    cancelCreating();
+    addExpandedPath(relativePath);
+    addToast(t('files.folderCreated', { name: node.name }), 'success');
+  } catch (err) {
+    addToast(mapFileOpError(err), 'error', undefined, String(err));
+  }
+}
+
+/** Delete a file/folder via IPC (trash by default) and refresh tree. */
+export async function deleteFileInProject(projectId: string, relativePath: string): Promise<void> {
+  try {
+    await invoke('delete_file', {
+      project_id: projectId,
+      relative_path: relativePath,
+      use_trash: true,
+    });
+    await refreshParentDirectory(projectId, relativePath);
+    if (state.selectedPath === relativePath) {
+      setState('selectedPath', null);
+      setState('previewContent', null);
+    }
+    addToast(t('files.deleted', { name: relativePath.split('/').pop() ?? relativePath }), 'success');
+  } catch (err) {
+    addToast(mapFileOpError(err), 'error', undefined, String(err));
+  }
+}
+
+/** Rename/move a file/folder via IPC and refresh impacted directories. */
+export async function renameFileInProject(
+  projectId: string,
+  oldPath: string,
+  newPath: string,
+): Promise<void> {
+  try {
+    const node = await invoke<FileNode>('rename_file', {
+      project_id: projectId,
+      old_relative_path: oldPath,
+      new_relative_path: newPath,
+    });
+    const oldParent = oldPath.split('/').slice(0, -1).join('/');
+    const newParent = newPath.split('/').slice(0, -1).join('/');
+    if (oldParent) await loadDirectoryChildren(projectId, oldParent);
+    else await loadRootFiles(projectId);
+    if (newParent && newParent !== oldParent) await loadDirectoryChildren(projectId, newParent);
+
+    setState('renamingPath', null);
+    if (state.selectedPath === oldPath || node.node_type === 'File') {
+      await selectFile(projectId, newPath);
+    }
+    addToast(t('files.renamed', { name: node.name }), 'success');
+  } catch (err) {
+    addToast(mapFileOpError(err), 'error', undefined, String(err));
+  }
+}
+
+/** Duplicate a file via IPC and refresh parent directory. */
+export async function duplicateFileInProject(
+  projectId: string,
+  relativePath: string,
+): Promise<void> {
+  try {
+    const node = await invoke<FileNode>('duplicate_file', {
+      project_id: projectId,
+      relative_path: relativePath,
+    });
+    await refreshParentDirectory(projectId, relativePath);
+    await selectFile(projectId, node.relative_path);
+    await openEditorTakeover(node.relative_path);
+    addToast(t('files.duplicated', { name: node.name }), 'success');
+  } catch (err) {
+    addToast(mapFileOpError(err), 'error', undefined, String(err));
+  }
+}
+
 /** Toggle a directory expanded/collapsed. Loads children on first expand. */
 export async function toggleFolder(projectId: string, relativePath: string): Promise<void> {
   const isExpanded = state.expandedPaths.includes(relativePath);
@@ -532,6 +698,9 @@ export function clearFileState(): void {
     showIgnoredFiles: false,
     selectedRange: null,
     editingAttachmentId: null,
+    creatingInFolder: null,
+    creatingType: null,
+    renamingPath: null,
     isEditing: false,
     isDirty: false,
     saveStatus: 'idle',
