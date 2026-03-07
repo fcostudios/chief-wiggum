@@ -138,6 +138,7 @@ fn main() {
             chief_wiggum_lib::commands::slash::refresh_slash_commands,
             chief_wiggum_lib::commands::files::list_project_files,
             chief_wiggum_lib::commands::files::read_project_file,
+            chief_wiggum_lib::commands::files::resolve_file_path,
             chief_wiggum_lib::commands::files::get_file_mtime,
             chief_wiggum_lib::commands::files::search_project_files,
             chief_wiggum_lib::commands::files::list_symbols,

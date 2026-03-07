@@ -35,6 +35,26 @@ pub struct FileNode {
     pub is_binary: bool,
     /// Whether this file/directory is excluded by .gitignore.
     pub is_git_ignored: bool,
+    /// Preview type classification for UI rendering.
+    pub preview_type: String,
+}
+
+/// Classify file preview type from extension and binary status.
+pub fn classify_preview_type(extension: Option<&str>, is_binary: bool) -> &'static str {
+    let ext = extension.map(str::to_ascii_lowercase);
+    match ext.as_deref() {
+        Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "ico") => "image",
+        Some("svg") => "svg",
+        Some("pdf") => "pdf",
+        Some("mp3" | "wav" | "ogg" | "flac" | "aac" | "m4a") => "audio",
+        Some("mp4" | "webm" | "mov" | "avi" | "mkv") => "video",
+        Some(
+            "exe" | "dll" | "so" | "dylib" | "bin" | "o" | "obj" | "class" | "pyc" | "pyo" | "wasm"
+            | "zip" | "tar" | "gz" | "rar" | "7z" | "tgz" | "db" | "sqlite" | "sqlite3",
+        ) => "binary",
+        _ if is_binary => "binary",
+        _ => "text",
+    }
 }
 
 /// File content returned by `read_file`.
@@ -88,10 +108,12 @@ mod tests {
             children: None,
             is_binary: false,
             is_git_ignored: false,
+            preview_type: "text".to_string(),
         };
         let json = serde_json::to_string(&node).expect("should serialize");
         assert!(json.contains("\"name\":\"test.rs\""));
         assert!(json.contains("\"File\""));
+        assert!(json.contains("\"preview_type\":\"text\""));
     }
 
     #[test]
@@ -109,5 +131,60 @@ mod tests {
         };
         let json = serde_json::to_string(&content).expect("should serialize");
         assert!(json.contains("\"estimated_tokens\":3"));
+    }
+
+    #[test]
+    fn classify_preview_type_images() {
+        assert_eq!(classify_preview_type(Some("png"), false), "image");
+        assert_eq!(classify_preview_type(Some("jpg"), false), "image");
+        assert_eq!(classify_preview_type(Some("jpeg"), false), "image");
+        assert_eq!(classify_preview_type(Some("gif"), false), "image");
+        assert_eq!(classify_preview_type(Some("webp"), false), "image");
+        assert_eq!(classify_preview_type(Some("bmp"), false), "image");
+        assert_eq!(classify_preview_type(Some("ico"), false), "image");
+    }
+
+    #[test]
+    fn classify_preview_type_svg() {
+        assert_eq!(classify_preview_type(Some("svg"), false), "svg");
+        assert_eq!(classify_preview_type(Some("svg"), true), "svg");
+    }
+
+    #[test]
+    fn classify_preview_type_pdf() {
+        assert_eq!(classify_preview_type(Some("pdf"), true), "pdf");
+    }
+
+    #[test]
+    fn classify_preview_type_audio() {
+        assert_eq!(classify_preview_type(Some("mp3"), true), "audio");
+        assert_eq!(classify_preview_type(Some("wav"), true), "audio");
+        assert_eq!(classify_preview_type(Some("ogg"), true), "audio");
+        assert_eq!(classify_preview_type(Some("flac"), true), "audio");
+        assert_eq!(classify_preview_type(Some("aac"), true), "audio");
+        assert_eq!(classify_preview_type(Some("m4a"), true), "audio");
+    }
+
+    #[test]
+    fn classify_preview_type_video() {
+        assert_eq!(classify_preview_type(Some("mp4"), true), "video");
+        assert_eq!(classify_preview_type(Some("webm"), true), "video");
+        assert_eq!(classify_preview_type(Some("mov"), true), "video");
+    }
+
+    #[test]
+    fn classify_preview_type_excluded_binary() {
+        assert_eq!(classify_preview_type(Some("exe"), true), "binary");
+        assert_eq!(classify_preview_type(Some("dll"), true), "binary");
+        assert_eq!(classify_preview_type(Some("zip"), true), "binary");
+        assert_eq!(classify_preview_type(Some("db"), true), "binary");
+        assert_eq!(classify_preview_type(None, true), "binary");
+    }
+
+    #[test]
+    fn classify_preview_type_text() {
+        assert_eq!(classify_preview_type(Some("rs"), false), "text");
+        assert_eq!(classify_preview_type(Some("ts"), false), "text");
+        assert_eq!(classify_preview_type(None, false), "text");
     }
 }
