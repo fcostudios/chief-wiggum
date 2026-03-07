@@ -132,6 +132,27 @@
     "showIgnoredFilesShortcut": "Show ignored files (Cmd+Shift+I)",
     "hideIgnoredFilesShortcut": "Hide ignored files (Cmd+Shift+I)"
   },
+  "files": {
+    "newFile": "New File",
+    "newFolder": "New Folder",
+    "created": "Created {{ name }}",
+    "folderCreated": "Created folder {{ name }}",
+    "deleted": "Deleted {{ name }}",
+    "renamed": "Renamed to {{ name }}",
+    "duplicated": "Duplicated as {{ name }}",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "createFirstFile": "Create your first file",
+    "noFiles": "No files yet",
+    "willCreate": "Will create: {{ path }}",
+    "invalidChar": "Invalid character",
+    "alreadyExists": "A file with this name already exists",
+    "outsideProject": "Cannot create outside project",
+    "reservedName": "Reserved system name",
+    "deleteConfirm": "Delete \"{{ name }}\"? This moves it to the trash.",
+    "deleteConfirmDir": "Delete \"{{ name }}\" and all files inside?"
+  },
   "errors": {
     "couldNotLoadFiles": "Could not load files",
     "couldNotReadFile": "Could not read file",
