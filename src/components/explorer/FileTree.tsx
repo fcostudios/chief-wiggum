@@ -4,20 +4,26 @@
 
 import type { Component } from 'solid-js';
 import { Show, For, createEffect, createSignal, onMount } from 'solid-js';
-import { Search, Eye, EyeOff } from 'lucide-solid';
+import { Search, Eye, EyeOff, Plus, FilePlus, FolderPlus } from 'lucide-solid';
 import {
   fileState,
   loadRootFiles,
   getRootNodes,
+  getChildren,
   searchFiles,
   clearSearch,
   selectFile,
   retryLoadFiles,
   toggleShowIgnoredFiles,
+  startCreating,
+  cancelCreating,
+  createFileInProject,
+  createDirectoryInProject,
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { t } from '@/stores/i18nStore';
 import FileTreeNode from './FileTreeNode';
+import InlineFileInput from './InlineFileInput';
 
 interface FileTreeProps {
   singleScroll?: boolean;
@@ -26,6 +32,7 @@ interface FileTreeProps {
 const FileTree: Component<FileTreeProps> = (props) => {
   const projectId = () => projectState.activeProjectId;
   const [showIgnoredPulse, setShowIgnoredPulse] = createSignal(false);
+  const [createMenuOpen, setCreateMenuOpen] = createSignal(false);
   const showIgnoredHintSeenKey = 'cw:showIgnoredHintSeen';
 
   onMount(() => {
@@ -70,6 +77,34 @@ const FileTree: Component<FileTreeProps> = (props) => {
       }
     }
     toggleShowIgnoredFiles();
+  }
+
+  function findNodeByPath(path: string): ReturnType<typeof getRootNodes>[number] | null {
+    if (!path) return null;
+    const walk = (nodes: ReturnType<typeof getRootNodes>[number][]): ReturnType<typeof getRootNodes>[number] | null => {
+      for (const node of nodes) {
+        if (node.relative_path === path) return node;
+        if (node.node_type === 'Directory') {
+          const found = walk(getChildren(node.relative_path));
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return walk(getRootNodes());
+  }
+
+  function selectedFolder(): string {
+    const selected = fileState.selectedPath;
+    if (!selected) return '';
+    const node = findNodeByPath(selected);
+    if (node?.node_type === 'Directory') return selected;
+    return selected.split('/').slice(0, -1).join('/');
+  }
+
+  function triggerCreate(type: 'file' | 'folder'): void {
+    setCreateMenuOpen(false);
+    startCreating(selectedFolder(), type);
   }
 
   return (
@@ -126,6 +161,40 @@ const FileTree: Component<FileTreeProps> = (props) => {
             <Eye size={13} />
           </Show>
         </button>
+        <div class="relative shrink-0">
+          <button
+            class="p-1 rounded transition-colors text-text-tertiary hover:text-text-primary hover:bg-bg-secondary"
+            onClick={() => setCreateMenuOpen((prev) => !prev)}
+            aria-label="Create new file or folder"
+          >
+            <Plus size={13} />
+          </button>
+          <Show when={createMenuOpen()}>
+            <div
+              class="absolute right-0 top-full mt-1 z-30 w-[150px] rounded-md overflow-hidden"
+              style={{
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-primary)',
+                'box-shadow': 'var(--shadow-md)',
+              }}
+            >
+              <button
+                class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-text-primary hover:bg-bg-secondary"
+                onClick={() => triggerCreate('file')}
+              >
+                <FilePlus size={12} />
+                {t('files.newFile')}
+              </button>
+              <button
+                class="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-text-primary hover:bg-bg-secondary"
+                onClick={() => triggerCreate('folder')}
+              >
+                <FolderPlus size={12} />
+                {t('files.newFolder')}
+              </button>
+            </div>
+          </Show>
+        </div>
       </div>
 
       {/* Search results or tree */}
@@ -213,18 +282,35 @@ const FileTree: Component<FileTreeProps> = (props) => {
               </div>
             </Show>
 
-            <Show
-              when={getRootNodes().length > 0}
-              fallback={
-                <div class="px-2 py-2 text-[10px] text-text-tertiary/50">
-                  {t('explorer.noFiles')}
-                </div>
-              }
-            >
-              <div class="px-1" role="tree" aria-label="File explorer">
+            <div class="px-1" role="tree" aria-label="File explorer">
+              <Show when={fileState.creatingInFolder === '' && fileState.creatingType}>
+                <InlineFileInput
+                  parentPath=""
+                  type={fileState.creatingType!}
+                  depth={0}
+                  onConfirm={(name) => {
+                    const pid = projectId();
+                    if (!pid) return;
+                    if (fileState.creatingType === 'folder') {
+                      void createDirectoryInProject(pid, name);
+                    } else {
+                      void createFileInProject(pid, name);
+                    }
+                  }}
+                  onCancel={cancelCreating}
+                />
+              </Show>
+              <Show
+                when={getRootNodes().length > 0}
+                fallback={
+                  <div class="px-2 py-2 text-[10px] text-text-tertiary/50">
+                    {t('files.noFiles')}
+                  </div>
+                }
+              >
                 <For each={getRootNodes()}>{(node) => <FileTreeNode node={node} depth={0} />}</For>
-              </div>
-            </Show>
+              </Show>
+            </div>
           </Show>
         </Show>
       </div>
