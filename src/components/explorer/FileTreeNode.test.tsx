@@ -9,6 +9,19 @@ let mockGitStatus: GitFileStatus | null = null;
 
 const mockToggleFolder = vi.fn(async (_projectId?: string, _relativePath?: string) => {});
 const mockSelectFile = vi.fn(async (_projectId?: string, _relativePath?: string) => {});
+const mockOpenEditorTakeover = vi.fn(async (_relativePath: string) => {});
+const mockStartCreating = vi.fn((_folderPath: string, _type: 'file' | 'folder') => {});
+const mockSetRenamingPath = vi.fn((_path: string | null) => {});
+const mockCreateFileInProject = vi.fn(
+  async (_projectId: string, _relativePath: string, _content?: string) => {},
+);
+const mockCreateDirectoryInProject = vi.fn(async (_projectId: string, _relativePath: string) => {});
+const mockRenameFileInProject = vi.fn(
+  async (_projectId: string, _oldPath: string, _newPath: string) => {},
+);
+const mockDuplicateFileInProject = vi.fn(async (_projectId: string, _relativePath: string) => {});
+const mockDeleteFileInProject = vi.fn(async (_projectId: string, _relativePath: string) => {});
+const mockCancelCreating = vi.fn();
 
 vi.mock('@/stores/fileStore', () => ({
   fileState: {
@@ -21,13 +34,30 @@ vi.mock('@/stores/fileStore', () => ({
     get selectedRange() {
       return null;
     },
+    creatingInFolder: null,
+    creatingType: null,
   },
   isExpanded: () => mockExpanded,
   getChildren: () => [],
   toggleFolder: (projectId: string, relativePath: string) =>
     mockToggleFolder(projectId, relativePath),
   selectFile: (projectId: string, relativePath: string) => mockSelectFile(projectId, relativePath),
+  openEditorTakeover: (relativePath: string) => mockOpenEditorTakeover(relativePath),
   getGitStatus: () => mockGitStatus,
+  startCreating: (folderPath: string, type: 'file' | 'folder') =>
+    mockStartCreating(folderPath, type),
+  setRenamingPath: (path: string | null) => mockSetRenamingPath(path),
+  createFileInProject: (projectId: string, relativePath: string, content?: string) =>
+    mockCreateFileInProject(projectId, relativePath, content),
+  createDirectoryInProject: (projectId: string, relativePath: string) =>
+    mockCreateDirectoryInProject(projectId, relativePath),
+  renameFileInProject: (projectId: string, oldPath: string, newPath: string) =>
+    mockRenameFileInProject(projectId, oldPath, newPath),
+  duplicateFileInProject: (projectId: string, relativePath: string) =>
+    mockDuplicateFileInProject(projectId, relativePath),
+  deleteFileInProject: (projectId: string, relativePath: string) =>
+    mockDeleteFileInProject(projectId, relativePath),
+  cancelCreating: () => mockCancelCreating(),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
@@ -40,6 +70,9 @@ vi.mock('@/stores/projectStore', () => ({
 
 vi.mock('@/stores/contextStore', () => ({ addFileReference: vi.fn(), addFileBundle: vi.fn() }));
 vi.mock('@/stores/toastStore', () => ({ addToast: vi.fn() }));
+vi.mock('@/stores/i18nStore', () => ({
+  t: (key: string) => key,
+}));
 vi.mock('@/components/common/ContextMenu', () => ({
   default: () => <div data-testid="context-menu" />,
 }));

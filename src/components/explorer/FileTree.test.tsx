@@ -17,6 +17,12 @@ const mockClearSearch = vi.fn();
 const mockSelectFile = vi.fn();
 const mockRetryLoadFiles = vi.fn(async () => {});
 const mockToggleShowIgnoredFiles = vi.fn();
+const mockStartCreating = vi.fn((_folderPath: string, _type: 'file' | 'folder') => {});
+const mockCancelCreating = vi.fn();
+const mockCreateFileInProject = vi.fn(
+  async (_projectId: string, _relativePath: string, _content?: string) => {},
+);
+const mockCreateDirectoryInProject = vi.fn(async (_projectId: string, _relativePath: string) => {});
 
 vi.mock('@/stores/fileStore', () => ({
   fileState: {
@@ -38,14 +44,24 @@ vi.mock('@/stores/fileStore', () => ({
     get showIgnoredFiles() {
       return mockShowIgnoredFiles;
     },
+    creatingInFolder: null,
+    creatingType: null,
   },
   loadRootFiles: (...args: unknown[]) => mockLoadRootFiles(...args),
   getRootNodes: () => mockRootNodes,
+  getChildren: () => [],
   searchFiles: (...args: unknown[]) => mockSearchFiles(...args),
   clearSearch: () => mockClearSearch(),
   selectFile: (...args: unknown[]) => mockSelectFile(...args),
   retryLoadFiles: () => mockRetryLoadFiles(),
   toggleShowIgnoredFiles: () => mockToggleShowIgnoredFiles(),
+  startCreating: (folderPath: string, type: 'file' | 'folder') =>
+    mockStartCreating(folderPath, type),
+  cancelCreating: () => mockCancelCreating(),
+  createFileInProject: (projectId: string, relativePath: string, content?: string) =>
+    mockCreateFileInProject(projectId, relativePath, content),
+  createDirectoryInProject: (projectId: string, relativePath: string) =>
+    mockCreateDirectoryInProject(projectId, relativePath),
 }));
 
 vi.mock('@/stores/projectStore', () => ({
