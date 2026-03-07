@@ -3,12 +3,25 @@
 // and explicit entry point into Editor Takeover.
 
 import type { Component } from 'solid-js';
-import { For, Show, createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
+import {
+  For,
+  Match,
+  Show,
+  Switch,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+} from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github-dark.css';
 import { Check, Copy, ExternalLink, Eye, File, Lock, Pencil, Plus } from 'lucide-solid';
-import type { FileContent } from '@/lib/types';
+import {
+  canAddToPrompt as canAddByPreviewType,
+  canEdit as canEditByPreviewType,
+} from '@/lib/types';
+import type { FileContent, PreviewType } from '@/lib/types';
 import { createLogger } from '@/lib/logger';
 import {
   addFileReference,
@@ -26,6 +39,11 @@ import {
 import { projectState } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import { t } from '@/stores/i18nStore';
+import AudioPreview from './previews/AudioPreview';
+import BinaryFallback from './previews/BinaryFallback';
+import ImagePreview from './previews/ImagePreview';
+import PdfPreview from './previews/PdfPreview';
+import SvgPreview from './previews/SvgPreview';
 
 interface FilePreviewProps {
   content: FileContent;
@@ -146,7 +164,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     props.content.relative_path.split('/').pop() ?? props.content.relative_path;
   const fileExtension = () => {
     const match = /\.([^.\/]+)$/.exec(props.content.relative_path);
-    return match ? match[1] : null;
+    return match ? match[1].toLowerCase() : null;
   };
   const selectedRange = () => fileState.selectedRange;
   const visibleLineCount = () => lines().length;
@@ -163,7 +181,18 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
     !isBinaryFile() &&
     activeContent().content.length === 0 &&
     activeContent().size_bytes === 0;
-  const canEdit = () => !isBinaryFile() && !props.content.is_readonly;
+  const previewType = (): PreviewType => {
+    const extension = fileExtension();
+    if (!extension) return isBinaryFile() ? 'binary' : 'text';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico'].includes(extension)) return 'image';
+    if (extension === 'svg') return 'svg';
+    if (extension === 'pdf') return 'pdf';
+    if (['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'].includes(extension)) return 'audio';
+    if (['mp4', 'webm', 'mov', 'avi', 'mkv'].includes(extension)) return 'video';
+    return isBinaryFile() ? 'binary' : 'text';
+  };
+  const canEditCurrent = () => !props.content.is_readonly && canEditByPreviewType(previewType());
+  const canAddCurrent = () => canAddByPreviewType(previewType());
   const existingAttachment = () => {
     const editingId = fileState.editingAttachmentId;
     if (editingId) {
@@ -230,6 +259,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
   }
 
   function handleAddToPrompt() {
+    if (!canAddCurrent()) return;
     const content = activeContent();
     addFileReference(
       {
@@ -422,7 +452,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
             <Eye size={9} />
             {t('editor.preview')}
           </button>
-          <Show when={canEdit()}>
+          <Show when={canEditCurrent()}>
             <button
               class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors"
               style={{
@@ -454,11 +484,13 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           <button
             class="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors"
             style={{
-              color: 'var(--color-accent)',
-              background: 'var(--color-accent-muted)',
+              color: canAddCurrent() ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
+              background: canAddCurrent() ? 'var(--color-accent-muted)' : 'transparent',
+              border: canAddCurrent() ? 'none' : '1px solid var(--color-border-secondary)',
               'transition-duration': 'var(--duration-fast)',
             }}
             onClick={handleAddToPrompt}
+            disabled={!canAddCurrent()}
           >
             <Plus size={9} />
             {t('editor.addToContext')}
@@ -540,9 +572,40 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
       </Show>
 
       <Show when={isBinaryFile()}>
-        <div class="py-4 text-center text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
-          Binary file — cannot preview ({(activeContent().size_bytes / 1024).toFixed(0)}KB)
-        </div>
+        <Switch
+          fallback={
+            <BinaryFallback
+              relativePath={props.content.relative_path}
+              sizeBytes={activeContent().size_bytes}
+              extension={fileExtension()}
+              onOpenExternal={() => void handleOpenInSystem()}
+            />
+          }
+        >
+          <Match when={previewType() === 'image'}>
+            <ImagePreview
+              relativePath={props.content.relative_path}
+              sizeBytes={activeContent().size_bytes}
+              extension={fileExtension()}
+              onOpenExternal={() => void handleOpenInSystem()}
+            />
+          </Match>
+          <Match when={previewType() === 'pdf'}>
+            <PdfPreview
+              relativePath={props.content.relative_path}
+              sizeBytes={activeContent().size_bytes}
+              onOpenExternal={() => void handleOpenInSystem()}
+            />
+          </Match>
+          <Match when={previewType() === 'audio'}>
+            <AudioPreview
+              relativePath={props.content.relative_path}
+              sizeBytes={activeContent().size_bytes}
+              extension={fileExtension()}
+              onOpenExternal={() => void handleOpenInSystem()}
+            />
+          </Match>
+        </Switch>
       </Show>
 
       <Show when={isEmptyTextFile()}>
@@ -551,7 +614,27 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
         </div>
       </Show>
 
-      <Show when={!props.isLoading && !isBinaryFile() && !isEmptyTextFile() && displayContent()}>
+      <Show
+        when={!props.isLoading && !isBinaryFile() && previewType() === 'svg' && displayContent()}
+      >
+        <SvgPreview
+          relativePath={props.content.relative_path}
+          sizeBytes={activeContent().size_bytes}
+          content={displayContent()}
+          onOpenExternal={() => void handleOpenInSystem()}
+          onOpenEditor={() => void openEditorTakeover(props.content.relative_path)}
+        />
+      </Show>
+
+      <Show
+        when={
+          !props.isLoading &&
+          !isBinaryFile() &&
+          !isEmptyTextFile() &&
+          displayContent() &&
+          previewType() !== 'svg'
+        }
+      >
         <div
           ref={codeViewportRef}
           class="overflow-auto rounded focus-ring"
@@ -571,7 +654,7 @@ const FilePreview: Component<FilePreviewProps> = (props) => {
           onMouseUp={stopDragging}
           onKeyDown={handlePreviewKeyDown}
           onDblClick={(event) => {
-            if (!canEdit()) return;
+            if (!canEditCurrent()) return;
             const row = (event.target as HTMLElement).closest('tr');
             const lineCell = row?.querySelector('td');
             const line = Number.parseInt(lineCell?.textContent ?? '1', 10);

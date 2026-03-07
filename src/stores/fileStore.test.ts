@@ -31,6 +31,7 @@ const mockRootNodes: FileNode[] = [
     children: null,
     is_binary: false,
     is_git_ignored: false,
+    preview_type: 'text',
   },
   {
     name: 'README.md',
@@ -41,6 +42,7 @@ const mockRootNodes: FileNode[] = [
     children: null,
     is_binary: false,
     is_git_ignored: false,
+    preview_type: 'text',
   },
 ];
 
@@ -102,6 +104,7 @@ describe('fileStore', () => {
             extension: 'ts',
             children: null,
             is_binary: false,
+            preview_type: 'text',
           } satisfies FileNode,
         ];
       }

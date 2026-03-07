@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 
 use crate::AppError;
 
-use super::{FileContent, FileNode, FileNodeType, FileSearchResult};
+use super::{classify_preview_type, FileContent, FileNode, FileNodeType, FileSearchResult};
 
 /// Maximum entries returned per directory listing request.
 const MAX_ENTRIES: usize = 5000;
@@ -115,6 +115,18 @@ fn validate_path_within_root(path: &Path, root: &Path) -> Result<(), AppError> {
         return Err(AppError::PathTraversal(path.display().to_string()));
     }
     Ok(())
+}
+
+/// Public traversal guard used by IPC handlers that resolve project paths.
+pub fn ensure_within_root(
+    project_root: &Path,
+    path: &Path,
+    display_path: &str,
+) -> Result<(), AppError> {
+    validate_path_within_root(path, project_root).map_err(|err| match err {
+        AppError::PathTraversal(_) => AppError::PathTraversal(display_path.to_string()),
+        other => other,
+    })
 }
 
 /// Validate that a filename doesn't contain reserved names or invalid characters.
@@ -376,6 +388,11 @@ pub fn list_files(
             children: None,
             is_binary: is_bin,
             is_git_ignored: is_ignored,
+            preview_type: classify_preview_type(
+                entry.path().extension().and_then(|ext| ext.to_str()),
+                is_bin,
+            )
+            .to_string(),
         });
 
         if entries.len() >= MAX_ENTRIES {
@@ -584,6 +601,11 @@ pub fn create_file(
         children: None,
         is_binary: false,
         is_git_ignored: false,
+        preview_type: classify_preview_type(
+            full_path.extension().and_then(|ext| ext.to_str()),
+            false,
+        )
+        .to_string(),
     })
 }
 
@@ -614,6 +636,7 @@ pub fn create_directory(project_root: &Path, relative_path: &str) -> Result<File
         children: Some(Vec::new()),
         is_binary: false,
         is_git_ignored: false,
+        preview_type: "text".to_string(),
     })
 }
 
@@ -669,6 +692,25 @@ pub fn rename_file(
     std::fs::rename(&old_full, &new_full)?;
 
     let is_dir = new_full.is_dir();
+    let is_binary = if is_dir {
+        false
+    } else {
+        let size_bytes = std::fs::metadata(&new_full)
+            .ok()
+            .map(|meta| meta.len())
+            .unwrap_or(0);
+        if size_bytes == 0 {
+            false
+        } else {
+            let mut buf = vec![0u8; 8192.min(size_bytes as usize)];
+            match std::fs::File::open(&new_full)
+                .and_then(|mut f| std::io::Read::read(&mut f, &mut buf))
+            {
+                Ok(n) => is_binary(&buf[..n]),
+                Err(_) => false,
+            }
+        }
+    };
     Ok(FileNode {
         name: new_full
             .file_name()
@@ -690,8 +732,13 @@ pub fn rename_file(
             .extension()
             .map(|value| value.to_string_lossy().to_string()),
         children: if is_dir { Some(Vec::new()) } else { None },
-        is_binary: false,
+        is_binary,
         is_git_ignored: false,
+        preview_type: classify_preview_type(
+            new_full.extension().and_then(|ext| ext.to_str()),
+            is_binary,
+        )
+        .to_string(),
     })
 }
 
@@ -732,6 +779,24 @@ pub fn duplicate_file(project_root: &Path, relative_path: &str) -> Result<FileNo
         .map(|path| path.to_string_lossy().replace('\\', "/"))
         .unwrap_or_else(|_| copy_path.to_string_lossy().replace('\\', "/"));
 
+    let duplicated_binary = {
+        let size_bytes = std::fs::metadata(&copy_path)
+            .ok()
+            .map(|meta| meta.len())
+            .unwrap_or(0);
+        if size_bytes == 0 {
+            false
+        } else {
+            let mut buf = vec![0u8; 8192.min(size_bytes as usize)];
+            match std::fs::File::open(&copy_path)
+                .and_then(|mut f| std::io::Read::read(&mut f, &mut buf))
+            {
+                Ok(n) => is_binary(&buf[..n]),
+                Err(_) => false,
+            }
+        }
+    };
+
     Ok(FileNode {
         name: copy_path
             .file_name()
@@ -745,8 +810,13 @@ pub fn duplicate_file(project_root: &Path, relative_path: &str) -> Result<FileNo
             .extension()
             .map(|value| value.to_string_lossy().to_string()),
         children: None,
-        is_binary: false,
+        is_binary: duplicated_binary,
         is_git_ignored: false,
+        preview_type: classify_preview_type(
+            copy_path.extension().and_then(|ext| ext.to_str()),
+            duplicated_binary,
+        )
+        .to_string(),
     })
 }
 

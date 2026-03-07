@@ -88,6 +88,7 @@ const fileNode: FileNode = {
   children: null,
   is_binary: false,
   is_git_ignored: false,
+  preview_type: 'text',
 };
 
 const folderNode: FileNode = {
@@ -99,6 +100,7 @@ const folderNode: FileNode = {
   children: [],
   is_binary: false,
   is_git_ignored: false,
+  preview_type: 'text',
 };
 
 describe('FileTreeNode', () => {

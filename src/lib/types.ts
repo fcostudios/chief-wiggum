@@ -227,6 +227,63 @@ export interface SlashCommand {
 /** Filesystem node type. */
 export type FileNodeType = 'File' | 'Directory' | 'Symlink';
 
+/** Preview type classification from backend. */
+export type PreviewType = 'text' | 'image' | 'svg' | 'pdf' | 'audio' | 'video' | 'binary';
+
+/** Category info for binary fallback display. */
+export interface BinaryCategory {
+  label: string;
+  icon: 'Video' | 'Cog' | 'Package' | 'Archive' | 'Database' | 'FileQuestion';
+}
+
+/** Map extension to binary fallback category metadata. */
+export function getBinaryCategory(extension: string | null): BinaryCategory {
+  switch (extension?.toLowerCase()) {
+    case 'mp4':
+    case 'webm':
+    case 'mov':
+    case 'avi':
+    case 'mkv':
+      return { label: 'Video file', icon: 'Video' };
+    case 'exe':
+    case 'dll':
+    case 'so':
+    case 'dylib':
+    case 'bin':
+      return { label: 'Executable', icon: 'Cog' };
+    case 'o':
+    case 'obj':
+    case 'class':
+    case 'pyc':
+    case 'pyo':
+    case 'wasm':
+      return { label: 'Compiled binary', icon: 'Package' };
+    case 'zip':
+    case 'tar':
+    case 'gz':
+    case 'rar':
+    case '7z':
+    case 'tgz':
+      return { label: 'Archive', icon: 'Archive' };
+    case 'db':
+    case 'sqlite':
+    case 'sqlite3':
+      return { label: 'Database file', icon: 'Database' };
+    default:
+      return { label: 'Binary file', icon: 'FileQuestion' };
+  }
+}
+
+/** Whether a preview type supports adding content to prompt context. */
+export function canAddToPrompt(previewType: PreviewType): boolean {
+  return previewType === 'text' || previewType === 'image' || previewType === 'svg';
+}
+
+/** Whether a preview type supports in-app editing. */
+export function canEdit(previewType: PreviewType): boolean {
+  return previewType === 'text' || previewType === 'svg';
+}
+
 /** A node in the file tree. */
 export interface FileNode {
   name: string;
@@ -237,6 +294,7 @@ export interface FileNode {
   children: FileNode[] | null;
   is_binary: boolean;
   is_git_ignored?: boolean;
+  preview_type: PreviewType;
 }
 
 /** File content returned by read_project_file. */

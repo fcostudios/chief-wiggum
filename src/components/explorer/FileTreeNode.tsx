@@ -7,6 +7,7 @@ import { Show, For, createSignal, onCleanup } from 'solid-js';
 import {
   ChevronRight,
   File,
+  FileText,
   Folder,
   FolderOpen,
   Copy,
@@ -14,9 +15,16 @@ import {
   Pencil,
   FilePlus,
   FolderPlus,
+  Image as ImageIcon,
+  Layers,
+  Music,
   Trash2,
 } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
+import {
+  canAddToPrompt as canAddByPreviewType,
+  canEdit as canEditByPreviewType,
+} from '@/lib/types';
 import type { FileNode, FileContent, FileBundleSuggestion } from '@/lib/types';
 import {
   fileState,
@@ -70,6 +78,21 @@ function formatTokenCount(tokens: number): string {
   return `~${(tokens / 1000).toFixed(1)}K`;
 }
 
+function iconForFile(node: FileNode) {
+  switch (node.preview_type) {
+    case 'image':
+      return <ImageIcon size={12} class="shrink-0" style={{ color: 'var(--color-accent)' }} />;
+    case 'svg':
+      return <Layers size={12} class="shrink-0" style={{ color: 'var(--color-accent)' }} />;
+    case 'pdf':
+      return <FileText size={12} class="shrink-0" style={{ color: 'var(--color-warning)' }} />;
+    case 'audio':
+      return <Music size={12} class="shrink-0" style={{ color: 'var(--color-success)' }} />;
+    default:
+      return <File size={12} class="shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />;
+  }
+}
+
 const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const isDir = () => props.node.node_type === 'Directory';
   const expanded = () => isExpanded(props.node.relative_path);
@@ -100,6 +123,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         extension: props.node.extension,
         size_bytes: props.node.size_bytes,
         is_binary: props.node.is_binary,
+        preview_type: props.node.preview_type,
         node_type: props.node.node_type,
       }),
     );
@@ -180,7 +204,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         label: 'Edit',
         icon: Pencil,
         onClick: () => void openEditorTakeover(props.node.relative_path),
-        disabled: isDir() || props.node.is_binary,
+        disabled: isDir() || !canEditByPreviewType(props.node.preview_type),
       },
       { separator: true, label: 'separator-create' },
       {
@@ -212,7 +236,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         onClick: () => {
           void handleAddToPrompt();
         },
-        disabled: isDir() || props.node.is_binary,
+        disabled: isDir() || !canAddByPreviewType(props.node.preview_type),
       },
       { separator: true, label: 'separator-manage' },
       {
@@ -266,7 +290,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
       items.push({
         label: `${bundle.label} (${formatTokenCount(bundle.estimated_tokens)})`,
         icon: Plus,
-        disabled: isDir() || props.node.is_binary,
+        disabled: isDir() || !canAddByPreviewType(props.node.preview_type),
         onClick: () => {
           addFileBundle(bundle);
         },
@@ -389,12 +413,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         </Show>
 
         {/* Icon */}
-        <Show
-          when={isDir()}
-          fallback={
-            <File size={12} class="shrink-0" style={{ color: 'var(--color-text-tertiary)' }} />
-          }
-        >
+        <Show when={isDir()} fallback={iconForFile(props.node)}>
           <Show
             when={expanded()}
             fallback={

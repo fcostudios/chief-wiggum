@@ -83,6 +83,24 @@ pub fn get_file_mtime(
     Ok(mtime)
 }
 
+/// Resolve a relative project file path to an absolute filesystem path.
+/// Used by frontend binary preview renderers to construct asset protocol URLs.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, relative_path = %relative_path))]
+pub fn resolve_file_path(
+    db: State<'_, Database>,
+    project_id: String,
+    relative_path: String,
+) -> Result<String, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let project_root = std::path::Path::new(&project.path);
+    let full_path = project_root.join(&relative_path);
+
+    scanner::ensure_within_root(project_root, &full_path, &relative_path)?;
+    Ok(full_path.to_string_lossy().to_string())
+}
+
 /// Read changelog markdown used by the "What's New" modal (CHI-254).
 #[tauri::command]
 #[tracing::instrument]
