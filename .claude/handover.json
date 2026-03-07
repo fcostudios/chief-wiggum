@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-04T01:36:25Z",
+  "last_updated": "2026-03-07T00:10:05Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -1421,6 +1421,30 @@
       "notes": "Parent epic for all CX/UX improvements from expert evaluation report. 5 tiers: T1 Foundation, T2 Information, T3 Emotional, T4 Workflow, T5 Future Investment.",
       "updated_at": "2026-03-03T14:01:57.129967+00:00Z"
     },
+    "CHI-262": {
+      "title": "Enqueue & Steer",
+      "status": "backlog",
+      "linear_id": "78d82e16-0231-4f27-b4bd-3802843a32cd",
+      "notes": "New epic: lets users queue follow-up messages during agent streaming or steer (interrupt + redirect) the agent. 6 sub-tasks (CHI-263 through CHI-268). Spec: SPEC-006 §4.21."
+    },
+    "CHI-269": {
+      "title": "File & Folder Creation — Full File Management",
+      "status": "backlog",
+      "linear_id": "cab2c794-ca7a-472a-8d2d-58fe389b7a7b",
+      "notes": "New epic: user-initiated file creation/delete/rename/duplicate. 6 sub-tasks (CHI-270 through CHI-275). Spec: SPEC-006 §4.22."
+    },
+    "CHI-276": {
+      "title": "Binary File Preview — Images, PDFs, Audio & More",
+      "status": "backlog",
+      "linear_id": "05c904f6-0770-4c60-9348-44554341d2f5",
+      "notes": "New epic: native preview for images, SVGs, PDFs, audio via Tauri asset protocol. 4 sub-tasks (CHI-278 through CHI-281). Spec: SPEC-006 §4.23."
+    },
+    "CHI-277": {
+      "title": "AskUserQuestion Dialog — Interactive Agent Questions",
+      "status": "backlog",
+      "linear_id": "db417b17-036e-45a8-bbf0-e9f85ecda8a5",
+      "notes": "New epic: intercept AskUserQuestion tool calls and show interactive QuestionDialog. 4 sub-tasks (CHI-282 through CHI-285). Spec: SPEC-006 §4.24."
+    },
     "CHI-232": {
       "title": "T1.1: WCAG Contrast Fixes",
       "type": "task",
@@ -2088,6 +2112,372 @@
       "completed_at": "2026-03-03T15:00:00Z",
       "worktree": null,
       "notes": "Toast variants expanded to 6, onboarding contrast fixed, undo countdown and error details/copy implemented. completed_by=claude-code; lock_acquired_at=2026-03-03T20:00:49Z"
+    },
+    "CHI-263": {
+      "id": "CHI-263",
+      "title": "EQ-1: Fix Cancel Button + Wire Interrupt",
+      "status": "backlog",
+      "priority": "urgent",
+      "size": "S",
+      "parent": "CHI-262",
+      "spec_ref": "SPEC-006 §4.21",
+      "deps": [],
+      "files": [
+        "src/components/layout/MainLayout.tsx",
+        "src/components/conversation/MessageInput.tsx",
+        "src/stores/conversationStore.ts"
+      ]
+    },
+    "CHI-264": {
+      "id": "CHI-264",
+      "title": "EQ-2: Enable Input During Streaming + Queue/Steer Buttons",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-262",
+      "spec_ref": "SPEC-006 §4.21.2",
+      "deps": [
+        "CHI-263"
+      ],
+      "files": [
+        "src/components/conversation/MessageInput.tsx"
+      ]
+    },
+    "CHI-265": {
+      "id": "CHI-265",
+      "title": "EQ-3: Message Queue Store + Auto-Send Logic",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-262",
+      "spec_ref": "SPEC-006 §4.21.3, §4.21.5",
+      "deps": [
+        "CHI-264"
+      ],
+      "files": [
+        "src/stores/conversationStore.ts",
+        "src/locales/en.json"
+      ]
+    },
+    "CHI-266": {
+      "id": "CHI-266",
+      "title": "EQ-4: Queue Panel UI Component",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-262",
+      "spec_ref": "SPEC-006 §4.21.3",
+      "deps": [
+        "CHI-265"
+      ],
+      "files": [
+        "src/components/conversation/QueuePanel.tsx",
+        "src/locales/en.json"
+      ]
+    },
+    "CHI-267": {
+      "id": "CHI-267",
+      "title": "EQ-5: Steer Flow — Interrupt + Redirect",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-262",
+      "spec_ref": "SPEC-006 §4.21.4",
+      "deps": [
+        "CHI-263",
+        "CHI-264"
+      ],
+      "files": [
+        "src/stores/conversationStore.ts",
+        "src/components/conversation/MessageInput.tsx"
+      ]
+    },
+    "CHI-268": {
+      "id": "CHI-268",
+      "title": "EQ-6: Interrupted Message Marker",
+      "status": "backlog",
+      "priority": "medium",
+      "size": "S",
+      "parent": "CHI-262",
+      "spec_ref": "SPEC-006 §4.21.4",
+      "deps": [
+        "CHI-263",
+        "CHI-267"
+      ],
+      "files": [
+        "src/components/conversation/InterruptedMarker.tsx",
+        "src/components/conversation/MessageBubble.tsx",
+        "src/lib/types.ts"
+      ]
+    },
+    "CHI-270": {
+      "id": "CHI-270",
+      "title": "FM-1: Backend File Operations — Create, Delete, Rename, Duplicate",
+      "status": "done",
+      "priority": "urgent",
+      "size": "M",
+      "parent": "CHI-269",
+      "spec_ref": "SPEC-006 §4.22.8, §4.22.10",
+      "deps": [],
+      "files": [
+        "src-tauri/src/lib.rs",
+        "src-tauri/Cargo.toml",
+        "src-tauri/Cargo.lock",
+        "src-tauri/src/files/scanner.rs",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-06T22:20:28Z",
+      "completed_at": "2026-03-07T00:10:05Z",
+      "worktree": ".worktrees/chi282-283-270-271-askuser-fileops",
+      "updated_at": "2026-03-07T00:10:05Z",
+      "notes": "completed_by=claude-code; lock_acquired_at=2026-03-07T00:10:05Z; checks=cargo test,cargo clippy -- -D warnings,cargo fmt --check"
+    },
+    "CHI-271": {
+      "id": "CHI-271",
+      "title": "FM-2: Inline File/Folder Creation in FileTree",
+      "status": "done",
+      "priority": "high",
+      "size": "L",
+      "parent": "CHI-269",
+      "spec_ref": "SPEC-006 §4.22.3, §4.22.4",
+      "deps": [
+        "CHI-270"
+      ],
+      "files": [
+        "src/components/explorer/InlineFileInput.tsx",
+        "src/components/explorer/FileTree.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/stores/fileStore.ts",
+        "src/components/explorer/FileTree.test.tsx",
+        "src/components/explorer/FileTreeNode.test.tsx",
+        "src/locales/en.json"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-06T22:20:28Z",
+      "completed_at": "2026-03-07T00:10:05Z",
+      "worktree": ".worktrees/chi282-283-270-271-askuser-fileops",
+      "updated_at": "2026-03-07T00:10:05Z",
+      "notes": "completed_by=claude-code; lock_acquired_at=2026-03-07T00:10:05Z; checks=npm run format:check,npx tsc --noEmit,npx eslint src/components/explorer/ src/stores/fileStore.ts,npx vitest run src/components/explorer/FileTree.test.tsx src/components/explorer/FileTreeNode.test.tsx,npx vite build"
+    },
+    "CHI-272": {
+      "id": "CHI-272",
+      "title": "FM-3: Context Menu — Rename, Delete, Duplicate + Create Actions",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-269",
+      "spec_ref": "SPEC-006 §4.22.7, §4.22.8",
+      "deps": [
+        "CHI-270",
+        "CHI-271"
+      ],
+      "files": [
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/stores/fileStore.ts"
+      ]
+    },
+    "CHI-273": {
+      "id": "CHI-273",
+      "title": "FM-4: Command Palette File Commands + Path Input Mode",
+      "status": "backlog",
+      "priority": "medium",
+      "size": "M",
+      "parent": "CHI-269",
+      "spec_ref": "SPEC-006 §4.22.5",
+      "deps": [
+        "CHI-270",
+        "CHI-271"
+      ],
+      "files": [
+        "src/components/common/CommandPalette.tsx"
+      ]
+    },
+    "CHI-274": {
+      "id": "CHI-274",
+      "title": "FM-5: Keyboard Shortcuts + /create Slash Command",
+      "status": "backlog",
+      "priority": "medium",
+      "size": "S",
+      "parent": "CHI-269",
+      "spec_ref": "SPEC-006 §4.22.6, §4.22.9",
+      "deps": [
+        "CHI-270",
+        "CHI-271"
+      ],
+      "files": [
+        "src/lib/keybindings.ts",
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/explorer/FileTree.tsx"
+      ]
+    },
+    "CHI-275": {
+      "id": "CHI-275",
+      "title": "FM-6: Save As in Editor Takeover",
+      "status": "backlog",
+      "priority": "low",
+      "size": "S",
+      "parent": "CHI-269",
+      "spec_ref": "SPEC-006 §4.22.2, §4.22.9",
+      "deps": [
+        "CHI-270"
+      ],
+      "files": [
+        "src/components/editor/EditorTakeover.tsx",
+        "src/components/editor/SaveAsModal.tsx"
+      ]
+    },
+    "CHI-278": {
+      "id": "CHI-278",
+      "title": "BP-1: Asset Protocol Setup + resolve_file_path IPC + CSP Config",
+      "status": "backlog",
+      "priority": "urgent",
+      "size": "S",
+      "parent": "CHI-276",
+      "spec_ref": "SPEC-006 §4.23.2, §4.23.8",
+      "deps": [],
+      "files": [
+        "src-tauri/tauri.conf.json",
+        "src-tauri/src/commands/files.rs",
+        "src-tauri/src/files/scanner.rs",
+        "src/lib/types.ts"
+      ]
+    },
+    "CHI-279": {
+      "id": "CHI-279",
+      "title": "BP-2: Image Preview Renderer (PNG, JPG, GIF, WebP, BMP, ICO)",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-276",
+      "spec_ref": "SPEC-006 §4.23.3, §4.23.9",
+      "deps": [
+        "CHI-278"
+      ],
+      "files": [
+        "src/components/explorer/previews/ImagePreview.tsx",
+        "src/components/explorer/FilePreview.tsx",
+        "src/stores/fileStore.ts"
+      ]
+    },
+    "CHI-280": {
+      "id": "CHI-280",
+      "title": "BP-3: SVG Dual Preview (Rendered + Code Toggle) + PDF Embed",
+      "status": "backlog",
+      "priority": "high",
+      "size": "M",
+      "parent": "CHI-276",
+      "spec_ref": "SPEC-006 §4.23.4, §4.23.5, §4.23.9",
+      "deps": [
+        "CHI-278"
+      ],
+      "files": [
+        "src/components/explorer/previews/SvgPreview.tsx",
+        "src/components/explorer/previews/PdfPreview.tsx",
+        "src/components/explorer/FilePreview.tsx",
+        "src-tauri/src/files/scanner.rs"
+      ]
+    },
+    "CHI-281": {
+      "id": "CHI-281",
+      "title": "BP-4: Audio Player + Binary Fallback UI + File Tree Icons",
+      "status": "backlog",
+      "priority": "medium",
+      "size": "M",
+      "parent": "CHI-276",
+      "spec_ref": "SPEC-006 §4.23.6, §4.23.7, §4.23.11, §4.23.9",
+      "deps": [
+        "CHI-278"
+      ],
+      "files": [
+        "src/components/explorer/previews/AudioPreview.tsx",
+        "src/components/explorer/previews/BinaryFallback.tsx",
+        "src/components/explorer/FileTreeNode.tsx",
+        "src/components/explorer/FilePreview.tsx"
+      ]
+    },
+    "CHI-282": {
+      "id": "CHI-282",
+      "title": "AQ-1: Backend — QuestionRequired Flow + respond_question IPC",
+      "status": "done",
+      "priority": "urgent",
+      "size": "M",
+      "parent": "CHI-277",
+      "spec_ref": "SPEC-006 §4.24.1, §4.24.2, §4.24.7",
+      "deps": [],
+      "files": [
+        "src-tauri/src/bridge/mod.rs",
+        "src-tauri/src/bridge/sdk_bridge.rs",
+        "src-tauri/src/bridge/event_loop.rs",
+        "src-tauri/src/bridge/permission.rs",
+        "src-tauri/src/commands/bridge.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-06T22:20:28Z",
+      "completed_at": "2026-03-06T23:04:10Z",
+      "worktree": ".worktrees/chi282-283-270-271-askuser-fileops",
+      "updated_at": "2026-03-07T00:10:05Z",
+      "notes": "completed_by=claude-code; lock_acquired_at=2026-03-06T23:04:10Z; checks=cargo test,cargo clippy -- -D warnings,cargo fmt --check"
+    },
+    "CHI-283": {
+      "id": "CHI-283",
+      "title": "AQ-2: QuestionDialog Component — Modal with Radio/Checkbox/Other",
+      "status": "done",
+      "priority": "high",
+      "size": "L",
+      "parent": "CHI-277",
+      "spec_ref": "SPEC-006 §4.24.3, §4.24.5, §4.24.9",
+      "deps": [
+        "CHI-282"
+      ],
+      "files": [
+        "src/components/questions/QuestionDialog.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/conversation/ToolUseBlock.tsx",
+        "src/stores/uiStore.ts",
+        "src/stores/conversationStore.ts",
+        "src/lib/types.ts",
+        "src/locales/en.json"
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-06T22:20:28Z",
+      "completed_at": "2026-03-07T00:10:05Z",
+      "worktree": ".worktrees/chi282-283-270-271-askuser-fileops",
+      "updated_at": "2026-03-07T00:10:05Z",
+      "notes": "completed_by=claude-code; lock_acquired_at=2026-03-07T00:10:05Z; checks=npm run format:check,npx tsc --noEmit,npx eslint src/components/questions/ src/components/conversation/ToolUseBlock.tsx src/components/layout/MainLayout.tsx src/stores/uiStore.ts src/stores/conversationStore.ts,npx vitest run src/components/conversation/ToolUseBlock.test.tsx,npx vite build"
+    },
+    "CHI-284": {
+      "id": "CHI-284",
+      "title": "AQ-3: ToolUseBlock Question Category — Compact Answer Summary",
+      "status": "backlog",
+      "priority": "high",
+      "size": "S",
+      "parent": "CHI-277",
+      "spec_ref": "SPEC-006 §4.24.4",
+      "deps": [
+        "CHI-282"
+      ],
+      "files": [
+        "src/components/conversation/ToolUseBlock.tsx"
+      ]
+    },
+    "CHI-285": {
+      "id": "CHI-285",
+      "title": "AQ-4: Accessibility + Edge Cases (Timeout, YOLO Skip, Escape)",
+      "status": "backlog",
+      "priority": "medium",
+      "size": "M",
+      "parent": "CHI-277",
+      "spec_ref": "SPEC-006 §4.24.6, §4.24.8",
+      "deps": [
+        "CHI-283"
+      ],
+      "files": [
+        "src/components/questions/QuestionDialog.tsx",
+        "src-tauri/src/bridge/event_loop.rs"
+      ]
     }
   },
   "epics_new": {
@@ -4259,13 +4649,11 @@
     }
   },
   "recommended_next": [
+    "CHI-278",
+    "CHI-263",
     "CHI-247",
     "CHI-259",
-    "CHI-248",
-    "CHI-249",
-    "CHI-250",
-    "CHI-251",
-    "CHI-252"
+    "CHI-248"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -5995,14 +6383,14 @@
     "notes": "Latest verification includes UX excellence next-batch checks (tsc, eslint, format, targeted vitest) after CHI-229 regression fixes. Prior CHI-217 full-suite verification remains valid."
   },
   "metadata": {
-    "last_updated": "2026-03-03T15:00:00Z",
+    "last_updated": "2026-03-06T23:00:00Z",
     "last_updated_by": "cowork",
     "last_sync": "2026-03-03T15:00:00Z",
     "last_sync_by": "claude-code",
-    "total_tasks": 96,
+    "total_tasks": 118,
     "task_status_counts": {
       "done": 80,
-      "backlog": 16,
+      "backlog": 38,
       "in_progress": 0
     }
   },
