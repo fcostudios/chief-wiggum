@@ -50,7 +50,8 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
     for (const question of props.request.questions) {
       if (question.multiSelect) continue;
       if (!finalAnswers[question.question]?.trim()) {
-        finalAnswers[question.question] = question.options[0]?.label ?? t('questionDialog.defaultAnswer');
+        finalAnswers[question.question] =
+          question.options[0]?.label ?? t('questionDialog.defaultAnswer');
       }
     }
 
@@ -212,7 +213,9 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
                           >
                             <input
                               type="checkbox"
-                              checked={parseMultiValue(answers()[question.question]).includes(option.label)}
+                              checked={parseMultiValue(answers()[question.question]).includes(
+                                option.label,
+                              )}
                               onChange={() => handleMultiToggle(question.question, option.label)}
                             />
                           </Show>

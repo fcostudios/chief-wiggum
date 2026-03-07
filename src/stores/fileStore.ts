@@ -467,7 +467,10 @@ export async function deleteFileInProject(projectId: string, relativePath: strin
       setState('selectedPath', null);
       setState('previewContent', null);
     }
-    addToast(t('files.deleted', { name: relativePath.split('/').pop() ?? relativePath }), 'success');
+    addToast(
+      t('files.deleted', { name: relativePath.split('/').pop() ?? relativePath }),
+      'success',
+    );
   } catch (err) {
     addToast(mapFileOpError(err), 'error', undefined, String(err));
   }

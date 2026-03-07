@@ -188,7 +188,9 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         icon: FilePlus,
         onClick: () =>
           startCreating(
-            isDir() ? props.node.relative_path : props.node.relative_path.split('/').slice(0, -1).join('/'),
+            isDir()
+              ? props.node.relative_path
+              : props.node.relative_path.split('/').slice(0, -1).join('/'),
             'file',
           ),
       },
@@ -197,7 +199,9 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
         icon: FolderPlus,
         onClick: () =>
           startCreating(
-            isDir() ? props.node.relative_path : props.node.relative_path.split('/').slice(0, -1).join('/'),
+            isDir()
+              ? props.node.relative_path
+              : props.node.relative_path.split('/').slice(0, -1).join('/'),
             'folder',
           ),
       },

@@ -70,12 +70,25 @@ const InlineFileInput: Component<InlineFileInputProps> = (props) => {
   });
 
   return (
-    <div class="flex items-start gap-1.5 py-1" style={{ 'padding-left': `${props.depth * 12 + 4}px` }}>
+    <div
+      class="flex items-start gap-1.5 py-1"
+      style={{ 'padding-left': `${props.depth * 12 + 4}px` }}
+    >
       <Show
         when={props.type === 'folder'}
-        fallback={<File size={13} class="shrink-0 mt-[2px]" style={{ color: 'var(--color-text-tertiary)' }} />}
+        fallback={
+          <File
+            size={13}
+            class="shrink-0 mt-[2px]"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          />
+        }
       >
-        <Folder size={13} class="shrink-0 mt-[2px]" style={{ color: 'var(--color-text-tertiary)' }} />
+        <Folder
+          size={13}
+          class="shrink-0 mt-[2px]"
+          style={{ color: 'var(--color-text-tertiary)' }}
+        />
       </Show>
       <div class="flex-1 min-w-0">
         <input

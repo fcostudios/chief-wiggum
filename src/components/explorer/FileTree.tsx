@@ -81,7 +81,9 @@ const FileTree: Component<FileTreeProps> = (props) => {
 
   function findNodeByPath(path: string): ReturnType<typeof getRootNodes>[number] | null {
     if (!path) return null;
-    const walk = (nodes: ReturnType<typeof getRootNodes>[number][]): ReturnType<typeof getRootNodes>[number] | null => {
+    const walk = (
+      nodes: ReturnType<typeof getRootNodes>[number][],
+    ): ReturnType<typeof getRootNodes>[number] | null => {
       for (const node of nodes) {
         if (node.relative_path === path) return node;
         if (node.node_type === 'Directory') {
