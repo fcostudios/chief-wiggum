@@ -278,6 +278,17 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
               );
             }}
           </Show>
+          <Show when={isAssistant() && props.message.is_error === true}>
+            <span
+              class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium"
+              style={{
+                background: 'rgba(255, 107, 107, 0.15)',
+                color: 'var(--color-danger)',
+              }}
+            >
+              error
+            </span>
+          </Show>
         </div>
 
         {/* Content: user messages as plain text, others as markdown */}
@@ -384,6 +395,20 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
                 <>
                   <span style={{ opacity: '0.4' }}>&middot;</span>
                   <span>{cost()}</span>
+                </>
+              )}
+            </Show>
+            <Show
+              when={
+                isAssistant() &&
+                props.message.stop_reason &&
+                props.message.stop_reason !== 'end_turn'
+              }
+            >
+              {(stopReason) => (
+                <>
+                  <span style={{ opacity: '0.4' }}>&middot;</span>
+                  <span>stop: {stopReason()}</span>
                 </>
               )}
             </Show>

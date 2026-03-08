@@ -94,7 +94,8 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
-                    created_at, updated_at, cli_session_id, pinned
+                    created_at, updated_at, cli_session_id, pinned,
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
              FROM sessions WHERE id = ?1",
         )?;
         let row = stmt.query_row(rusqlite::params![id], |row| {
@@ -113,6 +114,10 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
                 updated_at: row.get(11)?,
                 cli_session_id: row.get(12)?,
                 pinned: row.get(13)?,
+                cli_version: row.get(14)?,
+                total_thinking_tokens: row.get(15)?,
+                total_cache_read_tokens: row.get(16)?,
+                total_cache_write_tokens: row.get(17)?,
             })
         });
         match row {
@@ -124,12 +129,16 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
 }
 
 #[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+#[allow(clippy::too_many_arguments)]
 pub fn update_session_cost(
     db: &Database,
     session_id: &str,
     input_tokens: i64,
     output_tokens: i64,
     cost_cents: i64,
+    thinking_tokens: i64,
+    cache_read_tokens: i64,
+    cache_write_tokens: i64,
 ) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
@@ -137,9 +146,20 @@ pub fn update_session_cost(
                 total_input_tokens = total_input_tokens + ?2,
                 total_output_tokens = total_output_tokens + ?3,
                 total_cost_cents = total_cost_cents + ?4,
+                total_thinking_tokens = total_thinking_tokens + ?5,
+                total_cache_read_tokens = total_cache_read_tokens + ?6,
+                total_cache_write_tokens = total_cache_write_tokens + ?7,
                 updated_at = CURRENT_TIMESTAMP
              WHERE id = ?1",
-            rusqlite::params![session_id, input_tokens, output_tokens, cost_cents],
+            rusqlite::params![
+                session_id,
+                input_tokens,
+                output_tokens,
+                cost_cents,
+                thinking_tokens,
+                cache_read_tokens,
+                cache_write_tokens
+            ],
         )?;
         Ok(())
     })
@@ -151,7 +171,8 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
         let mut stmt = conn.prepare(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
-                    created_at, updated_at, cli_session_id, pinned
+                    created_at, updated_at, cli_session_id, pinned,
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
              FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC",
         )?;
         let rows = stmt
@@ -171,6 +192,10 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
                     updated_at: row.get(11)?,
                     cli_session_id: row.get(12)?,
                     pinned: row.get(13)?,
+                    cli_version: row.get(14)?,
+                    total_thinking_tokens: row.get(15)?,
+                    total_cache_read_tokens: row.get(16)?,
+                    total_cache_write_tokens: row.get(17)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -307,13 +332,34 @@ pub fn insert_message(
     model: Option<&str>,
     input_tokens: Option<i64>,
     output_tokens: Option<i64>,
+    thinking_tokens: Option<i64>,
     cost_cents: Option<i64>,
+    uuid: Option<&str>,
+    parent_uuid: Option<&str>,
+    stop_reason: Option<&str>,
+    is_error: Option<bool>,
 ) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
-            "INSERT INTO messages (id, session_id, role, content, model, input_tokens, output_tokens, cost_cents)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            rusqlite::params![id, session_id, role, content, model, input_tokens, output_tokens, cost_cents],
+            "INSERT INTO messages (
+                id, session_id, role, content, model, input_tokens, output_tokens, thinking_tokens, cost_cents,
+                uuid, parent_uuid, stop_reason, is_error
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            rusqlite::params![
+                id,
+                session_id,
+                role,
+                content,
+                model,
+                input_tokens,
+                output_tokens,
+                thinking_tokens,
+                cost_cents,
+                uuid,
+                parent_uuid,
+                stop_reason,
+                is_error
+            ],
         )?;
         Ok(())
     })
@@ -324,7 +370,8 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
             "SELECT id, session_id, role, content, model, input_tokens, output_tokens,
-                    thinking_tokens, cost_cents, is_compacted, created_at
+                    thinking_tokens, cost_cents, is_compacted, created_at,
+                    uuid, parent_uuid, stop_reason, is_error
              FROM messages WHERE session_id = ?1 ORDER BY created_at ASC",
         )?;
         let rows = stmt
@@ -341,6 +388,10 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
                     cost_cents: row.get(8)?,
                     is_compacted: row.get(9)?,
                     created_at: row.get(10)?,
+                    uuid: row.get(11)?,
+                    parent_uuid: row.get(12)?,
+                    stop_reason: row.get(13)?,
+                    is_error: row.get(14)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -426,7 +477,8 @@ pub fn fork_session_up_to(
         conn.execute(
             r#"
             INSERT INTO messages (
-                id, session_id, role, content, model, input_tokens, output_tokens, cost_cents, is_compacted, created_at
+                id, session_id, role, content, model, input_tokens, output_tokens, thinking_tokens,
+                cost_cents, is_compacted, created_at, uuid, parent_uuid, stop_reason, is_error
             )
             SELECT
                 lower(hex(randomblob(16))),
@@ -436,9 +488,14 @@ pub fn fork_session_up_to(
                 model,
                 input_tokens,
                 output_tokens,
+                thinking_tokens,
                 cost_cents,
                 is_compacted,
-                created_at
+                created_at,
+                uuid,
+                parent_uuid,
+                stop_reason,
+                is_error
             FROM messages
             WHERE session_id = ?1 AND rowid <= ?3
             ORDER BY rowid ASC
@@ -479,14 +536,28 @@ pub fn insert_cost_event(
     model: &str,
     input_tokens: i64,
     output_tokens: i64,
+    cache_read_tokens: i64,
+    cache_write_tokens: i64,
     cost_cents: i64,
     event_type: Option<&str>,
 ) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
-            "INSERT INTO cost_events (session_id, agent_id, model, input_tokens, output_tokens, cost_cents, event_type)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            rusqlite::params![session_id, agent_id, model, input_tokens, output_tokens, cost_cents, event_type],
+            "INSERT INTO cost_events (
+                session_id, agent_id, model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                cost_cents, event_type
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            rusqlite::params![
+                session_id,
+                agent_id,
+                model,
+                input_tokens,
+                output_tokens,
+                cache_read_tokens,
+                cache_write_tokens,
+                cost_cents,
+                event_type
+            ],
         )?;
         Ok(())
     })
@@ -891,6 +962,10 @@ pub struct SessionRow {
     pub updated_at: Option<String>,
     pub cli_session_id: Option<String>,
     pub pinned: Option<bool>,
+    pub cli_version: Option<String>,
+    pub total_thinking_tokens: Option<i64>,
+    pub total_cache_read_tokens: Option<i64>,
+    pub total_cache_write_tokens: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -906,6 +981,10 @@ pub struct MessageRow {
     pub cost_cents: Option<i64>,
     pub is_compacted: Option<bool>,
     pub created_at: Option<String>,
+    pub uuid: Option<String>,
+    pub parent_uuid: Option<String>,
+    pub stop_reason: Option<String>,
+    pub is_error: Option<bool>,
 }
 
 /// A persisted code/file/diagram artifact extracted from a session message.
@@ -941,6 +1020,78 @@ mod tests {
 
     fn test_db() -> Database {
         Database::open_in_memory().unwrap()
+    }
+
+    fn insert_message_legacy(
+        db: &Database,
+        id: &str,
+        session_id: &str,
+        role: &str,
+        content: &str,
+        model: Option<&str>,
+        input_tokens: Option<i64>,
+        output_tokens: Option<i64>,
+        cost_cents: Option<i64>,
+    ) -> Result<(), AppError> {
+        super::insert_message(
+            db,
+            id,
+            session_id,
+            role,
+            content,
+            model,
+            input_tokens,
+            output_tokens,
+            None,
+            cost_cents,
+            None,
+            None,
+            None,
+            None,
+        )
+    }
+
+    fn update_session_cost_legacy(
+        db: &Database,
+        session_id: &str,
+        input_tokens: i64,
+        output_tokens: i64,
+        cost_cents: i64,
+    ) -> Result<(), AppError> {
+        super::update_session_cost(
+            db,
+            session_id,
+            input_tokens,
+            output_tokens,
+            cost_cents,
+            0,
+            0,
+            0,
+        )
+    }
+
+    fn insert_cost_event_legacy(
+        db: &Database,
+        session_id: &str,
+        agent_id: Option<&str>,
+        model: &str,
+        input_tokens: i64,
+        output_tokens: i64,
+        cost_cents: i64,
+        event_type: Option<&str>,
+    ) -> Result<(), AppError> {
+        super::insert_cost_event(
+            db,
+            session_id,
+            agent_id,
+            model,
+            input_tokens,
+            output_tokens,
+            0,
+            0,
+            cost_cents,
+            event_type,
+        )
     }
 
     #[test]
@@ -980,8 +1131,8 @@ mod tests {
         insert_project(&db, "p1", "Proj", "/proj").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
 
-        update_session_cost(&db, "s1", 100, 200, 5).unwrap();
-        update_session_cost(&db, "s1", 50, 100, 3).unwrap();
+        update_session_cost_legacy(&db, "s1", 100, 200, 5).unwrap();
+        update_session_cost_legacy(&db, "s1", 50, 100, 3).unwrap();
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert_eq!(session.total_input_tokens, Some(150));
@@ -995,8 +1146,8 @@ mod tests {
         insert_project(&db, "p1", "Proj", "/proj").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
 
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
-        insert_message(
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -1021,7 +1172,7 @@ mod tests {
         insert_project(&db, "p1", "Proj", "/proj").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
 
-        insert_cost_event(
+        insert_cost_event_legacy(
             &db,
             "s1",
             None,
@@ -1063,7 +1214,7 @@ mod tests {
         let db = test_db();
         insert_project(&db, "p1", "Proj", "/proj").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
 
         delete_session(&db, "s1").unwrap();
 
@@ -1145,9 +1296,9 @@ mod tests {
         insert_project(&db, "p1", "Proj", "/proj").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
         update_session_title(&db, "s1", "Alpha").unwrap();
-        update_session_cost(&db, "s1", 100, 200, 5).unwrap();
+        update_session_cost_legacy(&db, "s1", 100, 200, 5).unwrap();
         update_session_cli_id(&db, "s1", "cli-abc").unwrap();
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
 
         let new_id = "s2";
         duplicate_session_metadata_only(&db, "s1", new_id).unwrap();
@@ -1172,7 +1323,7 @@ mod tests {
 
         assert_eq!(count_session_messages(&db, "s1").unwrap(), 0);
 
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
         assert_eq!(count_session_messages(&db, "s1").unwrap(), 1);
     }
 
@@ -1180,8 +1331,8 @@ mod tests {
     fn delete_single_message_removes_only_target() {
         let db = test_db();
         insert_session(&db, "s1", None, "claude-sonnet-4-6").unwrap();
-        insert_message(&db, "m1", "s1", "user", "First", None, None, None, None).unwrap();
-        insert_message(
+        insert_message_legacy(&db, "m1", "s1", "user", "First", None, None, None, None).unwrap();
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -1193,7 +1344,7 @@ mod tests {
             None,
         )
         .unwrap();
-        insert_message(&db, "m3", "s1", "user", "Third", None, None, None, None).unwrap();
+        insert_message_legacy(&db, "m3", "s1", "user", "Third", None, None, None, None).unwrap();
 
         delete_single_message(&db, "s1", "m2").unwrap();
         let messages = list_messages(&db, "s1").unwrap();
@@ -1208,7 +1359,7 @@ mod tests {
     fn delete_single_message_wrong_session_returns_error() {
         let db = test_db();
         insert_session(&db, "s1", None, "claude-sonnet-4-6").unwrap();
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
 
         let result = delete_single_message(&db, "wrong-session", "m1");
         assert!(result.is_err());
@@ -1220,8 +1371,8 @@ mod tests {
         insert_project(&db, "proj1", "Project 1", "/tmp/proj1").unwrap();
         insert_session(&db, "s1", Some("proj1"), "claude-sonnet-4-6").unwrap();
         update_session_title(&db, "s1", "Original Session").unwrap();
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
-        insert_message(
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -1233,8 +1384,9 @@ mod tests {
             Some(5),
         )
         .unwrap();
-        insert_message(&db, "m3", "s1", "user", "Follow up", None, None, None, None).unwrap();
-        insert_message(
+        insert_message_legacy(&db, "m3", "s1", "user", "Follow up", None, None, None, None)
+            .unwrap();
+        insert_message_legacy(
             &db,
             "m4",
             "s1",
@@ -1270,7 +1422,7 @@ mod tests {
     fn fork_session_up_to_bad_message_id_returns_error() {
         let db = test_db();
         insert_session(&db, "s1", None, "claude-sonnet-4-6").unwrap();
-        insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None).unwrap();
 
         let result = fork_session_up_to(&db, "s1", "s2", "nonexistent");
         assert!(result.is_err());
@@ -1393,6 +1545,35 @@ mod artifact_tests {
         Database::open_in_memory().expect("open in-memory db")
     }
 
+    fn insert_message_legacy(
+        db: &Database,
+        id: &str,
+        session_id: &str,
+        role: &str,
+        content: &str,
+        model: Option<&str>,
+        input_tokens: Option<i64>,
+        output_tokens: Option<i64>,
+        cost_cents: Option<i64>,
+    ) -> Result<(), AppError> {
+        super::insert_message(
+            db,
+            id,
+            session_id,
+            role,
+            content,
+            model,
+            input_tokens,
+            output_tokens,
+            None,
+            cost_cents,
+            None,
+            None,
+            None,
+            None,
+        )
+    }
+
     #[test]
     fn insert_artifact_and_retrieve() {
         let db = test_db();
@@ -1472,8 +1653,8 @@ mod artifact_tests {
         insert_project(&db, "p1", "Proj", "/tmp/p1").unwrap();
         insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
 
-        insert_message(&db, "m1", "s1", "user", "hello", None, None, None, None).unwrap();
-        insert_message(
+        insert_message_legacy(&db, "m1", "s1", "user", "hello", None, None, None, None).unwrap();
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -1485,7 +1666,7 @@ mod artifact_tests {
             Some(1),
         )
         .unwrap();
-        insert_message(
+        insert_message_legacy(
             &db,
             "m3",
             "s1",

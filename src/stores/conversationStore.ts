@@ -13,6 +13,7 @@ import type {
   ActiveBridgeInfo,
   BufferedEvent,
   CliLocation,
+  CostUpdateEvent,
   PromptImageInput,
   ToolOutputEvent,
   QuestionItem,
@@ -179,6 +180,9 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       thinking_tokens: number | null;
       cost_cents: number | null;
       is_error: boolean;
+      stop_reason: string | null;
+      uuid: string | null;
+      parent_uuid: string | null;
       // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
     }>('message:complete', (event) => {
       if (event.payload.session_id !== sessionId) return;
@@ -213,6 +217,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
           cost_cents: null,
           is_compacted: false,
           created_at: new Date().toISOString(),
+          uuid: null,
+          parent_uuid: null,
+          stop_reason: null,
+          is_error: null,
         };
         setState('messages', (prev) => [...prev, thinkingMsg]);
         invoke('save_message', {
@@ -223,7 +231,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
           model: null,
           input_tokens: null,
           output_tokens: null,
+          thinking_tokens: null,
           cost_cents: null,
+          uuid: null,
+          parent_uuid: null,
+          stop_reason: null,
+          is_error: null,
         }).catch((err) =>
           log.error(
             'Failed to persist thinking: ' + (err instanceof Error ? err.message : String(err)),
@@ -283,6 +296,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         cost_cents: p.cost_cents,
         is_compacted: false,
         created_at: new Date().toISOString(),
+        uuid: p.uuid ?? null,
+        parent_uuid: p.parent_uuid ?? null,
+        stop_reason: p.stop_reason ?? null,
+        is_error: p.is_error ? true : null,
       };
 
       if (isActive) {
@@ -309,7 +326,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         model: assistantMsg.model,
         input_tokens: assistantMsg.input_tokens,
         output_tokens: assistantMsg.output_tokens,
+        thinking_tokens: assistantMsg.thinking_tokens,
         cost_cents: assistantMsg.cost_cents != null ? Math.round(assistantMsg.cost_cents) : null,
+        uuid: assistantMsg.uuid,
+        parent_uuid: assistantMsg.parent_uuid,
+        stop_reason: assistantMsg.stop_reason,
+        is_error: assistantMsg.is_error,
       }).catch((err) => {
         // Log at error level always -- silent save failures cause missing messages on restore
         log.error(
@@ -328,6 +350,18 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       if (!isActive) {
         addToast('Background session completed', 'info');
       }
+    }),
+  );
+
+  listeners.push(
+    await listen<CostUpdateEvent>('cost:update', (event) => {
+      if (event.payload.session_id !== sessionId) return;
+      refreshSessionById(sessionId).catch((err) =>
+        log.error(
+          'Failed to refresh session after cost:update: ' +
+            (err instanceof Error ? err.message : String(err)),
+        ),
+      );
     }),
   );
 
@@ -365,6 +399,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
             cost_cents: null,
             is_compacted: false,
             created_at: new Date().toISOString(),
+            uuid: null,
+            parent_uuid: null,
+            stop_reason: null,
+            is_error: null,
           };
           setState('messages', (prev) => [...prev, assistantMsg]);
           setState('streamingContent', '');
@@ -380,7 +418,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
             model: null,
             input_tokens: null,
             output_tokens: null,
+            thinking_tokens: null,
             cost_cents: null,
+            uuid: null,
+            parent_uuid: null,
+            stop_reason: null,
+            is_error: null,
           }).catch((err) =>
             log.error(
               'Failed to persist fallback assistant message: ' +
@@ -410,6 +453,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
               cost_cents: null,
               is_compacted: false,
               created_at: new Date().toISOString(),
+              uuid: null,
+              parent_uuid: null,
+              stop_reason: null,
+              is_error: true,
             };
             setState('messages', (prev) => [...prev, errMsg]);
             invoke('save_message', {
@@ -420,7 +467,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
               model: null,
               input_tokens: null,
               output_tokens: null,
+              thinking_tokens: null,
               cost_cents: null,
+              uuid: null,
+              parent_uuid: null,
+              stop_reason: null,
+              is_error: true,
             }).catch((err) =>
               log.error(
                 'Failed to persist interrupted-session message: ' +
@@ -538,6 +590,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         cost_cents: null,
         is_compacted: false,
         created_at: new Date().toISOString(),
+        uuid: null,
+        parent_uuid: null,
+        stop_reason: null,
+        is_error: null,
       };
 
       const activeId = getActiveSession()?.id;
@@ -552,7 +608,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         model: null,
         input_tokens: null,
         output_tokens: null,
+        thinking_tokens: null,
         cost_cents: null,
+        uuid: null,
+        parent_uuid: null,
+        stop_reason: null,
+        is_error: null,
       }).catch((err) =>
         log.error(
           'Failed to persist tool_use: ' + (err instanceof Error ? err.message : String(err)),
@@ -585,6 +646,10 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         cost_cents: null,
         is_compacted: false,
         created_at: new Date().toISOString(),
+        uuid: null,
+        parent_uuid: null,
+        stop_reason: null,
+        is_error: is_error ? true : null,
       };
 
       const activeId = getActiveSession()?.id;
@@ -599,7 +664,12 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         model: null,
         input_tokens: null,
         output_tokens: null,
+        thinking_tokens: null,
         cost_cents: null,
+        uuid: null,
+        parent_uuid: null,
+        stop_reason: null,
+        is_error: is_error ? true : null,
       }).catch((err) =>
         log.error(
           'Failed to persist tool_result: ' + (err instanceof Error ? err.message : String(err)),
@@ -666,6 +736,10 @@ export async function sendMessage(
     cost_cents: null,
     is_compacted: false,
     created_at: new Date().toISOString(),
+    uuid: null,
+    parent_uuid: null,
+    stop_reason: null,
+    is_error: null,
   };
 
   // Add to local store immediately (optimistic)
@@ -683,7 +757,12 @@ export async function sendMessage(
     model: null,
     input_tokens: null,
     output_tokens: null,
+    thinking_tokens: null,
     cost_cents: null,
+    uuid: null,
+    parent_uuid: null,
+    stop_reason: null,
+    is_error: null,
   }).catch((err) =>
     log.warn(
       'Failed to persist user message: ' + (err instanceof Error ? err.message : String(err)),
@@ -1062,6 +1141,10 @@ export function recordPermissionOutcome(
     cost_cents: null,
     is_compacted: false,
     created_at: new Date().toISOString(),
+    uuid: null,
+    parent_uuid: null,
+    stop_reason: null,
+    is_error: null,
   };
   setState('messages', (prev) => [...prev, msg]);
   invoke('save_message', {
@@ -1072,7 +1155,12 @@ export function recordPermissionOutcome(
     model: null,
     input_tokens: null,
     output_tokens: null,
+    thinking_tokens: null,
     cost_cents: null,
+    uuid: null,
+    parent_uuid: null,
+    stop_reason: null,
+    is_error: null,
   }).catch((err) =>
     log.error(
       'Failed to persist permission record: ' + (err instanceof Error ? err.message : String(err)),
@@ -1202,6 +1290,10 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           cost_cents: event.cost_cents ?? null,
           is_compacted: false,
           created_at: new Date().toISOString(),
+          uuid: event.uuid ?? null,
+          parent_uuid: event.parent_uuid ?? null,
+          stop_reason: event.stop_reason ?? null,
+          is_error: event.is_error ? true : null,
         };
         setState('messages', (prev) => [...prev, assistantMsg]);
         // Persist since this came from the buffer (may not have been saved)
@@ -1213,7 +1305,12 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           model: assistantMsg.model,
           input_tokens: assistantMsg.input_tokens,
           output_tokens: assistantMsg.output_tokens,
+          thinking_tokens: assistantMsg.thinking_tokens,
           cost_cents: assistantMsg.cost_cents != null ? Math.round(assistantMsg.cost_cents) : null,
+          uuid: assistantMsg.uuid,
+          parent_uuid: assistantMsg.parent_uuid,
+          stop_reason: assistantMsg.stop_reason,
+          is_error: assistantMsg.is_error,
         }).catch((err) =>
           log.error(
             'Failed to persist replayed message: ' +
@@ -1251,6 +1348,10 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           cost_cents: null,
           is_compacted: false,
           created_at: new Date().toISOString(),
+          uuid: null,
+          parent_uuid: null,
+          stop_reason: null,
+          is_error: null,
         };
         setState('messages', (prev) => [...prev, msg]);
         invoke('save_message', {
@@ -1261,7 +1362,12 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           model: null,
           input_tokens: null,
           output_tokens: null,
+          thinking_tokens: null,
           cost_cents: null,
+          uuid: null,
+          parent_uuid: null,
+          stop_reason: null,
+          is_error: null,
         }).catch((err) =>
           log.error(
             'Failed to persist replayed tool_use: ' +
@@ -1295,6 +1401,10 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           cost_cents: null,
           is_compacted: false,
           created_at: new Date().toISOString(),
+          uuid: null,
+          parent_uuid: null,
+          stop_reason: null,
+          is_error: event.is_error ? true : null,
         };
         setState('messages', (prev) => [...prev, msg]);
         invoke('save_message', {
@@ -1305,7 +1415,12 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           model: null,
           input_tokens: null,
           output_tokens: null,
+          thinking_tokens: null,
           cost_cents: null,
+          uuid: null,
+          parent_uuid: null,
+          stop_reason: null,
+          is_error: event.is_error ? true : null,
         }).catch((err) =>
           log.error(
             'Failed to persist replayed tool_result: ' +

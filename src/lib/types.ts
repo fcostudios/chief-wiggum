@@ -58,6 +58,10 @@ export interface Message {
   created_at: string;
   /** Soft-delete visual state during undo grace period. */
   pendingDelete?: boolean;
+  uuid?: string | null;
+  parent_uuid?: string | null;
+  stop_reason?: string | null;
+  is_error?: boolean | null;
 }
 
 /** Structured data stored in tool_use message content (JSON string). */
@@ -122,6 +126,10 @@ export interface Session {
   updated_at: string | null;
   cli_session_id: string | null;
   pinned: boolean | null;
+  cli_version?: string | null;
+  total_thinking_tokens?: number | null;
+  total_cache_read_tokens?: number | null;
+  total_cache_write_tokens?: number | null;
 }
 
 /** Backend info about an active CLI bridge (for reconnection after HMR/reload). */
@@ -166,6 +174,9 @@ export interface BufferedEvent {
   thinking_tokens?: number | null;
   cost_cents?: number | null;
   is_error?: boolean;
+  stop_reason?: string | null;
+  uuid?: string | null;
+  parent_uuid?: string | null;
   // CliInit fields
   cli_session_id?: string;
   // CliExited fields
@@ -183,6 +194,16 @@ export interface BufferedEvent {
   command?: string;
   file_path?: string | null;
   risk_level?: string;
+}
+
+/** Payload from `cost:update` Tauri event — emitted on UsageUpdate from CLI. */
+export interface CostUpdateEvent {
+  session_id: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_write_tokens: number;
 }
 
 /** Payload from `tool:output` Tauri event — emitted just before tool:result. */

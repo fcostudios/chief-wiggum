@@ -40,6 +40,9 @@ pub enum BridgeEvent {
         thinking_tokens: Option<u64>,
         cost_cents: Option<f64>,
         is_error: bool,
+        stop_reason: Option<String>,
+        uuid: Option<String>,
+        parent_uuid: Option<String>,
     },
 
     /// Tool use detected (e.g., file read, bash command).
@@ -414,6 +417,17 @@ impl StreamParser {
                         .or_else(|| extract_nested_u64(&event.data, &["usage", "thinking_tokens"])),
                     cost_cents,
                     is_error,
+                    stop_reason: extract_string(&event.data, "stop_reason").or_else(|| {
+                        extract_nested_string(&event.data, &["message", "stop_reason"])
+                    }),
+                    uuid: extract_nested_string(&event.data, &["message", "id"])
+                        .or_else(|| extract_string(&event.data, "uuid"))
+                        .or_else(|| extract_string(&event.data, "id")),
+                    parent_uuid: extract_string(&event.data, "parent_uuid")
+                        .or_else(|| extract_string(&event.data, "parent_tool_use_id"))
+                        .or_else(|| {
+                            extract_nested_string(&event.data, &["message", "parent_uuid"])
+                        }),
                 })))
             }
 

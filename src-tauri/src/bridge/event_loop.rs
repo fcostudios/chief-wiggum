@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 
 use super::manager::{BufferedEvent, SessionRuntime};
@@ -33,6 +33,19 @@ pub struct MessageCompletePayload {
     pub thinking_tokens: Option<u64>,
     pub cost_cents: Option<f64>,
     pub is_error: bool,
+    pub stop_reason: Option<String>,
+    pub uuid: Option<String>,
+    pub parent_uuid: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CostUpdatePayload {
+    pub session_id: String,
+    pub model: String,
+    pub input_tokens: u64,
+    pub output_tokens: u64,
+    pub cache_read_tokens: u64,
+    pub cache_write_tokens: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,6 +224,9 @@ async fn emit_bridge_output(
                 thinking_tokens,
                 cost_cents,
                 is_error,
+                stop_reason,
+                uuid,
+                parent_uuid,
             } => {
                 tracing::info!(
                     "Event loop [{}]: emitting message:complete (role: {}, content len: {}, model: {:?}, is_error: {})",
@@ -230,6 +246,9 @@ async fn emit_bridge_output(
                     thinking_tokens,
                     cost_cents,
                     is_error,
+                    stop_reason,
+                    uuid,
+                    parent_uuid,
                 };
                 if let Err(e) = app.emit("message:complete", &payload) {
                     tracing::warn!("Failed to emit message:complete: {}", e);
@@ -422,6 +441,60 @@ async fn emit_bridge_output(
                     if let Some(rt) = rts.get_mut(session_id) {
                         rt.buffer_event(BufferedEvent::Thinking(payload.clone()));
                     }
+                }
+            }
+            BridgeEvent::UsageUpdate {
+                session_id: _,
+                model,
+                input_tokens,
+                output_tokens,
+                cache_read_tokens,
+                cache_write_tokens,
+            } => {
+                tracing::info!(
+                    "Event loop [{}]: emitting cost:update (cache_read: {}, cache_write: {})",
+                    session_id,
+                    cache_read_tokens,
+                    cache_write_tokens,
+                );
+                let payload = CostUpdatePayload {
+                    session_id: session_id.to_string(),
+                    model: model.clone(),
+                    input_tokens,
+                    output_tokens,
+                    cache_read_tokens,
+                    cache_write_tokens,
+                };
+                if let Err(e) = app.emit("cost:update", &payload) {
+                    tracing::warn!("Failed to emit cost:update: {}", e);
+                }
+
+                let db = app.state::<crate::db::Database>();
+                if let Err(e) = crate::db::queries::insert_cost_event(
+                    &db,
+                    session_id,
+                    None,
+                    &model,
+                    input_tokens as i64,
+                    output_tokens as i64,
+                    cache_read_tokens as i64,
+                    cache_write_tokens as i64,
+                    0,
+                    Some("usage_update"),
+                ) {
+                    tracing::warn!("Failed to persist cost event: {}", e);
+                }
+                if let Err(e) = crate::db::queries::update_session_cost(
+                    &db,
+                    session_id,
+                    input_tokens as i64,
+                    output_tokens as i64,
+                    0,
+                    0,
+                    cache_read_tokens as i64,
+                    cache_write_tokens as i64,
+                ) {
+                    tracing::warn!("Failed to accumulate usage tokens to session: {}", e);
                 }
             }
             other => {
@@ -660,6 +733,9 @@ mod tests {
             thinking_tokens: Some(2),
             cost_cents: Some(0.05),
             is_error: false,
+            stop_reason: Some("end_turn".to_string()),
+            uuid: Some("msg-1".to_string()),
+            parent_uuid: None,
         };
         let json = serde_json::to_string(&payload).expect("serialize complete payload");
         assert!(json.contains("\"role\":\"assistant\""));
@@ -679,6 +755,9 @@ mod tests {
             thinking_tokens: None,
             cost_cents: None,
             is_error: true,
+            stop_reason: None,
+            uuid: None,
+            parent_uuid: None,
         };
         let json = serde_json::to_string(&payload).expect("serialize nullable complete payload");
         assert!(json.contains("\"model\":null"));
@@ -813,6 +892,9 @@ mod tests {
             thinking_tokens: None,
             cost_cents: Some(1.5),
             is_error: false,
+            stop_reason: None,
+            uuid: Some("msg-2".to_string()),
+            parent_uuid: Some("msg-1".to_string()),
         };
         let json = serde_json::to_string(&complete).expect("serialize complete");
         let decoded: MessageCompletePayload =

@@ -59,7 +59,12 @@ pub fn save_message(
     model: Option<String>,
     input_tokens: Option<i64>,
     output_tokens: Option<i64>,
+    thinking_tokens: Option<i64>,
     cost_cents: Option<i64>,
+    uuid: Option<String>,
+    parent_uuid: Option<String>,
+    stop_reason: Option<String>,
+    is_error: Option<bool>,
 ) -> Result<(), AppError> {
     queries::insert_message(
         &db,
@@ -70,17 +75,29 @@ pub fn save_message(
         model.as_deref(),
         input_tokens,
         output_tokens,
+        thinking_tokens,
         cost_cents,
+        uuid.as_deref(),
+        parent_uuid.as_deref(),
+        stop_reason.as_deref(),
+        is_error,
     )?;
 
     // Accumulate cost on the session row (CHI-53).
-    if input_tokens.is_some() || output_tokens.is_some() || cost_cents.is_some() {
+    if input_tokens.is_some()
+        || output_tokens.is_some()
+        || cost_cents.is_some()
+        || thinking_tokens.is_some()
+    {
         queries::update_session_cost(
             &db,
             &session_id,
             input_tokens.unwrap_or(0),
             output_tokens.unwrap_or(0),
             cost_cents.unwrap_or(0),
+            thinking_tokens.unwrap_or(0),
+            0,
+            0,
         )?;
     }
 
@@ -221,9 +238,58 @@ pub fn get_session_summary(
 mod tests {
     use crate::db::queries;
     use crate::db::Database;
+    use crate::AppError;
 
     fn test_db() -> Database {
         Database::open_in_memory().expect("open in-memory db")
+    }
+
+    fn insert_message_legacy(
+        db: &Database,
+        id: &str,
+        session_id: &str,
+        role: &str,
+        content: &str,
+        model: Option<&str>,
+        input_tokens: Option<i64>,
+        output_tokens: Option<i64>,
+        cost_cents: Option<i64>,
+    ) -> Result<(), AppError> {
+        queries::insert_message(
+            db,
+            id,
+            session_id,
+            role,
+            content,
+            model,
+            input_tokens,
+            output_tokens,
+            None,
+            cost_cents,
+            None,
+            None,
+            None,
+            None,
+        )
+    }
+
+    fn update_session_cost_legacy(
+        db: &Database,
+        session_id: &str,
+        input_tokens: i64,
+        output_tokens: i64,
+        cost_cents: i64,
+    ) -> Result<(), AppError> {
+        queries::update_session_cost(
+            db,
+            session_id,
+            input_tokens,
+            output_tokens,
+            cost_cents,
+            0,
+            0,
+            0,
+        )
     }
 
     #[test]
@@ -277,9 +343,9 @@ mod tests {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
 
-        queries::insert_message(&db, "m1", "s1", "user", "Hello!", None, None, None, None)
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello!", None, None, None, None)
             .expect("insert m1");
-        queries::insert_message(
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -304,7 +370,7 @@ mod tests {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
 
-        queries::insert_message(
+        insert_message_legacy(
             &db,
             "m1",
             "s1",
@@ -316,9 +382,9 @@ mod tests {
             Some(5),
         )
         .expect("insert m1");
-        queries::update_session_cost(&db, "s1", 100, 50, 5).expect("update cost 1");
+        update_session_cost_legacy(&db, "s1", 100, 50, 5).expect("update cost 1");
 
-        queries::insert_message(
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -330,7 +396,7 @@ mod tests {
             Some(10),
         )
         .expect("insert m2");
-        queries::update_session_cost(&db, "s1", 200, 100, 10).expect("update cost 2");
+        update_session_cost_legacy(&db, "s1", 200, 100, 10).expect("update cost 2");
 
         let session = queries::get_session(&db, "s1")
             .expect("get session")
@@ -341,13 +407,133 @@ mod tests {
     }
 
     #[test]
+    fn save_message_persists_thinking_tokens() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+
+        queries::insert_message(
+            &db,
+            "m1",
+            "s1",
+            "assistant",
+            "Hello!",
+            Some("claude-sonnet-4-6"),
+            Some(100),
+            Some(50),
+            Some(42),
+            Some(5),
+            None,
+            None,
+            None,
+            Some(false),
+        )
+        .expect("insert with thinking_tokens");
+
+        let messages = queries::list_messages(&db, "s1").expect("list messages");
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].thinking_tokens, Some(42));
+    }
+
+    #[test]
+    fn insert_cost_event_persists_cache_tokens() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+
+        queries::insert_cost_event(
+            &db,
+            "s1",
+            None,
+            "claude-sonnet-4-6",
+            100,
+            50,
+            500,
+            100,
+            5,
+            Some("usage_update"),
+        )
+        .expect("insert cost event with cache tokens");
+
+        db.with_conn(|conn| {
+            let (cache_read, cache_write): (i64, i64) = conn.query_row(
+                "SELECT cache_read_tokens, cache_write_tokens FROM cost_events WHERE session_id = 's1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )?;
+            assert_eq!(cache_read, 500);
+            assert_eq!(cache_write, 100);
+            Ok(())
+        })
+        .expect("query cost event");
+    }
+
+    #[test]
+    fn save_message_persists_v6_fields() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+
+        queries::insert_message(
+            &db,
+            "m1",
+            "s1",
+            "assistant",
+            "Hello!",
+            Some("claude-sonnet-4-6"),
+            Some(100),
+            Some(50),
+            Some(10),
+            Some(5),
+            Some("msg-uuid-123"),
+            None,
+            Some("end_turn"),
+            Some(false),
+        )
+        .expect("insert with v6 fields");
+
+        let messages = queries::list_messages(&db, "s1").expect("list messages");
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].uuid, Some("msg-uuid-123".to_string()));
+        assert_eq!(messages[0].stop_reason, Some("end_turn".to_string()));
+        assert_eq!(messages[0].is_error, Some(false));
+    }
+
+    #[test]
+    fn session_accumulates_thinking_tokens() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+
+        queries::update_session_cost(&db, "s1", 100, 50, 10, 20, 0, 0).expect("first message");
+        queries::update_session_cost(&db, "s1", 200, 80, 15, 30, 0, 0).expect("second message");
+
+        let session = queries::get_session(&db, "s1")
+            .expect("get session")
+            .expect("session exists");
+        assert_eq!(session.total_thinking_tokens, Some(50));
+        assert_eq!(session.total_input_tokens, Some(300));
+    }
+
+    #[test]
+    fn session_accumulates_cache_tokens() {
+        let db = test_db();
+        queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
+
+        queries::update_session_cost(&db, "s1", 100, 50, 5, 0, 500, 100).expect("first");
+        queries::update_session_cost(&db, "s1", 100, 50, 5, 0, 300, 50).expect("second");
+
+        let session = queries::get_session(&db, "s1")
+            .expect("get session")
+            .expect("session exists");
+        assert_eq!(session.total_cache_read_tokens, Some(800));
+        assert_eq!(session.total_cache_write_tokens, Some(150));
+    }
+
+    #[test]
     fn delete_messages_after_removes_subsequent() {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
 
-        queries::insert_message(&db, "m1", "s1", "user", "First", None, None, None, None)
+        insert_message_legacy(&db, "m1", "s1", "user", "First", None, None, None, None)
             .expect("insert m1");
-        queries::insert_message(
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -359,7 +545,7 @@ mod tests {
             None,
         )
         .expect("insert m2");
-        queries::insert_message(&db, "m3", "s1", "user", "Third", None, None, None, None)
+        insert_message_legacy(&db, "m3", "s1", "user", "Third", None, None, None, None)
             .expect("insert m3");
 
         let deleted = queries::delete_messages_after(&db, "s1", "m1").expect("delete after m1");
@@ -375,9 +561,9 @@ mod tests {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
 
-        queries::insert_message(&db, "m1", "s1", "user", "First", None, None, None, None)
+        insert_message_legacy(&db, "m1", "s1", "user", "First", None, None, None, None)
             .expect("insert m1");
-        queries::insert_message(
+        insert_message_legacy(
             &db,
             "m2",
             "s1",
@@ -400,7 +586,7 @@ mod tests {
     fn update_message_content_works() {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
-        queries::insert_message(&db, "m1", "s1", "user", "Original", None, None, None, None)
+        insert_message_legacy(&db, "m1", "s1", "user", "Original", None, None, None, None)
             .expect("insert m1");
 
         queries::update_message_content(&db, "m1", "Edited content").expect("update content");
@@ -466,11 +652,11 @@ mod tests {
     fn fork_session_copies_messages_up_to_point() {
         let db = test_db();
         queries::insert_session(&db, "s1", None, "claude-sonnet-4-6").expect("insert session");
-        queries::insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None)
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None)
             .expect("insert m1");
-        queries::insert_message(&db, "m2", "s1", "assistant", "Hi", None, None, None, None)
+        insert_message_legacy(&db, "m2", "s1", "assistant", "Hi", None, None, None, None)
             .expect("insert m2");
-        queries::insert_message(&db, "m3", "s1", "user", "More", None, None, None, None)
+        insert_message_legacy(&db, "m3", "s1", "user", "More", None, None, None, None)
             .expect("insert m3");
 
         let new_id = uuid::Uuid::new_v4().to_string();
@@ -492,7 +678,7 @@ mod tests {
             0
         );
 
-        queries::insert_message(&db, "m1", "s1", "user", "Hello", None, None, None, None)
+        insert_message_legacy(&db, "m1", "s1", "user", "Hello", None, None, None, None)
             .expect("insert message");
         assert!(
             queries::count_session_messages(&db, "s1").expect("count messages") > 0,

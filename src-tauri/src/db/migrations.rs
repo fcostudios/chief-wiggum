@@ -165,6 +165,25 @@ const MIGRATIONS: &[Migration] = &[
                 ON artifacts(session_id, created_at DESC);
         "#,
     },
+    Migration {
+        version: 6,
+        description:
+            "Add message threading fields, stop_reason/is_error, and session cli/token totals",
+        sql: r#"
+            ALTER TABLE messages ADD COLUMN uuid TEXT;
+            ALTER TABLE messages ADD COLUMN parent_uuid TEXT;
+            ALTER TABLE messages ADD COLUMN stop_reason TEXT;
+            ALTER TABLE messages ADD COLUMN is_error BOOLEAN DEFAULT FALSE;
+
+            CREATE INDEX IF NOT EXISTS idx_messages_uuid ON messages(uuid);
+            CREATE INDEX IF NOT EXISTS idx_messages_parent_uuid ON messages(parent_uuid);
+
+            ALTER TABLE sessions ADD COLUMN cli_version TEXT;
+            ALTER TABLE sessions ADD COLUMN total_thinking_tokens INTEGER DEFAULT 0;
+            ALTER TABLE sessions ADD COLUMN total_cache_read_tokens INTEGER DEFAULT 0;
+            ALTER TABLE sessions ADD COLUMN total_cache_write_tokens INTEGER DEFAULT 0;
+        "#,
+    },
 ];
 
 impl super::Database {
@@ -359,7 +378,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 5);
+        assert_eq!(version, 6);
     }
 
     #[test]
@@ -370,7 +389,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 5);
+        assert_eq!(count, 6);
     }
 
     #[test]
@@ -415,7 +434,7 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 5);
+        assert_eq!(rows.len(), 6);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
@@ -426,6 +445,59 @@ mod tests {
         assert!(rows[3].1.contains("action_history"));
         assert_eq!(rows[4].0, 5);
         assert!(rows[4].1.contains("artifacts"));
+        assert_eq!(rows[5].0, 6);
+        assert!(rows[5].1.contains("threading"));
+    }
+
+    #[test]
+    fn migration_v6_adds_all_columns() {
+        let conn = fresh_conn();
+        run_migrations_on_conn(&conn).unwrap();
+
+        let msg_cols: Vec<String> = {
+            let mut stmt = conn.prepare("PRAGMA table_info(messages)").unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(1))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        };
+        assert!(msg_cols.contains(&"uuid".to_string()));
+        assert!(msg_cols.contains(&"parent_uuid".to_string()));
+        assert!(msg_cols.contains(&"stop_reason".to_string()));
+        assert!(msg_cols.contains(&"is_error".to_string()));
+
+        let sess_cols: Vec<String> = {
+            let mut stmt = conn.prepare("PRAGMA table_info(sessions)").unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(1))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        };
+        assert!(sess_cols.contains(&"cli_version".to_string()));
+        assert!(sess_cols.contains(&"total_thinking_tokens".to_string()));
+        assert!(sess_cols.contains(&"total_cache_read_tokens".to_string()));
+        assert!(sess_cols.contains(&"total_cache_write_tokens".to_string()));
+    }
+
+    #[test]
+    fn migration_v6_has_correct_indexes() {
+        let conn = fresh_conn();
+        run_migrations_on_conn(&conn).unwrap();
+
+        let indexes: Vec<String> = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='messages'",
+                )
+                .unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(0))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        };
+
+        assert!(indexes.iter().any(|i| i == "idx_messages_uuid"));
+        assert!(indexes.iter().any(|i| i == "idx_messages_parent_uuid"));
     }
 
     #[test]
