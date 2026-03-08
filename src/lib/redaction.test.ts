@@ -102,9 +102,7 @@ describe('redactSecrets — pattern 7: password fields', () => {
 
 describe('redactSecrets — pattern 8: GitHub tokens', () => {
   it('redacts ghp_ personal access tokens', () => {
-    const result = redactSecrets(
-      'GITHUB_TOKEN=ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcde123456',
-    );
+    const result = redactSecrets('GITHUB_TOKEN=ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcde123456');
     expect(result.content).not.toContain('ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZabcde123456');
     expect(result.redactionCount).toBeGreaterThan(0);
   });
@@ -121,9 +119,7 @@ describe('redactSecrets — pattern 9: Anthropic keys', () => {
     const result = redactSecrets(
       'ANTHROPIC_API_KEY=sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF',
     );
-    expect(result.content).not.toContain(
-      'sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF',
-    );
+    expect(result.content).not.toContain('sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890ABCDEF');
     expect(result.redactionCount).toBeGreaterThan(0);
   });
 });
@@ -186,10 +182,9 @@ describe('redactSecrets — custom rules', () => {
       pattern: /MYSECRET/g,
       replacement: '[REDACTED]',
     };
-    const result = redactSecrets(
-      'ANTHROPIC_API_KEY=sk-ant-api03-abc12345678901234567890',
-      [customRule],
-    );
+    const result = redactSecrets('ANTHROPIC_API_KEY=sk-ant-api03-abc12345678901234567890', [
+      customRule,
+    ]);
     expect(result.content).not.toContain('sk-ant-api03');
   });
 });

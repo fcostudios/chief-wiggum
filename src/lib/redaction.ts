@@ -66,10 +66,7 @@ export const DEFAULT_RULES: RedactionRule[] = [
   },
 ];
 
-export function redactSecrets(
-  content: string,
-  extraRules: RedactionRule[] = [],
-): RedactionResult {
+export function redactSecrets(content: string, extraRules: RedactionRule[] = []): RedactionResult {
   const rules = [...DEFAULT_RULES, ...extraRules];
   const findings: RedactionFinding[] = [];
   let redactionCount = 0;

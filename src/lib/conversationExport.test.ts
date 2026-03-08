@@ -149,10 +149,7 @@ describe('exportAsHtml — interactive viewer', () => {
     message('user', 'Hello there'),
     message('assistant', 'Hi, how can I help?'),
     message('thinking', 'Let me think about this carefully'),
-    message(
-      'tool_use',
-      JSON.stringify({ tool_name: 'Read', tool_input: '{"path":"file.ts"}' }),
-    ),
+    message('tool_use', JSON.stringify({ tool_name: 'Read', tool_input: '{"path":"file.ts"}' })),
     message('tool_result', JSON.stringify({ content: 'file content', is_error: false })),
   ];
 
@@ -280,10 +277,7 @@ describe('exportAsJson', () => {
   });
 
   it('redacts secrets when redact=true', () => {
-    const secretMsg = message(
-      'user',
-      'Key: sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890',
-    );
+    const secretMsg = message('user', 'Key: sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890');
     const output = exportAsJson([secretMsg], session, { redact: true });
     expect(output).not.toContain('sk-ant-api03');
   });

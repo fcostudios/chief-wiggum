@@ -230,7 +230,9 @@ export function exportAsHtml(
     .pip{width:12px;height:12px;border-radius:2px;background:var(--color-border);cursor:pointer}
     .pip.active{background:var(--color-accent)}
     @media(prefers-color-scheme:light){:root:not([data-theme=dark]){--color-bg:#ffffff;--color-bg-2:#f6f8fa;--color-bg-3:#eaeef2;--color-fg:#24292f;--color-fg-2:#57606a;--color-fg-3:#8c959f;--color-accent:#d1622b;--color-blue:#0969da;--color-red:#cf222e;--color-border:#d0d7de}}
-  `.replace(/\s{2,}/g, ' ').trim();
+  `
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 
   const js = `
     const TURNS = ${serializedTurns};
@@ -274,7 +276,9 @@ export function exportAsHtml(
     function copyText(btn){ navigator.clipboard.writeText(btn.dataset.text || '').then(function(){ const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function(){ btn.textContent = orig; }, 1500); }); }
     document.addEventListener('keydown', function(e){ if(e.target.tagName === 'INPUT') return; if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ e.preventDefault(); showTurn(current + 1); } if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ e.preventDefault(); showTurn(current - 1); } if((e.ctrlKey || e.metaKey) && e.key === 'f'){ e.preventDefault(); toggleSearch(); } });
     window.addEventListener('DOMContentLoaded', function(){ const container = document.getElementById('turns-container'); const progress = document.getElementById('progress'); TURNS.forEach(function(t,i){ container.insertAdjacentHTML('beforeend', renderTurn(t)); const pip = document.createElement('div'); pip.className = 'pip'; pip.setAttribute('title', 'Turn ' + (i + 1)); pip.onclick = function(){ showTurn(i); }; progress.appendChild(pip); }); showTurn(0); });
-  `.replace(/\s{2,}/g, ' ').trim();
+  `
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -356,7 +360,8 @@ export function exportAsJson(
       title: session.title ?? null,
       model: session.model ?? null,
       total_messages: messages.length,
-      total_cost_cents: messages.reduce((sum, message) => sum + (message.cost_cents ?? 0), 0) || null,
+      total_cost_cents:
+        messages.reduce((sum, message) => sum + (message.cost_cents ?? 0), 0) || null,
     },
     messages: serializedMessages,
   };

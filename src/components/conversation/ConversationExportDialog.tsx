@@ -60,8 +60,7 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
         message.role === 'user' ||
         message.role === 'assistant' ||
         (includeThinking() && message.role === 'thinking') ||
-        (includeToolCalls() &&
-          (message.role === 'tool_use' || message.role === 'tool_result')),
+        (includeToolCalls() && (message.role === 'tool_use' || message.role === 'tool_result')),
     ).length;
 
     const formatLabel = format().toUpperCase();
@@ -141,7 +140,10 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
           aria-modal="true"
           aria-labelledby="conv-export-title"
         >
-          <div class="px-5 py-4" style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}>
+          <div
+            class="px-5 py-4"
+            style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+          >
             <h2
               id="conv-export-title"
               class="text-sm font-semibold"
