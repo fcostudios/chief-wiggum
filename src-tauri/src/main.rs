@@ -239,6 +239,9 @@ fn main() {
             chief_wiggum_lib::commands::export::save_export_file,
             chief_wiggum_lib::commands::export::open_path_in_shell,
             chief_wiggum_lib::commands::import::check_session_consistency,
+            chief_wiggum_lib::commands::import::discover_importable_sessions,
+            chief_wiggum_lib::commands::import::import_jsonl_file,
+            chief_wiggum_lib::commands::import::import_jsonl_batch,
             chief_wiggum_lib::commands::logging::log_from_frontend,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
@@ -278,6 +281,11 @@ fn main() {
             chief_wiggum_lib::commands::files::rename_file,
             chief_wiggum_lib::commands::files::duplicate_file,
             chief_wiggum_lib::commands::files::read_changelog,
+            chief_wiggum_lib::commands::templates::get_prompt_templates,
+            chief_wiggum_lib::commands::templates::create_prompt_template,
+            chief_wiggum_lib::commands::templates::edit_prompt_template,
+            chief_wiggum_lib::commands::templates::remove_prompt_template,
+            chief_wiggum_lib::commands::templates::use_prompt_template,
         ])
         .setup(|app| {
             use tauri::Manager;

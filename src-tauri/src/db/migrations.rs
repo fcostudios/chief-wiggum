@@ -194,6 +194,23 @@ const MIGRATIONS: &[Migration] = &[
                 ON sessions(updated_at DESC);
         "#,
     },
+    Migration {
+        version: 8,
+        description: "Add prompt_templates table (CHI-259)",
+        sql: r#"
+            CREATE TABLE IF NOT EXISTS prompt_templates (
+                id          TEXT PRIMARY KEY NOT NULL,
+                name        TEXT NOT NULL,
+                content     TEXT NOT NULL,
+                variables   TEXT NOT NULL DEFAULT '[]',
+                created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                usage_count INTEGER NOT NULL DEFAULT 0
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_templates_usage
+                ON prompt_templates(usage_count DESC);
+        "#,
+    },
 ];
 
 impl super::Database {
@@ -388,7 +405,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 7);
+        assert_eq!(version, 8);
     }
 
     #[test]
@@ -399,7 +416,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 7);
+        assert_eq!(count, 8);
     }
 
     #[test]
@@ -416,6 +433,7 @@ mod tests {
             "budgets",
             "action_history",
             "artifacts",
+            "prompt_templates",
         ];
         for table in &tables {
             let exists: bool = conn
@@ -444,7 +462,7 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 7);
+        assert_eq!(rows.len(), 8);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
@@ -459,6 +477,8 @@ mod tests {
         assert!(rows[5].1.contains("threading"));
         assert_eq!(rows[6].0, 7);
         assert!(rows[6].1.contains("performance indexes"));
+        assert_eq!(rows[7].0, 8);
+        assert!(rows[7].1.contains("prompt_templates"));
     }
 
     #[test]
@@ -508,6 +528,21 @@ mod tests {
 
         assert!(indexes.contains(&"idx_messages_session_created_at".to_string()));
         assert!(indexes.contains(&"idx_sessions_updated_at".to_string()));
+    }
+
+    #[test]
+    fn migration_v8_adds_prompt_templates() {
+        let conn = fresh_conn();
+        run_migrations_on_conn(&conn).unwrap();
+
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type='table' AND name='prompt_templates'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(table_exists);
     }
 
     #[test]

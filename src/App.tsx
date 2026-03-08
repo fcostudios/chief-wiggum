@@ -24,6 +24,7 @@ import { sessionState } from '@/stores/sessionStore';
 import { switchLocale } from '@/stores/i18nStore';
 import { incrementSessionCount } from '@/stores/onboardingStore';
 import { HintTooltip } from '@/components/common/HintTooltip';
+import ImportDialog from '@/components/import/ImportDialog';
 // Renderer registrations (side effects — register into rendererRegistry)
 import './components/conversation/renderers/MermaidRenderer';
 import './components/conversation/renderers/MathRenderer';
@@ -134,6 +135,7 @@ const App: Component = () => {
           </div>
         )}
       </Show>
+      <ImportDialog />
     </>
   );
 };

@@ -60,6 +60,7 @@ import {
   renameFileInProject,
 } from '@/stores/fileStore';
 import { getRecentCommands, recordCommand } from '@/stores/recentCommandStore';
+import { loadTemplates, templateState, useTemplate } from '@/stores/templateStore';
 import ConversationExportDialog from '@/components/conversation/ConversationExportDialog';
 import { t } from '@/stores/i18nStore';
 
@@ -167,6 +168,10 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     }
     handleClose();
     setExportDialogOpen(true);
+  }
+
+  function insertIntoComposer(text: string): void {
+    window.dispatchEvent(new CustomEvent('cw:insert-into-composer', { detail: { text } }));
   }
 
   // Build static commands list
@@ -447,8 +452,22 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       projectState.activeProjectId && actionState.actions.length > 0
         ? buildActionCommands(actionState.actions)
         : [];
+    const templateCommands: Command[] = (templateState.templates ?? []).map((template) => ({
+      id: `template:${template.id}`,
+      label: `Insert template: ${template.name}`,
+      category: 'Templates',
+      icon: () => <Sparkles size={16} />,
+      searchText: `${template.name} ${template.content}`.toLowerCase(),
+      action: () => {
+        void (async () => {
+          const content = await useTemplate(template.id);
+          if (!content) return;
+          insertIntoComposer(content);
+        })();
+      },
+    }));
 
-    return [...staticCommands, ...sessionCommands, ...actionCommands];
+    return [...staticCommands, ...sessionCommands, ...actionCommands, ...templateCommands];
   });
 
   // Filter commands based on mode (sessions-only or all)
@@ -577,6 +596,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
   onMount(() => {
     // Focus the search input
     inputRef?.focus();
+    void loadTemplates();
     // Listen for keyboard events globally (Escape works even when nothing focused)
     document.addEventListener('keydown', handleKeyDown, true);
   });

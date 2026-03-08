@@ -64,6 +64,22 @@ const [state, setState] = createStore<ConversationState>({
   lastUserMessage: null,
 });
 
+const MAX_IN_MEMORY_MESSAGES = 500;
+
+function capMessages(messages: Message[]): Message[] {
+  return messages.length > MAX_IN_MEMORY_MESSAGES
+    ? messages.slice(-MAX_IN_MEMORY_MESSAGES)
+    : messages;
+}
+
+function setMessagesCapped(messages: Message[]): void {
+  setState('messages', capMessages(messages));
+}
+
+function appendMessageCapped(message: Message): void {
+  setState('messages', (prev) => capMessages([...prev, message]));
+}
+
 /** Set applied/rejected state for an inline diff block. */
 export function setDiffState(key: string, state: 'applied' | 'rejected'): void {
   setState('diffStates', key, state);
@@ -135,7 +151,8 @@ export async function loadMessages(sessionId: string): Promise<void> {
   setState('error', null);
   try {
     const messages = await invoke<Message[]>('list_messages', { session_id: sessionId });
-    setState('messages', messages);
+    // TESTME: loadMessages should trim to 500 when more messages are returned from DB.
+    setMessagesCapped(messages);
   } finally {
     setState('isLoading', false);
   }
@@ -222,7 +239,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
           stop_reason: null,
           is_error: null,
         };
-        setState('messages', (prev) => [...prev, thinkingMsg]);
+        appendMessageCapped(thinkingMsg);
         invoke('save_message', {
           session_id: sessionId,
           id: thinkingId,
@@ -303,7 +320,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       };
 
       if (isActive) {
-        setState('messages', (prev) => [...prev, assistantMsg]);
+        appendMessageCapped(assistantMsg);
         setState('streamingContent', '');
         setState('thinkingContent', '');
         setState('isStreaming', false);
@@ -404,7 +421,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
             stop_reason: null,
             is_error: null,
           };
-          setState('messages', (prev) => [...prev, assistantMsg]);
+          appendMessageCapped(assistantMsg);
           setState('streamingContent', '');
           setState('thinkingContent', '');
           setState('isStreaming', false);
@@ -458,7 +475,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
               stop_reason: null,
               is_error: true,
             };
-            setState('messages', (prev) => [...prev, errMsg]);
+            appendMessageCapped(errMsg);
             invoke('save_message', {
               session_id: sessionId,
               id: msgId,
@@ -598,7 +615,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
 
       const activeId = getActiveSession()?.id;
       if (sessionId === activeId) {
-        setState('messages', (prev) => [...prev, msg]);
+        appendMessageCapped(msg);
       }
       invoke('save_message', {
         session_id: sessionId,
@@ -654,7 +671,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
 
       const activeId = getActiveSession()?.id;
       if (sessionId === activeId) {
-        setState('messages', (prev) => [...prev, msg]);
+        appendMessageCapped(msg);
       }
       invoke('save_message', {
         session_id: sessionId,
@@ -743,7 +760,7 @@ export async function sendMessage(
   };
 
   // Add to local store immediately (optimistic)
-  setState('messages', (prev) => [...prev, userMsg]);
+  appendMessageCapped(userMsg);
   setState('isLoading', true);
   setState('error', null);
   setState('lastUserMessage', content);
@@ -1146,7 +1163,7 @@ export function recordPermissionOutcome(
     stop_reason: null,
     is_error: null,
   };
-  setState('messages', (prev) => [...prev, msg]);
+  appendMessageCapped(msg);
   invoke('save_message', {
     session_id: sessionId,
     id: msgId,
@@ -1195,7 +1212,7 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
           session_id: activeSessionId,
         });
         if (dbMessages.length > 0) {
-          setState('messages', dbMessages);
+          setMessagesCapped(dbMessages);
         }
       } catch (err) {
         log.error(
@@ -1295,7 +1312,7 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           stop_reason: event.stop_reason ?? null,
           is_error: event.is_error ? true : null,
         };
-        setState('messages', (prev) => [...prev, assistantMsg]);
+        appendMessageCapped(assistantMsg);
         // Persist since this came from the buffer (may not have been saved)
         invoke('save_message', {
           session_id: sessionId,
@@ -1353,7 +1370,7 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           stop_reason: null,
           is_error: null,
         };
-        setState('messages', (prev) => [...prev, msg]);
+        appendMessageCapped(msg);
         invoke('save_message', {
           session_id: sessionId,
           id: msgId,
@@ -1406,7 +1423,7 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
           stop_reason: null,
           is_error: event.is_error ? true : null,
         };
-        setState('messages', (prev) => [...prev, msg]);
+        appendMessageCapped(msg);
         invoke('save_message', {
           session_id: sessionId,
           id: msgId,

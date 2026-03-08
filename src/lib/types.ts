@@ -132,6 +132,41 @@ export interface Session {
   total_cache_write_tokens?: number | null;
 }
 
+// ── JSONL Import (CHI-303/304/305) ───────────────────────────
+
+export type ImportOutcome = 'created' | 'merged' | 'preserved' | 'skipped';
+
+export interface ImportResult {
+  session_id: string;
+  cli_session_id: string | null;
+  outcome: ImportOutcome;
+  messages_imported: number;
+  messages_skipped: number;
+  warnings: string[];
+}
+
+export interface DiscoveredSession {
+  file_path: string;
+  project_path: string;
+  cli_session_id: string;
+  file_size_bytes: number;
+  line_count: number;
+  model: string | null;
+  first_timestamp: string | null;
+  already_imported: boolean;
+}
+
+// ── Prompt Templates (CHI-259) ────────────────────────────────
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  content: string;
+  variables: string;
+  created_at: string;
+  usage_count: number;
+}
+
 /** Backend info about an active CLI bridge (for reconnection after HMR/reload). */
 export interface ActiveBridgeInfo {
   session_id: string;

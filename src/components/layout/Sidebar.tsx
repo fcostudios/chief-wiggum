@@ -52,6 +52,7 @@ import {
 import { fileState, toggleFilesVisible } from '@/stores/fileStore';
 import { actionState, discoverActions } from '@/stores/actionStore';
 import { uiState, setViewBadge } from '@/stores/uiStore';
+import { openImportDialog } from '@/stores/importStore';
 import { t } from '@/stores/i18nStore';
 import { addToast } from '@/stores/toastStore';
 import FileTree from '@/components/explorer/FileTree';
@@ -691,9 +692,62 @@ const Sidebar: Component = () => {
           <Show
             when={!isCollapsed()}
             fallback={
-              /* Collapsed: icon-only new session button */
+              <div class="flex flex-col gap-1.5">
+                {/* Collapsed: icon-only new session button */}
+                <button
+                  class="flex items-center justify-center w-full h-8 rounded-md transition-all"
+                  style={{
+                    'transition-duration': 'var(--duration-normal)',
+                    color: 'var(--color-text-secondary)',
+                    background: 'transparent',
+                    border: '1px solid var(--color-border-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--color-accent)';
+                    e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+                    e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--color-text-secondary)';
+                    e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                  onClick={handleNewSession}
+                  aria-label={t('sidebar.newSession')}
+                  title={t('sidebar.newSession')}
+                >
+                  <Plus size={14} />
+                </button>
+                <button
+                  class="flex items-center justify-center w-full h-8 rounded-md transition-all"
+                  style={{
+                    'transition-duration': 'var(--duration-normal)',
+                    color: 'var(--color-text-secondary)',
+                    background: 'transparent',
+                    border: '1px solid var(--color-border-secondary)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--color-accent)';
+                    e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+                    e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--color-text-secondary)';
+                    e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                  onClick={openImportDialog}
+                  aria-label="Import sessions"
+                  title="Import sessions"
+                >
+                  <Download size={14} />
+                </button>
+              </div>
+            }
+          >
+            <div class="flex flex-col gap-1.5">
               <button
-                class="flex items-center justify-center w-full h-8 rounded-md transition-all"
+                class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
                 style={{
                   'transition-duration': 'var(--duration-normal)',
                   color: 'var(--color-text-secondary)',
@@ -712,36 +766,35 @@ const Sidebar: Component = () => {
                 }}
                 onClick={handleNewSession}
                 aria-label={t('sidebar.newSession')}
-                title={t('sidebar.newSession')}
               >
-                <Plus size={14} />
+                <Plus size={13} />
+                <span class="tracking-wide">{t('sidebar.newSession')}</span>
               </button>
-            }
-          >
-            <button
-              class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
-              style={{
-                'transition-duration': 'var(--duration-normal)',
-                color: 'var(--color-text-secondary)',
-                background: 'transparent',
-                border: '1px solid var(--color-border-secondary)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--color-accent)';
-                e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
-                e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--color-text-secondary)';
-                e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
-                e.currentTarget.style.background = 'transparent';
-              }}
-              onClick={handleNewSession}
-              aria-label={t('sidebar.newSession')}
-            >
-              <Plus size={13} />
-              <span class="tracking-wide">{t('sidebar.newSession')}</span>
-            </button>
+              <button
+                class="flex items-center justify-center gap-2 w-full py-2 rounded-md text-xs font-medium transition-all"
+                style={{
+                  'transition-duration': 'var(--duration-normal)',
+                  color: 'var(--color-text-secondary)',
+                  background: 'transparent',
+                  border: '1px solid var(--color-border-secondary)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-accent)';
+                  e.currentTarget.style.borderColor = 'rgba(232, 130, 90, 0.3)';
+                  e.currentTarget.style.background = 'rgba(232, 130, 90, 0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-secondary)';
+                  e.currentTarget.style.borderColor = 'var(--color-border-secondary)';
+                  e.currentTarget.style.background = 'transparent';
+                }}
+                onClick={openImportDialog}
+                aria-label="Import sessions"
+              >
+                <Download size={13} />
+                <span class="tracking-wide">Import Sessions</span>
+              </button>
+            </div>
           </Show>
         </div>
       </Show>

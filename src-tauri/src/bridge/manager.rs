@@ -289,12 +289,22 @@ impl SessionBridgeMap {
             session_id.to_string(),
             SessionRuntime::new(session_id.to_string()),
         );
+        tracing::debug!(
+            runtime_count = runtimes.len(),
+            "Runtime created for session {}",
+            session_id
+        );
     }
 
     /// Remove a runtime entry (on session bridge removal).
     pub async fn remove_runtime(&self, session_id: &str) {
         let mut runtimes = self.session_runtimes.write().await;
         runtimes.remove(session_id);
+        tracing::debug!(
+            runtime_count = runtimes.len(),
+            "Runtime removed for session {}",
+            session_id
+        );
     }
 
     /// Clean up all resources for a deleted session: bridge + runtime buffer.

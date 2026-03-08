@@ -11,6 +11,12 @@ const mockResetCategory = vi.fn();
 const mockRetryPendingSettingsSave = vi.fn();
 const mockUpdateSetting = vi.fn();
 const mockCloseSettings = vi.fn();
+const mockLoadTemplates = vi.fn(async () => {});
+const mockCreateTemplate = vi.fn<
+  (name: string, content: string, variables: string[]) => Promise<string>
+>(async () => 'template-1');
+const mockRemoveTemplate = vi.fn<(id: string) => Promise<void>>(async () => {});
+const mockOpenImportDialog = vi.fn();
 
 const mockSettings: UserSettings = {
   version: 2,
@@ -54,6 +60,10 @@ vi.mock('@/stores/uiStore', () => ({
   closeSettings: () => mockCloseSettings(),
 }));
 
+vi.mock('@/stores/importStore', () => ({
+  openImportDialog: () => mockOpenImportDialog(),
+}));
+
 vi.mock('@/stores/settingsStore', () => ({
   settingsState: {
     get settings() {
@@ -75,6 +85,17 @@ vi.mock('@/stores/settingsStore', () => ({
   updateSetting: (...args: unknown[]) => mockUpdateSetting(...args),
 }));
 
+vi.mock('@/stores/templateStore', () => ({
+  templateState: {
+    templates: [],
+    loaded: true,
+  },
+  loadTemplates: () => mockLoadTemplates(),
+  createTemplate: (name: string, content: string, variables: string[]) =>
+    mockCreateTemplate(name, content, variables),
+  removeTemplate: (id: string) => mockRemoveTemplate(id),
+}));
+
 vi.mock('@tauri-apps/plugin-os', () => ({
   platform: () => Promise.resolve('macos'),
 }));
@@ -91,6 +112,10 @@ describe('SettingsModal', () => {
     mockRetryPendingSettingsSave.mockClear();
     mockUpdateSetting.mockClear();
     mockCloseSettings.mockClear();
+    mockLoadTemplates.mockClear();
+    mockCreateTemplate.mockClear();
+    mockRemoveTemplate.mockClear();
+    mockOpenImportDialog.mockClear();
   });
 
   it('renders dialog title and search input', () => {
