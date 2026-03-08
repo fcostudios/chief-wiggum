@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-08T09:31:13Z",
+  "last_updated": "2026-03-08T15:41:12Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -63,19 +63,23 @@
     },
     "CHI-286": {
       "title": "Security Hardening — Database Encryption & Code Security",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "0c5c6538-d7bc-46fe-924a-0655db21937b",
-      "spec_ref": "SPEC-006 §4.25"
+      "spec_ref": "SPEC-006 §4.25",
+      "completed_at": "2026-03-08T12:17:35Z",
+      "notes": "All 4 sub-tasks complete (CHI-288, 289, 290, 291). SQLCipher encryption, file permissions, CSP, backup/redaction/cleanup all implemented."
     },
     "CHI-287": {
       "title": "Performance Tuning — Database, Rendering & I/O Optimization",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "5fe40585-4442-4a43-90d4-2f398fd36671",
-      "spec_ref": "SPEC-006 §4.26"
+      "spec_ref": "SPEC-006 §4.26",
+      "notes": "All 4 sub-tasks complete (CHI-292, 293, 294, 295). Query/event/rendering/memory-build optimizations implemented and merged.",
+      "completed_at": "2026-03-08T15:41:12Z"
     },
     "CHI-296": {
       "title": "Session Data Completeness — Migration v6 & Pipeline Fixes",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "9272b661-4e30-49d9-a28d-34bd70718807",
       "priority": "High",
       "spec_ref": "SPEC-006 §4.27",
@@ -85,7 +89,7 @@
       "tasks": {
         "CHI-297": {
           "title": "DATA-1: Fix Pipeline Drops — thinking_tokens + Cache Tokens",
-          "status": "backlog",
+          "status": "done",
           "priority": "Urgent",
           "size": 3,
           "spec_ref": "SPEC-006 §4.27.3-4.27.4",
@@ -97,11 +101,13 @@
             "src-tauri/src/db/queries.rs",
             "src-tauri/src/bridge/event_loop.rs",
             "src/stores/conversationStore.ts"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:00:36Z",
+          "notes": "Fixed message and cost pipeline drops for thinking and cache tokens, including UsageUpdate handling and persistence. completed_by=claude-code; lock_acquired_at=2026-03-08T06:59:19Z"
         },
         "CHI-298": {
           "title": "DATA-2: Migration v6 — Threading, Stop Reason & Token Columns",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 2,
           "spec_ref": "SPEC-006 §4.27.2",
@@ -111,11 +117,13 @@
           ],
           "files": [
             "src-tauri/src/db/migrations.rs"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:00:36Z",
+          "notes": "Added migration v6 with 8 new columns and message threading indexes; exposed new session and message columns in query row mappings. completed_by=claude-code; lock_acquired_at=2026-03-08T06:59:19Z"
         },
         "CHI-299": {
           "title": "DATA-3: Frontend Store — Pass v6 Fields Through IPC",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 2,
           "spec_ref": "SPEC-006 §4.27.5",
@@ -126,11 +134,13 @@
             "src/stores/conversationStore.ts",
             "src/lib/types.ts",
             "src/components/conversation/MessageBubble.tsx"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:00:36Z",
+          "notes": "Wired v6 message and session fields through parser to event loop to IPC to frontend store and UI, including stop_reason and error rendering. completed_by=claude-code; lock_acquired_at=2026-03-08T06:59:19Z"
         },
         "CHI-300": {
           "title": "DATA-4: Session Cost Accumulation — Thinking + Cache Tokens",
-          "status": "backlog",
+          "status": "done",
           "priority": "Medium",
           "size": 1,
           "spec_ref": "SPEC-006 §4.27.6",
@@ -140,13 +150,17 @@
           "files": [
             "src-tauri/src/db/queries.rs",
             "src-tauri/src/commands/session.rs"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:00:36Z",
+          "notes": "Extended session token accumulation to include thinking, cache_read, and cache_write totals and verified accumulation tests. completed_by=claude-code; lock_acquired_at=2026-03-08T06:59:19Z"
         }
-      }
+      },
+      "completed_at": "2026-03-08T12:21:27Z",
+      "notes": "All 4 sub-tasks complete (CHI-297, 298, 299, 300). Pipeline fixed, migration v6 applied, frontend wired, session accumulation working."
     },
     "CHI-301": {
       "title": "JSONL Session Import — Replay & Onboarding",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "e9d15f57-9bbc-4297-8293-3154479bb6fe",
       "priority": "High",
       "spec_ref": "SPEC-006 §4.28",
@@ -156,7 +170,7 @@
       "tasks": {
         "CHI-302": {
           "title": "IMP-1: JSONL Parser Module — Streaming Line-by-Line Parser",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 3,
           "spec_ref": "SPEC-006 §4.28.2-4.28.4",
@@ -166,11 +180,13 @@
           "files": [
             "src-tauri/src/import/jsonl.rs",
             "src-tauri/src/import/mod.rs"
-          ]
+          ],
+          "completed_at": "2026-03-08T09:31:13Z",
+          "notes": "Implemented streaming JSONL parser with typed line/message/usage structs, tool + binary block handling, compact-boundary flagging, and malformed-line tolerance. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z"
         },
         "CHI-303": {
           "title": "IMP-2: Session Discovery — Scan ~/.claude/projects/",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 2,
           "spec_ref": "SPEC-006 §4.28.5",
@@ -178,12 +194,19 @@
             "CHI-302"
           ],
           "files": [
-            "src-tauri/src/import/discover.rs"
-          ]
+            "src-tauri/src/import/discover.rs",
+            "src-tauri/src/import/mod.rs",
+            "src-tauri/src/commands/import.rs",
+            "src-tauri/src/db/queries.rs",
+            "src-tauri/src/main.rs"
+          ],
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-08T15:41:12Z",
+          "notes": "Implemented ~/.claude/projects discovery scanner, path decode, metadata extraction, imported-session marking, IPC wiring, and unit tests. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z"
         },
         "CHI-304": {
           "title": "IMP-3: Import Engine — Batch Insert, Conflict Resolution",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 3,
           "spec_ref": "SPEC-006 §4.28.4, §4.28.7",
@@ -192,13 +215,19 @@
             "CHI-303"
           ],
           "files": [
-            "src-tauri/src/import/jsonl.rs",
-            "src-tauri/src/commands/import.rs"
-          ]
+            "src-tauri/src/import/engine.rs",
+            "src-tauri/src/import/mod.rs",
+            "src-tauri/src/commands/import.rs",
+            "src-tauri/src/db/queries.rs",
+            "src-tauri/src/main.rs"
+          ],
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-08T15:41:12Z",
+          "notes": "Implemented JSONL import engine with conflict resolution (created/merged/preserved/skipped), dedupe safeguards, batch import IPC, and engine tests. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z"
         },
         "CHI-305": {
           "title": "IMP-4: Frontend Import UI — Dialogs, Progress & File Picker",
-          "status": "backlog",
+          "status": "done",
           "priority": "Medium",
           "size": 3,
           "spec_ref": "SPEC-006 §4.28.6",
@@ -207,12 +236,19 @@
           ],
           "files": [
             "src/components/import/ImportDialog.tsx",
-            "src/components/import/ImportProgress.tsx"
-          ]
+            "src/components/import/ImportProgress.tsx",
+            "src/stores/importStore.ts",
+            "src/components/layout/Sidebar.tsx",
+            "src/components/settings/SettingsModal.tsx",
+            "src/App.tsx"
+          ],
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-08T15:41:12Z",
+          "notes": "Implemented frontend import dialog/progress UI, sidebar/settings entry points, file picker + discover flow, batch import execution, and post-import session refresh. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z"
         },
         "CHI-306": {
           "title": "IMP-5: Consistency Checker — Compare DB vs JSONL",
-          "status": "backlog",
+          "status": "done",
           "priority": "Low",
           "size": 2,
           "spec_ref": "SPEC-006 §4.28.8",
@@ -221,13 +257,17 @@
           ],
           "files": [
             "src-tauri/src/import/consistency.rs"
-          ]
+          ],
+          "completed_at": "2026-03-08T09:31:13Z",
+          "notes": "Implemented DB-vs-JSONL consistency checker with integrity score, UUID drift detection, token drift, sidechain/boundary accounting, and IPC command exposure. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z"
         }
-      }
+      },
+      "notes": "All 5 sub-tasks complete (CHI-302, 303, 304, 305, 306). JSONL parser/discovery/import engine/frontend UI/consistency checker implemented and merged.",
+      "completed_at": "2026-03-08T15:41:12Z"
     },
     "CHI-307": {
       "title": "Export Quality Upgrade — Interactive Replay, Redaction & JSON",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "bf3d1df3-d8ea-4115-88fc-eaa10c6ca48a",
       "priority": "Medium",
       "spec_ref": "SPEC-006 §4.29",
@@ -235,17 +275,19 @@
       "tasks": {
         "CHI-308": {
           "title": "EXP-1: Secret Redaction Engine",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 2,
           "spec_ref": "SPEC-006 §4.29.2",
           "files": [
             "src/lib/redaction.ts"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:47:51Z",
+          "notes": "Implemented redaction engine and integrated export options. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z"
         },
         "CHI-309": {
           "title": "EXP-2: Interactive HTML Export",
-          "status": "backlog",
+          "status": "done",
           "priority": "Medium",
           "size": 3,
           "spec_ref": "SPEC-006 §4.29.3",
@@ -254,11 +296,13 @@
           ],
           "files": [
             "src/lib/conversationExport.ts"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:47:51Z",
+          "notes": "Implemented self-contained interactive HTML export viewer. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z"
         },
         "CHI-310": {
           "title": "EXP-3: JSON Export + Dialog Redesign",
-          "status": "backlog",
+          "status": "done",
           "priority": "Medium",
           "size": 3,
           "spec_ref": "SPEC-006 §4.29.4-4.29.5",
@@ -268,9 +312,13 @@
           "files": [
             "src/lib/conversationExport.ts",
             "src/components/export/ExportDialog.tsx"
-          ]
+          ],
+          "completed_at": "2026-03-08T07:47:51Z",
+          "notes": "Added JSON export and export options dialog wiring. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z"
         }
-      }
+      },
+      "completed_at": "2026-03-08T12:21:29Z",
+      "notes": "All 3 sub-tasks complete (CHI-308, 309, 310). Secret redaction, interactive HTML, JSON export + dialog redesign all implemented."
     }
   },
   "tasks": {
@@ -2263,7 +2311,7 @@
     "CHI-259": {
       "title": "T4.7: Saved Prompt Templates",
       "type": "task",
-      "status": "backlog",
+      "status": "done",
       "priority": "low",
       "effort": "M",
       "parent": "CHI-231",
@@ -2271,7 +2319,24 @@
       "depends_on": [
         "CHI-240"
       ],
-      "updated_at": "2026-03-03T03:28:23Z"
+      "updated_at": "2026-03-08T15:41:12Z",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T13:33:33Z",
+      "completed_at": "2026-03-08T15:41:12Z",
+      "worktree": null,
+      "notes": "Implemented prompt template persistence (migration v8), backend CRUD/use commands, settings management UI, command-palette insertion, and composer insertion event. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z",
+      "files": [
+        "src-tauri/src/db/migrations.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/commands/templates.rs",
+        "src-tauri/src/commands/mod.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/templateStore.ts",
+        "src/lib/types.ts",
+        "src/components/settings/SettingsModal.tsx",
+        "src/components/common/CommandPalette.tsx",
+        "src/components/conversation/MessageInput.tsx"
+      ]
     },
     "CHI-260": {
       "title": "T4.8: Persistent Error Log",
@@ -2969,7 +3034,7 @@
     },
     "CHI-295": {
       "title": "PERF-4: Memory Management + Build Optimization",
-      "status": "backlog",
+      "status": "done",
       "priority": "medium",
       "size": 2,
       "parent_epic": "CHI-287",
@@ -2979,12 +3044,19 @@
         "src-tauri/src/bridge/manager.rs",
         "src/stores/conversationStore.ts",
         "src-tauri/Cargo.toml"
-      ]
+      ],
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T13:33:33Z",
+      "completed_at": "2026-03-08T15:41:12Z",
+      "worktree": null,
+      "updated_at": "2026-03-08T15:41:12Z",
+      "notes": "Implemented runtime cleanup counters + frontend in-memory message cap (500) and release profile tuning for optimized builds. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z"
     },
     "CHI-296": {
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
-      "parent_epic": null
+      "parent_epic": null,
+      "title": "Session Data Completeness — Migration v6 & Pipeline Fixes (Epic)"
     },
     "CHI-297": {
       "status": "done",
@@ -3000,7 +3072,8 @@
         "src-tauri/src/commands/session.rs",
         "src-tauri/src/bridge/event_loop.rs",
         "src/stores/conversationStore.ts"
-      ]
+      ],
+      "title": "DATA-1: Fix Pipeline Drops — thinking_tokens + Cache Tokens"
     },
     "CHI-298": {
       "status": "done",
@@ -3014,7 +3087,8 @@
       "files": [
         "src-tauri/src/db/migrations.rs",
         "src-tauri/src/db/queries.rs"
-      ]
+      ],
+      "title": "DATA-2: Migration v6 — Threading, Stop Reason & Token Columns"
     },
     "CHI-299": {
       "status": "done",
@@ -3033,7 +3107,8 @@
         "src/lib/types.ts",
         "src/stores/conversationStore.ts",
         "src/components/conversation/MessageBubble.tsx"
-      ]
+      ],
+      "title": "DATA-3: Frontend Store — Pass v6 Fields Through IPC"
     },
     "CHI-300": {
       "status": "done",
@@ -3048,14 +3123,20 @@
         "src-tauri/src/db/queries.rs",
         "src-tauri/src/commands/session.rs",
         "src-tauri/src/bridge/event_loop.rs"
-      ]
+      ],
+      "title": "DATA-4: Session Cost Accumulation — Thinking + Cache Tokens"
     },
     "CHI-301": {
-      "status": "in_progress",
+      "status": "done",
       "priority": "High",
       "parent_epic": null,
       "assigned_to": "claude-code",
-      "started_at": "2026-03-08T09:31:13Z"
+      "started_at": "2026-03-08T09:31:13Z",
+      "title": "JSONL Session Import — Replay & Onboarding (Epic)",
+      "completed_at": "2026-03-08T15:41:12Z",
+      "worktree": null,
+      "updated_at": "2026-03-08T15:41:12Z",
+      "notes": "Epic completed in this batch (CHI-303/304/305), merged to main. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z"
     },
     "CHI-302": {
       "status": "done",
@@ -3070,22 +3151,66 @@
         "src-tauri/src/import/mod.rs",
         "src-tauri/src/lib.rs"
       ],
-      "notes": "Implemented streaming JSONL parser with typed line/message/usage structs, tool + binary block handling, compact-boundary flagging, and malformed-line tolerance. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z"
+      "notes": "Implemented streaming JSONL parser with typed line/message/usage structs, tool + binary block handling, compact-boundary flagging, and malformed-line tolerance. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z",
+      "title": "IMP-1: JSONL Parser Module — Streaming Line-by-Line Parser"
     },
     "CHI-303": {
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
-      "parent_epic": "CHI-301"
+      "parent_epic": "CHI-301",
+      "title": "IMP-2: Session Discovery — Scan ~/.claude/projects/",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T13:33:33Z",
+      "completed_at": "2026-03-08T15:41:12Z",
+      "worktree": null,
+      "updated_at": "2026-03-08T15:41:12Z",
+      "notes": "Implemented ~/.claude/projects discovery scanner, path decode, metadata extraction, imported-session marking, IPC wiring, and unit tests. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z",
+      "files": [
+        "src-tauri/src/import/discover.rs",
+        "src-tauri/src/import/mod.rs",
+        "src-tauri/src/commands/import.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/main.rs"
+      ]
     },
     "CHI-304": {
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
-      "parent_epic": "CHI-301"
+      "parent_epic": "CHI-301",
+      "title": "IMP-3: Import Engine — Batch Insert, Conflict Resolution",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T13:33:33Z",
+      "completed_at": "2026-03-08T15:41:12Z",
+      "worktree": null,
+      "updated_at": "2026-03-08T15:41:12Z",
+      "notes": "Implemented JSONL import engine with conflict resolution (created/merged/preserved/skipped), dedupe safeguards, batch import IPC, and engine tests. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z",
+      "files": [
+        "src-tauri/src/import/engine.rs",
+        "src-tauri/src/import/mod.rs",
+        "src-tauri/src/commands/import.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/main.rs"
+      ]
     },
     "CHI-305": {
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
-      "parent_epic": "CHI-301"
+      "parent_epic": "CHI-301",
+      "title": "IMP-4: Frontend Import UI — Dialogs, Progress & File Picker",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T13:33:33Z",
+      "completed_at": "2026-03-08T15:41:12Z",
+      "worktree": null,
+      "updated_at": "2026-03-08T15:41:12Z",
+      "notes": "Implemented frontend import dialog/progress UI, sidebar/settings entry points, file picker + discover flow, batch import execution, and post-import session refresh. completed_by=claude-code; lock_acquired_at=2026-03-08T15:41:12Z",
+      "files": [
+        "src/components/import/ImportDialog.tsx",
+        "src/components/import/ImportProgress.tsx",
+        "src/stores/importStore.ts",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/settings/SettingsModal.tsx",
+        "src/App.tsx"
+      ]
     },
     "CHI-306": {
       "status": "done",
@@ -3101,12 +3226,14 @@
         "src-tauri/src/commands/mod.rs",
         "src-tauri/src/main.rs"
       ],
-      "notes": "Implemented DB-vs-JSONL consistency checker with integrity score, UUID drift detection, token drift, sidechain/boundary accounting, and IPC command exposure. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z"
+      "notes": "Implemented DB-vs-JSONL consistency checker with integrity score, UUID drift detection, token drift, sidechain/boundary accounting, and IPC command exposure. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z",
+      "title": "IMP-5: Consistency Checker — Compare DB vs JSONL"
     },
     "CHI-307": {
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
-      "parent_epic": null
+      "parent_epic": null,
+      "title": "Export Quality Upgrade — Interactive Replay, Redaction & JSON (Epic)"
     },
     "CHI-308": {
       "status": "done",
@@ -3122,7 +3249,8 @@
         "src/lib/conversationExport.ts",
         "src/lib/conversationExport.test.ts"
       ],
-      "notes": "Implemented redaction engine and integrated export options. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z"
+      "notes": "Implemented redaction engine and integrated export options. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z",
+      "title": "EXP-1: Secret Redaction Engine"
     },
     "CHI-309": {
       "status": "done",
@@ -3136,7 +3264,8 @@
         "src/lib/conversationExport.ts",
         "src/lib/conversationExport.test.ts"
       ],
-      "notes": "Implemented self-contained interactive HTML export viewer. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z"
+      "notes": "Implemented self-contained interactive HTML export viewer. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z",
+      "title": "EXP-2: Interactive HTML Export"
     },
     "CHI-310": {
       "status": "done",
@@ -3153,7 +3282,8 @@
         "src/components/common/CommandPalette.tsx",
         "src/components/layout/Sidebar.tsx"
       ],
-      "notes": "Added JSON export and export options dialog wiring. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z"
+      "notes": "Added JSON export and export options dialog wiring. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z",
+      "title": "EXP-3: JSON Export + Dialog Redesign"
     }
   },
   "epics_new": {
@@ -5325,11 +5455,11 @@
     }
   },
   "recommended_next": [
-    "CHI-302",
-    "CHI-303",
-    "CHI-304",
-    "CHI-305",
-    "CHI-306"
+    "CHI-248",
+    "CHI-249",
+    "CHI-250",
+    "CHI-251",
+    "CHI-252"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -7026,10 +7156,10 @@
     }
   },
   "warnings": [
-    "CHI-288/289/290/291 currently in_progress (Security Hardening) — do not start CHI-297 until CHI-288 is done",
-    "CHI-296→CHI-301 dependency chain: Data Completeness must finish before JSONL Import starts",
-    "CHI-307 (Export) is independent — can be parallelized with Data Completeness or Import work",
-    "New specs added: SPEC-006 §4.27 (Data Completeness), §4.28 (JSONL Import), §4.29 (Export Quality)"
+    "CHI-286 (Security), CHI-296 (Data Completeness), CHI-307 (Export) all DONE — close in Linear",
+    "CHI-301 (JSONL Import) in progress — CHI-303→304→305 still need work (parser + consistency checker done)",
+    "CHI-287 (Performance) 3/4 done — CHI-295 (Memory+Build) still backlog, can close epic when done",
+    "When all subtasks of an epic are done, update epic status in Linear to 'Done' and close it"
   ],
   "development_protocol": {
     "guide": "docs/guides/GUIDE-003-development-protocol.md",
@@ -7055,14 +7185,14 @@
     "last_sync_by": "claude-code",
     "total_tasks": 128,
     "task_status_counts": {
-      "done": 80,
-      "backlog": 38,
+      "done": 134,
+      "backlog": 8,
       "in_progress": 0
     },
-    "done": 111,
-    "backlog": 17,
+    "done": 134,
+    "backlog": 8,
     "in_progress": 0,
-    "updated_at": "2026-03-08T03:00:00Z"
+    "updated_at": "2026-03-08T15:41:12Z"
   },
   "conversation_experience_epic": {
     "CHI-177": {
@@ -7504,7 +7634,7 @@
       }
     }
   },
-  "last_agent": "cowork-session",
+  "last_agent": "claude-code",
   "execution_plan": {
     "created": "2026-03-03T03:37:31Z",
     "description": "CX/UX Excellence execution order based on dependency graph and impact analysis",
@@ -7612,8 +7742,51 @@
   },
   "counts": {
     "total": 143,
-    "done": 111,
-    "in_progress": 4,
-    "backlog": 28
+    "done": 134,
+    "in_progress": 0,
+    "backlog": 8
+  },
+  "epic_closure_protocol": {
+    "_comment": "When all sub-tasks of an epic are marked done, follow these steps:",
+    "steps": [
+      "1. Verify all sub-task issues are 'Done' in Linear (check each CHI-xxx)",
+      "2. Update the parent epic issue in Linear to 'Done' status",
+      "3. Update the epic entry in handover.json: set status='done', add completed_at timestamp",
+      "4. Update CLAUDE.md if the epic was in the backlog table — move to completed or remove row",
+      "5. If this was the last epic in a phase, update the phase status"
+    ],
+    "epics_ready_to_close_in_linear": [
+      {
+        "id": "CHI-287",
+        "title": "Performance Tuning",
+        "linear_id": "5fe40585-4442-4a43-90d4-2f398fd36671"
+      },
+      {
+        "id": "CHI-301",
+        "title": "JSONL Session Import",
+        "linear_id": "e9d15f57-9bbc-4297-8293-3154479bb6fe"
+      }
+    ],
+    "epics_recently_closed_in_linear": [
+      {
+        "id": "CHI-286",
+        "title": "Security Hardening",
+        "linear_id": "0c5c6538-d7bc-46fe-924a-0655db21937b",
+        "closed_at": "2026-03-08T12:21:25Z"
+      },
+      {
+        "id": "CHI-296",
+        "title": "Session Data Completeness",
+        "linear_id": "9272b661-4e30-49d9-a28d-34bd70718807",
+        "closed_at": "2026-03-08T12:21:27Z"
+      },
+      {
+        "id": "CHI-307",
+        "title": "Export Quality Upgrade",
+        "linear_id": "bf3d1df3-d8ea-4115-88fc-eaa10c6ca48a",
+        "closed_at": "2026-03-08T12:21:29Z"
+      }
+    ],
+    "epics_partially_done": []
   }
 }

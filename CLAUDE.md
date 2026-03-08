@@ -2,7 +2,7 @@
 
 > **Read this first.** Auto-loaded by Claude Code at session start. Keep under 150 lines.
 > Full completed task history → `.claude/COMPLETED.md`
-> Updated: 2026-03-03
+> Updated: 2026-03-08
 
 ---
 
@@ -18,27 +18,39 @@
 
 ## Active / Backlog Tasks
 
-All in **Backlog** state. No task is currently `in_progress`. Check `.claude/handover.json` for latest.
+Check `.claude/handover.json` for latest status and epic closure protocol.
 
-### 🎯 CX/UX Excellence Epic (CHI-231) — PRIMARY FOCUS
+### Recently Completed Epics
 
-| Tier | Tasks | Priority | Spec |
-|------|-------|----------|------|
-| T1 Foundation | CHI-232 Contrast, CHI-233 Zones, CHI-234 Tabs, CHI-235 Messages, CHI-236 Borders, CHI-253 YOLO→Auto-approve | Urgent/High | SPEC-006 §3-4 |
-| T2 Information | CHI-237 Progress, CHI-238 Cost, CHI-239 Details, CHI-240 Input, CHI-241 Tooltips, CHI-254 Help Menu, CHI-255 CTA Audit, CHI-256 Unsent Protection | High/Medium | SPEC-006 §4 |
-| T3 Emotional | CHI-242 Empty States, CHI-243 Micro-Animations | Medium | SPEC-006 §4 |
-| T4 Workflow | CHI-244 File Preview, CHI-245 Undo, CHI-246 Errors, CHI-247 Pause, CHI-257 Cmd Palette, CHI-258 Session Pin, CHI-259 Templates, CHI-260 Error Log | High-Low | SPEC-006 §4-5 |
-| T5 Future | CHI-248 Dashboard, CHI-249 Density, CHI-250 Walkthrough, CHI-251 Bookmarks, CHI-252 Notifications | Low | SPEC-006 §4 |
+| Epic | Status | Notes |
+|------|--------|-------|
+| CHI-231: CX/UX Excellence (T1-T4) | ✅ Done | T5 Future tasks remain in backlog |
+| CHI-286: Security Hardening | ✅ Done | SQLCipher, permissions, CSP, backup/redaction (CHI-288-291) |
+| CHI-296: Session Data Completeness | ✅ Done | Migration v6, pipeline fixes, frontend wiring (CHI-297-300) |
+| CHI-307: Export Quality Upgrade | ✅ Done | Secret redaction, interactive HTML, JSON export (CHI-308-310) |
+| CHI-301: JSONL Session Import | ✅ Done | Parser, discovery, import engine, UI, consistency checker (CHI-302-306) |
+| CHI-287: Performance Tuning | ✅ Done | Query/event/render optimization + memory/build tuning (CHI-292-295) |
 
-**Start with Tier 1** (all independent, can parallelize). See each issue for deps and file lists.
+### In Progress
 
-### Other Backlog
+No active epics currently in progress.
+
+### Remaining Backlog (Next Focus)
 
 | Task | Priority | Spec |
 |------|----------|------|
-| CHI-202: E3 Voice Input/Output | Medium | Conversation Utility (deprioritized) |
+| CHI-248: T5.1 Session Efficiency Dashboard | Low | SPEC-006 §4 |
+| CHI-249: T5.2 Adaptive UI Density Modes | Low | SPEC-006 §4 |
+| CHI-250: T5.3 Interactive Onboarding Walkthrough | Low | SPEC-006 §4 |
+| CHI-251: T5.4 Conversation Bookmarks | Low | SPEC-006 §4 |
+| CHI-252: T5.5 Smart Agent Notifications | Low | SPEC-006 §4 |
+| CHI-202: E3 Voice Input/Output | Low | Conversation Utility |
 
-**Suggested start order:** CHI-232 → CHI-233 → CHI-234 → CHI-235 → CHI-236 (Tier 1, parallel-safe)
+**Suggested next:** CHI-248 → CHI-249 → CHI-250 → CHI-251 → CHI-252
+
+### Epic Closure — Action Required
+
+Keep Linear epic statuses aligned with `.claude/handover.json` closure protocol.
 
 ---
 
