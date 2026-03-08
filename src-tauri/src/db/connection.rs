@@ -41,9 +41,20 @@ impl Database {
             std::fs::create_dir_all(parent)?;
         }
 
-        let key = crate::security::keychain::get_or_create_db_key()?;
+        let db_exists = path.exists();
+        let db_is_plaintext = if db_exists {
+            is_unencrypted(path)?
+        } else {
+            false
+        };
 
-        if path.exists() && is_unencrypted(path)? {
+        let key = if db_exists && !db_is_plaintext {
+            resolve_key_for_existing_encrypted_db(path)?
+        } else {
+            resolve_key_for_new_or_plaintext_db()?
+        };
+
+        if db_exists && db_is_plaintext {
             tracing::info!(
                 path = ?path,
                 "Detected unencrypted database — migrating to encrypted format"
@@ -52,9 +63,7 @@ impl Database {
             tracing::info!(path = ?path, "Database migration to encrypted format complete");
         }
 
-        let conn = Connection::open(path)?;
-        apply_encryption_key(&conn, &key)?;
-        verify_encryption(&conn)?;
+        let conn = open_with_verified_key(path, &key)?;
 
         // Enable WAL mode for concurrent reads (SPEC-005 §6, ADR-001 §2.5)
         conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -132,6 +141,85 @@ fn apply_encryption_key(conn: &Connection, key: &str) -> Result<(), AppError> {
     let escaped = key.replace('\'', "''");
     conn.execute_batch(&format!("PRAGMA key = '{}';", escaped))
         .map_err(|e| AppError::DatabaseEncryption(format!("Failed to set encryption key: {}", e)))
+}
+
+fn open_with_verified_key(path: &Path, key: &str) -> Result<Connection, AppError> {
+    let conn = Connection::open(path)?;
+    apply_encryption_key(&conn, key)?;
+    verify_encryption(&conn)?;
+    Ok(conn)
+}
+
+fn resolve_key_for_new_or_plaintext_db() -> Result<String, AppError> {
+    if let Some(env_key) = crate::security::keychain::get_env_db_key()
+        .filter(|k| crate::security::keychain::is_valid_db_key_format(k))
+    {
+        crate::security::keychain::set_db_key(&env_key)?;
+        return Ok(env_key);
+    }
+
+    if let Some(key) = crate::security::keychain::get_db_key()? {
+        if crate::security::keychain::is_valid_db_key_format(&key) {
+            return Ok(key);
+        }
+    }
+
+    for key in crate::security::keychain::get_legacy_db_keys()? {
+        if crate::security::keychain::is_valid_db_key_format(&key) {
+            // Promote recovered key to canonical entry.
+            crate::security::keychain::set_db_key(&key)?;
+            return Ok(key);
+        }
+    }
+
+    crate::security::keychain::get_or_create_db_key()
+}
+
+fn resolve_key_for_existing_encrypted_db(path: &Path) -> Result<String, AppError> {
+    let mut candidates: Vec<String> = Vec::new();
+
+    if let Some(env_key) = crate::security::keychain::get_env_db_key()
+        .filter(|k| crate::security::keychain::is_valid_db_key_format(k))
+    {
+        candidates.push(env_key);
+    }
+
+    if let Some(stored_key) = crate::security::keychain::get_db_key()?
+        .filter(|k| crate::security::keychain::is_valid_db_key_format(k))
+    {
+        if !candidates.contains(&stored_key) {
+            candidates.push(stored_key);
+        }
+    }
+
+    for key in crate::security::keychain::get_legacy_db_keys()? {
+        if crate::security::keychain::is_valid_db_key_format(&key) && !candidates.contains(&key) {
+            candidates.push(key);
+        }
+    }
+
+    if candidates.is_empty() {
+        return Err(AppError::DatabaseEncryption(
+            "Encrypted database detected, but no encryption key was found in keychain or CHIEF_WIGGUM_DB_KEY. Restore the original key or restore from backup."
+                .to_string(),
+        ));
+    }
+
+    for key in &candidates {
+        match open_with_verified_key(path, key) {
+            Ok(_) => {
+                // Ensure canonical keychain entry is aligned with the working key.
+                crate::security::keychain::set_db_key(key)?;
+                return Ok(key.clone());
+            }
+            Err(_) => continue,
+        }
+    }
+
+    Err(AppError::DatabaseEncryption(
+        "Encrypted database key mismatch: no available key could decrypt the existing database. If you have the old key, set CHIEF_WIGGUM_DB_KEY to recover; otherwise restore a backup or reset ~/.chiefwiggum/db/chiefwiggum.sqlite."
+            .to_string(),
+    ))
 }
 
 fn verify_encryption(conn: &Connection) -> Result<(), AppError> {
