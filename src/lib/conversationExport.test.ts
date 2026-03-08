@@ -106,7 +106,7 @@ describe('exportAsHtml', () => {
   it('escapes user-provided html', () => {
     const output = exportAsHtml([message('user', '<script>alert(1)</script>')], 'abc');
     expect(output).not.toContain('<script>alert(1)</script>');
-    expect(output).toContain('&lt;script&gt;');
+    expect(output).toMatch(/&lt;script&gt;|\\u003Cscript\\u003E/);
   });
 });
 
@@ -140,6 +140,80 @@ describe('export redaction', () => {
   it('exportAsHtml redacts secrets when redact=true', () => {
     const output = exportAsHtml([secretMsg], 'abc', { redact: true });
     expect(output).not.toContain('sk-ant-api03');
+  });
+});
+
+describe('exportAsHtml — interactive viewer', () => {
+  const msgs = [
+    message('user', 'Hello there'),
+    message('assistant', 'Hi, how can I help?'),
+    message('thinking', 'Let me think about this carefully'),
+    message(
+      'tool_use',
+      JSON.stringify({ tool_name: 'Read', tool_input: '{"path":"file.ts"}' }),
+    ),
+    message('tool_result', JSON.stringify({ content: 'file content', is_error: false })),
+  ];
+
+  it('is a self-contained HTML file (no external script/link src)', () => {
+    const html = exportAsHtml(msgs, 'test-session');
+    expect(html).not.toMatch(/src=\"http/);
+    expect(html).not.toMatch(/href=\"http/);
+    expect(html).not.toMatch(/<link[^>]+rel=\"stylesheet\"[^>]+href/);
+  });
+
+  it('includes session metadata header', () => {
+    const html = exportAsHtml(msgs, 'test-session-id');
+    expect(html).toContain('test-ses');
+  });
+
+  it('includes theme toggle button', () => {
+    const html = exportAsHtml(msgs, 's1');
+    expect(html.toLowerCase()).toMatch(/theme|dark|light/);
+  });
+
+  it('renders thinking blocks as collapsed details', () => {
+    const html = exportAsHtml(msgs, 's1');
+    expect(html).toContain('Let me think about this carefully');
+    expect(html).toMatch(/<details/);
+  });
+
+  it('renders tool calls as collapsible blocks', () => {
+    const html = exportAsHtml(msgs, 's1');
+    expect(html).toContain('Read');
+  });
+
+  it('includes keyboard navigation script', () => {
+    const html = exportAsHtml(msgs, 's1');
+    expect(html).toContain('ArrowLeft');
+    expect(html).toContain('ArrowRight');
+  });
+
+  it('includes copy-to-clipboard buttons', () => {
+    const html = exportAsHtml(msgs, 's1');
+    expect(html.toLowerCase()).toMatch(/copy|clipboard/);
+  });
+
+  it('includes message count in metadata', () => {
+    const html = exportAsHtml(msgs, 's1');
+    expect(html).toMatch(/\d+\s*(?:turn|message|msg)/i);
+  });
+
+  it('output under 50KB for viewer chrome alone (empty messages)', () => {
+    const html = exportAsHtml([], 's1');
+    const bytes = new TextEncoder().encode(html).length;
+    expect(bytes).toBeLessThan(50 * 1024);
+  });
+
+  it('escapes user content to prevent XSS', () => {
+    const xssMsg = message('user', '<script>alert(\"xss\")</script>');
+    const html = exportAsHtml([xssMsg], 's1');
+    expect(html).not.toContain('<script>alert(\"xss\")</script>');
+  });
+
+  it('includes dark/light theme CSS variables', () => {
+    const html = exportAsHtml([], 's1');
+    expect(html).toMatch(/prefers-color-scheme|--color-bg|data-theme/);
   });
 });
 

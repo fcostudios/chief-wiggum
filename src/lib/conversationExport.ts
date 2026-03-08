@@ -106,81 +106,214 @@ export function exportAsText(
   return redact ? redactSecrets(raw).content : raw;
 }
 
-const HTML_THEME = `
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0d1117;color:#c9d1d9;max-width:900px;margin:40px auto;padding:0 20px}
-h1{font-size:1.2rem;color:#e8825a;margin-bottom:4px}
-.meta{color:#6e7681;font-size:.8rem;margin-bottom:32px}
-.msg{margin:16px 0;padding:12px 16px;border-radius:8px}
-.msg.user{background:#161b22;border-left:3px solid #388bfd}
-.msg.assistant{background:#0d1117;border-left:3px solid #e8825a}
-.role{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#6e7681;margin-bottom:6px}
-.msg.user .role{color:#388bfd}
-.msg.assistant .role{color:#e8825a}
-pre{background:#161b22;padding:12px;border-radius:6px;overflow-x:auto;font-size:.8rem;color:#8b949e}
-details{margin:4px 0;color:#6e7681;font-size:.85rem}
-`.replace(/\s+/g, ' ');
-
 export function exportAsHtml(
   messages: Message[],
   sessionId: string,
   options: ExportOptions = {},
 ): string {
   const { redact = false, includeToolCalls = true, includeThinking = true } = options;
-  const parts: string[] = [
-    '<!DOCTYPE html>',
-    '<html lang="en">',
-    '<head>',
-    '<meta charset="UTF-8">',
-    `<title>Chief Wiggum - Session ${escapeHtml(sessionId)}</title>`,
-    `<style>${HTML_THEME}</style>`,
-    '</head>',
-    '<body>',
-    '<h1>Chief Wiggum</h1>',
-    `<div class="meta">Session ${escapeHtml(sessionId)} | Exported ${escapeHtml(exportTimestamp())}</div>`,
-  ];
+  interface Turn {
+    index: number;
+    userContent: string;
+    assistantParts: { type: string; content: string; isError?: boolean }[];
+    inputTokens: number | null;
+    outputTokens: number | null;
+    thinkingTokens: number | null;
+    costCents: number | null;
+  }
+
+  const turns: Turn[] = [];
+  let currentTurn: Turn | null = null;
 
   for (const msg of messages) {
     if (msg.role === 'user') {
-      parts.push(
-        '<div class="msg user">',
-        '<div class="role">You</div>',
-        `<p>${escapeHtml(msg.content).replaceAll('\n', '<br>')}</p>`,
-        '</div>',
-      );
+      if (currentTurn) turns.push(currentTurn);
+      currentTurn = {
+        index: turns.length,
+        userContent: msg.content,
+        assistantParts: [],
+        inputTokens: null,
+        outputTokens: null,
+        thinkingTokens: null,
+        costCents: null,
+      };
       continue;
     }
+
+    if (!currentTurn) {
+      currentTurn = {
+        index: 0,
+        userContent: '',
+        assistantParts: [],
+        inputTokens: null,
+        outputTokens: null,
+        thinkingTokens: null,
+        costCents: null,
+      };
+    }
+
     if (msg.role === 'assistant') {
-      parts.push(
-        '<div class="msg assistant">',
-        '<div class="role">Claude</div>',
-        `<p>${escapeHtml(msg.content).replaceAll('\n', '<br>')}</p>`,
-        '</div>',
-      );
-      continue;
-    }
-    if (msg.role === 'thinking' && includeThinking) {
-      parts.push(
-        `<details><summary>Thinking...</summary><pre>${escapeHtml(msg.content.slice(0, 400))}</pre></details>`,
-      );
-      continue;
-    }
-    if (msg.role === 'tool_use' && includeToolCalls) {
+      currentTurn.assistantParts.push({ type: 'assistant', content: msg.content });
+      if (msg.input_tokens != null) {
+        currentTurn.inputTokens = (currentTurn.inputTokens ?? 0) + msg.input_tokens;
+      }
+      if (msg.output_tokens != null) {
+        currentTurn.outputTokens = (currentTurn.outputTokens ?? 0) + msg.output_tokens;
+      }
+      if (msg.thinking_tokens != null) {
+        currentTurn.thinkingTokens = (currentTurn.thinkingTokens ?? 0) + msg.thinking_tokens;
+      }
+      if (msg.cost_cents != null) {
+        currentTurn.costCents = (currentTurn.costCents ?? 0) + msg.cost_cents;
+      }
+    } else if (msg.role === 'thinking' && includeThinking) {
+      currentTurn.assistantParts.push({ type: 'thinking', content: msg.content });
+    } else if (msg.role === 'tool_use' && includeToolCalls) {
       const parsed = tryParseJson<{ tool_name?: string; tool_input?: string }>(msg.content);
-      const toolName = escapeHtml(parsed?.tool_name ?? 'Tool');
-      const toolInput = escapeHtml(parsed?.tool_input ?? msg.content);
-      parts.push(`<pre><b>${toolName}</b>\n${toolInput}</pre>`);
-      continue;
-    }
-    if (msg.role === 'tool_result' && includeToolCalls) {
+      const name = parsed?.tool_name ?? 'Tool';
+      const input = parsed?.tool_input ?? msg.content;
+      currentTurn.assistantParts.push({ type: 'tool_use', content: `${name}\n${input}` });
+    } else if (msg.role === 'tool_result' && includeToolCalls) {
       const parsed = tryParseJson<{ content?: string; is_error?: boolean }>(msg.content);
-      const content = escapeHtml(parsed?.content ?? msg.content);
-      parts.push(`<pre>${content}</pre>`);
+      currentTurn.assistantParts.push({
+        type: 'tool_result',
+        content: parsed?.content ?? msg.content,
+        isError: parsed?.is_error ?? false,
+      });
     }
   }
 
-  parts.push('</body>', '</html>');
-  const raw = parts.join('\n');
-  return redact ? redactSecrets(raw).content : raw;
+  if (currentTurn) turns.push(currentTurn);
+
+  const turnsJson = JSON.stringify(turns);
+  const totalTurns = turns.length;
+  const exportedAt = new Date().toISOString();
+  const maybeRedact = (value: string) => (redact ? redactSecrets(value).content : value);
+  const serializedTurns = maybeRedact(turnsJson)
+    .replaceAll('<', '\\u003C')
+    .replaceAll('>', '\\u003E')
+    .replaceAll('&', '\\u0026');
+
+  const css = `
+    :root{--color-bg:#0d1117;--color-bg-2:#161b22;--color-bg-3:#21262d;--color-fg:#c9d1d9;--color-fg-2:#8b949e;--color-fg-3:#6e7681;--color-accent:#e8825a;--color-blue:#388bfd;--color-red:#f85149;--color-border:#30363d}
+    [data-theme=light]{--color-bg:#ffffff;--color-bg-2:#f6f8fa;--color-bg-3:#eaeef2;--color-fg:#24292f;--color-fg-2:#57606a;--color-fg-3:#8c959f;--color-accent:#d1622b;--color-blue:#0969da;--color-red:#cf222e;--color-border:#d0d7de}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--color-bg);color:var(--color-fg);min-height:100vh}
+    #app{max-width:860px;margin:0 auto;padding:24px 16px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--color-border)}
+    .meta{font-size:.75rem;color:var(--color-fg-3);margin-top:4px}
+    h1{font-size:1.1rem;font-weight:600;color:var(--color-accent)}
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    button{cursor:pointer;border:1px solid var(--color-border);border-radius:6px;padding:4px 10px;font-size:.75rem;background:var(--color-bg-2);color:var(--color-fg)}
+    #turn-nav{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--color-fg-2);margin-bottom:12px}
+    #search-bar{display:none;margin-bottom:16px}
+    #search-bar.open{display:flex;gap:8px}
+    #search-input{flex:1;background:var(--color-bg-2);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;color:var(--color-fg);font-size:.85rem}
+    .turn{margin-bottom:24px;display:none}
+    .turn.visible{display:block}
+    .turn.search-match{outline:2px solid var(--color-accent);outline-offset:2px;border-radius:8px}
+    .msg{margin:10px 0;border-radius:8px;overflow:hidden}
+    .msg-header{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+    .msg-user .msg-header{background:var(--color-bg-2);color:var(--color-blue)}
+    .msg-assistant .msg-header{background:var(--color-bg-2);color:var(--color-accent)}
+    .msg-body{padding:12px 14px;font-size:.9rem;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .msg-user .msg-body{background:var(--color-bg-2)}
+    .msg-assistant .msg-body{background:var(--color-bg)}
+    .copy-btn{background:transparent;border:none;cursor:pointer;font-size:.65rem;color:var(--color-fg-3);padding:2px 6px}
+    details{margin:6px 0;border:1px solid var(--color-border);border-radius:6px;overflow:hidden}
+    details summary{padding:6px 12px;cursor:pointer;font-size:.75rem;color:var(--color-fg-2)}
+    details .detail-body{padding:10px 12px;font-size:.78rem;white-space:pre-wrap;word-break:break-word;background:var(--color-bg-2);color:var(--color-fg-2)}
+    .tool-error .detail-body{color:var(--color-red)}
+    .token-meta{font-size:.68rem;color:var(--color-fg-3);padding:4px 12px 8px;display:none}
+    .token-meta.show{display:block}
+    .progress{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:16px}
+    .pip{width:12px;height:12px;border-radius:2px;background:var(--color-border);cursor:pointer}
+    .pip.active{background:var(--color-accent)}
+    @media(prefers-color-scheme:light){:root:not([data-theme=dark]){--color-bg:#ffffff;--color-bg-2:#f6f8fa;--color-bg-3:#eaeef2;--color-fg:#24292f;--color-fg-2:#57606a;--color-fg-3:#8c959f;--color-accent:#d1622b;--color-blue:#0969da;--color-red:#cf222e;--color-border:#d0d7de}}
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  const js = `
+    const TURNS = ${serializedTurns};
+    let current = 0;
+    let searchResults = [];
+    let searchIndex = 0;
+    let showTokens = false;
+    function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function renderPart(part){
+      if(part.type==='assistant'){ return '<div class="msg msg-assistant"><div class="msg-header"><span>Claude</span><button class="copy-btn" onclick="copyText(this)" data-text="'+escHtml(part.content)+'">Copy</button></div><div class="msg-body">'+escHtml(part.content)+'</div></div>'; }
+      if(part.type==='thinking'){ return '<details class="thinking"><summary>Thinking</summary><div class="detail-body">'+escHtml(part.content)+'</div></details>'; }
+      if(part.type==='tool_use'){ const lines = part.content.split('\\n'); const toolName = escHtml(lines[0] || 'Tool'); const toolBody = escHtml(lines.slice(1).join('\\n')); return '<details class="tool-use"><summary>Tool '+toolName+'</summary><div class="detail-body">'+toolBody+'</div></details>'; }
+      if(part.type==='tool_result'){ const cls = part.isError ? 'tool-error' : 'tool-result'; return '<details class="'+cls+'"><summary>Result</summary><div class="detail-body">'+escHtml(part.content)+'</div></details>'; }
+      return '';
+    }
+    function renderTurn(t){
+      const tokenLine = (t.inputTokens != null) ? 'in:' + t.inputTokens + ' out:' + t.outputTokens + (t.thinkingTokens ? ' think:' + t.thinkingTokens : '') + (t.costCents != null ? ' $' + (t.costCents/100).toFixed(4) : '') : '';
+      return '<div class="turn" id="turn-'+t.index+'"><div class="msg msg-user"><div class="msg-header"><span>You</span><button class="copy-btn" onclick="copyText(this)" data-text="'+escHtml(t.userContent)+'">Copy</button></div><div class="msg-body">'+escHtml(t.userContent || '')+'</div></div>'+t.assistantParts.map(renderPart).join('')+'<div class="token-meta" id="meta-'+t.index+'">'+tokenLine+'</div></div>';
+    }
+    function showTurn(n){
+      const total = TURNS.length;
+      if(total === 0) return;
+      current = Math.max(0, Math.min(n, total - 1));
+      document.querySelectorAll('.turn').forEach(function(el){ el.classList.remove('visible'); });
+      const el = document.getElementById('turn-' + current);
+      if(el) el.classList.add('visible');
+      document.getElementById('turn-counter').textContent = (current + 1) + ' / ' + total;
+      document.querySelectorAll('.pip').forEach(function(p, i){ p.classList.toggle('active', i === current); });
+      if(showTokens){
+        document.querySelectorAll('.token-meta').forEach(function(el){ el.classList.remove('show'); });
+        const meta = document.getElementById('meta-' + current);
+        if(meta) meta.classList.add('show');
+      }
+    }
+    function toggleTheme(){ const root = document.documentElement; const cur = root.getAttribute('data-theme'); root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark'); document.getElementById('theme-btn').textContent = root.getAttribute('data-theme') === 'dark' ? 'Light Theme' : 'Dark Theme'; }
+    function toggleTokens(){ showTokens = !showTokens; document.querySelectorAll('.token-meta').forEach(function(el){ el.classList.remove('show'); }); if(showTokens){ const meta = document.getElementById('meta-' + current); if(meta) meta.classList.add('show'); } document.getElementById('tokens-btn').textContent = showTokens ? 'Hide Stats' : 'Show Stats'; }
+    function toggleSearch(){ const bar = document.getElementById('search-bar'); bar.classList.toggle('open'); if(bar.classList.contains('open')) document.getElementById('search-input').focus(); }
+    function doSearch(){ const q = document.getElementById('search-input').value.toLowerCase(); searchResults = []; document.querySelectorAll('.turn').forEach(function(el){ el.classList.remove('search-match'); }); if(!q) return; TURNS.forEach(function(t,i){ const text = (t.userContent + ' ' + t.assistantParts.map(function(p){ return p.content; }).join(' ')).toLowerCase(); if(text.includes(q)) searchResults.push(i); }); searchIndex = 0; if(searchResults.length > 0){ showTurn(searchResults[0]); document.getElementById('turn-' + searchResults[0]).classList.add('search-match'); } document.getElementById('search-count').textContent = searchResults.length ? searchResults.length + ' found' : 'No results'; }
+    function nextSearchResult(){ if(!searchResults.length) return; searchIndex = (searchIndex + 1) % searchResults.length; showTurn(searchResults[searchIndex]); document.getElementById('turn-' + searchResults[searchIndex]).classList.add('search-match'); }
+    function expandAll(){ document.querySelectorAll('details').forEach(function(d){ d.open = true; }); }
+    function copyText(btn){ navigator.clipboard.writeText(btn.dataset.text || '').then(function(){ const orig = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function(){ btn.textContent = orig; }, 1500); }); }
+    document.addEventListener('keydown', function(e){ if(e.target.tagName === 'INPUT') return; if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ e.preventDefault(); showTurn(current + 1); } if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ e.preventDefault(); showTurn(current - 1); } if((e.ctrlKey || e.metaKey) && e.key === 'f'){ e.preventDefault(); toggleSearch(); } });
+    window.addEventListener('DOMContentLoaded', function(){ const container = document.getElementById('turns-container'); const progress = document.getElementById('progress'); TURNS.forEach(function(t,i){ container.insertAdjacentHTML('beforeend', renderTurn(t)); const pip = document.createElement('div'); pip.className = 'pip'; pip.setAttribute('title', 'Turn ' + (i + 1)); pip.onclick = function(){ showTurn(i); }; progress.appendChild(pip); }); showTurn(0); });
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chief Wiggum — Session ${escapeHtml(sessionId.slice(0, 8))}</title>
+<style>${css}</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div>
+    <h1>Chief Wiggum</h1>
+    <div class="meta">Session ${escapeHtml(sessionId.slice(0, 8))} &middot; ${escapeHtml(exportedAt)} &middot; ${totalTurns} turn${totalTurns !== 1 ? 's' : ''}</div>
+  </div>
+  <div class="controls">
+    <button id="theme-btn" onclick="toggleTheme()">Dark Theme</button>
+    <button id="tokens-btn" onclick="toggleTokens()">Show Stats</button>
+    <button onclick="toggleSearch()">Search</button>
+    <button onclick="expandAll()">Expand All</button>
+  </div>
+</header>
+<div id="search-bar" role="search">
+  <input id="search-input" type="text" placeholder="Search messages…" aria-label="Search messages"
+    oninput="doSearch()" onkeydown="if(event.key==='Enter')nextSearchResult()">
+  <span id="search-count" aria-live="polite"></span>
+</div>
+<div id="turn-nav" aria-label="Turn navigation">
+  <button onclick="showTurn(current - 1)" aria-label="Previous turn">&#8592;</button>
+  <span id="turn-counter" aria-live="polite">1 / ${totalTurns}</span>
+  <button onclick="showTurn(current + 1)" aria-label="Next turn">&#8594;</button>
+</div>
+<div id="progress" class="progress" role="navigation" aria-label="Turn timeline"></div>
+<div id="turns-container"></div>
+</div>
+<script>${js}</script>
+</body>
+</html>`;
 }
 
 export function buildExportFilename(sessionId: string, format: ExportFormat): string {
