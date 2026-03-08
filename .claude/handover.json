@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-08T15:41:12Z",
+  "last_updated": "2026-03-08T23:35:01Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -319,6 +319,131 @@
       },
       "completed_at": "2026-03-08T12:21:29Z",
       "notes": "All 3 sub-tasks complete (CHI-308, 309, 310). Secret redaction, interactive HTML, JSON export + dialog redesign all implemented."
+    },
+    "CHI-262": {
+      "title": "Enqueue & Steer — Mid-Session Command Queue",
+      "status": "backlog",
+      "linear_id": "78d82e16-0231-4f27-b4bd-3802843a32cd",
+      "priority": "High",
+      "spec_ref": "SPEC-006 §4.21",
+      "depends_on": [],
+      "tasks": {
+        "CHI-263": {
+          "title": "EQ-1: Fix Cancel Button + Wire Interrupt",
+          "status": "backlog",
+          "priority": "Urgent",
+          "size": 2,
+          "depends_on": []
+        },
+        "CHI-264": {
+          "title": "EQ-2: Enable Input During Streaming",
+          "status": "backlog",
+          "priority": "High",
+          "size": 3,
+          "depends_on": [
+            "CHI-263"
+          ]
+        },
+        "CHI-265": {
+          "title": "EQ-3: Message Queue Store + Auto-Send",
+          "status": "backlog",
+          "priority": "High",
+          "size": 3,
+          "depends_on": [
+            "CHI-263",
+            "CHI-264"
+          ]
+        },
+        "CHI-266": {
+          "title": "EQ-4: Queue Panel UI Component",
+          "status": "backlog",
+          "priority": "High",
+          "size": 3,
+          "depends_on": [
+            "CHI-265"
+          ]
+        },
+        "CHI-267": {
+          "title": "EQ-5: Steer Flow — Interrupt + Redirect",
+          "status": "backlog",
+          "priority": "High",
+          "size": 3,
+          "depends_on": [
+            "CHI-263",
+            "CHI-264"
+          ]
+        },
+        "CHI-268": {
+          "title": "EQ-6: Interrupted Message Marker",
+          "status": "backlog",
+          "priority": "Medium",
+          "size": 2,
+          "depends_on": [
+            "CHI-263",
+            "CHI-267"
+          ]
+        }
+      }
+    },
+    "CHI-269": {
+      "title": "File & Folder Creation — Full File Management",
+      "status": "backlog",
+      "linear_id": "cab2c794-ca7a-472a-8d2d-58fe389b7a7b",
+      "priority": "High",
+      "spec_ref": "SPEC-006 §4.22",
+      "depends_on": [],
+      "notes": "5/6 subtasks done in code. Only CHI-272 (FM-3: Context Menu) remains.",
+      "tasks": {
+        "CHI-272": {
+          "title": "FM-3: Context Menu — Rename, Delete, Duplicate",
+          "status": "backlog",
+          "priority": "High",
+          "size": 3,
+          "depends_on": [
+            "CHI-270",
+            "CHI-271"
+          ]
+        }
+      }
+    },
+    "CHI-276": {
+      "title": "Binary File Preview — Images, PDFs, Audio & More",
+      "status": "done",
+      "linear_id": "05c904f6-0770-4c60-9348-44554341d2f5",
+      "priority": "High",
+      "spec_ref": "SPEC-006 §4.23",
+      "depends_on": [],
+      "notes": "All 4 preview components implemented (Image, SVG, PDF, Audio). Verified by code audit.",
+      "completed_at": "2026-03-08T16:30:00Z"
+    },
+    "CHI-277": {
+      "title": "AskUserQuestion Dialog — Interactive Agent Questions",
+      "status": "backlog",
+      "linear_id": "db417b17-036e-45a8-bbf0-e9f85ecda8a5",
+      "priority": "Urgent",
+      "spec_ref": "SPEC-006 §4.24",
+      "depends_on": [],
+      "notes": "2/4 subtasks done (AQ-1 backend + AQ-2 dialog). CHI-284 (AQ-3) and CHI-285 (AQ-4) remain.",
+      "tasks": {
+        "CHI-284": {
+          "title": "AQ-3: ToolUseBlock Question Category",
+          "status": "backlog",
+          "priority": "High",
+          "size": 2,
+          "depends_on": [
+            "AQ-1"
+          ]
+        },
+        "CHI-285": {
+          "title": "AQ-4: Accessibility + Edge Cases",
+          "status": "backlog",
+          "priority": "Medium",
+          "size": 3,
+          "depends_on": [
+            "AQ-2"
+          ]
+        }
+      }
     }
   },
   "tasks": {
@@ -1682,13 +1807,13 @@
     },
     "CHI-262": {
       "title": "Enqueue & Steer",
-      "status": "done",
+      "status": "backlog",
       "linear_id": "78d82e16-0231-4f27-b4bd-3802843a32cd",
       "notes": "New epic: lets users queue follow-up messages during agent streaming or steer (interrupt + redirect) the agent. 6 sub-tasks (CHI-263 through CHI-268). Spec: SPEC-006 §4.21."
     },
     "CHI-269": {
       "title": "File & Folder Creation — Full File Management",
-      "status": "done",
+      "status": "backlog",
       "linear_id": "cab2c794-ca7a-472a-8d2d-58fe389b7a7b",
       "notes": "New epic: user-initiated file creation/delete/rename/duplicate. 6 sub-tasks (CHI-270 through CHI-275). Spec: SPEC-006 §4.22."
     },
@@ -1700,7 +1825,7 @@
     },
     "CHI-277": {
       "title": "AskUserQuestion Dialog — Interactive Agent Questions",
-      "status": "done",
+      "status": "backlog",
       "linear_id": "db417b17-036e-45a8-bbf0-e9f85ecda8a5",
       "notes": "New epic: intercept AskUserQuestion tool calls and show interactive QuestionDialog. 4 sub-tasks (CHI-282 through CHI-285). Spec: SPEC-006 §4.24."
     },
@@ -2395,7 +2520,7 @@
     "CHI-263": {
       "id": "CHI-263",
       "title": "EQ-1: Fix Cancel Button + Wire Interrupt",
-      "status": "done",
+      "status": "backlog",
       "priority": "urgent",
       "size": "S",
       "parent": "CHI-262",
@@ -2414,7 +2539,7 @@
     "CHI-264": {
       "id": "CHI-264",
       "title": "EQ-2: Enable Input During Streaming + Queue/Steer Buttons",
-      "status": "done",
+      "status": "backlog",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
@@ -2430,7 +2555,7 @@
     "CHI-265": {
       "id": "CHI-265",
       "title": "EQ-3: Message Queue Store + Auto-Send Logic",
-      "status": "done",
+      "status": "backlog",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
@@ -2447,7 +2572,7 @@
     "CHI-266": {
       "id": "CHI-266",
       "title": "EQ-4: Queue Panel UI Component",
-      "status": "done",
+      "status": "backlog",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
@@ -2464,7 +2589,7 @@
     "CHI-267": {
       "id": "CHI-267",
       "title": "EQ-5: Steer Flow — Interrupt + Redirect",
-      "status": "done",
+      "status": "backlog",
       "priority": "high",
       "size": "M",
       "parent": "CHI-262",
@@ -2482,7 +2607,7 @@
     "CHI-268": {
       "id": "CHI-268",
       "title": "EQ-6: Interrupted Message Marker",
-      "status": "done",
+      "status": "backlog",
       "priority": "medium",
       "size": "S",
       "parent": "CHI-262",
@@ -2563,12 +2688,16 @@
       ],
       "files": [
         "src/components/explorer/FileTreeNode.tsx",
-        "src/stores/fileStore.ts"
+        "src/components/explorer/FileTreeNode.test.tsx",
+        "src/components/explorer/InlineRenameInput.tsx",
+        "src/components/explorer/InlineRenameInput.test.tsx"
       ],
       "assigned_to": "claude-code",
-      "started_at": "2026-03-07T15:30:17.826Z",
-      "updated_at": "2026-03-07T15:30:17.826Z",
-      "completed_at": "2026-03-07T00:00:00Z"
+      "started_at": "2026-03-08T22:47:52Z",
+      "updated_at": "2026-03-08T23:35:01Z",
+      "completed_at": "2026-03-08T23:35:01Z",
+      "worktree": null,
+      "notes": "Implemented inline rename and discoverable overflow context menu in file tree. completed_by=claude-code; lock_acquired_at=2026-03-08T23:35:01Z"
     },
     "CHI-273": {
       "id": "CHI-273",
@@ -2866,12 +2995,15 @@
         "CHI-282"
       ],
       "files": [
-        "src/components/conversation/ToolUseBlock.tsx"
+        "src/components/conversation/ToolUseBlock.tsx",
+        "src/components/conversation/ToolUseBlock.test.tsx"
       ],
       "assigned_to": "claude-code",
-      "started_at": "2026-03-07T15:30:17.826Z",
-      "updated_at": "2026-03-07T15:30:17.826Z",
-      "completed_at": "2026-03-07T00:00:00Z"
+      "started_at": "2026-03-08T22:47:52Z",
+      "updated_at": "2026-03-08T23:35:01Z",
+      "completed_at": "2026-03-08T23:35:01Z",
+      "worktree": null,
+      "notes": "Implemented compact AskUserQuestion summaries for collapsed tool blocks (question count and answered value). completed_by=claude-code; lock_acquired_at=2026-03-08T23:35:01Z"
     },
     "CHI-285": {
       "id": "CHI-285",
@@ -2886,12 +3018,16 @@
       ],
       "files": [
         "src/components/questions/QuestionDialog.tsx",
+        "src/components/questions/QuestionDialog.test.tsx",
+        "src-tauri/src/bridge/mod.rs",
         "src-tauri/src/bridge/event_loop.rs"
       ],
       "assigned_to": "claude-code",
-      "started_at": "2026-03-07T15:30:17.826Z",
-      "updated_at": "2026-03-07T15:30:17.826Z",
-      "completed_at": "2026-03-07T00:00:00Z"
+      "started_at": "2026-03-08T22:47:52Z",
+      "updated_at": "2026-03-08T23:35:01Z",
+      "completed_at": "2026-03-08T23:35:01Z",
+      "worktree": null,
+      "notes": "Added YOLO auto-resolution for AskUserQuestion and improved QuestionDialog focus trap/aria-live accessibility. completed_by=claude-code; lock_acquired_at=2026-03-08T23:35:01Z"
     },
     "CHI-288": {
       "title": "SEC-1: SQLCipher Database Encryption + OS Keychain Key Storage",
@@ -3284,6 +3420,24 @@
       ],
       "notes": "Added JSON export and export options dialog wiring. completed_by=claude-code; lock_acquired_at=2026-03-08T07:47:51Z",
       "title": "EXP-3: JSON Export + Dialog Redesign"
+    },
+    "CHI-287": {
+      "status": "done",
+      "priority": "High",
+      "parent_epic": null,
+      "title": "Performance Tuning — Database, Rendering & I/O Optimization (Epic)"
+    },
+    "CHI-87": {
+      "status": "done",
+      "priority": "Medium",
+      "parent_epic": "CHI-65",
+      "title": "Sidebar & Navigation Polish subtask (CHI-87)"
+    },
+    "CHI-88": {
+      "status": "done",
+      "priority": "Medium",
+      "parent_epic": "CHI-65",
+      "title": "Sidebar & Navigation Polish subtask (CHI-88)"
     }
   },
   "epics_new": {
@@ -5455,11 +5609,8 @@
     }
   },
   "recommended_next": [
-    "CHI-248",
-    "CHI-249",
-    "CHI-250",
-    "CHI-251",
-    "CHI-252"
+    "CHI-263",
+    "CHI-264"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -7156,10 +7307,11 @@
     }
   },
   "warnings": [
-    "CHI-286 (Security), CHI-296 (Data Completeness), CHI-307 (Export) all DONE — close in Linear",
-    "CHI-301 (JSONL Import) in progress — CHI-303→304→305 still need work (parser + consistency checker done)",
-    "CHI-287 (Performance) 3/4 done — CHI-295 (Memory+Build) still backlog, can close epic when done",
-    "When all subtasks of an epic are done, update epic status in Linear to 'Done' and close it"
+    "CODE AUDIT completed: 13 tasks were wrongly marked 'done' — reverted to backlog after verifying no code exists.",
+    "CHI-276 (Binary Preview) and CHI-247 (Pause Response) confirmed done by code audit and closed in Linear.",
+    "Near-complete epics: CHI-269 (File Mgmt 5/6, only CHI-272 left), CHI-277 (AskUserQuestion 2/4, CHI-284+285 left).",
+    "CHI-262 (Enqueue & Steer) has ZERO implementation — all 6 subtasks are backlog. Major new epic.",
+    "recommended_next: complete near-done epics first (CHI-272, CHI-284, CHI-285), then start CHI-263."
   ],
   "development_protocol": {
     "guide": "docs/guides/GUIDE-003-development-protocol.md",
@@ -7741,10 +7893,10 @@
     ]
   },
   "counts": {
-    "total": 143,
-    "done": 134,
+    "total": 146,
+    "done": 126,
     "in_progress": 0,
-    "backlog": 8
+    "backlog": 20
   },
   "epic_closure_protocol": {
     "_comment": "When all sub-tasks of an epic are marked done, follow these steps:",
@@ -7755,18 +7907,7 @@
       "4. Update CLAUDE.md if the epic was in the backlog table — move to completed or remove row",
       "5. If this was the last epic in a phase, update the phase status"
     ],
-    "epics_ready_to_close_in_linear": [
-      {
-        "id": "CHI-287",
-        "title": "Performance Tuning",
-        "linear_id": "5fe40585-4442-4a43-90d4-2f398fd36671"
-      },
-      {
-        "id": "CHI-301",
-        "title": "JSONL Session Import",
-        "linear_id": "e9d15f57-9bbc-4297-8293-3154479bb6fe"
-      }
-    ],
+    "epics_ready_to_close_in_linear": [],
     "epics_recently_closed_in_linear": [
       {
         "id": "CHI-286",
@@ -7785,8 +7926,66 @@
         "title": "Export Quality Upgrade",
         "linear_id": "bf3d1df3-d8ea-4115-88fc-eaa10c6ca48a",
         "closed_at": "2026-03-08T12:21:29Z"
+      },
+      {
+        "id": "CHI-287",
+        "title": "Performance Tuning",
+        "linear_id": "5fe40585-4442-4a43-90d4-2f398fd36671",
+        "closed_at": "2026-03-08T15:44:59Z"
+      },
+      {
+        "id": "CHI-301",
+        "title": "JSONL Session Import",
+        "linear_id": "e9d15f57-9bbc-4297-8293-3154479bb6fe",
+        "closed_at": "2026-03-08T15:44:58Z"
+      },
+      {
+        "id": "CHI-276",
+        "title": "Binary File Preview",
+        "linear_id": "05c904f6-0770-4c60-9348-44554341d2f5",
+        "closed_at": "2026-03-08T17:16:10Z"
       }
     ],
-    "epics_partially_done": []
+    "epics_partially_done": [
+      {
+        "id": "CHI-269",
+        "title": "File & Folder Creation",
+        "done": [
+          "CHI-270",
+          "CHI-271",
+          "CHI-273",
+          "CHI-274",
+          "CHI-275"
+        ],
+        "remaining": [
+          "CHI-272"
+        ]
+      },
+      {
+        "id": "CHI-277",
+        "title": "AskUserQuestion Dialog",
+        "done": [
+          "AQ-1",
+          "AQ-2"
+        ],
+        "remaining": [
+          "CHI-284",
+          "CHI-285"
+        ]
+      },
+      {
+        "id": "CHI-262",
+        "title": "Enqueue & Steer",
+        "done": [],
+        "remaining": [
+          "CHI-263",
+          "CHI-264",
+          "CHI-265",
+          "CHI-266",
+          "CHI-267",
+          "CHI-268"
+        ]
+      }
+    ]
   }
 }
