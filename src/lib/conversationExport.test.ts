@@ -110,6 +110,39 @@ describe('exportAsHtml', () => {
   });
 });
 
+describe('export redaction', () => {
+  const secretMsg = message(
+    'assistant',
+    'Your key is sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890 goodbye',
+  );
+
+  it('exportAsMarkdown redacts secrets when redact=true', () => {
+    const output = exportAsMarkdown([secretMsg], 'abc', { redact: true });
+    expect(output).not.toContain('sk-ant-api03');
+    expect(output).toContain('[ANTHROPIC_KEY REDACTED]');
+  });
+
+  it('exportAsMarkdown does NOT redact when redact=false', () => {
+    const output = exportAsMarkdown([secretMsg], 'abc', { redact: false });
+    expect(output).toContain('sk-ant-api03');
+  });
+
+  it('exportAsMarkdown does NOT redact by default', () => {
+    const output = exportAsMarkdown([secretMsg], 'abc');
+    expect(output).toContain('sk-ant-api03');
+  });
+
+  it('exportAsText redacts secrets when redact=true', () => {
+    const output = exportAsText([secretMsg], 'abc', { redact: true });
+    expect(output).not.toContain('sk-ant-api03');
+  });
+
+  it('exportAsHtml redacts secrets when redact=true', () => {
+    const output = exportAsHtml([secretMsg], 'abc', { redact: true });
+    expect(output).not.toContain('sk-ant-api03');
+  });
+});
+
 describe('buildExportFilename', () => {
   it('uses session short id and extension', () => {
     const name = buildExportFilename('abc12345-xyz', 'md');

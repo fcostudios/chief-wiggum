@@ -2,8 +2,16 @@
 // Pure formatters for exporting conversation history.
 
 import type { Message } from './types';
+import { redactSecrets } from './redaction';
 
 export type ExportFormat = 'md' | 'html' | 'txt';
+
+export interface ExportOptions {
+  redact?: boolean;
+  includeToolCalls?: boolean;
+  includeThinking?: boolean;
+  includeTokenCounts?: boolean;
+}
 
 function exportTimestamp(): string {
   return new Date().toLocaleString();
@@ -25,7 +33,12 @@ function escapeHtml(text: string): string {
     .replaceAll('"', '&quot;');
 }
 
-export function exportAsMarkdown(messages: Message[], sessionId: string): string {
+export function exportAsMarkdown(
+  messages: Message[],
+  sessionId: string,
+  options: ExportOptions = {},
+): string {
+  const { redact = false, includeToolCalls = true, includeThinking = true } = options;
   const lines: string[] = [
     `# Chief Wiggum - Session ${sessionId}`,
     `_Exported: ${exportTimestamp()}_`,
@@ -41,19 +54,19 @@ export function exportAsMarkdown(messages: Message[], sessionId: string): string
       lines.push('---', '**Claude:**', '', msg.content, '');
       continue;
     }
-    if (msg.role === 'thinking') {
+    if (msg.role === 'thinking' && includeThinking) {
       const preview = msg.content.slice(0, 400);
       lines.push('<details>', '<summary>Thinking...</summary>', '', preview, '</details>', '');
       continue;
     }
-    if (msg.role === 'tool_use') {
+    if (msg.role === 'tool_use' && includeToolCalls) {
       const parsed = tryParseJson<{ tool_name?: string; tool_input?: string }>(msg.content);
       const toolName = parsed?.tool_name ?? 'Tool';
       const toolInput = parsed?.tool_input ?? msg.content;
       lines.push('```tool', `# ${toolName}`, toolInput, '```', '');
       continue;
     }
-    if (msg.role === 'tool_result') {
+    if (msg.role === 'tool_result' && includeToolCalls) {
       const parsed = tryParseJson<{ content?: string; is_error?: boolean }>(msg.content);
       const content = parsed?.content ?? msg.content;
       const prefix = parsed?.is_error ? '> [Error] ' : '> ';
@@ -62,10 +75,16 @@ export function exportAsMarkdown(messages: Message[], sessionId: string): string
     }
   }
 
-  return lines.join('\n');
+  const raw = lines.join('\n');
+  return redact ? redactSecrets(raw).content : raw;
 }
 
-export function exportAsText(messages: Message[], sessionId: string): string {
+export function exportAsText(
+  messages: Message[],
+  sessionId: string,
+  options: ExportOptions = {},
+): string {
+  const { redact = false } = options;
   const lines: string[] = [
     `Chief Wiggum - Session ${sessionId}`,
     `Exported: ${exportTimestamp()}`,
@@ -83,7 +102,8 @@ export function exportAsText(messages: Message[], sessionId: string): string {
     }
   }
 
-  return lines.join('\n');
+  const raw = lines.join('\n');
+  return redact ? redactSecrets(raw).content : raw;
 }
 
 const HTML_THEME = `
@@ -100,7 +120,12 @@ pre{background:#161b22;padding:12px;border-radius:6px;overflow-x:auto;font-size:
 details{margin:4px 0;color:#6e7681;font-size:.85rem}
 `.replace(/\s+/g, ' ');
 
-export function exportAsHtml(messages: Message[], sessionId: string): string {
+export function exportAsHtml(
+  messages: Message[],
+  sessionId: string,
+  options: ExportOptions = {},
+): string {
+  const { redact = false, includeToolCalls = true, includeThinking = true } = options;
   const parts: string[] = [
     '<!DOCTYPE html>',
     '<html lang="en">',
@@ -133,22 +158,29 @@ export function exportAsHtml(messages: Message[], sessionId: string): string {
       );
       continue;
     }
-    if (msg.role === 'thinking') {
+    if (msg.role === 'thinking' && includeThinking) {
       parts.push(
         `<details><summary>Thinking...</summary><pre>${escapeHtml(msg.content.slice(0, 400))}</pre></details>`,
       );
       continue;
     }
-    if (msg.role === 'tool_use') {
+    if (msg.role === 'tool_use' && includeToolCalls) {
       const parsed = tryParseJson<{ tool_name?: string; tool_input?: string }>(msg.content);
       const toolName = escapeHtml(parsed?.tool_name ?? 'Tool');
       const toolInput = escapeHtml(parsed?.tool_input ?? msg.content);
       parts.push(`<pre><b>${toolName}</b>\n${toolInput}</pre>`);
+      continue;
+    }
+    if (msg.role === 'tool_result' && includeToolCalls) {
+      const parsed = tryParseJson<{ content?: string; is_error?: boolean }>(msg.content);
+      const content = escapeHtml(parsed?.content ?? msg.content);
+      parts.push(`<pre>${content}</pre>`);
     }
   }
 
   parts.push('</body>', '</html>');
-  return parts.join('\n');
+  const raw = parts.join('\n');
+  return redact ? redactSecrets(raw).content : raw;
 }
 
 export function buildExportFilename(sessionId: string, format: ExportFormat): string {
