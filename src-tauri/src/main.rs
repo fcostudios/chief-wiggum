@@ -105,7 +105,8 @@ fn show_start_fresh_success(archived_paths: &[PathBuf]) {
 fn initialize_database_with_recovery() -> chief_wiggum_lib::db::Database {
     match chief_wiggum_lib::db::Database::open_default() {
         Ok(db) => db,
-        Err(chief_wiggum_lib::AppError::DatabaseEncryption(message)) => {
+        Err(chief_wiggum_lib::AppError::DatabaseEncryption(message))
+        | Err(chief_wiggum_lib::AppError::Keychain(message)) => {
             tracing::error!(
                 "Database initialization failed due to encryption error: {}",
                 message
