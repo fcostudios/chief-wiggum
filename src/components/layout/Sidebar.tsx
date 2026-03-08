@@ -56,8 +56,8 @@ import { t } from '@/stores/i18nStore';
 import { addToast } from '@/stores/toastStore';
 import FileTree from '@/components/explorer/FileTree';
 import ActionsPanel from '@/components/actions/ActionsPanel';
+import ConversationExportDialog from '@/components/conversation/ConversationExportDialog';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
-import { buildExportFilename, exportAsMarkdown } from '@/lib/conversationExport';
 
 /** Format a timestamp as relative time (e.g., "2m ago", "1h ago"). */
 function formatRelativeTime(isoString: string | null): string {
@@ -853,6 +853,8 @@ const SessionItem: Component<{
   const [sessionContextPos, setSessionContextPos] = createSignal<{ x: number; y: number } | null>(
     null,
   );
+  const [exportDialogSessionId, setExportDialogSessionId] = createSignal<string | null>(null);
+  const [exportDialogMessages, setExportDialogMessages] = createSignal<Message[]>([]);
 
   createEffect(() => {
     const summary = sessionState.sessionSummaries[props.session.id];
@@ -937,22 +939,8 @@ const SessionItem: Component<{
         addToast('No messages to export', 'info');
         return;
       }
-
-      const content = exportAsMarkdown(messages, props.session.id);
-      const savedPath = await invoke<string | null>('save_export_file', {
-        content,
-        default_name: buildExportFilename(props.session.id, 'md'),
-        extension: 'md',
-      });
-
-      if (savedPath) {
-        addToast('Conversation exported', 'success', {
-          label: 'Open File',
-          onClick: () => {
-            void invoke('open_path_in_shell', { path: savedPath });
-          },
-        });
-      }
+      setExportDialogMessages(messages);
+      setExportDialogSessionId(props.session.id);
     } catch (err) {
       addToast(
         'Export failed',
@@ -1348,6 +1336,12 @@ const SessionItem: Component<{
           />
         )}
       </Show>
+      <ConversationExportDialog
+        open={exportDialogSessionId() === props.session.id}
+        sessionId={props.session.id}
+        messages={exportDialogMessages()}
+        onClose={() => setExportDialogSessionId(null)}
+      />
     </div>
   );
 };

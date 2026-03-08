@@ -25,7 +25,6 @@ import {
   Trash2,
   Copy,
 } from 'lucide-solid';
-import { invoke } from '@tauri-apps/api/core';
 import {
   closeCommandPalette,
   toggleSidebar,
@@ -61,13 +60,7 @@ import {
   renameFileInProject,
 } from '@/stores/fileStore';
 import { getRecentCommands, recordCommand } from '@/stores/recentCommandStore';
-import {
-  buildExportFilename,
-  exportAsHtml,
-  exportAsMarkdown,
-  exportAsText,
-  type ExportFormat,
-} from '@/lib/conversationExport';
+import ConversationExportDialog from '@/components/conversation/ConversationExportDialog';
 import { t } from '@/stores/i18nStore';
 
 // ---------------------------------------------------------------------------
@@ -100,6 +93,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
   const [selectedIndex, setSelectedIndex] = createSignal(0);
   const [pathInputMode, setPathInputMode] = createSignal<'file' | 'folder' | null>(null);
   const [pathInputValue, setPathInputValue] = createSignal('');
+  const [exportDialogOpen, setExportDialogOpen] = createSignal(false);
   let inputRef: HTMLInputElement | undefined;
   let pathInputRef: HTMLInputElement | undefined;
 
@@ -159,7 +153,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
     handleClose();
   }
 
-  async function exportConversation(format: ExportFormat): Promise<void> {
+  function openExportDialog(): void {
     const sessionId = sessionState.activeSessionId;
     if (!sessionId) {
       addToast('No active session to export', 'warning');
@@ -171,37 +165,8 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       addToast('No messages to export', 'info');
       return;
     }
-
-    const content =
-      format === 'md'
-        ? exportAsMarkdown(messages, sessionId)
-        : format === 'html'
-          ? exportAsHtml(messages, sessionId)
-          : exportAsText(messages, sessionId);
-
-    try {
-      const savedPath = await invoke<string | null>('save_export_file', {
-        content,
-        default_name: buildExportFilename(sessionId, format),
-        extension: format,
-      });
-
-      if (savedPath) {
-        addToast('Conversation exported', 'success', {
-          label: 'Open File',
-          onClick: () => {
-            void invoke('open_path_in_shell', { path: savedPath });
-          },
-        });
-      }
-    } catch (err) {
-      addToast(
-        'Export failed',
-        'error',
-        undefined,
-        err instanceof Error ? err.message : String(err),
-      );
-    }
+    handleClose();
+    setExportDialogOpen(true);
   }
 
   // Build static commands list
@@ -381,7 +346,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       category: 'Session',
       icon: () => <Download size={16} />,
       action: () => {
-        void exportConversation('md');
+        openExportDialog();
       },
     },
     {
@@ -390,7 +355,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       category: 'Session',
       icon: () => <Download size={16} />,
       action: () => {
-        void exportConversation('html');
+        openExportDialog();
       },
     },
     {
@@ -399,7 +364,7 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       category: 'Session',
       icon: () => <Download size={16} />,
       action: () => {
-        void exportConversation('txt');
+        openExportDialog();
       },
     },
   ];
@@ -796,6 +761,12 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
           </Show>
         </div>
       </div>
+      <ConversationExportDialog
+        open={exportDialogOpen()}
+        sessionId={sessionState.activeSessionId ?? ''}
+        messages={conversationState.messages}
+        onClose={() => setExportDialogOpen(false)}
+      />
     </div>
   );
 };

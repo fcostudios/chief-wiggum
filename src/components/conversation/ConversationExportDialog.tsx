@@ -1,5 +1,5 @@
 import type { Component } from 'solid-js';
-import { Show, createEffect, createSignal, onCleanup } from 'solid-js';
+import { For, Show, createEffect, createSignal, onCleanup } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import type { Message } from '@/lib/types';
 import {
@@ -30,6 +30,14 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
   const [includeTokenCounts, setIncludeTokenCounts] = createSignal(false);
   const [theme, setTheme] = createSignal<'dark' | 'light' | 'system'>('system');
   const [exporting, setExporting] = createSignal(false);
+  const formatOptions = ['html', 'md', 'txt', 'json'] as const;
+  const themeOptions = ['system', 'dark', 'light'] as const;
+  const checkboxOptions = [
+    { label: 'Redact secrets', value: redact, set: setRedact },
+    { label: 'Include tool calls', value: includeToolCalls, set: setIncludeToolCalls },
+    { label: 'Include thinking blocks', value: includeThinking, set: setIncludeThinking },
+    { label: 'Include token counts', value: includeTokenCounts, set: setIncludeTokenCounts },
+  ] as const;
 
   createEffect(() => {
     if (!props.open) return;
@@ -149,32 +157,34 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
                 Format
               </label>
               <div class="grid grid-cols-4 gap-1.5">
-                {(['html', 'md', 'txt', 'json'] as const).map((candidateFormat) => (
-                  <button
-                    class="rounded py-1.5 text-xs font-medium transition-colors"
-                    style={{
-                      background:
-                        format() === candidateFormat
-                          ? 'var(--color-accent)'
-                          : 'var(--color-bg-elevated)',
-                      color:
-                        format() === candidateFormat
-                          ? 'var(--color-text-inverse)'
-                          : 'var(--color-text-secondary)',
-                      border: '1px solid var(--color-border-secondary)',
-                    }}
-                    onClick={() => setFormat(candidateFormat)}
-                    aria-pressed={format() === candidateFormat}
-                  >
-                    {candidateFormat === 'html'
-                      ? 'HTML'
-                      : candidateFormat === 'md'
-                        ? 'Markdown'
-                        : candidateFormat === 'txt'
-                          ? 'Plain'
-                          : 'JSON'}
-                  </button>
-                ))}
+                <For each={formatOptions}>
+                  {(candidateFormat) => (
+                    <button
+                      class="rounded py-1.5 text-xs font-medium transition-colors"
+                      style={{
+                        background:
+                          format() === candidateFormat
+                            ? 'var(--color-accent)'
+                            : 'var(--color-bg-elevated)',
+                        color:
+                          format() === candidateFormat
+                            ? 'var(--color-text-inverse)'
+                            : 'var(--color-text-secondary)',
+                        border: '1px solid var(--color-border-secondary)',
+                      }}
+                      onClick={() => setFormat(candidateFormat)}
+                      aria-pressed={format() === candidateFormat}
+                    >
+                      {candidateFormat === 'html'
+                        ? 'HTML'
+                        : candidateFormat === 'md'
+                          ? 'Markdown'
+                          : candidateFormat === 'txt'
+                            ? 'Plain'
+                            : 'JSON'}
+                    </button>
+                  )}
+                </For>
               </div>
             </div>
 
@@ -184,26 +194,28 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
                   Theme
                 </label>
                 <div class="flex gap-1.5">
-                  {(['system', 'dark', 'light'] as const).map((themeOption) => (
-                    <button
-                      class="rounded px-3 py-1 text-xs transition-colors"
-                      style={{
-                        background:
-                          theme() === themeOption
-                            ? 'var(--color-accent)'
-                            : 'var(--color-bg-elevated)',
-                        color:
-                          theme() === themeOption
-                            ? 'var(--color-text-inverse)'
-                            : 'var(--color-text-secondary)',
-                        border: '1px solid var(--color-border-secondary)',
-                      }}
-                      onClick={() => setTheme(themeOption)}
-                      aria-pressed={theme() === themeOption}
-                    >
-                      {themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}
-                    </button>
-                  ))}
+                  <For each={themeOptions}>
+                    {(themeOption) => (
+                      <button
+                        class="rounded px-3 py-1 text-xs transition-colors"
+                        style={{
+                          background:
+                            theme() === themeOption
+                              ? 'var(--color-accent)'
+                              : 'var(--color-bg-elevated)',
+                          color:
+                            theme() === themeOption
+                              ? 'var(--color-text-inverse)'
+                              : 'var(--color-text-secondary)',
+                          border: '1px solid var(--color-border-secondary)',
+                        }}
+                        onClick={() => setTheme(themeOption)}
+                        aria-pressed={theme() === themeOption}
+                      >
+                        {themeOption.charAt(0).toUpperCase() + themeOption.slice(1)}
+                      </button>
+                    )}
+                  </For>
                 </div>
               </div>
             </Show>
@@ -212,42 +224,25 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
               <label class="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>
                 Options
               </label>
-              {(
-                [
-                  { label: 'Redact secrets', value: redact, set: setRedact },
-                  {
-                    label: 'Include tool calls',
-                    value: includeToolCalls,
-                    set: setIncludeToolCalls,
-                  },
-                  {
-                    label: 'Include thinking blocks',
-                    value: includeThinking,
-                    set: setIncludeThinking,
-                  },
-                  {
-                    label: 'Include token counts',
-                    value: includeTokenCounts,
-                    set: setIncludeTokenCounts,
-                  },
-                ] as const
-              ).map((option) => (
-                <label
-                  class="flex cursor-pointer select-none items-center gap-2"
-                  style={{ color: 'var(--color-text-secondary)' }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={option.value()}
-                    onChange={(event) =>
-                      (option.set as (value: boolean) => void)(event.currentTarget.checked)
-                    }
-                    class="h-3.5 w-3.5"
-                    style={{ 'accent-color': 'var(--color-accent)' }}
-                  />
-                  <span class="text-xs">{option.label}</span>
-                </label>
-              ))}
+              <For each={checkboxOptions}>
+                {(option) => (
+                  <label
+                    class="flex cursor-pointer select-none items-center gap-2"
+                    style={{ color: 'var(--color-text-secondary)' }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={option.value()}
+                      onChange={(event) =>
+                        (option.set as (value: boolean) => void)(event.currentTarget.checked)
+                      }
+                      class="h-3.5 w-3.5"
+                      style={{ 'accent-color': 'var(--color-accent)' }}
+                    />
+                    <span class="text-xs">{option.label}</span>
+                  </label>
+                )}
+              </For>
             </div>
 
             <div
@@ -272,7 +267,7 @@ const ConversationExportDialog: Component<ConversationExportDialogProps> = (prop
                 color: 'var(--color-text-secondary)',
                 background: 'var(--color-bg-elevated)',
               }}
-              onClick={props.onClose}
+              onClick={() => props.onClose()}
               disabled={exporting()}
             >
               Cancel
