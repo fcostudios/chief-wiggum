@@ -105,7 +105,7 @@ function toolSummary(toolName: string, toolInput: string): string {
 }
 
 export const ToolUseBlock: Component<ToolUseBlockProps> = (props) => {
-  const data = () => parseToolUseContent(props.message.content);
+  const data = createMemo(() => parseToolUseContent(props.message.content));
   const parsedInput = createMemo(() => {
     try {
       return JSON.parse(data().tool_input) as {
