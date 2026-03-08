@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::{Path, PathBuf};
+
 #[allow(unused_variables)]
 fn apply_platform_window_effects(window: &tauri::WebviewWindow) {
     #[cfg(target_os = "macos")]
@@ -15,6 +17,122 @@ fn apply_platform_window_effects(window: &tauri::WebviewWindow) {
     }
 }
 
+fn default_db_path() -> Result<PathBuf, String> {
+    let home = dirs::home_dir().ok_or_else(|| "Could not determine home directory".to_string())?;
+    Ok(home
+        .join(".chiefwiggum")
+        .join("db")
+        .join("chiefwiggum.sqlite"))
+}
+
+fn archive_existing_db_files(db_path: &Path) -> Result<Vec<PathBuf>, String> {
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
+    let mut archived = Vec::new();
+
+    let db_variants = [
+        db_path.to_path_buf(),
+        PathBuf::from(format!("{}-wal", db_path.to_string_lossy())),
+        PathBuf::from(format!("{}-shm", db_path.to_string_lossy())),
+    ];
+
+    for original in db_variants {
+        if !original.exists() {
+            continue;
+        }
+        let archive_path = PathBuf::from(format!(
+            "{}.unrecoverable-{}",
+            original.to_string_lossy(),
+            timestamp
+        ));
+        std::fs::rename(&original, &archive_path).map_err(|e| {
+            format!(
+                "Failed to archive {:?} -> {:?}: {}",
+                original, archive_path, e
+            )
+        })?;
+        archived.push(archive_path);
+    }
+
+    Ok(archived)
+}
+
+fn prompt_start_fresh_db(encryption_error: &str) -> bool {
+    use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
+
+    let description = format!(
+        "Chief Wiggum could not unlock the local encrypted database.\n\n{}\n\n\
+Choose OK to archive current DB files and start with a new empty database.\n\
+Choose Cancel to exit without changes.",
+        encryption_error
+    );
+
+    matches!(
+        MessageDialog::new()
+            .set_level(MessageLevel::Error)
+            .set_title("Database Unlock Failed")
+            .set_description(description)
+            .set_buttons(MessageButtons::OkCancel)
+            .show(),
+        MessageDialogResult::Ok
+    )
+}
+
+fn show_start_fresh_success(archived_paths: &[PathBuf]) {
+    use rfd::{MessageButtons, MessageDialog, MessageLevel};
+
+    let archived_list = if archived_paths.is_empty() {
+        "No existing DB files were found to archive.".to_string()
+    } else {
+        archived_paths
+            .iter()
+            .map(|p| format!("- {}", p.to_string_lossy()))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    let message = format!(
+        "A new database has been created.\n\nArchived files:\n{}",
+        archived_list
+    );
+    let _ = MessageDialog::new()
+        .set_level(MessageLevel::Info)
+        .set_title("Started With New Database")
+        .set_description(message)
+        .set_buttons(MessageButtons::Ok)
+        .show();
+}
+
+fn initialize_database_with_recovery() -> chief_wiggum_lib::db::Database {
+    match chief_wiggum_lib::db::Database::open_default() {
+        Ok(db) => db,
+        Err(chief_wiggum_lib::AppError::DatabaseEncryption(message)) => {
+            tracing::error!(
+                "Database initialization failed due to encryption error: {}",
+                message
+            );
+
+            if !prompt_start_fresh_db(&message) {
+                tracing::warn!("User cancelled database recovery prompt");
+                std::process::exit(1);
+            }
+
+            let db_path = default_db_path().unwrap_or_else(|e| {
+                panic!("Failed to resolve database path for recovery: {}", e);
+            });
+            let archived = archive_existing_db_files(&db_path).unwrap_or_else(|e| {
+                panic!("Failed to archive existing database files: {}", e);
+            });
+
+            let db = chief_wiggum_lib::db::Database::open_default().unwrap_or_else(|e| {
+                panic!("Failed to initialize new database after recovery: {}", e)
+            });
+            show_start_fresh_success(&archived);
+            db
+        }
+        Err(e) => panic!("Failed to initialize database: {}", e),
+    }
+}
+
 fn main() {
     // Fix PATH for macOS/Linux GUI apps — launchd doesn't inherit shell profile.
     // Must run before CliLocation::detect() and any process spawning.
@@ -26,7 +144,7 @@ fn main() {
     tracing::info!("Starting Chief Wiggum v{}", env!("CARGO_PKG_VERSION"));
 
     // Initialize SQLite database — required for session persistence (CHI-22)
-    let db = chief_wiggum_lib::db::Database::open_default().expect("Failed to initialize database");
+    let db = initialize_database_with_recovery();
     tracing::info!("Database initialized at {:?}", db.path());
 
     // Detect Claude Code CLI — non-fatal if missing

@@ -76,6 +76,8 @@ ignore = "0.4"
 notify = "8"
 # Native window blur/vibrancy effects (CHI-69)
 window-vibrancy = "0.6"
+# Native message dialogs for startup recovery prompts
+rfd = "0.16"
 
 # Fix PATH for macOS/Linux GUI apps (launchd doesn't inherit shell profile)
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
