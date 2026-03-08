@@ -102,11 +102,29 @@ fn show_start_fresh_success(archived_paths: &[PathBuf]) {
         .show();
 }
 
+fn recoverable_db_startup_error_message(err: &chief_wiggum_lib::AppError) -> Option<String> {
+    match err {
+        chief_wiggum_lib::AppError::DatabaseEncryption(message)
+        | chief_wiggum_lib::AppError::Keychain(message) => Some(message.clone()),
+        chief_wiggum_lib::AppError::Database(db_err) => {
+            let message = db_err.to_string();
+            if message.contains("not an error") || message.contains("file is not a database") {
+                Some(format!("Database initialization failed: {}", message))
+            } else {
+                None
+            }
+        }
+        _ => None,
+    }
+}
+
 fn initialize_database_with_recovery() -> chief_wiggum_lib::db::Database {
     match chief_wiggum_lib::db::Database::open_default() {
         Ok(db) => db,
-        Err(chief_wiggum_lib::AppError::DatabaseEncryption(message))
-        | Err(chief_wiggum_lib::AppError::Keychain(message)) => {
+        Err(err) => {
+            let Some(message) = recoverable_db_startup_error_message(&err) else {
+                panic!("Failed to initialize database: {}", err);
+            };
             tracing::error!(
                 "Database initialization failed due to encryption error: {}",
                 message
@@ -130,7 +148,6 @@ fn initialize_database_with_recovery() -> chief_wiggum_lib::db::Database {
             show_start_fresh_success(&archived);
             db
         }
-        Err(e) => panic!("Failed to initialize database: {}", e),
     }
 }
 

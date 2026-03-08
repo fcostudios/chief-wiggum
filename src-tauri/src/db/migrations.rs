@@ -249,7 +249,11 @@ impl super::Database {
             let latest_version = MIGRATIONS.last().map(|m| m.version).unwrap_or(0);
             if has_user_tables && current_version < latest_version {
                 let backup_dir = self.path().parent().unwrap_or(self.path()).join("backups");
-                create_backup_if_needed(self.path(), &backup_dir, current_version)?;
+                self.with_conn(|conn| {
+                    create_backup_from_conn(conn, self.path(), &backup_dir, current_version)
+                        .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+                    Ok(())
+                })?;
             }
         }
 
@@ -259,6 +263,7 @@ impl super::Database {
 
 /// Create a timestamped backup before applying migrations.
 /// Prunes backups older than 30 days.
+#[cfg(test)]
 pub(crate) fn create_backup_if_needed(
     db_path: &Path,
     backup_dir: &Path,
@@ -271,15 +276,49 @@ pub(crate) fn create_backup_if_needed(
     std::fs::create_dir_all(backup_dir)?;
     let _ = crate::security::permissions::harden_directory_permissions(backup_dir);
 
+    let src_conn = Connection::open(db_path)?;
+    create_backup_from_conn(&src_conn, db_path, backup_dir, current_version)?;
+    Ok(())
+}
+
+fn create_backup_from_conn(
+    src_conn: &Connection,
+    db_path: &Path,
+    backup_dir: &Path,
+    current_version: i32,
+) -> Result<(), AppError> {
+    std::fs::create_dir_all(backup_dir)?;
+    let _ = crate::security::permissions::harden_directory_permissions(backup_dir);
+
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
     let backup_name = format!("chiefwiggum_v{}_{}.sqlite", current_version, timestamp);
     let backup_path = backup_dir.join(backup_name);
 
-    let src_conn = Connection::open(db_path)?;
-    let mut dst_conn = Connection::open(&backup_path)?;
-    {
-        let backup = rusqlite::backup::Backup::new(&src_conn, &mut dst_conn)?;
+    let backup_attempt = (|| -> Result<(), rusqlite::Error> {
+        let mut dst_conn = Connection::open(&backup_path)?;
+        let backup = rusqlite::backup::Backup::new(src_conn, &mut dst_conn)?;
         backup.run_to_completion(100, Duration::from_millis(50), None)?;
+        Ok(())
+    })();
+
+    if let Err(err) = backup_attempt {
+        let msg = err.to_string();
+        if msg.contains("backup is not supported with encrypted databases") {
+            tracing::warn!(
+                "SQLite backup API unavailable for encrypted DB, using file snapshot fallback: {}",
+                msg
+            );
+            // Flush WAL into main DB file before taking encrypted snapshot.
+            let _ = src_conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+            std::fs::copy(db_path, &backup_path)?;
+        } else if msg.contains("not an error") || msg.contains("file is not a database") {
+            return Err(AppError::DatabaseEncryption(format!(
+                "Failed to create migration backup from encrypted database (key may be missing): {}",
+                msg
+            )));
+        } else {
+            return Err(AppError::Database(err));
+        }
     }
 
     crate::security::permissions::harden_file_permissions(&backup_path)?;
