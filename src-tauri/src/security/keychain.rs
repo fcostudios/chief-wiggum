@@ -240,10 +240,7 @@ fn get_key_from_macos_security_backend() -> Result<Option<String>, String> {
     if stderr.contains("The specified item could not be found in the keychain") {
         return Ok(None);
     }
-    Err(format!(
-        "macOS security read failed: {}",
-        stderr.trim().to_string()
-    ))
+    Err(format!("macOS security read failed: {}", stderr.trim()))
 }
 
 #[cfg(target_os = "macos")]

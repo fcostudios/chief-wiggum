@@ -222,12 +222,29 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       if (props.isDisabled) return;
       fileInputRef?.click();
     };
+    const handleInsertIntoComposer = (event: Event) => {
+      if (props.isDisabled) return;
+      const text = (event as CustomEvent<{ text?: string }>).detail?.text?.trim();
+      if (!text) return;
+      const current = content();
+      const next = current ? `${current}\n${text}` : text;
+      setContent(next);
+      if (textareaRef) {
+        textareaRef.value = next;
+        adjustHeight();
+        textareaRef.focus();
+      }
+      const draftKey = `cw:draft:${sessionState.activeSessionId ?? 'default'}`;
+      localStorage.setItem(draftKey, next);
+    };
 
     document.addEventListener('keydown', handleEscape);
     window.addEventListener('cw:open-file-picker', handleOpenFilePicker);
+    window.addEventListener('cw:insert-into-composer', handleInsertIntoComposer);
     onCleanup(() => {
       document.removeEventListener('keydown', handleEscape);
       window.removeEventListener('cw:open-file-picker', handleOpenFilePicker);
+      window.removeEventListener('cw:insert-into-composer', handleInsertIntoComposer);
     });
   });
 

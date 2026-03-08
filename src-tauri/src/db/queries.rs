@@ -128,6 +128,49 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_session_by_cli_id(db: &Database, cli_id: &str) -> Result<Option<SessionRow>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, project_id, title, model, status, parent_session_id,
+                    context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
+                    created_at, updated_at, cli_session_id, pinned,
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
+             FROM sessions
+             WHERE cli_session_id = ?1
+             ORDER BY updated_at DESC NULLS LAST, rowid DESC
+             LIMIT 1",
+        )?;
+        let row = stmt.query_row(rusqlite::params![cli_id], |row| {
+            Ok(SessionRow {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                title: row.get(2)?,
+                model: row.get(3)?,
+                status: row.get(4)?,
+                parent_session_id: row.get(5)?,
+                context_tokens: row.get(6)?,
+                total_input_tokens: row.get(7)?,
+                total_output_tokens: row.get(8)?,
+                total_cost_cents: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+                cli_session_id: row.get(12)?,
+                pinned: row.get(13)?,
+                cli_version: row.get(14)?,
+                total_thinking_tokens: row.get(15)?,
+                total_cache_read_tokens: row.get(16)?,
+                total_cache_write_tokens: row.get(17)?,
+            })
+        });
+        match row {
+            Ok(s) => Ok(Some(s)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    })
+}
+
 #[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 #[allow(clippy::too_many_arguments)]
 pub fn update_session_cost(
@@ -281,6 +324,22 @@ pub fn count_session_messages(db: &Database, session_id: &str) -> Result<i64, Ap
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn message_uuid_exists(db: &Database, session_id: &str, uuid: &str) -> Result<bool, AppError> {
+    db.with_conn(|conn| {
+        conn.query_row(
+            "SELECT EXISTS(
+                SELECT 1
+                FROM messages
+                WHERE session_id = ?1
+                  AND uuid = ?2
+            )",
+            rusqlite::params![session_id, uuid],
+            |row| row.get(0),
+        )
+    })
+}
+
 #[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn duplicate_session_metadata_only(
     db: &Database,
@@ -349,6 +408,33 @@ pub fn update_session_cli_id(
             rusqlite::params![id, cli_session_id],
         )?;
         Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn update_session_cli_version(
+    db: &Database,
+    id: &str,
+    cli_version: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET cli_version = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, cli_version],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn list_all_cli_session_ids(db: &Database) -> Result<Vec<String>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt =
+            conn.prepare("SELECT cli_session_id FROM sessions WHERE cli_session_id IS NOT NULL")?;
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
     })
 }
 
@@ -1080,6 +1166,103 @@ pub fn extract_and_save_artifacts(db: &Database, session_id: &str) -> Result<(),
     Ok(())
 }
 
+// ── Prompt Templates ──────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptTemplate {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+    pub variables: String,
+    pub created_at: String,
+    pub usage_count: i64,
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db, content, variables))]
+pub fn insert_prompt_template(
+    db: &Database,
+    id: &str,
+    name: &str,
+    content: &str,
+    variables: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "INSERT INTO prompt_templates (id, name, content, variables) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![id, name, content, variables],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn list_prompt_templates(db: &Database) -> Result<Vec<PromptTemplate>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, name, content, variables, created_at, usage_count
+             FROM prompt_templates
+             ORDER BY usage_count DESC, created_at DESC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(PromptTemplate {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    content: row.get(2)?,
+                    variables: row.get(3)?,
+                    created_at: row.get(4)?,
+                    usage_count: row.get(5)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db, content, variables))]
+pub fn update_prompt_template(
+    db: &Database,
+    id: &str,
+    name: &str,
+    content: &str,
+    variables: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        let updated = conn.execute(
+            "UPDATE prompt_templates
+             SET name = ?2, content = ?3, variables = ?4
+             WHERE id = ?1",
+            rusqlite::params![id, name, content, variables],
+        )?;
+        if updated == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn delete_prompt_template(db: &Database, id: &str) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "DELETE FROM prompt_templates WHERE id = ?1",
+            rusqlite::params![id],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn increment_template_usage(db: &Database, id: &str) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE prompt_templates SET usage_count = usage_count + 1 WHERE id = ?1",
+            rusqlite::params![id],
+        )?;
+        Ok(())
+    })
+}
+
 // ── Row types ──────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1330,6 +1513,24 @@ mod tests {
             Some("message"),
         )
         .unwrap();
+    }
+
+    #[test]
+    fn prompt_template_crud_works() {
+        let db = Database::open_in_memory().expect("db");
+
+        insert_prompt_template(&db, "t1", "Greeting", "Hello {name}!", r#"["name"]"#).unwrap();
+        let templates = list_prompt_templates(&db).unwrap();
+        assert_eq!(templates.len(), 1);
+        assert_eq!(templates[0].name, "Greeting");
+
+        increment_template_usage(&db, "t1").unwrap();
+        let templates = list_prompt_templates(&db).unwrap();
+        assert_eq!(templates[0].usage_count, 1);
+
+        delete_prompt_template(&db, "t1").unwrap();
+        let templates = list_prompt_templates(&db).unwrap();
+        assert!(templates.is_empty());
     }
 
     #[test]

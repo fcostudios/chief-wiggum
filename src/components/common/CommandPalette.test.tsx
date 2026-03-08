@@ -52,6 +52,11 @@ const mocks = vi.hoisted(() => ({
   toast: {
     addToast: vi.fn(),
   },
+  templates: {
+    templateState: { templates: [] as Array<{ id: string; name: string; content: string }> },
+    loadTemplates: vi.fn(() => Promise.resolve()),
+    useTemplate: vi.fn(() => Promise.resolve(null)),
+  },
   recent: {
     getRecentCommands: vi.fn<() => RecentCommand[]>(() => []),
     recordCommand: vi.fn(),
@@ -93,6 +98,11 @@ vi.mock('@/stores/fileStore', () => ({
 vi.mock('@/stores/toastStore', () => ({
   addToast: mocks.toast.addToast,
 }));
+vi.mock('@/stores/templateStore', () => ({
+  templateState: mocks.templates.templateState,
+  loadTemplates: mocks.templates.loadTemplates,
+  useTemplate: mocks.templates.useTemplate,
+}));
 vi.mock('@/stores/recentCommandStore', () => ({
   getRecentCommands: mocks.recent.getRecentCommands,
   recordCommand: mocks.recent.recordCommand,
@@ -106,6 +116,7 @@ describe('CommandPalette', () => {
     mocks.files.fileState.selectedPath = null;
     mocks.files.fileState.previewContent = null;
     mocks.files.fileState.editingFilePath = null;
+    mocks.templates.templateState.templates = [];
     mocks.recent.getRecentCommands.mockReturnValue([]);
   });
 

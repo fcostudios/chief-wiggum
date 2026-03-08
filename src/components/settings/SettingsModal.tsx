@@ -27,6 +27,7 @@ import {
 } from 'lucide-solid';
 import { platform } from '@tauri-apps/plugin-os';
 import { closeSettings } from '@/stores/uiStore';
+import { openImportDialog } from '@/stores/importStore';
 import {
   loadSettings,
   resetCategory,
@@ -34,6 +35,12 @@ import {
   settingsState,
   updateSetting,
 } from '@/stores/settingsStore';
+import {
+  createTemplate,
+  loadTemplates,
+  removeTemplate,
+  templateState,
+} from '@/stores/templateStore';
 import type { UserSettings } from '@/lib/types';
 
 type SettingsCategory = Exclude<keyof UserSettings, 'version' | 'onboarding'>;
@@ -146,7 +153,7 @@ function matchesSearch(query: string, ...parts: Array<string | undefined>): bool
 
 function categoryMatchesSearch(category: ModalCategory, query: string): boolean {
   if (category === 'about') {
-    return matchesSearch(query, 'about settings version keyboard shortcuts');
+    return matchesSearch(query, 'about settings version keyboard shortcuts import templates');
   }
   const meta = SEARCH_INDEX[category];
   return meta.some((entry) => matchesSearch(query, category, entry.label, entry.description));
@@ -181,15 +188,18 @@ const SettingsModal: Component = () => {
     }
   });
 
-  onMount(async () => {
-    try {
-      setIsMac(platform() === 'macos');
-    } catch {
-      setIsMac(false);
-    }
-    await loadSettings();
-    queueMicrotask(() => searchRef?.focus());
+  onMount(() => {
     window.addEventListener('keydown', handleWindowKeyDown);
+    void (async () => {
+      try {
+        setIsMac((await platform()) === 'macos');
+      } catch {
+        setIsMac(false);
+      }
+      await loadSettings();
+      await loadTemplates();
+      queueMicrotask(() => searchRef?.focus());
+    })();
   });
 
   onCleanup(() => {
@@ -748,6 +758,26 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
                 </p>
               </div>
             </SettingCard>
+            <SettingCard
+              label="Import"
+              description="Import session transcripts from Claude Code local storage."
+            >
+              <button
+                type="button"
+                class="rounded-md px-3 py-2 text-sm font-medium"
+                style={{
+                  background: 'var(--color-accent)',
+                  color: 'var(--color-bg-primary)',
+                }}
+                onClick={() => {
+                  closeSettings();
+                  openImportDialog();
+                }}
+              >
+                Import Sessions...
+              </button>
+            </SettingCard>
+            <PromptTemplatesSection />
           </Match>
         </Switch>
       </div>
@@ -772,11 +802,102 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
   );
 };
 
+const PromptTemplatesSection: Component = () => {
+  const [newName, setNewName] = createSignal('');
+  const [newContent, setNewContent] = createSignal('');
+  const [saving, setSaving] = createSignal(false);
+  const templates = createMemo(() => templateState.templates ?? []);
+
+  async function handleCreate() {
+    if (!newName().trim() || !newContent().trim()) return;
+    setSaving(true);
+    try {
+      const variables = [...newContent().matchAll(/\{(\w+)\}/g)].map((match) => match[1]);
+      await createTemplate(newName().trim(), newContent().trim(), [...new Set(variables)]);
+      setNewName('');
+      setNewContent('');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <SettingCard
+      label="Prompt Templates"
+      description="Save reusable prompts with {placeholders} for quick insertion from the command palette."
+      layout="stacked"
+    >
+      <div class="flex flex-col gap-3">
+        <Show when={templates().length > 0}>
+          <div class="flex max-h-48 flex-col gap-1 overflow-y-auto">
+            <For each={templates()}>
+              {(template) => (
+                <div class="flex items-center gap-2 rounded-md bg-bg-inset px-3 py-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate text-sm font-medium text-text-primary">
+                      {template.name}
+                    </div>
+                    <div class="truncate text-xs text-text-tertiary">
+                      {template.content.slice(0, 80)}
+                      {template.content.length > 80 ? '…' : ''}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-xs text-error hover:underline"
+                    onClick={() => {
+                      void removeTemplate(template.id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
+
+        <div class="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Template name"
+            value={newName()}
+            onInput={(event) => setNewName(event.currentTarget.value)}
+            class={`${INPUT_CLASS} w-full`}
+          />
+          <textarea
+            placeholder="Template content (use {variable} placeholders)"
+            value={newContent()}
+            onInput={(event) => setNewContent(event.currentTarget.value)}
+            rows={3}
+            class={`${TEXTAREA_CLASS} h-24`}
+          />
+          <button
+            type="button"
+            class="self-start rounded-md px-3 py-2 text-sm font-medium"
+            style={{
+              background: 'var(--color-accent)',
+              color: 'var(--color-bg-primary)',
+              opacity: saving() || !newName().trim() || !newContent().trim() ? '0.6' : '1',
+            }}
+            disabled={saving() || !newName().trim() || !newContent().trim()}
+            onClick={() => {
+              void handleCreate();
+            }}
+          >
+            {saving() ? 'Saving...' : 'Save Template'}
+          </button>
+        </div>
+      </div>
+    </SettingCard>
+  );
+};
+
 function noVisibleSettings(category: ModalCategory, query: string): boolean {
   const q = normalizeSearch(query);
   if (!q) return false;
   if (category === 'about')
-    return !matchesSearch(query, 'about settings version keyboard shortcuts');
+    return !matchesSearch(query, 'about settings version keyboard shortcuts import templates');
   return !SEARCH_INDEX[category].some((entry) =>
     matchesSearch(query, category, entry.label, entry.description),
   );

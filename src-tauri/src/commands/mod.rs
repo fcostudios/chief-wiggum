@@ -14,3 +14,4 @@ pub mod project;
 pub mod session;
 pub mod settings;
 pub mod slash;
+pub mod templates;
