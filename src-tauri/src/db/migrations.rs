@@ -8,6 +8,8 @@
 
 use crate::AppError;
 use rusqlite::Connection;
+use std::path::Path;
+use std::time::{Duration, SystemTime};
 
 /// A single schema migration.
 struct Migration {
@@ -169,8 +171,103 @@ impl super::Database {
     /// Run all pending migrations.
     /// Called automatically on Database::open().
     pub(crate) fn run_migrations(&self) -> Result<(), AppError> {
+        if self.path().to_str() != Some(":memory:") && self.path().exists() {
+            let (current_version, has_user_tables) = self.with_conn(|conn| {
+                conn.execute_batch(
+                    "CREATE TABLE IF NOT EXISTS schema_version (
+                        version INTEGER PRIMARY KEY,
+                        description TEXT NOT NULL,
+                        applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    );",
+                )?;
+
+                let current_version: i32 = conn.query_row(
+                    "SELECT COALESCE(MAX(version), 0) FROM schema_version",
+                    [],
+                    |row| row.get(0),
+                )?;
+                let has_user_tables: bool = conn.query_row(
+                    "SELECT EXISTS(
+                        SELECT 1
+                        FROM sqlite_master
+                        WHERE type='table'
+                          AND name NOT LIKE 'sqlite_%'
+                          AND name != 'schema_version'
+                    )",
+                    [],
+                    |row| row.get(0),
+                )?;
+                Ok((current_version, has_user_tables))
+            })?;
+
+            let latest_version = MIGRATIONS.last().map(|m| m.version).unwrap_or(0);
+            if has_user_tables && current_version < latest_version {
+                let backup_dir = self.path().parent().unwrap_or(self.path()).join("backups");
+                create_backup_if_needed(self.path(), &backup_dir, current_version)?;
+            }
+        }
+
         self.with_conn(run_migrations_on_conn)
     }
+}
+
+/// Create a timestamped backup before applying migrations.
+/// Prunes backups older than 30 days.
+pub(crate) fn create_backup_if_needed(
+    db_path: &Path,
+    backup_dir: &Path,
+    current_version: i32,
+) -> Result<(), AppError> {
+    if !db_path.exists() || db_path.to_str() == Some(":memory:") {
+        return Ok(());
+    }
+
+    std::fs::create_dir_all(backup_dir)?;
+    let _ = crate::security::permissions::harden_directory_permissions(backup_dir);
+
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let backup_name = format!("chiefwiggum_v{}_{}.sqlite", current_version, timestamp);
+    let backup_path = backup_dir.join(backup_name);
+
+    let src_conn = Connection::open(db_path)?;
+    let mut dst_conn = Connection::open(&backup_path)?;
+    {
+        let backup = rusqlite::backup::Backup::new(&src_conn, &mut dst_conn)?;
+        backup.run_to_completion(100, Duration::from_millis(50), None)?;
+    }
+
+    crate::security::permissions::harden_file_permissions(&backup_path)?;
+    tracing::info!("Created pre-migration backup: {:?}", backup_path);
+
+    prune_old_backups(backup_dir, 30)?;
+    Ok(())
+}
+
+fn prune_old_backups(backup_dir: &Path, max_age_days: u64) -> Result<(), AppError> {
+    let cutoff = SystemTime::now() - Duration::from_secs(max_age_days * 24 * 60 * 60);
+    let entries = match std::fs::read_dir(backup_dir) {
+        Ok(entries) => entries,
+        Err(_) => return Ok(()),
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("sqlite") {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
+        if modified < cutoff {
+            tracing::info!("Pruning old backup: {:?}", path);
+            let _ = std::fs::remove_file(&path);
+        }
+    }
+
+    Ok(())
 }
 
 /// Run migrations on a raw connection. Separated for testability.
@@ -342,5 +439,31 @@ mod tests {
             [],
         );
         assert!(result.is_err(), "Foreign key constraint should be enforced");
+    }
+
+    #[test]
+    fn backup_created_before_migration() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let db_path = dir.path().join("test.sqlite");
+        let backup_dir = dir.path().join("backups");
+
+        let conn = Connection::open(&db_path).expect("open db path");
+        conn.execute_batch(
+            "CREATE TABLE sessions (id TEXT PRIMARY KEY, model TEXT);
+             INSERT INTO sessions VALUES ('s1', 'sonnet');",
+        )
+        .expect("seed db");
+        drop(conn);
+
+        create_backup_if_needed(&db_path, &backup_dir, 0).expect("create backup");
+
+        let backups: Vec<_> = std::fs::read_dir(&backup_dir)
+            .expect("read backup dir")
+            .filter_map(Result::ok)
+            .collect();
+        assert_eq!(backups.len(), 1);
+        let backup_name = backups[0].file_name().to_string_lossy().to_string();
+        assert!(backup_name.starts_with("chiefwiggum_v0_"));
+        assert!(backup_name.ends_with(".sqlite"));
     }
 }

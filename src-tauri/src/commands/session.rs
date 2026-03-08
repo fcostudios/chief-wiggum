@@ -30,7 +30,12 @@ pub fn get_session(db: State<'_, Database>, session_id: String) -> Result<Sessio
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub fn delete_session(db: State<'_, Database>, session_id: String) -> Result<(), AppError> {
+pub async fn delete_session(
+    db: State<'_, Database>,
+    bridge_map: State<'_, crate::bridge::manager::SessionBridgeMap>,
+    session_id: String,
+) -> Result<(), AppError> {
+    bridge_map.cleanup_session(&session_id).await;
     queries::delete_session(&db, &session_id)
 }
 

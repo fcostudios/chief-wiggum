@@ -172,6 +172,14 @@ impl LogRedactor {
         (redacted, summary)
     }
 
+    /// Redact sensitive data from a plain text string.
+    /// Used for conversation export payloads.
+    pub fn redact_text(&self, input: &str) -> String {
+        let mut rules_hit = vec![false; self.rules.len()];
+        let mut modified = false;
+        self.apply_rules(input, &mut rules_hit, &mut modified)
+    }
+
     /// Apply all rules to a string, tracking which rules matched.
     fn apply_rules(&self, input: &str, rules_hit: &mut [bool], modified: &mut bool) -> String {
         let mut result = input.to_string();
@@ -259,6 +267,18 @@ mod tests {
 
         assert!(redacted[0].message.contains("Bearer [REDACTED]"));
         assert!(!redacted[0].message.contains("eyJhb"));
+    }
+
+    #[test]
+    fn redact_text_strips_api_keys_and_emails() {
+        let r = LogRedactor::new();
+        let input = "My key is sk-ant-api03-abc123def456ghi789jkl and email is user@example.com";
+        let output = r.redact_text(input);
+
+        assert!(output.contains("[REDACTED]"));
+        assert!(output.contains("[EMAIL]"));
+        assert!(!output.contains("abc123"));
+        assert!(!output.contains("user@example.com"));
     }
 
     #[test]

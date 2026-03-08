@@ -19,7 +19,7 @@ const MermaidRenderer: Component<RendererComponentProps> = (props) => {
       mermaid.initialize({
         startOnLoad: false,
         theme: isDark ? 'dark' : 'default',
-        securityLevel: 'loose',
+        securityLevel: 'strict',
       });
 
       const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;

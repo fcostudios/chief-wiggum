@@ -297,6 +297,18 @@ impl SessionBridgeMap {
         runtimes.remove(session_id);
     }
 
+    /// Clean up all resources for a deleted session: bridge + runtime buffer.
+    pub async fn cleanup_session(&self, session_id: &str) {
+        if self.has(session_id).await {
+            if let Err(e) = self.remove(session_id).await {
+                tracing::warn!("Failed to remove bridge during session cleanup: {}", e);
+            }
+        } else {
+            self.remove_runtime(session_id).await;
+        }
+        tracing::info!("Cleaned up session runtime for {}", session_id);
+    }
+
     /// Insert a pre-built bridge (for testing with MockBridge).
     #[cfg(test)]
     pub async fn insert_mock(&self, session_id: &str, bridge: Arc<dyn BridgeInterface>) {
@@ -505,6 +517,33 @@ mod tests {
         assert_eq!(events.len(), 1);
         let events2 = map.drain_session_buffer("s1").await;
         assert_eq!(events2.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn cleanup_session_removes_bridge_and_runtime() {
+        let map = SessionBridgeMap::new();
+        let bridge = Arc::new(MockBridge::new(vec![]));
+        map.insert_mock("s1", bridge).await;
+        map.create_runtime("s1").await;
+        assert!(map.has("s1").await);
+
+        map.cleanup_session("s1").await;
+
+        assert!(!map.has("s1").await);
+        assert_eq!(map.active_count().await, 0);
+        let events = map.drain_session_buffer("s1").await;
+        assert!(events.is_empty());
+    }
+
+    #[tokio::test]
+    async fn cleanup_session_without_bridge_removes_runtime() {
+        let map = SessionBridgeMap::new();
+        map.create_runtime("orphan").await;
+
+        map.cleanup_session("orphan").await;
+
+        let events = map.drain_session_buffer("orphan").await;
+        assert!(events.is_empty());
     }
 
     #[test]

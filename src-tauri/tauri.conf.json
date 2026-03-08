@@ -27,10 +27,10 @@
       }
     ],
     "security": {
-      "csp": null,
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https: data:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost",
       "assetProtocol": {
         "enable": true,
-        "scope": ["**/*"]
+        "scope": ["$APPDATA/**", "$HOME/**"]
       }
     }
   },

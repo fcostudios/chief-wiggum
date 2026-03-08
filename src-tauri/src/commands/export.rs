@@ -1,5 +1,6 @@
 //! IPC commands for conversation export save/open operations.
 
+use crate::logging::redactor::LogRedactor;
 use crate::AppError;
 
 /// Save exported content to a user-selected path.
@@ -39,7 +40,14 @@ pub async fn save_export_file(
     };
 
     let path_string = path.to_string();
-    std::fs::write(&path_string, content.as_bytes())?;
+    let redactor = LogRedactor::new();
+    let redacted_content = redactor.redact_text(&content);
+    std::fs::write(&path_string, redacted_content.as_bytes())?;
+    if let Err(e) =
+        crate::security::permissions::harden_file_permissions(std::path::Path::new(&path_string))
+    {
+        tracing::warn!("Failed to harden export file permissions: {}", e);
+    }
     tracing::info!(
         target: "commands/export",
         path = %path_string,

@@ -9,6 +9,7 @@ pub mod commands;
 pub mod db;
 pub mod files;
 pub mod logging;
+pub mod security;
 pub mod settings;
 pub mod slash;
 
@@ -62,6 +63,12 @@ pub enum AppError {
 
     #[error("Resource limit: maximum {max} concurrent sessions reached ({active} active)")]
     ResourceLimit { max: usize, active: usize },
+
+    #[error("Database encryption error: {0}")]
+    DatabaseEncryption(String),
+
+    #[error("Keychain error: {0}")]
+    Keychain(String),
 
     #[error("{0}")]
     Other(String),
