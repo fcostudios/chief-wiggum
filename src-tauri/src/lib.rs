@@ -8,6 +8,7 @@ pub mod bridge;
 pub mod commands;
 pub mod db;
 pub mod files;
+pub mod import;
 pub mod logging;
 pub mod security;
 pub mod settings;

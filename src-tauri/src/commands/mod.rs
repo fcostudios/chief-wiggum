@@ -8,6 +8,7 @@ pub mod cli;
 pub mod diagnostic;
 pub mod export;
 pub mod files;
+pub mod import;
 pub mod logging;
 pub mod project;
 pub mod session;

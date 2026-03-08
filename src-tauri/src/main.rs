@@ -237,6 +237,7 @@ fn main() {
             chief_wiggum_lib::commands::diagnostic::export_diagnostic_bundle,
             chief_wiggum_lib::commands::export::save_export_file,
             chief_wiggum_lib::commands::export::open_path_in_shell,
+            chief_wiggum_lib::commands::import::check_session_consistency,
             chief_wiggum_lib::commands::logging::log_from_frontend,
             chief_wiggum_lib::commands::project::pick_project_folder,
             chief_wiggum_lib::commands::project::create_project,
