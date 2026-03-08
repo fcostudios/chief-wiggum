@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-08T08:41:15.134Z",
+  "last_updated": "2026-03-08T09:31:13Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -3051,14 +3051,26 @@
       ]
     },
     "CHI-301": {
-      "status": "backlog",
+      "status": "in_progress",
       "priority": "High",
-      "parent_epic": null
+      "parent_epic": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T09:31:13Z"
     },
     "CHI-302": {
-      "status": "backlog",
+      "status": "done",
       "priority": "High",
-      "parent_epic": "CHI-301"
+      "parent_epic": "CHI-301",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T09:12:30Z",
+      "completed_at": "2026-03-08T09:31:13Z",
+      "worktree": ".worktrees/chi302-306-jsonl-session-import",
+      "files": [
+        "src-tauri/src/import/jsonl.rs",
+        "src-tauri/src/import/mod.rs",
+        "src-tauri/src/lib.rs"
+      ],
+      "notes": "Implemented streaming JSONL parser with typed line/message/usage structs, tool + binary block handling, compact-boundary flagging, and malformed-line tolerance. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z"
     },
     "CHI-303": {
       "status": "backlog",
@@ -3076,9 +3088,20 @@
       "parent_epic": "CHI-301"
     },
     "CHI-306": {
-      "status": "backlog",
+      "status": "done",
       "priority": "Low",
-      "parent_epic": "CHI-301"
+      "parent_epic": "CHI-301",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-08T09:12:30Z",
+      "completed_at": "2026-03-08T09:31:13Z",
+      "worktree": ".worktrees/chi302-306-jsonl-session-import",
+      "files": [
+        "src-tauri/src/import/consistency.rs",
+        "src-tauri/src/commands/import.rs",
+        "src-tauri/src/commands/mod.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Implemented DB-vs-JSONL consistency checker with integrity score, UUID drift detection, token drift, sidechain/boundary accounting, and IPC command exposure. completed_by=claude-code; lock_acquired_at=2026-03-08T09:31:13Z"
     },
     "CHI-307": {
       "status": "backlog",
