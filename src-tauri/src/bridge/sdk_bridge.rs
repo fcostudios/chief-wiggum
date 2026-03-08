@@ -91,7 +91,7 @@ impl AgentSdkBridge {
 
         let stdin = Arc::new(Mutex::new(stdin));
         let pending_requests = Arc::new(RwLock::new(HashMap::new()));
-        let (output_tx, output_rx) = mpsc::channel::<BridgeOutput>(256);
+        let (output_tx, output_rx) = mpsc::channel::<BridgeOutput>(64);
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
         {

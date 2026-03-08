@@ -237,7 +237,8 @@ impl CliBridge {
         drop(pair.slave);
 
         // Set up channels
-        let (output_tx, output_rx) = mpsc::channel::<BridgeOutput>(256);
+        // Keep the output buffer modest; the event loop drains aggressively.
+        let (output_tx, output_rx) = mpsc::channel::<BridgeOutput>(64);
         let (input_tx, input_rx) = mpsc::channel::<String>(64);
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
@@ -336,20 +337,20 @@ impl CliBridge {
                     let raw_text = String::from_utf8_lossy(chunk);
 
                     // Log raw data for debugging
-                    tracing::debug!("CLI reader: received {} bytes (total: {})", n, total_bytes);
+                    tracing::trace!("CLI reader: received {} bytes (total: {})", n, total_bytes);
                     // Log first 1500 chars of each chunk for visibility.
                     // Error results from the CLI can be very long — we need
                     // enough to see the error message, not just the usage block.
                     let preview: String = raw_text.chars().take(1500).collect();
                     if raw_text.len() > 1500 {
-                        tracing::info!(
+                        tracing::debug!(
                             "CLI stdout (truncated {}/{}): {}",
                             1500,
                             raw_text.len(),
                             preview
                         );
                     } else {
-                        tracing::info!("CLI stdout: {}", preview);
+                        tracing::debug!("CLI stdout: {}", preview);
                     }
 
                     // Parse the chunk into events
@@ -362,18 +363,18 @@ impl CliBridge {
                     for event in events {
                         let output = match event {
                             super::parser::ParsedOutput::Chunk(ref chunk) => {
-                                tracing::info!(
+                                tracing::debug!(
                                     "CLI parsed: Chunk (content len: {})",
                                     chunk.content.len()
                                 );
                                 BridgeOutput::Chunk(chunk.clone())
                             }
                             super::parser::ParsedOutput::Event(ref evt) => {
-                                tracing::info!("CLI parsed: Event {:?}", evt);
+                                tracing::debug!("CLI parsed: Event {:?}", evt);
                                 BridgeOutput::Event(evt.clone())
                             }
                             super::parser::ParsedOutput::PermissionRequest(ref req) => {
-                                tracing::info!("CLI parsed: PermissionRequest {:?}", req);
+                                tracing::debug!("CLI parsed: PermissionRequest {:?}", req);
                                 BridgeOutput::PermissionRequired(req.clone())
                             }
                         };

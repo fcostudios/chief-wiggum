@@ -69,6 +69,7 @@ impl Database {
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
         conn.pragma_update(None, "busy_timeout", 5000)?;
+        conn.pragma_update(None, "wal_autocheckpoint", 500)?;
 
         let db = Self {
             conn: Mutex::new(conn),
@@ -97,6 +98,7 @@ impl Database {
     pub fn open_in_memory() -> Result<Self, AppError> {
         let conn = Connection::open_in_memory()?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
+        conn.pragma_update(None, "wal_autocheckpoint", 500)?;
 
         let db = Self {
             conn: Mutex::new(conn),
