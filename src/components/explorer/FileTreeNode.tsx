@@ -49,6 +49,7 @@ import { addToast } from '@/stores/toastStore';
 import { t } from '@/stores/i18nStore';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
 import InlineFileInput from './InlineFileInput';
+import InlineRenameInput from './InlineRenameInput';
 
 interface FileTreeNodeProps {
   node: FileNode;
@@ -100,6 +101,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   const isSelected = () => fileState.selectedPath === props.node.relative_path;
   const projectId = () => projectState.activeProjectId;
   const [showTooltip, setShowTooltip] = createSignal(false);
+  const [isRowHovered, setIsRowHovered] = createSignal(false);
   const [contextMenuPos, setContextMenuPos] = createSignal<{ x: number; y: number } | null>(null);
   const [bundleOptions, setBundleOptions] = createSignal<FileBundleSuggestion[]>([]);
   const [tooltipContent, setTooltipContent] = createSignal<{
@@ -108,6 +110,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
     tokens: number;
   } | null>(null);
   let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+  const isRenaming = () => fileState.renamingPath === props.node.relative_path;
 
   onCleanup(() => {
     if (hoverTimeout) clearTimeout(hoverTimeout);
@@ -246,17 +249,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           const pid = projectId();
           if (!pid) return;
           setRenamingPath(props.node.relative_path);
-          const baseName = props.node.name;
-          const nextName = window.prompt(t('files.rename'), baseName);
-          if (!nextName || nextName.trim() === '' || nextName.trim() === baseName) {
-            setRenamingPath(null);
-            return;
-          }
-          const parent = props.node.relative_path.split('/').slice(0, -1).join('/');
-          const nextPath = parent ? `${parent}/${nextName.trim()}` : nextName.trim();
-          void renameFileInProject(pid, props.node.relative_path, nextPath).finally(() =>
-            setRenamingPath(null),
-          );
+          setContextMenuPos(null);
         },
       },
       {
@@ -358,138 +351,190 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
 
   return (
     <div class="relative">
-      <button
-        class="flex items-center gap-1 w-full text-left py-0.5 pr-2 rounded-sm transition-colors text-xs"
-        classList={{ 'opacity-50': !!props.node.is_git_ignored }}
-        style={{
-          'padding-left': `${props.depth * 12 + 4}px`,
-          background: isSelected() ? 'var(--color-accent-muted)' : 'transparent',
-          color: isSelected() ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-          'transition-duration': 'var(--duration-fast)',
-        }}
-        draggable={!isDir()}
-        onDragStart={handleDragStart}
-        onMouseEnter={(e) => {
-          if (!isSelected()) {
-            e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
-          }
-          void handleMouseEnterTooltip();
-        }}
-        onMouseLeave={(e) => {
-          if (!isSelected()) {
-            e.currentTarget.style.background = 'transparent';
-          }
-          handleMouseLeaveTooltip();
-        }}
-        onClick={handleClick}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleMouseLeaveTooltip();
-          setContextMenuPos({ x: e.clientX, y: e.clientY });
-          void loadBundleOptions();
-        }}
-        onKeyDown={handleKeyDown}
-        role="treeitem"
-        aria-level={props.depth + 1}
-        aria-expanded={isDir() ? expanded() : undefined}
-        title={
-          props.node.is_git_ignored
-            ? `${props.node.relative_path} • Ignored by .gitignore`
-            : props.node.relative_path
-        }
-      >
-        {/* Expand chevron for directories */}
-        <Show when={isDir()} fallback={<span class="w-3 shrink-0" />}>
-          <ChevronRight
-            size={10}
-            class="shrink-0 transition-transform"
-            style={{
-              transform: expanded() ? 'rotate(90deg)' : 'rotate(0deg)',
-              'transition-duration': 'var(--duration-fast)',
-              color: 'var(--color-text-tertiary)',
-            }}
-          />
-        </Show>
-
-        {/* Icon */}
-        <Show when={isDir()} fallback={iconForFile(props.node)}>
-          <Show
-            when={expanded()}
-            fallback={
-              <Folder size={12} class="shrink-0" style={{ color: 'var(--color-accent)' }} />
-            }
-          >
-            <FolderOpen size={12} class="shrink-0" style={{ color: 'var(--color-accent)' }} />
-          </Show>
-        </Show>
-
-        {/* Name */}
-        <span class="truncate flex-1 font-mono text-[11px]">{props.node.name}</span>
-
-        {/* Git status indicator */}
-        <Show when={getGitStatus(props.node.relative_path)}>
-          {(status) => {
-            const config = () => {
-              switch (status().status) {
-                case 'modified':
-                  return { label: 'M', name: 'Modified', color: 'var(--color-warning)' };
-                case 'untracked':
-                  return { label: 'U', name: 'Untracked', color: 'var(--color-success)' };
-                case 'staged':
-                  return { label: 'S', name: 'Staged', color: 'var(--color-success)' };
-                case 'deleted':
-                  return { label: 'D', name: 'Deleted', color: 'var(--color-error)' };
-                case 'renamed':
-                  return { label: 'R', name: 'Renamed', color: 'var(--color-accent)' };
-                case 'conflict':
-                  return { label: '!', name: 'Conflicted', color: 'var(--color-error)' };
-                default:
-                  return { label: '?', name: 'Unknown', color: 'var(--color-text-tertiary)' };
-              }
-            };
-            return (
-              <span
-                class="text-[8px] font-mono font-bold shrink-0 leading-none"
-                style={{ color: config().color }}
-                aria-label={`Git status: ${config().name}`}
-                title={`Git: ${config().name}`}
-              >
-                {config().label}
-              </span>
+      <Show when={isRenaming()}>
+        <InlineRenameInput
+          currentName={props.node.name}
+          depth={props.depth}
+          onConfirm={(newName) => {
+            const pid = projectId();
+            if (!pid) return;
+            const parent = props.node.relative_path.split('/').slice(0, -1).join('/');
+            const nextPath = parent ? `${parent}/${newName}` : newName;
+            void renameFileInProject(pid, props.node.relative_path, nextPath).finally(() =>
+              setRenamingPath(null),
             );
           }}
-        </Show>
+          onCancel={() => setRenamingPath(null)}
+        />
+      </Show>
 
-        <Show when={props.node.is_git_ignored}>
-          <span
-            class="text-[9px] font-mono shrink-0"
-            style={{ color: 'var(--color-text-tertiary)' }}
-            title="Ignored by .gitignore"
-            aria-label="Ignored by .gitignore"
-          >
-            ⦻
-          </span>
-        </Show>
+      <Show when={!isRenaming()}>
+        <button
+          class="group flex items-center gap-1 w-full text-left py-0.5 pr-8 rounded-sm transition-colors text-xs"
+          classList={{ 'opacity-50': !!props.node.is_git_ignored }}
+          style={{
+            'padding-left': `${props.depth * 12 + 4}px`,
+            background: isSelected()
+              ? 'var(--color-accent-muted)'
+              : isRowHovered()
+                ? 'rgba(28, 33, 40, 0.5)'
+                : 'transparent',
+            color: isSelected() ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+            'transition-duration': 'var(--duration-fast)',
+          }}
+          draggable={!isDir()}
+          onDragStart={handleDragStart}
+          onMouseEnter={() => {
+            setIsRowHovered(true);
+            void handleMouseEnterTooltip();
+          }}
+          onMouseLeave={() => {
+            setIsRowHovered(false);
+            handleMouseLeaveTooltip();
+          }}
+          onClick={handleClick}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMouseLeaveTooltip();
+            setContextMenuPos({ x: e.clientX, y: e.clientY });
+            void loadBundleOptions();
+          }}
+          onKeyDown={handleKeyDown}
+          role="treeitem"
+          aria-level={props.depth + 1}
+          aria-expanded={isDir() ? expanded() : undefined}
+          title={
+            props.node.is_git_ignored
+              ? `${props.node.relative_path} • Ignored by .gitignore`
+              : props.node.relative_path
+          }
+        >
+          {/* Expand chevron for directories */}
+          <Show when={isDir()} fallback={<span class="w-3 shrink-0" />}>
+            <ChevronRight
+              size={10}
+              class="shrink-0 transition-transform"
+              style={{
+                transform: expanded() ? 'rotate(90deg)' : 'rotate(0deg)',
+                'transition-duration': 'var(--duration-fast)',
+                color: 'var(--color-text-tertiary)',
+              }}
+            />
+          </Show>
 
-        {/* Size badge for files */}
-        <Show when={!isDir() && !props.node.is_binary && props.node.size_bytes != null}>
-          <span
-            class="text-[9px] font-mono shrink-0 opacity-60"
-            style={{ color: sizeColor(props.node.size_bytes) }}
-          >
-            {formatSize(props.node.size_bytes)}
-          </span>
-        </Show>
-        <Show when={props.node.is_binary}>
-          <span
-            class="text-[9px] font-mono shrink-0 opacity-40"
-            style={{ color: 'var(--color-text-tertiary)' }}
-          >
-            bin
-          </span>
-        </Show>
-      </button>
+          {/* Icon */}
+          <Show when={isDir()} fallback={iconForFile(props.node)}>
+            <Show
+              when={expanded()}
+              fallback={
+                <Folder size={12} class="shrink-0" style={{ color: 'var(--color-accent)' }} />
+              }
+            >
+              <FolderOpen size={12} class="shrink-0" style={{ color: 'var(--color-accent)' }} />
+            </Show>
+          </Show>
+
+          {/* Name */}
+          <span class="truncate flex-1 font-mono text-[11px]">{props.node.name}</span>
+
+          {/* Git status indicator */}
+          <Show when={getGitStatus(props.node.relative_path)}>
+            {(status) => {
+              const config = () => {
+                switch (status().status) {
+                  case 'modified':
+                    return { label: 'M', name: 'Modified', color: 'var(--color-warning)' };
+                  case 'untracked':
+                    return { label: 'U', name: 'Untracked', color: 'var(--color-success)' };
+                  case 'staged':
+                    return { label: 'S', name: 'Staged', color: 'var(--color-success)' };
+                  case 'deleted':
+                    return { label: 'D', name: 'Deleted', color: 'var(--color-error)' };
+                  case 'renamed':
+                    return { label: 'R', name: 'Renamed', color: 'var(--color-accent)' };
+                  case 'conflict':
+                    return { label: '!', name: 'Conflicted', color: 'var(--color-error)' };
+                  default:
+                    return { label: '?', name: 'Unknown', color: 'var(--color-text-tertiary)' };
+                }
+              };
+              return (
+                <span
+                  class="text-[8px] font-mono font-bold shrink-0 leading-none"
+                  style={{ color: config().color }}
+                  aria-label={`Git status: ${config().name}`}
+                  title={`Git: ${config().name}`}
+                >
+                  {config().label}
+                </span>
+              );
+            }}
+          </Show>
+
+          <Show when={props.node.is_git_ignored}>
+            <span
+              class="text-[9px] font-mono shrink-0"
+              style={{ color: 'var(--color-text-tertiary)' }}
+              title="Ignored by .gitignore"
+              aria-label="Ignored by .gitignore"
+            >
+              ⦻
+            </span>
+          </Show>
+
+          {/* Size badge for files */}
+          <Show when={!isDir() && !props.node.is_binary && props.node.size_bytes != null}>
+            <span
+              class="text-[9px] font-mono shrink-0 opacity-60"
+              style={{ color: sizeColor(props.node.size_bytes) }}
+            >
+              {formatSize(props.node.size_bytes)}
+            </span>
+          </Show>
+          <Show when={props.node.is_binary}>
+            <span
+              class="text-[9px] font-mono shrink-0 opacity-40"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            >
+              bin
+            </span>
+          </Show>
+        </button>
+      </Show>
+
+      <Show when={!isRenaming() && (isRowHovered() || contextMenuPos())}>
+        <button
+          class="absolute right-2 top-1/2 -translate-y-1/2 shrink-0 rounded px-0.5 leading-none text-base transition-opacity"
+          style={{
+            color: 'var(--color-text-tertiary)',
+            'transition-duration': 'var(--duration-fast)',
+          }}
+          title="More options"
+          aria-label={`More options for ${props.node.name}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMouseLeaveTooltip();
+            const rect = e.currentTarget.getBoundingClientRect();
+            setContextMenuPos({ x: rect.left, y: rect.bottom + 2 });
+            void loadBundleOptions();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              setContextMenuPos({ x: rect.left, y: rect.bottom + 2 });
+              void loadBundleOptions();
+            }
+          }}
+          onMouseEnter={() => setIsRowHovered(true)}
+          onMouseLeave={() => setIsRowHovered(false)}
+        >
+          ···
+        </button>
+      </Show>
 
       {/* Hover preview tooltip */}
       <Show when={showTooltip() && tooltipContent()}>

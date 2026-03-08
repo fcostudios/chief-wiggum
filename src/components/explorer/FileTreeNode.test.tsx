@@ -145,4 +145,15 @@ describe('FileTreeNode', () => {
     expect(item).toHaveClass('opacity-50');
     expect(screen.getByLabelText('Ignored by .gitignore')).toBeInTheDocument();
   });
+
+  it('shows ... button on hover and hides it otherwise', async () => {
+    render(() => <FileTreeNode node={fileNode} depth={0} />);
+
+    expect(screen.queryByTitle('More options')).not.toBeInTheDocument();
+
+    const item = screen.getByRole('treeitem');
+    fireEvent.mouseEnter(item);
+
+    expect(await screen.findByTitle('More options')).toBeInTheDocument();
+  });
 });

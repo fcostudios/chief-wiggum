@@ -115,6 +115,7 @@
     "cancel": "Cancel",
     "otherLabel": "Other:",
     "otherPlaceholder": "Type your answer...",
+    "freeTextPlaceholder": "Type your answer...",
     "timeoutWarning": "Auto-submitting in {{ seconds }}s",
     "defaultAnswer": "No answer provided"
   },
@@ -146,6 +147,7 @@
     "createFirstFile": "Create your first file",
     "noFiles": "No files yet",
     "willCreate": "Will create: {{ path }}",
+    "nameEmpty": "Name cannot be empty",
     "invalidChar": "Invalid character",
     "alreadyExists": "A file with this name already exists",
     "outsideProject": "Cannot create outside project",
