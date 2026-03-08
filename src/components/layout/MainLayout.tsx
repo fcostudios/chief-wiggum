@@ -57,6 +57,7 @@ import AgentsView from '@/components/agents/AgentsView';
 import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
 import EditorTakeover from '@/components/editor/EditorTakeover';
 import { fileState } from '@/stores/fileStore';
+import { projectState } from '@/stores/projectStore';
 import ChangelogModal from '@/components/common/ChangelogModal';
 import AboutModal from '@/components/common/AboutModal';
 import QuickSessionSwitcher from '@/components/common/QuickSessionSwitcher';
@@ -284,7 +285,10 @@ const MainLayout: Component = () => {
                 if (sessionId) {
                   sendMessage(text, sessionId, images);
                 } else {
-                  createNewSession('claude-sonnet-4-6').then((session) => {
+                  createNewSession(
+                    'claude-sonnet-4-6',
+                    projectState.activeProjectId ?? undefined,
+                  ).then((session) => {
                     sendMessage(text, session.id, images);
                   });
                 }

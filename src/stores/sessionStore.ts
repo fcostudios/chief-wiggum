@@ -11,6 +11,7 @@ import { addToast } from '@/stores/toastStore';
 import { bindActiveSessionToFocusedPane, ensureMainPaneSession } from '@/stores/viewStore';
 import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
 import { t } from '@/stores/i18nStore';
+import { projectState } from '@/stores/projectStore';
 
 const log = createLogger('ui/session');
 
@@ -81,9 +82,12 @@ export async function loadSessions(): Promise<void> {
 
 /** Create a new session and make it active. */
 export async function createNewSession(model: string, projectId?: string): Promise<Session> {
+  // Default to the currently selected project to avoid cross-project session drift
+  // when callers omit projectId (e.g. command palette / send-first-message paths).
+  const resolvedProjectId = projectId ?? projectState.activeProjectId ?? null;
   const session = await invoke<Session>('create_session', {
     model,
-    project_id: projectId ?? null,
+    project_id: resolvedProjectId,
   });
   setState('sessions', (prev) => [session, ...prev]);
   setState('activeSessionId', session.id);

@@ -50,4 +50,25 @@ describe('sessionStore', () => {
     expect(getResumeThresholdMs()).toBe(5 * 60 * 1000);
     expect(shouldShowResumeCard(stale.id, 2)).toBe(true);
   });
+
+  it('defaults new sessions to active project when projectId is omitted', async () => {
+    let capturedProjectId: string | null | undefined;
+    mockIpcCommand('create_session', (args) => {
+      const payload = args as { model?: string; project_id?: string | null };
+      capturedProjectId = payload.project_id;
+      return createTestSession({
+        model: payload.model ?? 'claude-sonnet-4-6',
+        project_id: payload.project_id ?? null,
+      });
+    });
+
+    const projectMod = await import('./projectStore');
+    projectMod.setActiveProject('proj-active');
+
+    const { createNewSession } = await import('./sessionStore');
+    const session = await createNewSession('claude-sonnet-4-6');
+
+    expect(capturedProjectId).toBe('proj-active');
+    expect(session.project_id).toBe('proj-active');
+  });
 });

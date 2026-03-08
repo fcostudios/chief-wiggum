@@ -327,9 +327,12 @@ const CommandPalette: Component<CommandPaletteProps> = (props) => {
       category: 'Session',
       icon: () => <Plus size={16} />,
       action: () => {
-        createNewSession('claude-sonnet-4-6').catch((err) => {
-          if (import.meta.env.DEV) console.warn('[CommandPalette] Failed to create session:', err);
-        });
+        createNewSession('claude-sonnet-4-6', projectState.activeProjectId ?? undefined).catch(
+          (err) => {
+            if (import.meta.env.DEV)
+              console.warn('[CommandPalette] Failed to create session:', err);
+          },
+        );
       },
     },
     {
