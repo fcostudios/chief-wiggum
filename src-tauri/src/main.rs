@@ -200,11 +200,13 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
+            chief_wiggum_lib::commands::session::list_sessions_page,
             chief_wiggum_lib::commands::session::get_session,
             chief_wiggum_lib::commands::session::delete_session,
             chief_wiggum_lib::commands::session::update_session_title,
             chief_wiggum_lib::commands::session::save_message,
             chief_wiggum_lib::commands::session::list_messages,
+            chief_wiggum_lib::commands::session::list_messages_page,
             chief_wiggum_lib::commands::session::delete_messages_after,
             chief_wiggum_lib::commands::session::delete_single_message,
             chief_wiggum_lib::commands::session::update_message_content,

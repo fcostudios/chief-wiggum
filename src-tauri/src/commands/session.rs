@@ -24,6 +24,15 @@ pub fn list_all_sessions(db: State<'_, Database>) -> Result<Vec<SessionRow>, App
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn list_sessions_page(
+    db: State<'_, Database>,
+    limit: Option<usize>,
+    offset: Option<usize>,
+) -> Result<Vec<SessionRow>, AppError> {
+    queries::list_sessions_page(&db, limit.unwrap_or(30), offset.unwrap_or(0))
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn get_session(db: State<'_, Database>, session_id: String) -> Result<SessionRow, AppError> {
     queries::get_session(&db, &session_id)?
         .ok_or_else(|| AppError::Other(format!("Session {} not found", session_id)))
@@ -110,6 +119,16 @@ pub fn list_messages(
     session_id: String,
 ) -> Result<Vec<MessageRow>, AppError> {
     queries::list_messages(&db, &session_id)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn list_messages_page(
+    db: State<'_, Database>,
+    session_id: String,
+    after_rowid: Option<i64>,
+    limit: Option<usize>,
+) -> Result<(Vec<MessageRow>, Option<i64>), AppError> {
+    queries::list_messages_page(&db, &session_id, after_rowid, limit.unwrap_or(100))
 }
 
 #[tauri::command(rename_all = "snake_case")]

@@ -184,6 +184,16 @@ const MIGRATIONS: &[Migration] = &[
             ALTER TABLE sessions ADD COLUMN total_cache_write_tokens INTEGER DEFAULT 0;
         "#,
     },
+    Migration {
+        version: 7,
+        description: "Add performance indexes for messages and sessions (CHI-292)",
+        sql: r#"
+            CREATE INDEX IF NOT EXISTS idx_messages_session_created_at
+                ON messages(session_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_sessions_updated_at
+                ON sessions(updated_at DESC);
+        "#,
+    },
 ];
 
 impl super::Database {
@@ -378,7 +388,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 6);
+        assert_eq!(version, 7);
     }
 
     #[test]
@@ -389,7 +399,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 6);
+        assert_eq!(count, 7);
     }
 
     #[test]
@@ -434,7 +444,7 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 6);
+        assert_eq!(rows.len(), 7);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
@@ -447,6 +457,8 @@ mod tests {
         assert!(rows[4].1.contains("artifacts"));
         assert_eq!(rows[5].0, 6);
         assert!(rows[5].1.contains("threading"));
+        assert_eq!(rows[6].0, 7);
+        assert!(rows[6].1.contains("performance indexes"));
     }
 
     #[test]
@@ -477,6 +489,25 @@ mod tests {
         assert!(sess_cols.contains(&"total_thinking_tokens".to_string()));
         assert!(sess_cols.contains(&"total_cache_read_tokens".to_string()));
         assert!(sess_cols.contains(&"total_cache_write_tokens".to_string()));
+    }
+
+    #[test]
+    fn migration_v7_adds_performance_indexes() {
+        let conn = fresh_conn();
+        run_migrations_on_conn(&conn).unwrap();
+
+        let indexes: Vec<String> = {
+            let mut stmt = conn
+                .prepare("SELECT name FROM sqlite_master WHERE type='index'")
+                .unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(0))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        };
+
+        assert!(indexes.contains(&"idx_messages_session_created_at".to_string()));
+        assert!(indexes.contains(&"idx_sessions_updated_at".to_string()));
     }
 
     #[test]

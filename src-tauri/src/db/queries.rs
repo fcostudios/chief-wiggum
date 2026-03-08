@@ -203,6 +203,52 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
     })
 }
 
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn list_sessions_page(
+    db: &Database,
+    limit: usize,
+    offset: usize,
+) -> Result<Vec<SessionRow>, AppError> {
+    if limit == 0 {
+        return Ok(Vec::new());
+    }
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT id, project_id, title, model, status, parent_session_id,
+                    context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
+                    created_at, updated_at, cli_session_id, pinned,
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
+             FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC
+             LIMIT ?1 OFFSET ?2",
+        )?;
+        let rows = stmt
+            .query_map(rusqlite::params![limit as i64, offset as i64], |row| {
+                Ok(SessionRow {
+                    id: row.get(0)?,
+                    project_id: row.get(1)?,
+                    title: row.get(2)?,
+                    model: row.get(3)?,
+                    status: row.get(4)?,
+                    parent_session_id: row.get(5)?,
+                    context_tokens: row.get(6)?,
+                    total_input_tokens: row.get(7)?,
+                    total_output_tokens: row.get(8)?,
+                    total_cost_cents: row.get(9)?,
+                    created_at: row.get(10)?,
+                    updated_at: row.get(11)?,
+                    cli_session_id: row.get(12)?,
+                    pinned: row.get(13)?,
+                    cli_version: row.get(14)?,
+                    total_thinking_tokens: row.get(15)?,
+                    total_cache_read_tokens: row.get(16)?,
+                    total_cache_write_tokens: row.get(17)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
+    })
+}
+
 #[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn delete_session(db: &Database, id: &str) -> Result<(), AppError> {
     db.with_conn(|conn| {
@@ -372,7 +418,7 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
             "SELECT id, session_id, role, content, model, input_tokens, output_tokens,
                     thinking_tokens, cost_cents, is_compacted, created_at,
                     uuid, parent_uuid, stop_reason, is_error
-             FROM messages WHERE session_id = ?1 ORDER BY created_at ASC",
+             FROM messages WHERE session_id = ?1 ORDER BY rowid ASC",
         )?;
         let rows = stmt
             .query_map(rusqlite::params![session_id], |row| {
@@ -396,6 +442,106 @@ pub fn list_messages(db: &Database, session_id: &str) -> Result<Vec<MessageRow>,
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
+    })
+}
+
+/// Cursor-based pagination for messages. Returns (page, next_cursor).
+/// `next_cursor` is `Some(rowid)` only when there are more messages to fetch.
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn list_messages_page(
+    db: &Database,
+    session_id: &str,
+    after_rowid: Option<i64>,
+    limit: usize,
+) -> Result<(Vec<MessageRow>, Option<i64>), AppError> {
+    if limit == 0 {
+        return Ok((Vec::new(), None));
+    }
+
+    db.with_conn(|conn| {
+        let fetch_limit = (limit + 1) as i64;
+
+        let mut rows: Vec<(i64, MessageRow)> = if let Some(cursor) = after_rowid {
+            let mut stmt = conn.prepare(
+                "SELECT rowid, id, session_id, role, content, model, input_tokens, output_tokens,
+                        thinking_tokens, cost_cents, is_compacted, created_at,
+                        uuid, parent_uuid, stop_reason, is_error
+                 FROM messages
+                 WHERE session_id = ?1 AND rowid > ?2
+                 ORDER BY rowid ASC
+                 LIMIT ?3",
+            )?;
+            let mapped =
+                stmt.query_map(rusqlite::params![session_id, cursor, fetch_limit], |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        MessageRow {
+                            id: row.get(1)?,
+                            session_id: row.get(2)?,
+                            role: row.get(3)?,
+                            content: row.get(4)?,
+                            model: row.get(5)?,
+                            input_tokens: row.get(6)?,
+                            output_tokens: row.get(7)?,
+                            thinking_tokens: row.get(8)?,
+                            cost_cents: row.get(9)?,
+                            is_compacted: row.get(10)?,
+                            created_at: row.get(11)?,
+                            uuid: row.get(12)?,
+                            parent_uuid: row.get(13)?,
+                            stop_reason: row.get(14)?,
+                            is_error: row.get(15)?,
+                        },
+                    ))
+                })?;
+            mapped.collect::<Result<Vec<_>, _>>()?
+        } else {
+            let mut stmt = conn.prepare(
+                "SELECT rowid, id, session_id, role, content, model, input_tokens, output_tokens,
+                        thinking_tokens, cost_cents, is_compacted, created_at,
+                        uuid, parent_uuid, stop_reason, is_error
+                 FROM messages
+                 WHERE session_id = ?1
+                 ORDER BY rowid ASC
+                 LIMIT ?2",
+            )?;
+            let mapped = stmt.query_map(rusqlite::params![session_id, fetch_limit], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    MessageRow {
+                        id: row.get(1)?,
+                        session_id: row.get(2)?,
+                        role: row.get(3)?,
+                        content: row.get(4)?,
+                        model: row.get(5)?,
+                        input_tokens: row.get(6)?,
+                        output_tokens: row.get(7)?,
+                        thinking_tokens: row.get(8)?,
+                        cost_cents: row.get(9)?,
+                        is_compacted: row.get(10)?,
+                        created_at: row.get(11)?,
+                        uuid: row.get(12)?,
+                        parent_uuid: row.get(13)?,
+                        stop_reason: row.get(14)?,
+                        is_error: row.get(15)?,
+                    },
+                ))
+            })?;
+            mapped.collect::<Result<Vec<_>, _>>()?
+        };
+
+        let next_cursor = if rows.len() > limit {
+            let cursor = rows[limit - 1].0;
+            rows.truncate(limit);
+            Some(cursor)
+        } else {
+            None
+        };
+
+        Ok((
+            rows.into_iter().map(|(_, message)| message).collect(),
+            next_cursor,
+        ))
     })
 }
 
@@ -797,19 +943,29 @@ pub fn query_session_summary(
     session_id: &str,
 ) -> Result<SessionSummaryRow, AppError> {
     db.with_conn(|conn| {
-        let message_count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM messages WHERE session_id = ?1
-             AND role NOT IN ('tool_use','tool_result','thinking','permission')",
-            rusqlite::params![session_id],
-            |r| r.get(0),
-        )?;
-
-        let tool_count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM messages
-             WHERE session_id = ?1 AND role = 'tool_use'",
-            rusqlite::params![session_id],
-            |r| r.get(0),
-        )?;
+        let (message_count, tool_count, models_used): (i64, i64, Vec<String>) = {
+            let mut stmt = conn.prepare(
+                "SELECT
+                    COUNT(CASE WHEN role NOT IN ('tool_use','tool_result','thinking','permission') THEN 1 END),
+                    COUNT(CASE WHEN role = 'tool_use' THEN 1 END),
+                    GROUP_CONCAT(DISTINCT model)
+                 FROM messages
+                 WHERE session_id = ?1",
+            )?;
+            stmt.query_row(rusqlite::params![session_id], |r| {
+                let model_str: Option<String> = r.get(2)?;
+                Ok((
+                    r.get::<_, i64>(0)?,
+                    r.get::<_, i64>(1)?,
+                    model_str
+                        .unwrap_or_default()
+                        .split(',')
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_string)
+                        .collect(),
+                ))
+            })?
+        };
 
         let artifact_count: i64 = conn.query_row(
             "SELECT COUNT(*) FROM artifacts WHERE session_id = ?1",
@@ -829,15 +985,6 @@ pub fn query_session_summary(
                 |r| r.get(0),
             )
             .unwrap_or(0);
-
-        // Distinct non-null models used in this session
-        let mut stmt = conn.prepare(
-            "SELECT DISTINCT model FROM messages
-             WHERE session_id = ?1 AND model IS NOT NULL",
-        )?;
-        let models_used: Vec<String> = stmt
-            .query_map(rusqlite::params![session_id], |r| r.get(0))?
-            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(SessionSummaryRow {
             message_count,
@@ -1207,6 +1354,96 @@ mod tests {
         assert_eq!(sessions.len(), 2);
         // s2 was inserted last, so it should be first (most recently updated)
         assert_eq!(sessions[0].id, "s2");
+    }
+
+    #[test]
+    fn list_sessions_page_returns_limited_results() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        for i in 0..5 {
+            insert_session(&db, &format!("s{}", i), Some("p1"), "claude-sonnet-4-6").unwrap();
+        }
+
+        let page = list_sessions_page(&db, 3, 0).unwrap();
+        assert_eq!(page.len(), 3);
+    }
+
+    #[test]
+    fn list_sessions_page_offset_works() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        for i in 0..5 {
+            insert_session(&db, &format!("s{}", i), Some("p1"), "claude-sonnet-4-6").unwrap();
+        }
+
+        let page = list_sessions_page(&db, 3, 3).unwrap();
+        assert_eq!(page.len(), 2);
+    }
+
+    #[test]
+    fn list_messages_page_returns_first_page() {
+        let db = test_db();
+        insert_project(&db, "p1", "Project", "/tmp").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+        for i in 0..10 {
+            insert_message_legacy(
+                &db,
+                &format!("m{}", i),
+                "s1",
+                "assistant",
+                &format!("content {}", i),
+                None,
+                None,
+                None,
+                None,
+            )
+            .unwrap();
+        }
+
+        let (page, next_cursor) = list_messages_page(&db, "s1", None, 5).unwrap();
+        assert_eq!(page.len(), 5);
+        assert!(next_cursor.is_some());
+        assert_eq!(page[0].id, "m0");
+        assert_eq!(page[4].id, "m4");
+    }
+
+    #[test]
+    fn list_messages_page_second_page_uses_cursor() {
+        let db = test_db();
+        insert_project(&db, "p1", "Project", "/tmp").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+        for i in 0..10 {
+            insert_message_legacy(
+                &db,
+                &format!("m{}", i),
+                "s1",
+                "assistant",
+                &format!("content {}", i),
+                None,
+                None,
+                None,
+                None,
+            )
+            .unwrap();
+        }
+
+        let (first, cursor) = list_messages_page(&db, "s1", None, 5).unwrap();
+        assert_eq!(first.len(), 5);
+        let (second, next_cursor) = list_messages_page(&db, "s1", cursor, 5).unwrap();
+        assert_eq!(second.len(), 5);
+        assert!(next_cursor.is_none());
+        assert_eq!(second[0].id, "m5");
+    }
+
+    #[test]
+    fn list_messages_page_empty_session_returns_no_cursor() {
+        let db = test_db();
+        insert_project(&db, "p1", "Project", "/tmp").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        let (page, cursor) = list_messages_page(&db, "s1", None, 50).unwrap();
+        assert!(page.is_empty());
+        assert!(cursor.is_none());
     }
 
     #[test]
