@@ -4,7 +4,7 @@
 import type { Message } from './types';
 import { redactSecrets } from './redaction';
 
-export type ExportFormat = 'md' | 'html' | 'txt';
+export type ExportFormat = 'md' | 'html' | 'txt' | 'json';
 
 export interface ExportOptions {
   redact?: boolean;
@@ -314,6 +314,55 @@ export function exportAsHtml(
 <script>${js}</script>
 </body>
 </html>`;
+}
+
+export interface ExportSessionMeta {
+  id: string;
+  title?: string | null;
+  model?: string | null;
+}
+
+export function exportAsJson(
+  messages: Message[],
+  session: ExportSessionMeta,
+  options: ExportOptions = {},
+): string {
+  const { redact = false } = options;
+  const exported_at = new Date().toISOString();
+
+  const serializedMessages = messages.map((msg) => ({
+    id: msg.id,
+    uuid: (msg as { uuid?: string | null }).uuid ?? null,
+    parent_uuid: (msg as { parent_uuid?: string | null }).parent_uuid ?? null,
+    role: msg.role,
+    content: msg.content,
+    model: msg.model ?? null,
+    tokens: {
+      input: msg.input_tokens ?? null,
+      output: msg.output_tokens ?? null,
+      thinking: msg.thinking_tokens ?? null,
+    },
+    cost_cents: msg.cost_cents ?? null,
+    stop_reason: (msg as { stop_reason?: string | null }).stop_reason ?? null,
+    is_error: (msg as { is_error?: boolean | null }).is_error ?? null,
+    timestamp: msg.created_at ?? null,
+  }));
+
+  const payload = {
+    version: '1.0',
+    exported_at,
+    session: {
+      id: session.id,
+      title: session.title ?? null,
+      model: session.model ?? null,
+      total_messages: messages.length,
+      total_cost_cents: messages.reduce((sum, message) => sum + (message.cost_cents ?? 0), 0) || null,
+    },
+    messages: serializedMessages,
+  };
+
+  const raw = JSON.stringify(payload, null, 2);
+  return redact ? redactSecrets(raw).content : raw;
 }
 
 export function buildExportFilename(sessionId: string, format: ExportFormat): string {

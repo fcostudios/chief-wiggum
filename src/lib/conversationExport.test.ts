@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildExportFilename,
   exportAsHtml,
+  exportAsJson,
   exportAsMarkdown,
   exportAsText,
 } from './conversationExport';
@@ -221,5 +222,76 @@ describe('buildExportFilename', () => {
   it('uses session short id and extension', () => {
     const name = buildExportFilename('abc12345-xyz', 'md');
     expect(name).toMatch(/^session-abc12345-\d{4}-\d{2}-\d{2}\.md$/);
+  });
+});
+
+describe('exportAsJson', () => {
+  const msgs = [
+    message('user', 'Hello'),
+    { ...message('assistant', 'Hi there'), input_tokens: 10, output_tokens: 5, cost_cents: 2 },
+    message('thinking', 'I thought hard'),
+    message('tool_use', JSON.stringify({ tool_name: 'Read', tool_input: '{"path":"f.ts"}' })),
+  ];
+  const session = {
+    id: 'session-123',
+    title: 'Test Session',
+    model: 'claude-sonnet-4-6',
+  };
+
+  it('produces valid JSON', () => {
+    const output = exportAsJson(msgs, session);
+    expect(() => JSON.parse(output)).not.toThrow();
+  });
+
+  it('has correct top-level structure', () => {
+    const obj = JSON.parse(exportAsJson(msgs, session)) as Record<string, unknown>;
+    expect(obj.version).toBe('1.0');
+    expect(typeof obj.exported_at).toBe('string');
+    expect(obj.session).toBeTruthy();
+    expect(Array.isArray(obj.messages)).toBe(true);
+  });
+
+  it('session metadata is correct', () => {
+    const obj = JSON.parse(exportAsJson(msgs, session)) as Record<string, unknown>;
+    const sessionMeta = obj.session as Record<string, unknown>;
+    expect(sessionMeta.id).toBe('session-123');
+    expect(sessionMeta.title).toBe('Test Session');
+    expect(sessionMeta.model).toBe('claude-sonnet-4-6');
+    expect(typeof sessionMeta.total_messages).toBe('number');
+  });
+
+  it('includes all messages with correct fields', () => {
+    const obj = JSON.parse(exportAsJson(msgs, session)) as { messages: Record<string, unknown>[] };
+    expect(obj.messages.length).toBe(msgs.length);
+    const first = obj.messages[0];
+    expect(first.role).toBe('user');
+    expect(first.content).toBe('Hello');
+    expect(typeof first.id).toBe('string');
+    expect(typeof first.timestamp).toBe('string');
+  });
+
+  it('includes token/cost data when present', () => {
+    const obj = JSON.parse(exportAsJson(msgs, session)) as { messages: Record<string, unknown>[] };
+    const assistant = obj.messages.find((m) => m.role === 'assistant') as Record<string, unknown>;
+    const tokens = assistant.tokens as Record<string, unknown>;
+    expect(tokens.input).toBe(10);
+    expect(tokens.output).toBe(5);
+    expect(assistant.cost_cents).toBe(2);
+  });
+
+  it('redacts secrets when redact=true', () => {
+    const secretMsg = message(
+      'user',
+      'Key: sk-ant-api03-abcdefghijklmnopqrstuvwxyz1234567890',
+    );
+    const output = exportAsJson([secretMsg], session, { redact: true });
+    expect(output).not.toContain('sk-ant-api03');
+  });
+
+  it('roundtrip preserves all message content', () => {
+    const output = exportAsJson(msgs, session);
+    const obj = JSON.parse(output) as { messages: { content: string }[] };
+    expect(obj.messages[0].content).toBe('Hello');
+    expect(obj.messages[1].content).toBe('Hi there');
   });
 });
