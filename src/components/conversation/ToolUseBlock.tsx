@@ -96,6 +96,28 @@ function toolSummary(toolName: string, toolInput: string): string {
         return parsed.pattern ? String(parsed.pattern) : '';
       case 'Grep':
         return parsed.pattern ? String(parsed.pattern) : '';
+      case 'AskUserQuestion': {
+        const answers =
+          parsed.answers && typeof parsed.answers === 'object'
+            ? (parsed.answers as Record<string, unknown>)
+            : null;
+        if (answers) {
+          const firstAnswer = Object.values(answers)[0];
+          if (firstAnswer != null && String(firstAnswer).trim() !== '') {
+            return `Answered: ${String(firstAnswer).slice(0, 40)}`;
+          }
+          return 'Answered';
+        }
+        const questions = Array.isArray(parsed.questions)
+          ? (parsed.questions as Array<{ header?: string; question?: string }>)
+          : [];
+        if (questions.length === 0) return '';
+        if (questions.length === 1) {
+          const first = questions[0];
+          return first.header || first.question || '1 question';
+        }
+        return `${questions.length} questions`;
+      }
       default:
         return '';
     }

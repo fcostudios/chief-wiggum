@@ -108,4 +108,62 @@ describe('ToolUseBlock', () => {
     render(() => <ToolUseBlock message={msg} isCompleted={false} />);
     expect(screen.queryByTestId('tool-use-complete')).not.toBeInTheDocument();
   });
+  it('shows question count summary for unanswered AskUserQuestion', () => {
+    const input = {
+      questions: [
+        {
+          question: 'Which auth method?',
+          header: 'Auth method',
+          options: [{ label: 'JWT', description: 'JSON Web Tokens' }],
+          multiSelect: false,
+        },
+        {
+          question: 'Which scope?',
+          header: 'Scope',
+          options: [{ label: 'Read', description: '' }],
+          multiSelect: false,
+        },
+      ],
+    };
+    const msg = makeMsg('AskUserQuestion', JSON.stringify(input));
+    render(() => <ToolUseBlock message={msg} />);
+
+    expect(screen.getByText('2 questions')).toBeInTheDocument();
+  });
+
+  it('shows first answer summary for answered AskUserQuestion', () => {
+    const input = {
+      questions: [
+        {
+          question: 'Which auth?',
+          header: 'Auth',
+          options: [{ label: 'JWT', description: '' }],
+          multiSelect: false,
+        },
+        {
+          question: 'Which scope?',
+          header: 'Scope',
+          options: [{ label: 'Login', description: '' }],
+          multiSelect: true,
+        },
+      ],
+      answers: { 'Which auth?': 'JWT', 'Which scope?': 'Login, Signup' },
+    };
+    const msg = makeMsg('AskUserQuestion', JSON.stringify(input));
+    render(() => <ToolUseBlock message={msg} />);
+
+    expect(screen.getByText('Answered: JWT')).toBeInTheDocument();
+  });
+
+  it('uses AskUserQuestion icon in the header row', () => {
+    const input = {
+      questions: [{ question: 'Q?', header: 'H', options: [], multiSelect: false }],
+      answers: { 'Q?': 'A' },
+    };
+    const msg = makeMsg('AskUserQuestion', JSON.stringify(input));
+    const { container } = render(() => <ToolUseBlock message={msg} />);
+
+    expect(container.querySelector('.lucide-message-circle-question-mark')).toBeInTheDocument();
+    expect(container.querySelector('.lucide-wrench')).not.toBeInTheDocument();
+  });
 });
