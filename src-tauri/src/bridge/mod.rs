@@ -26,6 +26,7 @@ pub use process::{BridgeConfig, BridgeInterface, CliBridge, ProcessStatus};
 pub use sdk_bridge::AgentSdkBridge;
 
 use crate::AppError;
+use std::collections::HashMap;
 
 /// Output from the bridge, consumed by command handlers.
 /// Per SPEC-004 §11.1 — shared between LiveBridge and MockBridge.
@@ -41,7 +42,7 @@ pub enum BridgeOutput {
     PermissionRequired(PermissionRequest),
 
     /// A question from AskUserQuestion that must be answered by the user.
-    /// Never auto-approved, even in YOLO mode.
+    /// In YOLO mode, the backend auto-resolves with default answers.
     QuestionRequired(QuestionRequest),
 
     /// The CLI process has exited.
@@ -71,6 +72,27 @@ pub struct QuestionItem {
 pub struct QuestionOption {
     pub label: String,
     pub description: String,
+}
+
+/// Build default answers for YOLO-mode question auto-resolution.
+/// Single-select questions use the first option label; multi-select questions
+/// default to empty selection.
+pub fn build_auto_answers(questions: &[QuestionItem]) -> HashMap<String, String> {
+    questions
+        .iter()
+        .map(|question| {
+            let answer = if question.multi_select {
+                String::new()
+            } else {
+                question
+                    .options
+                    .first()
+                    .map(|option| option.label.clone())
+                    .unwrap_or_default()
+            };
+            (question.question.clone(), answer)
+        })
+        .collect()
 }
 
 /// Payload for `question:request` frontend event.
@@ -329,6 +351,40 @@ mod tests {
                 serde_json::from_value(input).expect("parse question items");
             assert_eq!(questions.len(), 1);
             assert!(!questions[0].multi_select);
+        }
+
+        #[test]
+        fn build_auto_answers_picks_first_option_and_empty_multi() {
+            let questions = vec![
+                QuestionItem {
+                    question: "Pick one".to_string(),
+                    header: "Choice".to_string(),
+                    options: vec![
+                        QuestionOption {
+                            label: "A".to_string(),
+                            description: String::new(),
+                        },
+                        QuestionOption {
+                            label: "B".to_string(),
+                            description: String::new(),
+                        },
+                    ],
+                    multi_select: false,
+                },
+                QuestionItem {
+                    question: "Pick many".to_string(),
+                    header: "Multi".to_string(),
+                    options: vec![QuestionOption {
+                        label: "X".to_string(),
+                        description: String::new(),
+                    }],
+                    multi_select: true,
+                },
+            ];
+
+            let answers = build_auto_answers(&questions);
+            assert_eq!(answers.get("Pick one").map(String::as_str), Some("A"));
+            assert_eq!(answers.get("Pick many").map(String::as_str), Some(""));
         }
     }
 }

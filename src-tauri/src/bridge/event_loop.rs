@@ -508,8 +508,20 @@ async fn emit_bridge_output(
                 let tool = req.tool.clone();
                 let command = req.command.clone();
 
+                // Defensive guard: AskUserQuestion should be intercepted as QuestionRequired and
+                // must never be auto-approved (including YOLO mode).
+                let is_question_tool = req.tool == "AskUserQuestion";
+                if is_question_tool {
+                    tracing::warn!(
+                        "Event loop [{}]: AskUserQuestion reached PermissionRequired path; refusing auto-approve",
+                        session_id
+                    );
+                }
+
                 // Skip UI dialog when the permission manager can auto-resolve.
-                let action = if pm.is_yolo_mode().await || pm.is_auto_allowed(&req).await {
+                let action = if !is_question_tool
+                    && (pm.is_yolo_mode().await || pm.is_auto_allowed(&req).await)
+                {
                     tracing::info!(
                         "Event loop [{}]: auto-resolving SDK permission (tool: {}, command: {})",
                         session_id,
@@ -624,40 +636,31 @@ async fn emit_bridge_output(
             }
         }
         BridgeOutput::QuestionRequired(req) => {
-            tracing::info!(
-                "Event loop [{}]: emitting question:request ({} questions)",
-                session_id,
-                req.questions.len()
-            );
-
-            let payload = QuestionRequestPayload {
-                session_id: session_id.to_string(),
-                request_id: req.request_id.clone(),
-                questions: req.questions.clone(),
-            };
-
-            if let Err(e) = app.emit("question:request", &payload) {
-                tracing::warn!("Failed to emit question:request: {}", e);
-            }
-
-            // Questions are never auto-approved (including YOLO mode).
             if let Some(pm) = permission_manager.as_ref() {
                 let request_id = req.request_id.clone();
+                let request_id_for_response = request_id.clone();
+                let questions = req.questions.clone();
+                let tool_input = req.tool_input.clone();
                 let rx = pm.store_pending_question(request_id.clone(), req).await;
                 let bridge_clone = Arc::clone(bridge);
-                let session_id = session_id.to_string();
+                let session_id_for_response = session_id.to_string();
 
                 tokio::spawn(async move {
                     match rx.await {
                         Ok(updated_input) => {
                             if let Err(e) = bridge_clone
-                                .send_control_response(&request_id, true, None, Some(updated_input))
+                                .send_control_response(
+                                    &request_id_for_response,
+                                    true,
+                                    None,
+                                    Some(updated_input),
+                                )
                                 .await
                             {
                                 tracing::warn!(
                                     "Event loop [{}]: failed to send question response for {}: {}",
-                                    session_id,
-                                    request_id,
+                                    session_id_for_response,
+                                    request_id_for_response,
                                     e
                                 );
                             }
@@ -665,12 +668,66 @@ async fn emit_bridge_output(
                         Err(_) => {
                             tracing::warn!(
                                 "Event loop [{}]: question {} cancelled (receiver dropped)",
-                                session_id,
-                                request_id
+                                session_id_for_response,
+                                request_id_for_response
                             );
                         }
                     }
                 });
+
+                if pm.is_yolo_mode().await {
+                    tracing::info!(
+                        "Event loop [{}]: YOLO auto-resolving question {}",
+                        session_id,
+                        request_id
+                    );
+                    let mut updated_input = tool_input;
+                    if !updated_input.contains_key("questions") {
+                        updated_input.insert(
+                            "questions".to_string(),
+                            serde_json::to_value(&questions)
+                                .unwrap_or(serde_json::Value::Array(vec![])),
+                        );
+                    }
+                    let auto_answers = super::build_auto_answers(&questions);
+                    match serde_json::to_value(&auto_answers) {
+                        Ok(value) => {
+                            updated_input.insert("answers".to_string(), value);
+                            if let Err(e) = pm.resolve_question(&request_id, updated_input).await {
+                                tracing::warn!(
+                                    "Event loop [{}]: failed to auto-resolve question {}: {}",
+                                    session_id,
+                                    request_id,
+                                    e
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                "Event loop [{}]: failed to serialize YOLO auto-answers for {}: {}",
+                                session_id,
+                                request_id,
+                                e
+                            );
+                            let _ = pm.resolve_question(&request_id, updated_input).await;
+                        }
+                    }
+                    return;
+                }
+
+                tracing::info!(
+                    "Event loop [{}]: emitting question:request ({} questions)",
+                    session_id,
+                    questions.len()
+                );
+                let payload = QuestionRequestPayload {
+                    session_id: session_id.to_string(),
+                    request_id: request_id.clone(),
+                    questions,
+                };
+                if let Err(e) = app.emit("question:request", &payload) {
+                    tracing::warn!("Failed to emit question:request: {}", e);
+                }
             } else {
                 tracing::warn!(
                     "Event loop [{}]: QuestionRequired without PermissionManager; question {} cannot be resolved",

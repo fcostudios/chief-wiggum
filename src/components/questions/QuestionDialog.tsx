@@ -20,12 +20,28 @@ function parseMultiValue(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  );
+}
+
 const QuestionDialog: Component<QuestionDialogProps> = (props) => {
   const [answers, setAnswers] = createSignal<Record<string, string>>({});
   const [otherText, setOtherText] = createSignal<Record<string, string>>({});
   const [otherEnabled, setOtherEnabled] = createSignal<Record<string, boolean>>({});
   const [secondsLeft, setSecondsLeft] = createSignal(TIMEOUT_SECONDS);
   let dialogRef: HTMLDivElement | undefined;
+  let timer: ReturnType<typeof setInterval> | undefined;
+
+  function stopTimer(): void {
+    if (timer) {
+      clearInterval(timer);
+      timer = undefined;
+    }
+  }
 
   const isValid = createMemo(() => {
     for (const question of props.request.questions) {
@@ -46,6 +62,7 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
   }
 
   async function handleSubmit(): Promise<void> {
+    stopTimer();
     const finalAnswers = { ...answers() };
     for (const question of props.request.questions) {
       if (question.multiSelect) continue;
@@ -65,6 +82,7 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
   }
 
   function handleCancel(): void {
+    stopTimer();
     void sendResponse({}).finally(() => dismissQuestionDialog());
   }
 
@@ -123,6 +141,23 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
   }
 
   function handleDialogKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Tab' && dialogRef) {
+      const focusable = getFocusableElements(dialogRef);
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey) {
+        if (document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        }
+      } else if (document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
     if (event.key === 'Escape') {
       event.preventDefault();
       handleCancel();
@@ -138,6 +173,12 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
   }
 
   onMount(() => {
+    if (props.request.questions.length === 0) {
+      console.warn('[QuestionDialog] Received empty questions array, auto-approving');
+      void sendResponse({}).finally(() => dismissQuestionDialog());
+      return;
+    }
+
     const initialAnswers: Record<string, string> = {};
     for (const question of props.request.questions) {
       if (!question.multiSelect && question.options.length > 0) {
@@ -147,18 +188,19 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
     setAnswers(initialAnswers);
 
     dialogRef?.focus();
+
+    timer = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          void handleSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   });
 
-  const timer = setInterval(() => {
-    setSecondsLeft((prev) => {
-      if (prev <= 1) {
-        void handleSubmit();
-        return 0;
-      }
-      return prev - 1;
-    });
-  }, 1000);
-  onCleanup(() => clearInterval(timer));
+  onCleanup(() => stopTimer());
 
   return (
     <div
@@ -172,14 +214,16 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
         class="w-full max-w-[560px] max-h-[90vh] rounded-lg overflow-hidden border border-border-primary bg-bg-elevated shadow-md flex flex-col"
         role="dialog"
         aria-modal="true"
-        aria-label={t('questionDialog.title')}
+        aria-labelledby="question-dialog-title"
         tabindex="-1"
         onKeyDown={handleDialogKeyDown}
       >
         <div class="flex items-center justify-between gap-3 px-5 py-3 border-b border-border-secondary bg-bg-secondary">
           <div class="flex items-center gap-2">
             <MessageCircleQuestion size={16} color="#a371f7" />
-            <h3 class="text-sm font-semibold text-text-primary">{t('questionDialog.title')}</h3>
+            <h3 id="question-dialog-title" class="text-sm font-semibold text-text-primary">
+              {t('questionDialog.title')}
+            </h3>
           </div>
           <span class="text-xs font-mono text-text-tertiary">{secondsLeft()}s</span>
         </div>
@@ -187,84 +231,118 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
         <div class="px-5 py-4 overflow-y-auto space-y-4 min-h-0">
           <For each={props.request.questions}>
             {(question) => (
-              <section class="rounded-md border border-border-secondary bg-bg-primary/40">
+              <section
+                class="rounded-md border border-border-secondary bg-bg-primary/40"
+                role={question.multiSelect ? 'group' : 'radiogroup'}
+                aria-label={question.question}
+              >
                 <div class="px-3 py-2 border-b border-border-secondary text-[10px] tracking-wide uppercase text-[#a371f7]">
                   {question.header}
                 </div>
                 <div class="px-3 py-3">
                   <p class="text-xs text-text-primary mb-3">{question.question}</p>
                   <div class="space-y-2">
-                    <For each={question.options}>
-                      {(option) => (
-                        <label class="flex items-start gap-2 text-xs text-text-primary">
-                          <Show
-                            when={question.multiSelect}
-                            fallback={
-                              <input
-                                type="radio"
-                                name={question.question}
-                                checked={
-                                  !otherEnabled()[question.question] &&
-                                  answers()[question.question] === option.label
-                                }
-                                onChange={() => handleSingleSelect(question.question, option.label)}
-                              />
+                    <Show
+                      when={question.options.length > 0}
+                      fallback={
+                        <div>
+                          <textarea
+                            class="w-full rounded px-2 py-1.5 text-xs border border-border-secondary bg-bg-inset text-text-primary min-h-[60px]"
+                            placeholder={t('questionDialog.freeTextPlaceholder')}
+                            value={answers()[question.question] ?? ''}
+                            onInput={(event) =>
+                              setAnswers((prev) => ({
+                                ...prev,
+                                [question.question]: event.currentTarget.value,
+                              }))
                             }
-                          >
-                            <input
-                              type="checkbox"
-                              checked={parseMultiValue(answers()[question.question]).includes(
-                                option.label,
-                              )}
-                              onChange={() => handleMultiToggle(question.question, option.label)}
-                            />
-                          </Show>
-                          <span>
-                            <span class="font-medium">{option.label}</span>
-                            <Show when={option.description}>
-                              <span class="text-text-tertiary"> - {option.description}</span>
-                            </Show>
-                          </span>
-                        </label>
-                      )}
-                    </For>
-
-                    <label class="flex items-start gap-2 text-xs text-text-primary">
-                      <Show
-                        when={question.multiSelect}
-                        fallback={
-                          <input
-                            type="radio"
-                            name={question.question}
-                            checked={otherEnabled()[question.question] === true}
-                            onChange={() => handleOtherToggle(question.question, false)}
                           />
-                        }
-                      >
-                        <input
-                          type="checkbox"
-                          checked={otherEnabled()[question.question] === true}
-                          onChange={() => handleOtherToggle(question.question, true)}
-                        />
-                      </Show>
-                      <div class="flex-1">
-                        <div class="font-medium">{t('questionDialog.otherLabel')}</div>
-                        <input
-                          type="text"
-                          class="mt-1 w-full rounded px-2 py-1 text-xs border border-border-secondary bg-bg-inset text-text-primary disabled:opacity-50"
-                          disabled={!otherEnabled()[question.question]}
-                          value={otherText()[question.question] ?? ''}
-                          placeholder={t('questionDialog.otherPlaceholder')}
-                          onInput={(event) =>
-                            handleOtherTextChange(
-                              question.question,
-                              question.multiSelect,
-                              event.currentTarget.value,
-                            )
+                        </div>
+                      }
+                    >
+                      <For each={question.options}>
+                        {(option) => (
+                          <label class="flex items-start gap-2 text-xs text-text-primary">
+                            <Show
+                              when={question.multiSelect}
+                              fallback={
+                                <input
+                                  type="radio"
+                                  name={question.question}
+                                  checked={
+                                    !otherEnabled()[question.question] &&
+                                    answers()[question.question] === option.label
+                                  }
+                                  aria-checked={
+                                    !otherEnabled()[question.question] &&
+                                    answers()[question.question] === option.label
+                                  }
+                                  onChange={() =>
+                                    handleSingleSelect(question.question, option.label)
+                                  }
+                                />
+                              }
+                            >
+                              <input
+                                type="checkbox"
+                                checked={parseMultiValue(answers()[question.question]).includes(
+                                  option.label,
+                                )}
+                                aria-checked={parseMultiValue(
+                                  answers()[question.question],
+                                ).includes(option.label)}
+                                onChange={() => handleMultiToggle(question.question, option.label)}
+                              />
+                            </Show>
+                            <span>
+                              <span class="font-medium">{option.label}</span>
+                              <Show when={option.description}>
+                                <span class="text-text-tertiary"> - {option.description}</span>
+                              </Show>
+                            </span>
+                          </label>
+                        )}
+                      </For>
+
+                      <label class="flex items-start gap-2 text-xs text-text-primary">
+                        <Show
+                          when={question.multiSelect}
+                          fallback={
+                            <input
+                              type="radio"
+                              name={question.question}
+                              checked={otherEnabled()[question.question] === true}
+                              aria-checked={otherEnabled()[question.question] === true}
+                              onChange={() => handleOtherToggle(question.question, false)}
+                            />
                           }
-                        />
-                      </div>
-                    </label>
+                        >
+                          <input
+                            type="checkbox"
+                            checked={otherEnabled()[question.question] === true}
+                            aria-checked={otherEnabled()[question.question] === true}
+                            onChange={() => handleOtherToggle(question.question, true)}
+                          />
+                        </Show>
+                        <div class="flex-1">
+                          <div class="font-medium">{t('questionDialog.otherLabel')}</div>
+                          <input
+                            type="text"
+                            class="mt-1 w-full rounded px-2 py-1 text-xs border border-border-secondary bg-bg-inset text-text-primary disabled:opacity-50"
+                            disabled={!otherEnabled()[question.question]}
+                            value={otherText()[question.question] ?? ''}
+                            placeholder={t('questionDialog.otherPlaceholder')}
+                            onInput={(event) =>
+                              handleOtherTextChange(
+                                question.question,
+                                question.multiSelect,
+                                event.currentTarget.value,
+                              )
+                            }
+                          />
+                        </div>
+                      </label>
+                    </Show>
                   </div>
                 </div>
               </section>
@@ -273,7 +351,12 @@ const QuestionDialog: Component<QuestionDialogProps> = (props) => {
         </div>
 
         <div class="px-5 py-3 border-t border-border-secondary flex items-center justify-between gap-3">
-          <span class="text-xs text-text-tertiary">
+          <span
+            class="text-xs text-text-tertiary"
+            role="timer"
+            aria-live="polite"
+            aria-label={`Auto-submitting in ${secondsLeft()} seconds`}
+          >
             {t('questionDialog.timeoutWarning', { seconds: secondsLeft() })}
           </span>
           <div class="flex items-center gap-2">
