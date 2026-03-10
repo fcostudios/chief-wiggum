@@ -26,12 +26,41 @@ export interface FileStatusEntry {
   old_path: string | null;
 }
 
+export type DiffLineKind = 'added' | 'removed' | 'context';
+
+export interface DiffLine {
+  kind: DiffLineKind;
+  old_lineno: number | null;
+  new_lineno: number | null;
+  content: string;
+}
+
+export interface DiffHunk {
+  header: string;
+  old_start: number;
+  old_lines: number;
+  new_start: number;
+  new_lines: number;
+  lines: DiffLine[];
+}
+
+export interface FileDiff {
+  path: string;
+  old_path: string | null;
+  is_binary: boolean;
+  is_new_file: boolean;
+  hunks: DiffHunk[];
+}
+
 interface GitState {
   projectId: string | null;
   repoInfo: RepoInfo | null;
   statusEntries: FileStatusEntry[];
   isLoading: boolean;
   error: string | null;
+  selectedGitFile: FileStatusEntry | null;
+  selectedFileDiff: FileDiff | null;
+  isDiffLoading: boolean;
 }
 
 const [gitState, setGitState] = createStore<GitState>({
@@ -40,12 +69,42 @@ const [gitState, setGitState] = createStore<GitState>({
   statusEntries: [],
   isLoading: false,
   error: null,
+  selectedGitFile: null,
+  selectedFileDiff: null,
+  isDiffLoading: false,
 });
 
 export { gitState };
 
 export function setGitProjectId(id: string | null): void {
   setGitState('projectId', id);
+  setGitState('selectedGitFile', null);
+  setGitState('selectedFileDiff', null);
+}
+
+export function setSelectedGitFile(entry: FileStatusEntry | null): void {
+  setGitState('selectedGitFile', entry);
+  setGitState('selectedFileDiff', null);
+}
+
+export async function loadFileDiff(entry: FileStatusEntry): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  setGitState('isDiffLoading', true);
+  setGitState('error', null);
+  try {
+    const diff = await invoke<FileDiff | null>('git_get_file_diff', {
+      project_id: projectId,
+      file_path: entry.path,
+      staged: entry.is_staged,
+    });
+    setGitState('selectedFileDiff', diff);
+  } catch (err) {
+    setGitState('error', String(err));
+  } finally {
+    setGitState('isDiffLoading', false);
+  }
 }
 
 export async function refreshRepoInfo(): Promise<void> {

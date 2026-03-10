@@ -6,7 +6,15 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { gitState, refreshGitStatus, refreshRepoInfo, setGitProjectId } from './gitStore';
+import {
+  type FileStatusKind,
+  gitState,
+  loadFileDiff,
+  refreshGitStatus,
+  refreshRepoInfo,
+  setGitProjectId,
+  setSelectedGitFile,
+} from './gitStore';
 
 describe('gitStore', () => {
   beforeEach(() => {
@@ -59,5 +67,71 @@ describe('gitStore', () => {
     resolvePromise({ root: '/r', head_branch: 'main', is_dirty: false });
     await fetchPromise;
     expect(gitState.isLoading).toBe(false);
+  });
+});
+
+describe('gitStore — diff loading', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setGitProjectId(null);
+    setSelectedGitFile(null);
+  });
+
+  it('selectedGitFile starts null', () => {
+    expect(gitState.selectedGitFile).toBeNull();
+    expect(gitState.selectedFileDiff).toBeNull();
+  });
+
+  it('setSelectedGitFile updates selectedGitFile', () => {
+    const entry = {
+      path: 'src/main.ts',
+      status: 'modified' as FileStatusKind,
+      is_staged: false,
+      old_path: null,
+    };
+    setSelectedGitFile(entry);
+    expect(gitState.selectedGitFile).toEqual(entry);
+  });
+
+  it('loadFileDiff calls git_get_file_diff with correct params', async () => {
+    const entry = {
+      path: 'src/main.ts',
+      status: 'modified' as FileStatusKind,
+      is_staged: false,
+      old_path: null,
+    };
+    const mockDiff = {
+      path: 'src/main.ts',
+      old_path: null,
+      is_binary: false,
+      is_new_file: false,
+      hunks: [],
+    };
+    vi.mocked(invoke).mockResolvedValueOnce(mockDiff);
+    setGitProjectId('project-1');
+    await loadFileDiff(entry);
+    expect(invoke).toHaveBeenCalledWith('git_get_file_diff', {
+      project_id: 'project-1',
+      file_path: 'src/main.ts',
+      staged: false,
+    });
+    expect(gitState.selectedFileDiff).toEqual(mockDiff);
+  });
+
+  it('loadFileDiff uses staged=true for staged files', async () => {
+    const entry = {
+      path: 'src/main.ts',
+      status: 'staged' as FileStatusKind,
+      is_staged: true,
+      old_path: null,
+    };
+    vi.mocked(invoke).mockResolvedValueOnce(null);
+    setGitProjectId('project-1');
+    await loadFileDiff(entry);
+    expect(invoke).toHaveBeenCalledWith('git_get_file_diff', {
+      project_id: 'project-1',
+      file_path: 'src/main.ts',
+      staged: true,
+    });
   });
 });

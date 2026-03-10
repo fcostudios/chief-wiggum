@@ -4,7 +4,12 @@
 import type { Component } from 'solid-js';
 import { For, Show, createSignal } from 'solid-js';
 import { AlertCircle, ChevronRight, FileEdit, FilePlus, Minus } from 'lucide-solid';
-import type { FileStatusEntry, FileStatusKind } from '@/stores/gitStore';
+import {
+  gitState,
+  setSelectedGitFile,
+  type FileStatusEntry,
+  type FileStatusKind,
+} from '@/stores/gitStore';
 
 interface Props {
   title: string;
@@ -85,10 +90,14 @@ const ChangedFilesList: Component<Props> = (props) => {
                 : '';
 
               return (
-                <div
-                  class="flex items-center gap-2 px-4 py-0.5 transition-colors"
+                <button
+                  class="flex w-full items-center gap-2 px-4 py-0.5 text-left transition-colors hover:opacity-80"
+                  classList={{
+                    'bg-[rgba(232,130,90,0.08)]': gitState.selectedGitFile?.path === file.path,
+                  }}
                   style={{ 'min-height': '24px' }}
                   title={file.path}
+                  onClick={() => setSelectedGitFile(file)}
                 >
                   <span style={{ color, 'flex-shrink': '0' }}>
                     <Icon size={11} />
@@ -104,11 +113,11 @@ const ChangedFilesList: Component<Props> = (props) => {
                       class="shrink-0 max-w-[80px] truncate text-[10px] font-mono"
                       style={{ color: 'var(--color-text-tertiary)' }}
                       title={dirname}
-                    >
-                      {dirname}
-                    </span>
-                  </Show>
-                </div>
+                  >
+                    {dirname}
+                  </span>
+                </Show>
+                </button>
               );
             }}
           </For>
