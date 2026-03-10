@@ -310,6 +310,10 @@ fn main() {
             chief_wiggum_lib::commands::git::git_create_branch,
             chief_wiggum_lib::commands::git::git_delete_branch,
             chief_wiggum_lib::commands::git::git_get_file_diff,
+            chief_wiggum_lib::commands::git::git_stage_file,
+            chief_wiggum_lib::commands::git::git_unstage_file,
+            chief_wiggum_lib::commands::git::git_stage_hunk,
+            chief_wiggum_lib::commands::git::git_unstage_hunk,
         ])
         .setup(|app| {
             use tauri::Manager;

@@ -4,4 +4,5 @@
 pub mod branches;
 pub mod diff;
 pub mod repository;
+pub mod staging;
 pub mod status;

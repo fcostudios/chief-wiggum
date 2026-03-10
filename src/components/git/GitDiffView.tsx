@@ -4,7 +4,15 @@
 import type { Component } from 'solid-js';
 import { For, Show, createEffect } from 'solid-js';
 import { FileCode, RefreshCw } from 'lucide-solid';
-import { gitState, loadFileDiff, type DiffLineKind } from '@/stores/gitStore';
+import {
+  gitState,
+  loadFileDiff,
+  stageFile,
+  stageHunk,
+  type DiffLineKind,
+  unstageFile,
+  unstageHunk,
+} from '@/stores/gitStore';
 
 function diffLineBg(kind: DiffLineKind): string {
   switch (kind) {
@@ -77,6 +85,36 @@ const GitDiffView: Component = () => {
             >
               {file().is_staged ? 'staged' : file().status}
             </span>
+            <div class="ml-auto flex items-center gap-1.5">
+              <Show when={!file().is_staged}>
+                <button
+                  class="rounded px-2 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'color-mix(in srgb, var(--color-success) 15%, transparent)',
+                    color: 'var(--color-success)',
+                    border: '1px solid color-mix(in srgb, var(--color-success) 25%, transparent)',
+                  }}
+                  onClick={() => void stageFile(file())}
+                  title="Stage file"
+                >
+                  Stage
+                </button>
+              </Show>
+              <Show when={file().is_staged}>
+                <button
+                  class="rounded px-2 py-0.5 text-[10px] font-medium transition-opacity hover:opacity-80"
+                  style={{
+                    background: 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
+                    color: 'var(--color-warning)',
+                    border: '1px solid color-mix(in srgb, var(--color-warning) 25%, transparent)',
+                  }}
+                  onClick={() => void unstageFile(file())}
+                  title="Unstage file"
+                >
+                  Unstage
+                </button>
+              </Show>
+            </div>
           </div>
 
           <div class="min-h-0 flex-1 overflow-auto">
@@ -110,10 +148,10 @@ const GitDiffView: Component = () => {
               }
             >
               <For each={gitState.selectedFileDiff?.hunks ?? []}>
-                {(hunk) => (
+                {(hunk, hunkIdx) => (
                   <div>
                     <div
-                      class="sticky top-0 flex items-center px-2 py-0.5 font-mono text-[10px]"
+                      class="sticky top-0 flex items-center justify-between px-2 py-0.5 font-mono text-[10px]"
                       style={{
                         background: 'var(--color-bg-elevated)',
                         color: 'var(--color-text-tertiary)',
@@ -121,7 +159,37 @@ const GitDiffView: Component = () => {
                         'z-index': '1',
                       }}
                     >
-                      {hunk.header}
+                      <span>{hunk.header}</span>
+                      <div class="flex items-center gap-1">
+                        <Show when={!file().is_staged}>
+                          <button
+                            class="rounded px-1.5 py-0.5 text-[9px] font-semibold transition-opacity hover:opacity-80"
+                            style={{
+                              background:
+                                'color-mix(in srgb, var(--color-success) 15%, transparent)',
+                              color: 'var(--color-success)',
+                            }}
+                            onClick={() => void stageHunk(file().path, hunkIdx())}
+                            title={`Stage hunk ${hunkIdx() + 1}`}
+                          >
+                            +
+                          </button>
+                        </Show>
+                        <Show when={file().is_staged}>
+                          <button
+                            class="rounded px-1.5 py-0.5 text-[9px] font-semibold transition-opacity hover:opacity-80"
+                            style={{
+                              background:
+                                'color-mix(in srgb, var(--color-warning) 15%, transparent)',
+                              color: 'var(--color-warning)',
+                            }}
+                            onClick={() => void unstageHunk(file().path, hunkIdx())}
+                            title={`Unstage hunk ${hunkIdx() + 1}`}
+                          >
+                            -
+                          </button>
+                        </Show>
+                      </div>
                     </div>
 
                     <For each={hunk.lines}>

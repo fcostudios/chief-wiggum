@@ -107,6 +107,54 @@ export async function loadFileDiff(entry: FileStatusEntry): Promise<void> {
   }
 }
 
+export async function stageFile(entry: FileStatusEntry): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+  await invoke('git_stage_file', { project_id: projectId, file_path: entry.path });
+  await refreshGitStatus();
+  const updated: FileStatusEntry = { ...entry, is_staged: true, status: 'staged' };
+  setSelectedGitFile(updated);
+  await loadFileDiff(updated);
+}
+
+export async function unstageFile(entry: FileStatusEntry): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+  await invoke('git_unstage_file', { project_id: projectId, file_path: entry.path });
+  await refreshGitStatus();
+  const updated: FileStatusEntry = { ...entry, is_staged: false, status: 'modified' };
+  setSelectedGitFile(updated);
+  await loadFileDiff(updated);
+}
+
+export async function stageHunk(filePath: string, hunkIndex: number): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+  await invoke('git_stage_hunk', {
+    project_id: projectId,
+    file_path: filePath,
+    hunk_index: hunkIndex,
+  });
+  await refreshGitStatus();
+  if (gitState.selectedGitFile) {
+    await loadFileDiff(gitState.selectedGitFile);
+  }
+}
+
+export async function unstageHunk(filePath: string, hunkIndex: number): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+  await invoke('git_unstage_hunk', {
+    project_id: projectId,
+    file_path: filePath,
+    hunk_index: hunkIndex,
+  });
+  await refreshGitStatus();
+  if (gitState.selectedGitFile) {
+    await loadFileDiff(gitState.selectedGitFile);
+  }
+}
+
 export async function refreshRepoInfo(): Promise<void> {
   const projectId = gitState.projectId;
   if (!projectId) return;

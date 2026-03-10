@@ -5,6 +5,7 @@ use crate::db::{queries, Database};
 use crate::git::branches::{self, BranchInfo};
 use crate::git::diff::{self, FileDiff};
 use crate::git::repository;
+use crate::git::staging;
 use crate::git::status::{self, FileStatusEntry};
 use crate::AppError;
 use tauri::State;
@@ -117,4 +118,58 @@ pub fn git_get_file_diff(
     let project = queries::get_project(&db, &project_id)?
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
     diff::get_file_diff(std::path::Path::new(&project.path), &file_path, staged)
+}
+
+/// Stage an entire file (move to index).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, file_path = %file_path))]
+pub fn git_stage_file(
+    db: State<'_, Database>,
+    project_id: String,
+    file_path: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    staging::stage_file(std::path::Path::new(&project.path), &file_path)
+}
+
+/// Unstage an entire file (reset index to HEAD).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, file_path = %file_path))]
+pub fn git_unstage_file(
+    db: State<'_, Database>,
+    project_id: String,
+    file_path: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    staging::unstage_file(std::path::Path::new(&project.path), &file_path)
+}
+
+/// Stage a single hunk (0-based index) of a file's unstaged diff.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, file_path = %file_path, hunk_index = %hunk_index))]
+pub fn git_stage_hunk(
+    db: State<'_, Database>,
+    project_id: String,
+    file_path: String,
+    hunk_index: usize,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    staging::stage_hunk(std::path::Path::new(&project.path), &file_path, hunk_index)
+}
+
+/// Unstage a single hunk (0-based index) of a file's staged diff.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, file_path = %file_path, hunk_index = %hunk_index))]
+pub fn git_unstage_hunk(
+    db: State<'_, Database>,
+    project_id: String,
+    file_path: String,
+    hunk_index: usize,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    staging::unstage_hunk(std::path::Path::new(&project.path), &file_path, hunk_index)
 }
