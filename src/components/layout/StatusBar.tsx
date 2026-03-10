@@ -36,6 +36,7 @@ import {
 } from '@/stores/actionStore';
 import OnboardingTooltip from '@/components/common/OnboardingTooltip';
 import { shouldShowTooltip } from '@/stores/onboardingStore';
+import BranchIndicator from '@/components/git/BranchIndicator';
 
 function formatCost(cents: number | null | undefined): string {
   return `$${((cents ?? 0) / 100).toFixed(2)}`;
@@ -708,13 +709,16 @@ const StatusBar: Component = () => {
         </Show>
       </div>
 
-      {/* Center: total token usage */}
-      <span
-        class="font-mono text-text-tertiary/70"
-        style={{ 'font-size': '10px', 'letter-spacing': '0.02em' }}
-      >
-        {t('statusBar.tokens', { value: totalTokenDisplay() })}
-      </span>
+      {/* Center: branch indicator + token usage */}
+      <div class="flex items-center gap-2">
+        <BranchIndicator />
+        <span
+          class="font-mono text-text-tertiary/70"
+          style={{ 'font-size': '10px', 'letter-spacing': '0.02em' }}
+        >
+          {t('statusBar.tokens', { value: totalTokenDisplay() })}
+        </span>
+      </div>
 
       {/* Right: cost pill + breakdown popover */}
       <div class="relative flex items-center">

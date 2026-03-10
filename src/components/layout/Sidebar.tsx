@@ -16,6 +16,7 @@ import {
   FileCode,
   MoreHorizontal,
   Zap,
+  GitBranch,
   Search,
   X,
 } from 'lucide-solid';
@@ -51,10 +52,11 @@ import {
 } from '@/stores/projectStore';
 import { fileState, toggleFilesVisible } from '@/stores/fileStore';
 import { actionState, discoverActions } from '@/stores/actionStore';
-import { uiState, setViewBadge } from '@/stores/uiStore';
+import { uiState, setActiveView, setViewBadge } from '@/stores/uiStore';
 import { openImportDialog } from '@/stores/importStore';
 import { t } from '@/stores/i18nStore';
 import { addToast } from '@/stores/toastStore';
+import { gitState } from '@/stores/gitStore';
 import FileTree from '@/components/explorer/FileTree';
 import ActionsPanel from '@/components/actions/ActionsPanel';
 import ConversationExportDialog from '@/components/conversation/ConversationExportDialog';
@@ -108,7 +110,7 @@ const Sidebar: Component = () => {
   const [actionsOpen, setActionsOpen] = createSignal(false);
   const [sessionsOpen, setSessionsOpen] = createSignal(true);
   const [focusedContentSection, setFocusedContentSection] = createSignal<
-    'files' | 'actions' | null
+    'files' | 'actions' | 'git' | null
   >(null);
   const [searchQuery, setSearchQuery] = createSignal('');
   const [debouncedQuery, setDebouncedQuery] = createSignal('');
@@ -525,6 +527,44 @@ const Sidebar: Component = () => {
               </div>
             </Show>
           </Show>
+        </div>
+      </Show>
+
+      {/* Git section — only when project is active */}
+      <Show when={projectState.activeProjectId}>
+        <div
+          class="shrink-0"
+          classList={{
+            'flex-1': uiState.activeView === 'git',
+            'min-h-0': uiState.activeView === 'git',
+          }}
+          style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
+        >
+          <button
+            class="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs font-medium transition-colors hover:opacity-80"
+            style={{ color: 'var(--color-text-secondary)' }}
+            aria-label="Open Git panel"
+            onClick={() => {
+              setFocusedContentSection('git');
+              setActiveView('git');
+            }}
+          >
+            <div class="flex items-center gap-1.5 min-w-0">
+              <GitBranch size={12} />
+              <span>{t('sidebar.git') || 'Git'}</span>
+              <Show when={gitState.statusEntries.length > 0}>
+                <span
+                  class="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                  style={{
+                    background: 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
+                    color: 'var(--color-warning)',
+                  }}
+                >
+                  {gitState.statusEntries.length}
+                </span>
+              </Show>
+            </div>
+          </button>
         </div>
       </Show>
 

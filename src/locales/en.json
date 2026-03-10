@@ -58,6 +58,7 @@
     "projects": "Projects",
     "files": "Files",
     "actions": "Actions",
+    "git": "Git",
     "sessions": "Sessions",
     "openProject": "Open a project folder",
     "newSession": "New Session",

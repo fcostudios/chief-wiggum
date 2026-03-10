@@ -12,7 +12,7 @@ import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
-import { MessageSquare, Users, GitCompare, Terminal, Zap } from 'lucide-solid';
+import { MessageSquare, Users, GitCompare, GitBranch, Terminal, Zap } from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -68,6 +68,7 @@ const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }
   conversation: MessageSquare,
   agents: Users,
   diff: GitCompare,
+  git: GitBranch,
   terminal: Terminal,
   actions_center: Zap,
 };
