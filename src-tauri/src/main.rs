@@ -314,6 +314,9 @@ fn main() {
             chief_wiggum_lib::commands::git::git_unstage_file,
             chief_wiggum_lib::commands::git::git_stage_hunk,
             chief_wiggum_lib::commands::git::git_unstage_hunk,
+            chief_wiggum_lib::commands::git::git_create_commit,
+            chief_wiggum_lib::commands::git::git_amend_commit,
+            chief_wiggum_lib::commands::git::git_get_last_commit_message,
         ])
         .setup(|app| {
             use tauri::Manager;

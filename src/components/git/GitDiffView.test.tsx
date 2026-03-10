@@ -9,6 +9,10 @@ vi.mock('@/stores/gitStore', () => ({
     isDiffLoading: false,
   },
   loadFileDiff: vi.fn(),
+  stageFile: vi.fn(),
+  unstageFile: vi.fn(),
+  stageHunk: vi.fn(),
+  unstageHunk: vi.fn(),
 }));
 
 describe('GitDiffView', () => {

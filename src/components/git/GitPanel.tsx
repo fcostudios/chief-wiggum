@@ -13,6 +13,7 @@ import {
   refreshRepoInfo,
 } from '@/stores/gitStore';
 import ChangedFilesList from '@/components/git/ChangedFilesList';
+import CommitBox from '@/components/git/CommitBox';
 
 const GitPanel: Component = () => {
   onMount(() => {
@@ -128,6 +129,10 @@ const GitPanel: Component = () => {
           </div>
         </Show>
       </div>
+
+      <Show when={gitState.repoInfo}>
+        <CommitBox />
+      </Show>
     </div>
   );
 };
