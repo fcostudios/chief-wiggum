@@ -305,6 +305,10 @@ fn main() {
             chief_wiggum_lib::commands::templates::use_prompt_template,
             chief_wiggum_lib::commands::git::git_get_repo_info,
             chief_wiggum_lib::commands::git::git_get_status,
+            chief_wiggum_lib::commands::git::git_list_branches,
+            chief_wiggum_lib::commands::git::git_switch_branch,
+            chief_wiggum_lib::commands::git::git_create_branch,
+            chief_wiggum_lib::commands::git::git_delete_branch,
         ])
         .setup(|app| {
             use tauri::Manager;

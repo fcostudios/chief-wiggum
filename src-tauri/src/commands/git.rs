@@ -2,6 +2,7 @@
 //! Thin handlers: resolve project path from DB, delegate to `git::*` modules.
 
 use crate::db::{queries, Database};
+use crate::git::branches::{self, BranchInfo};
 use crate::git::repository;
 use crate::git::status::{self, FileStatusEntry};
 use crate::AppError;
@@ -39,4 +40,62 @@ pub fn git_get_status(
     }
 
     status::get_status(repo_root)
+}
+
+/// List all branches for a project's Git repository.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id))]
+pub fn git_list_branches(
+    db: State<'_, Database>,
+    project_id: String,
+    include_remote: Option<bool>,
+) -> Result<Vec<BranchInfo>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    if git2::Repository::discover(&project.path).is_err() {
+        return Ok(vec![]);
+    }
+    branches::list_branches(
+        std::path::Path::new(&project.path),
+        include_remote.unwrap_or(false),
+    )
+}
+
+/// Switch to an existing local branch.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, branch_name = %branch_name))]
+pub fn git_switch_branch(
+    db: State<'_, Database>,
+    project_id: String,
+    branch_name: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    branches::switch_branch(std::path::Path::new(&project.path), &branch_name)
+}
+
+/// Create a new local branch from current HEAD.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, branch_name = %branch_name))]
+pub fn git_create_branch(
+    db: State<'_, Database>,
+    project_id: String,
+    branch_name: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    branches::create_branch(std::path::Path::new(&project.path), &branch_name)
+}
+
+/// Delete a local branch (refuses if it is the current branch).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, branch_name = %branch_name))]
+pub fn git_delete_branch(
+    db: State<'_, Database>,
+    project_id: String,
+    branch_name: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    branches::delete_branch(std::path::Path::new(&project.path), &branch_name)
 }
