@@ -303,6 +303,7 @@ fn main() {
             chief_wiggum_lib::commands::templates::edit_prompt_template,
             chief_wiggum_lib::commands::templates::remove_prompt_template,
             chief_wiggum_lib::commands::templates::use_prompt_template,
+            chief_wiggum_lib::commands::git::git_get_repo_info,
         ])
         .setup(|app| {
             use tauri::Manager;

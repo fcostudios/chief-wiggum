@@ -72,6 +72,8 @@ getrandom = "0.2"
 trash = "5"
 # Gitignore-aware directory walking (same engine as ripgrep)
 ignore = "0.4"
+# Git operations via git2-rs (CHI-311 Phase 4)
+git2 = { version = "0.19", features = ["vendored-libgit2"] }
 # Filesystem watching for project file changes (CHI-115)
 notify = "8"
 # Native window blur/vibrancy effects (CHI-69)

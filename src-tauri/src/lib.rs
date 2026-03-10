@@ -8,6 +8,7 @@ pub mod bridge;
 pub mod commands;
 pub mod db;
 pub mod files;
+pub mod git;
 pub mod import;
 pub mod logging;
 pub mod security;
@@ -71,6 +72,9 @@ pub enum AppError {
     #[error("Keychain error: {0}")]
     Keychain(String),
 
+    #[error("Git error: {0}")]
+    Git(String),
+
     #[error("{0}")]
     Other(String),
 }
@@ -82,6 +86,12 @@ impl serde::Serialize for AppError {
         S: serde::Serializer,
     {
         serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl From<git2::Error> for AppError {
+    fn from(e: git2::Error) -> Self {
+        AppError::Git(e.message().to_string())
     }
 }
 
