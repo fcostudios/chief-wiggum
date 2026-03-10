@@ -7,7 +7,7 @@
 // Z5: StatusBar (bottom, fixed height)
 
 import type { Component } from 'solid-js';
-import { onMount, onCleanup, Show } from 'solid-js';
+import { createEffect, onCleanup, onMount, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -58,11 +58,13 @@ import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
 import EditorTakeover from '@/components/editor/EditorTakeover';
 import { fileState } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
+import { refreshGitStatus, refreshRepoInfo, setGitProjectId } from '@/stores/gitStore';
 import ChangelogModal from '@/components/common/ChangelogModal';
 import AboutModal from '@/components/common/AboutModal';
 import QuickSessionSwitcher from '@/components/common/QuickSessionSwitcher';
 import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
 import { t } from '@/stores/i18nStore';
+import GitPanel from '@/components/git/GitPanel';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -139,6 +141,15 @@ const MainLayout: Component = () => {
   // Seed the primary pane with the current active session after app/session restore.
   onMount(() => {
     ensureMainPaneSession(sessionState.activeSessionId);
+  });
+
+  // Sync selected project with gitStore and refresh repository metadata.
+  createEffect(() => {
+    const projectId = projectState.activeProjectId;
+    setGitProjectId(projectId ?? null);
+    if (!projectId) return;
+    void refreshRepoInfo();
+    void refreshGitStatus();
   });
 
   // Warn before closing the app when there is unsent content.
@@ -229,6 +240,7 @@ const MainLayout: Component = () => {
             <ViewTab label="Conversation" view="conversation" />
             <ViewTab label="Agents" view="agents" />
             <ViewTab label="Diff" view="diff" />
+            <ViewTab label="Git" view="git" />
             <ViewTab label="Terminal" view="terminal" />
             <ViewTab
               label="Actions"
@@ -258,6 +270,9 @@ const MainLayout: Component = () => {
             </Show>
             <Show when={uiState.activeView === 'diff' && !fileState.editorTakeoverActive}>
               <DiffPreviewPane />
+            </Show>
+            <Show when={uiState.activeView === 'git' && !fileState.editorTakeoverActive}>
+              <GitPanel />
             </Show>
             <Show when={uiState.activeView === 'terminal' && !fileState.editorTakeoverActive}>
               <TerminalPane />
