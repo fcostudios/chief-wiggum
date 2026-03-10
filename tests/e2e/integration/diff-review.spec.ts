@@ -38,7 +38,10 @@ test.describe('Diff Review Pane (CHI-168)', () => {
     await page.keyboard.press(`${modKey}+3`);
     await page.waitForTimeout(250);
 
-    await expect(page.getByRole('button', { name: 'Diff' })).toHaveClass(/text-text-primary/);
+    await expect(page.getByRole('button', { name: 'Diff' })).toHaveAttribute(
+      'data-active',
+      'true',
+    );
     await expect(page.getByText('No diff selected')).toBeVisible();
   });
 

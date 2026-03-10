@@ -152,7 +152,7 @@ test.describe('Settings Modal Interactions (CHI-167)', () => {
     await page.mouse.click(8, 8);
     await page.waitForTimeout(150);
 
-    await expect(page.locator('.grain-overlay')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
     await expect(dialog).toBeVisible();
   });
 });

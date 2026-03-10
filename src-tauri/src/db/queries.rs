@@ -1352,6 +1352,7 @@ mod tests {
         Database::open_in_memory().unwrap()
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn insert_message_legacy(
         db: &Database,
         id: &str,
@@ -1400,6 +1401,7 @@ mod tests {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn insert_cost_event_legacy(
         db: &Database,
         session_id: &str,
@@ -1983,6 +1985,7 @@ mod artifact_tests {
         Database::open_in_memory().expect("open in-memory db")
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn insert_message_legacy(
         db: &Database,
         id: &str,

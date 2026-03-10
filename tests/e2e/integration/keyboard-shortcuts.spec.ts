@@ -12,26 +12,30 @@ test.describe('Keyboard Shortcuts', () => {
 
   test('mod+1 through mod+4 switch views', async ({ page }) => {
     await page.keyboard.press(`${modKey}+2`);
-    await expect(page.getByRole('button', { name: 'Agents' })).toHaveClass(/text-text-primary/);
+    await expect(page.getByRole('button', { name: 'Agents' })).toHaveAttribute(
+      'data-active',
+      'true',
+    );
 
     await page.keyboard.press(`${modKey}+4`);
     await expect(page.locator('.xterm')).toBeVisible();
 
     await page.keyboard.press(`${modKey}+1`);
-    await expect(page.getByRole('button', { name: 'Conversation' })).toHaveClass(
-      /text-text-primary/,
+    await expect(page.getByRole('button', { name: 'Conversation' })).toHaveAttribute(
+      'data-active',
+      'true',
     );
   });
 
   test('mod+B cycles sidebar states', async ({ page }) => {
-    await expect(page.getByText('Projects')).toBeVisible();
+    await expect(page.getByText('Projects', { exact: true })).toBeVisible();
     await page.keyboard.press(`${modKey}+b`);
     await page.waitForTimeout(250);
     await page.keyboard.press(`${modKey}+b`);
     await page.waitForTimeout(250);
     await page.keyboard.press(`${modKey}+b`);
     await page.waitForTimeout(250);
-    await expect(page.getByText('Projects')).toBeVisible();
+    await expect(page.getByText('Projects', { exact: true })).toBeVisible();
   });
 
   test('mod+Shift+B toggles details panel', async ({ page }) => {

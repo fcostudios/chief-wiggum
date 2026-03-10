@@ -4,7 +4,7 @@ import { expect } from '../fixtures/app';
 const test = rawTest.extend({
   page: async ({ page }, use) => {
     await page.goto('/');
-    await page.waitForSelector('.grain-overlay', { timeout: 15_000 });
+    await page.waitForSelector('#main-content', { timeout: 15_000 });
     await page.waitForTimeout(250);
     await use(page);
   },

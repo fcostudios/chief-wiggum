@@ -36,7 +36,7 @@ tracing-appender = "0.2"
 parking_lot = "0.12"
 
 # Database (Phase 1 + CHI-288 at-rest encryption)
-rusqlite = { version = "0.32", features = ["bundled-sqlcipher", "backup"] }
+rusqlite = { version = "0.32", features = ["bundled-sqlcipher-vendored-openssl", "backup"] }
 
 # Unique identifiers
 uuid = { version = "1", features = ["v4"] }
@@ -78,11 +78,18 @@ git2 = { version = "0.19", features = ["vendored-libgit2"] }
 notify = "8"
 # Native window blur/vibrancy effects (CHI-69)
 window-vibrancy = "0.6"
-# Native message dialogs for startup recovery prompts
-rfd = "0.16"
-
 # Fix PATH for macOS/Linux GUI apps (launchd doesn't inherit shell profile)
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Match tauri-plugin-dialog's GTK backend to avoid rfd backend conflicts in CI.
+rfd = { version = "0.16", default-features = false, features = ["gtk3"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+rfd = { version = "0.16", default-features = false }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+rfd = { version = "0.16", default-features = false, features = ["common-controls-v6"] }
 
 [dev-dependencies]
 tempfile = "3"

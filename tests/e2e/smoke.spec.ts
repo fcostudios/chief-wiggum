@@ -12,6 +12,6 @@ test.describe('Smoke Test', () => {
 
   test('conversation view is the default active view', async ({ page }) => {
     const convTab = page.getByRole('button', { name: 'Conversation' });
-    await expect(convTab).toHaveClass(/text-text-primary/);
+    await expect(convTab).toHaveAttribute('data-active', 'true');
   });
 });

@@ -78,7 +78,7 @@ async function seedAndLoad(page: Page, content: string): Promise<void> {
   );
 
   await page.reload();
-  await page.waitForSelector('.grain-overlay', { timeout: 15_000 });
+  await page.waitForSelector('#main-content', { timeout: 15_000 });
 
   const skipAll = page.getByRole('button', { name: 'Skip all' });
   if (await skipAll.isVisible({ timeout: 1000 }).catch(() => false)) {
