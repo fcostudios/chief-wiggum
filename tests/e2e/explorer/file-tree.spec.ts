@@ -35,7 +35,7 @@ test.describe('File Tree (CHI-158)', () => {
     await page.waitForTimeout(200);
     await toggle.click();
     await page.waitForTimeout(200);
-    await expect(page.locator('.grain-overlay')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
   });
 
   test('file tree renders when Files section is open', async ({ page }) => {

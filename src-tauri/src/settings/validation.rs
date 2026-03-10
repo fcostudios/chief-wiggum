@@ -235,8 +235,10 @@ mod tests {
 
     #[test]
     fn migration_from_v1_updates_version() {
-        let mut settings = UserSettings::default();
-        settings.version = 1;
+        let mut settings = UserSettings {
+            version: 1,
+            ..UserSettings::default()
+        };
         assert!(settings.migrate());
         assert_eq!(settings.version, 2);
     }

@@ -432,6 +432,8 @@ const ViewTab: Component<{ label: string; view: ActiveView; title?: string }> = 
   return (
     <button
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium tracking-wide transition-colors"
+      data-active={isActive() ? 'true' : 'false'}
+      aria-pressed={isActive()}
       style={{
         'transition-duration': 'var(--duration-normal)',
         background: isActive() ? 'var(--color-tab-active-bg)' : 'transparent',

@@ -36,7 +36,7 @@ test.describe('Actions Run & Output (CHI-159)', () => {
       return;
     }
 
-    await expect(page.locator('.grain-overlay')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
   });
 
   test('running or selecting an action exposes output panel state', async ({ page }) => {

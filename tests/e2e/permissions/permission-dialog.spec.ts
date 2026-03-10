@@ -27,7 +27,7 @@ test.describe('Permission Dialog Flow (CHI-161)', () => {
     const helpDialog = page.getByRole('dialog', { name: /keyboard shortcuts/i });
     if (!(await helpDialog.isVisible().catch(() => false))) return;
 
-    await expect(helpDialog.getByText(/Toggle YOLO mode/i)).toBeVisible();
+    await expect(helpDialog.getByText(/Toggle Auto-approve mode/i)).toBeVisible();
     await expect(helpDialog.getByText(/Toggle Developer mode/i)).toBeVisible();
 
     await page.keyboard.press('Escape');

@@ -34,7 +34,7 @@ test.describe('Actions Discovery (CHI-159)', () => {
     await page.waitForTimeout(200);
     await toggle.click();
     await page.waitForTimeout(200);
-    await expect(page.locator('.grain-overlay')).toBeVisible();
+    await expect(page.locator('#main-content')).toBeVisible();
   });
 
   test('actions panel renders when Actions section is open', async ({ page }) => {
