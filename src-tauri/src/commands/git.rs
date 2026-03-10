@@ -3,6 +3,7 @@
 
 use crate::db::{queries, Database};
 use crate::git::branches::{self, BranchInfo};
+use crate::git::diff::{self, FileDiff};
 use crate::git::repository;
 use crate::git::status::{self, FileStatusEntry};
 use crate::AppError;
@@ -98,4 +99,22 @@ pub fn git_delete_branch(
     let project = queries::get_project(&db, &project_id)?
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
     branches::delete_branch(std::path::Path::new(&project.path), &branch_name)
+}
+
+/// Get the unified diff for a single file in a project's Git repository.
+///
+/// `staged = true` returns the staged diff (index vs HEAD).
+/// `staged = false` returns the unstaged diff (worktree vs index).
+/// Returns null if the file has no diff.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, file_path = %file_path, staged = %staged))]
+pub fn git_get_file_diff(
+    db: State<'_, Database>,
+    project_id: String,
+    file_path: String,
+    staged: bool,
+) -> Result<Option<FileDiff>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    diff::get_file_diff(std::path::Path::new(&project.path), &file_path, staged)
 }

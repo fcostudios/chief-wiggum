@@ -309,6 +309,7 @@ fn main() {
             chief_wiggum_lib::commands::git::git_switch_branch,
             chief_wiggum_lib::commands::git::git_create_branch,
             chief_wiggum_lib::commands::git::git_delete_branch,
+            chief_wiggum_lib::commands::git::git_get_file_diff,
         ])
         .setup(|app| {
             use tauri::Manager;

@@ -2,5 +2,6 @@
 //! Uses git2-rs for all Git operations — no shell spawning.
 
 pub mod branches;
+pub mod diff;
 pub mod repository;
 pub mod status;
