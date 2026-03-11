@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork ↔ Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-08T23:35:01Z",
+  "last_updated": "2026-03-11T16:30:22Z",
   "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -387,7 +387,7 @@
     },
     "CHI-269": {
       "title": "File & Folder Creation — Full File Management",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "cab2c794-ca7a-472a-8d2d-58fe389b7a7b",
       "priority": "High",
       "spec_ref": "SPEC-006 §4.22",
@@ -396,7 +396,7 @@
       "tasks": {
         "CHI-272": {
           "title": "FM-3: Context Menu — Rename, Delete, Duplicate",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 3,
           "depends_on": [
@@ -404,7 +404,8 @@
             "CHI-271"
           ]
         }
-      }
+      },
+      "completed_at": "2026-03-09T00:01:44Z"
     },
     "CHI-276": {
       "title": "Binary File Preview — Images, PDFs, Audio & More",
@@ -418,7 +419,7 @@
     },
     "CHI-277": {
       "title": "AskUserQuestion Dialog — Interactive Agent Questions",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "db417b17-036e-45a8-bbf0-e9f85ecda8a5",
       "priority": "Urgent",
       "spec_ref": "SPEC-006 §4.24",
@@ -427,7 +428,7 @@
       "tasks": {
         "CHI-284": {
           "title": "AQ-3: ToolUseBlock Question Category",
-          "status": "backlog",
+          "status": "done",
           "priority": "High",
           "size": 2,
           "depends_on": [
@@ -436,12 +437,164 @@
         },
         "CHI-285": {
           "title": "AQ-4: Accessibility + Edge Cases",
-          "status": "backlog",
+          "status": "done",
           "priority": "Medium",
           "size": 3,
           "depends_on": [
             "AQ-2"
           ]
+        }
+      },
+      "completed_at": "2026-03-09T00:01:44Z"
+    },
+    "CHI-311": {
+      "title": "Git Integration",
+      "status": "in_progress",
+      "phase": "Phase 4",
+      "tasks": {
+        "CHI-312": {
+          "title": "GIT-1: Git module scaffold + repository discovery",
+          "status": "done"
+        },
+        "CHI-313": {
+          "title": "GIT-2: Branch operations (list, switch, create, delete)",
+          "status": "done"
+        },
+        "CHI-314": {
+          "title": "GIT-3: Enhanced status (staged/unstaged/untracked)",
+          "status": "done"
+        },
+        "CHI-315": {
+          "title": "GIT-4: gitStore.ts + BranchIndicator in status bar",
+          "status": "done"
+        },
+        "CHI-316": {
+          "title": "GIT-5: GitPanel + ChangedFilesList basic UI",
+          "status": "done"
+        },
+        "CHI-317": {
+          "title": "GIT-6: Diff generation (file + hunk parsing)",
+          "status": "done"
+        },
+        "CHI-318": {
+          "title": "GIT-7: GitDiffView — file diff in details panel",
+          "status": "done"
+        },
+        "CHI-319": {
+          "title": "GIT-8: Stage/unstage files + hunk-level staging",
+          "status": "done"
+        },
+        "CHI-320": {
+          "title": "GIT-9: CommitBox + commit creation",
+          "status": "done"
+        },
+        "CHI-321": {
+          "title": "GIT-10: Discard changes with soft undo",
+          "status": "backlog"
+        },
+        "CHI-322": {
+          "title": "GIT-11: Push/Pull/Fetch with progress events",
+          "status": "backlog"
+        },
+        "CHI-323": {
+          "title": "GIT-12: RemoteActions UI + progress bar",
+          "status": "backlog"
+        },
+        "CHI-324": {
+          "title": "GIT-13: Commit log with pagination",
+          "status": "backlog"
+        },
+        "CHI-325": {
+          "title": "GIT-14: Ahead/behind tracking",
+          "status": "backlog"
+        },
+        "CHI-326": {
+          "title": "GIT-15: Stash operations (save, list, pop, drop)",
+          "status": "backlog"
+        },
+        "CHI-327": {
+          "title": "GIT-16: Merge conflict detection + banner",
+          "status": "backlog"
+        },
+        "CHI-328": {
+          "title": "GIT-17: AI commit message generation",
+          "status": "backlog"
+        },
+        "CHI-329": {
+          "title": "GIT-18: Context menu git actions on file tree",
+          "status": "backlog"
+        },
+        "CHI-330": {
+          "title": "GIT-19: Keyboard shortcuts for Git operations",
+          "status": "backlog"
+        }
+      }
+    },
+    "CHI-331": {
+      "title": "Terminal Integration",
+      "status": "backlog",
+      "linear_id": "e68db033-f13f-477c-be3f-9cc52177732e",
+      "priority": "High",
+      "tasks": {
+        "CHI-332": {
+          "title": "TERM-1: Terminal backend module scaffold + PTY session lifecycle",
+          "status": "backlog",
+          "priority": "High"
+        },
+        "CHI-333": {
+          "title": "TERM-2: Terminal output streaming via Tauri events",
+          "status": "backlog",
+          "priority": "High"
+        },
+        "CHI-334": {
+          "title": "TERM-3: terminalStore.ts + wire TerminalPane to backend",
+          "status": "backlog",
+          "priority": "High"
+        },
+        "CHI-335": {
+          "title": "TERM-4: Shell detection + selection",
+          "status": "backlog",
+          "priority": "Medium"
+        },
+        "CHI-336": {
+          "title": "TERM-5: Multi-tab UI (TerminalTabs.tsx)",
+          "status": "backlog",
+          "priority": "High"
+        },
+        "CHI-337": {
+          "title": "TERM-6: Tab rename + reorder + overflow",
+          "status": "backlog",
+          "priority": "Medium"
+        },
+        "CHI-338": {
+          "title": "TERM-7: Empty state + auto-spawn on view switch",
+          "status": "backlog",
+          "priority": "Medium"
+        },
+        "CHI-339": {
+          "title": "TERM-8: Clickable file paths (addon-web-links)",
+          "status": "backlog",
+          "priority": "Medium"
+        },
+        "CHI-340": {
+          "title": "TERM-9: CWD tracking + status bar display",
+          "status": "backlog",
+          "priority": "Medium"
+        },
+        "CHI-341": {
+          "title": "TERM-10: Terminal settings UI",
+          "status": "backlog",
+          "priority": "Low"
+        },
+        "CHI-342": {
+          "title": "TERM-11: Terminal keyboard shortcuts",
+          "status": "backlog",
+          "priority": "Low"
+        },
+        "CHI-343": {
+          "title": "TERM-12: Terminal accessibility",
+          "status": "backlog",
+          "priority": "Medium"
         }
       }
     }
@@ -1813,7 +1966,7 @@
     },
     "CHI-269": {
       "title": "File & Folder Creation — Full File Management",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "cab2c794-ca7a-472a-8d2d-58fe389b7a7b",
       "notes": "New epic: user-initiated file creation/delete/rename/duplicate. 6 sub-tasks (CHI-270 through CHI-275). Spec: SPEC-006 §4.22."
     },
@@ -1825,7 +1978,7 @@
     },
     "CHI-277": {
       "title": "AskUserQuestion Dialog — Interactive Agent Questions",
-      "status": "backlog",
+      "status": "done",
       "linear_id": "db417b17-036e-45a8-bbf0-e9f85ecda8a5",
       "notes": "New epic: intercept AskUserQuestion tool calls and show interactive QuestionDialog. 4 sub-tasks (CHI-282 through CHI-285). Spec: SPEC-006 §4.24."
     },
@@ -2520,7 +2673,7 @@
     "CHI-263": {
       "id": "CHI-263",
       "title": "EQ-1: Fix Cancel Button + Wire Interrupt",
-      "status": "backlog",
+      "status": "done",
       "priority": "urgent",
       "size": "S",
       "parent": "CHI-262",
@@ -2528,13 +2681,14 @@
       "deps": [],
       "files": [
         "src/components/layout/MainLayout.tsx",
-        "src/components/conversation/MessageInput.tsx",
-        "src/stores/conversationStore.ts"
+        "src/stores/conversationStore.test.ts"
       ],
       "assigned_to": "claude-code",
       "started_at": "2026-03-07T15:30:17.826Z",
-      "updated_at": "2026-03-07T15:30:17.826Z",
-      "completed_at": "2026-03-07T00:00:00Z"
+      "updated_at": "2026-03-11T16:30:22Z",
+      "completed_at": "2026-03-11T16:30:22Z",
+      "worktree": null,
+      "notes": "Wired MessageInput onCancel to interrupt_session path via conversation store. completed_by=claude-code; lock_acquired_at=2026-03-11T16:30:22Z"
     },
     "CHI-264": {
       "id": "CHI-264",
@@ -3438,6 +3592,356 @@
       "priority": "Medium",
       "parent_epic": "CHI-65",
       "title": "Sidebar & Navigation Polish subtask (CHI-88)"
+    },
+    "CHI-312": {
+      "title": "GIT-1: Git module scaffold + repository discovery",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T12:09:47-05:00",
+      "completed_at": "2026-03-10T12:09:47-05:00",
+      "worktree": null,
+      "files": [
+        "src-tauri/Cargo.lock",
+        "src-tauri/Cargo.toml",
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/commands/mod.rs",
+        "src-tauri/src/git/branches.rs",
+        "src-tauri/src/git/mod.rs",
+        "src-tauri/src/git/repository.rs",
+        "src-tauri/src/git/status.rs",
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Implemented git2 scaffold, repository discovery, AppError::Git, and git_get_repo_info IPC. completed_by=claude-code; lock_acquired_at=2026-03-10T19:11:32Z"
+    },
+    "CHI-313": {
+      "title": "GIT-2: Branch operations (list, switch, create, delete)",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T13:20:38-05:00",
+      "completed_at": "2026-03-10T13:20:38-05:00",
+      "worktree": null,
+      "files": [
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/git/branches.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Implemented list/switch/create/delete branch operations and exposed 4 IPC commands. completed_by=claude-code; lock_acquired_at=2026-03-10T19:11:32Z"
+    },
+    "CHI-314": {
+      "title": "GIT-3: Enhanced status (staged/unstaged/untracked)",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T12:15:22-05:00",
+      "completed_at": "2026-03-10T12:15:22-05:00",
+      "worktree": null,
+      "files": [
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/git/status.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Implemented git2 status classification and git_get_status IPC integration. completed_by=claude-code; lock_acquired_at=2026-03-10T19:11:32Z"
+    },
+    "CHI-315": {
+      "title": "GIT-4: gitStore.ts + BranchIndicator in status bar",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T12:33:10-05:00",
+      "completed_at": "2026-03-10T12:33:10-05:00",
+      "worktree": null,
+      "files": [
+        "src/components/git/BranchIndicator.test.tsx",
+        "src/components/git/BranchIndicator.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/Sidebar.tsx",
+        "src/components/layout/StatusBar.tsx",
+        "src/locales/en.json",
+        "src/stores/gitStore.test.ts",
+        "src/stores/gitStore.ts",
+        "src/stores/uiStore.ts"
+      ],
+      "notes": "Implemented gitStore, BranchIndicator in status bar, and Git sidebar navigation entry. completed_by=claude-code; lock_acquired_at=2026-03-10T19:11:32Z"
+    },
+    "CHI-316": {
+      "title": "GIT-5: GitPanel + ChangedFilesList basic UI",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T13:52:44-05:00",
+      "completed_at": "2026-03-10T13:52:44-05:00",
+      "worktree": null,
+      "files": [
+        "src/components/git/ChangedFilesList.tsx",
+        "src/components/git/GitPanel.test.tsx",
+        "src/components/git/GitPanel.tsx",
+        "src/components/layout/MainLayout.test.tsx",
+        "src/components/layout/MainLayout.tsx"
+      ],
+      "notes": "Implemented GitPanel + ChangedFilesList and wired project-to-gitStore refresh in MainLayout. completed_by=claude-code; lock_acquired_at=2026-03-10T19:11:32Z"
+    },
+    "CHI-317": {
+      "title": "GIT-6: Diff generation (file + hunk parsing)",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T17:40:23-05:00",
+      "completed_at": "2026-03-10T17:40:23-05:00",
+      "worktree": null,
+      "files": [
+        "src-tauri/src/git/diff.rs",
+        "src-tauri/src/git/mod.rs",
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Implemented git diff generation with parsed hunks/lines and git_get_file_diff IPC registration. completed_by=claude-code; lock_acquired_at=2026-03-10T22:40:23Z"
+    },
+    "CHI-318": {
+      "title": "GIT-7: GitDiffView — file diff in details panel",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T17:40:23-05:00",
+      "completed_at": "2026-03-10T17:40:23-05:00",
+      "worktree": null,
+      "files": [
+        "src/stores/gitStore.ts",
+        "src/stores/gitStore.test.ts",
+        "src/components/git/GitDiffView.tsx",
+        "src/components/git/GitDiffView.test.tsx",
+        "src/components/git/ChangedFilesList.tsx",
+        "src/components/layout/DetailsPanel.tsx"
+      ],
+      "notes": "Added GitDiffView in DetailsPanel and wired file selection + diff loading in gitStore. completed_by=claude-code; lock_acquired_at=2026-03-10T22:40:23Z"
+    },
+    "CHI-319": {
+      "title": "GIT-8: Stage/unstage files + hunk-level staging",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T17:40:23-05:00",
+      "completed_at": "2026-03-10T17:40:23-05:00",
+      "worktree": null,
+      "files": [
+        "src-tauri/src/git/staging.rs",
+        "src-tauri/src/git/mod.rs",
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/gitStore.ts",
+        "src/components/git/GitDiffView.tsx"
+      ],
+      "notes": "Implemented stage/unstage for files and hunks with IPC and GitDiffView controls. completed_by=claude-code; lock_acquired_at=2026-03-10T22:40:23Z"
+    },
+    "CHI-320": {
+      "title": "GIT-9: CommitBox + commit creation",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-10T17:40:23-05:00",
+      "completed_at": "2026-03-10T17:40:23-05:00",
+      "worktree": null,
+      "files": [
+        "src-tauri/src/git/commit.rs",
+        "src-tauri/src/git/mod.rs",
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/main.rs",
+        "src/components/git/CommitBox.tsx",
+        "src/components/git/CommitBox.test.tsx",
+        "src/components/git/GitPanel.tsx",
+        "src/components/git/GitDiffView.test.tsx"
+      ],
+      "notes": "Added commit/amend backend APIs and CommitBox UX with tests and panel integration. completed_by=claude-code; lock_acquired_at=2026-03-10T22:40:23Z"
+    },
+    "CHI-321": {
+      "title": "GIT-10: Discard changes with soft undo",
+      "status": "backlog",
+      "parent_epic": "CHI-311"
+    },
+    "CHI-322": {
+      "title": "GIT-11: Push/Pull/Fetch with progress events",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "worktree": null,
+      "started_at": "2026-03-11T16:30:22Z",
+      "updated_at": "2026-03-11T16:30:22Z",
+      "completed_at": "2026-03-11T16:30:22Z",
+      "files": [
+        "src-tauri/src/git/remote.rs",
+        "src-tauri/src/git/mod.rs",
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Added git fetch/pull/push backend commands with progress event emission and tests. completed_by=claude-code; lock_acquired_at=2026-03-11T16:30:22Z"
+    },
+    "CHI-323": {
+      "title": "GIT-12: RemoteActions UI + progress bar",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "worktree": null,
+      "started_at": "2026-03-11T16:30:22Z",
+      "updated_at": "2026-03-11T16:30:22Z",
+      "completed_at": "2026-03-11T16:30:22Z",
+      "files": [
+        "src/stores/gitStore.ts",
+        "src/stores/gitStore.test.ts",
+        "src/components/git/RemoteActions.tsx",
+        "src/components/git/RemoteActions.test.tsx",
+        "src/components/git/GitPanel.tsx",
+        "src/components/git/GitPanel.test.tsx"
+      ],
+      "notes": "Added RemoteActions UI (fetch/pull/push), remote progress state/listener, and top progress bar in GitPanel. completed_by=claude-code; lock_acquired_at=2026-03-11T16:30:22Z"
+    },
+    "CHI-324": {
+      "title": "GIT-13: Commit log with pagination",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "worktree": null,
+      "started_at": "2026-03-11T16:30:22Z",
+      "updated_at": "2026-03-11T16:30:22Z",
+      "completed_at": "2026-03-11T16:30:22Z",
+      "files": [
+        "src-tauri/src/git/log.rs",
+        "src-tauri/src/git/mod.rs",
+        "src-tauri/src/commands/git.rs",
+        "src-tauri/src/main.rs",
+        "src/stores/gitStore.ts",
+        "src/stores/gitStore.test.ts",
+        "src/components/git/CommitLog.tsx",
+        "src/components/git/GitPanel.tsx",
+        "src/components/git/GitPanel.test.tsx"
+      ],
+      "notes": "Implemented paginated commit log backend command and GitPanel commit history UI with load-more. completed_by=claude-code; lock_acquired_at=2026-03-11T16:30:22Z"
+    },
+    "CHI-325": {
+      "title": "GIT-14: Ahead/behind tracking",
+      "status": "done",
+      "parent_epic": "CHI-311",
+      "assigned_to": "claude-code",
+      "worktree": null,
+      "started_at": "2026-03-11T16:30:22Z",
+      "updated_at": "2026-03-11T16:30:22Z",
+      "completed_at": "2026-03-11T16:30:22Z",
+      "files": [
+        "src-tauri/src/git/repository.rs",
+        "src/stores/gitStore.ts",
+        "src/stores/gitStore.test.ts",
+        "src/components/git/GitPanel.tsx",
+        "src/components/git/GitPanel.test.tsx"
+      ],
+      "notes": "Added upstream ahead/behind graph metrics to repo info and displayed badges in GitPanel header. completed_by=claude-code; lock_acquired_at=2026-03-11T16:30:22Z"
+    },
+    "CHI-326": {
+      "title": "GIT-15: Stash operations (save, list, pop, drop)",
+      "status": "backlog",
+      "parent_epic": "CHI-311"
+    },
+    "CHI-327": {
+      "title": "GIT-16: Merge conflict detection + banner",
+      "status": "backlog",
+      "parent_epic": "CHI-311"
+    },
+    "CHI-328": {
+      "title": "GIT-17: AI commit message generation",
+      "status": "backlog",
+      "parent_epic": "CHI-311"
+    },
+    "CHI-329": {
+      "title": "GIT-18: Context menu git actions on file tree",
+      "status": "backlog",
+      "parent_epic": "CHI-311"
+    },
+    "CHI-330": {
+      "title": "GIT-19: Keyboard shortcuts for Git operations",
+      "status": "backlog",
+      "parent_epic": "CHI-311"
+    },
+    "CHI-311": {
+      "title": "Git Integration",
+      "status": "in_progress"
+    },
+    "CHI-332": {
+      "title": "TERM-1: Terminal backend module scaffold + PTY session lifecycle",
+      "status": "backlog",
+      "priority": "High",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-333": {
+      "title": "TERM-2: Terminal output streaming via Tauri events",
+      "status": "backlog",
+      "priority": "High",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-334": {
+      "title": "TERM-3: terminalStore.ts + wire TerminalPane to backend",
+      "status": "backlog",
+      "priority": "High",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-335": {
+      "title": "TERM-4: Shell detection + selection",
+      "status": "backlog",
+      "priority": "Medium",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-336": {
+      "title": "TERM-5: Multi-tab UI (TerminalTabs.tsx)",
+      "status": "backlog",
+      "priority": "High",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-337": {
+      "title": "TERM-6: Tab rename + reorder + overflow",
+      "status": "backlog",
+      "priority": "Medium",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-338": {
+      "title": "TERM-7: Empty state + auto-spawn on view switch",
+      "status": "backlog",
+      "priority": "Medium",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-339": {
+      "title": "TERM-8: Clickable file paths (addon-web-links)",
+      "status": "backlog",
+      "priority": "Medium",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-340": {
+      "title": "TERM-9: CWD tracking + status bar display",
+      "status": "backlog",
+      "priority": "Medium",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-341": {
+      "title": "TERM-10: Terminal settings UI",
+      "status": "backlog",
+      "priority": "Low",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-342": {
+      "title": "TERM-11: Terminal keyboard shortcuts",
+      "status": "backlog",
+      "priority": "Low",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-343": {
+      "title": "TERM-12: Terminal accessibility",
+      "status": "backlog",
+      "priority": "Medium",
+      "parent_epic": "CHI-331"
+    },
+    "CHI-331": {
+      "title": "Terminal Integration",
+      "status": "backlog",
+      "priority": "High",
+      "parent_epic": null
     }
   },
   "epics_new": {
@@ -5609,8 +6113,11 @@
     }
   },
   "recommended_next": [
-    "CHI-263",
-    "CHI-264"
+    "CHI-332: TERM-1 Terminal backend module scaffold",
+    "CHI-333: TERM-2 Terminal output streaming",
+    "CHI-334: TERM-3 terminalStore + wire TerminalPane",
+    "CHI-321: GIT-10 Discard changes with soft undo",
+    "CHI-326: GIT-15 Stash operations (save, list, pop, drop)"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -7307,11 +7814,10 @@
     }
   },
   "warnings": [
-    "CODE AUDIT completed: 13 tasks were wrongly marked 'done' — reverted to backlog after verifying no code exists.",
-    "CHI-276 (Binary Preview) and CHI-247 (Pause Response) confirmed done by code audit and closed in Linear.",
-    "Near-complete epics: CHI-269 (File Mgmt 5/6, only CHI-272 left), CHI-277 (AskUserQuestion 2/4, CHI-284+285 left).",
-    "CHI-262 (Enqueue & Steer) has ZERO implementation — all 6 subtasks are backlog. Major new epic.",
-    "recommended_next: complete near-done epics first (CHI-272, CHI-284, CHI-285), then start CHI-263."
+    "CHI-311 Git Integration epic created with 19 subtasks (CHI-312 to CHI-330)",
+    "SPEC-006 updated with §4.25-4.29, §5.5, §6.4 for Git features",
+    "SPEC-004 updated with expanded git module structure and IPC commands",
+    "Existing backlog items (CHI-262 Enqueue, CHI-272 FM-3, etc.) still pending"
   ],
   "development_protocol": {
     "guide": "docs/guides/GUIDE-003-development-protocol.md",
@@ -7893,10 +8399,10 @@
     ]
   },
   "counts": {
-    "total": 146,
-    "done": 126,
-    "in_progress": 0,
-    "backlog": 20
+    "total": 179,
+    "done": 140,
+    "in_progress": 1,
+    "backlog": 38
   },
   "epic_closure_protocol": {
     "_comment": "When all sub-tasks of an epic are marked done, follow these steps:",
