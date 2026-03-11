@@ -5,6 +5,7 @@ use crate::db::{queries, Database};
 use crate::git::branches::{self, BranchInfo};
 use crate::git::commit;
 use crate::git::diff::{self, FileDiff};
+use crate::git::log::{self, CommitEntry};
 use crate::git::repository;
 use crate::git::staging;
 use crate::git::status::{self, FileStatusEntry};
@@ -212,4 +213,21 @@ pub fn git_get_last_commit_message(
     let project = queries::get_project(&db, &project_id)?
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
     commit::get_last_commit_message(std::path::Path::new(&project.path))
+}
+
+/// List commits reachable from HEAD, with skip/limit pagination.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, skip = %skip, limit = %limit))]
+pub fn git_list_commits(
+    db: State<'_, Database>,
+    project_id: String,
+    skip: usize,
+    limit: usize,
+) -> Result<Vec<CommitEntry>, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    if git2::Repository::discover(&project.path).is_err() {
+        return Ok(vec![]);
+    }
+    log::list_commits(std::path::Path::new(&project.path), skip, limit)
 }

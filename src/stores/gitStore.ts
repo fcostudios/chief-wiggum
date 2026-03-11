@@ -54,10 +54,23 @@ export interface FileDiff {
   hunks: DiffHunk[];
 }
 
+export interface CommitEntry {
+  sha: string;
+  short_sha: string;
+  summary: string;
+  message: string;
+  author: string;
+  author_email: string;
+  timestamp: number;
+}
+
 interface GitState {
   projectId: string | null;
   repoInfo: RepoInfo | null;
   statusEntries: FileStatusEntry[];
+  commits: CommitEntry[];
+  commitsLoaded: boolean;
+  commitsLoading: boolean;
   isLoading: boolean;
   error: string | null;
   selectedGitFile: FileStatusEntry | null;
@@ -69,6 +82,9 @@ const [gitState, setGitState] = createStore<GitState>({
   projectId: null,
   repoInfo: null,
   statusEntries: [],
+  commits: [],
+  commitsLoaded: false,
+  commitsLoading: false,
   isLoading: false,
   error: null,
   selectedGitFile: null,
@@ -77,11 +93,15 @@ const [gitState, setGitState] = createStore<GitState>({
 });
 
 export { gitState };
+const COMMITS_PAGE_SIZE = 20;
 
 export function setGitProjectId(id: string | null): void {
   setGitState('projectId', id);
   setGitState('selectedGitFile', null);
   setGitState('selectedFileDiff', null);
+  setGitState('commits', []);
+  setGitState('commitsLoaded', false);
+  setGitState('commitsLoading', false);
 }
 
 export function setSelectedGitFile(entry: FileStatusEntry | null): void {
@@ -180,8 +200,34 @@ export async function refreshGitStatus(): Promise<void> {
   try {
     const entries = await invoke<FileStatusEntry[]>('git_get_status', { project_id: projectId });
     setGitState('statusEntries', entries);
+    void loadCommits(true);
   } catch (err) {
     setGitState('error', String(err));
+  }
+}
+
+export async function loadCommits(reset = false): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  const skip = reset ? 0 : gitState.commits.length;
+  setGitState('commitsLoading', true);
+  try {
+    const entries = await invoke<CommitEntry[]>('git_list_commits', {
+      project_id: projectId,
+      skip,
+      limit: COMMITS_PAGE_SIZE,
+    });
+    if (reset) {
+      setGitState('commits', entries);
+    } else {
+      setGitState('commits', (prev) => [...prev, ...entries]);
+    }
+    setGitState('commitsLoaded', true);
+  } catch (err) {
+    setGitState('error', String(err));
+  } finally {
+    setGitState('commitsLoading', false);
   }
 }
 

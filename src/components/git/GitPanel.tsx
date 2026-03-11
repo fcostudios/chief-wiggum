@@ -14,6 +14,7 @@ import {
 } from '@/stores/gitStore';
 import ChangedFilesList from '@/components/git/ChangedFilesList';
 import CommitBox from '@/components/git/CommitBox';
+import CommitLog from '@/components/git/CommitLog';
 
 const GitPanel: Component = () => {
   onMount(() => {
@@ -150,6 +151,7 @@ const GitPanel: Component = () => {
 
       <Show when={gitState.repoInfo}>
         <CommitBox />
+        <CommitLog />
       </Show>
     </div>
   );

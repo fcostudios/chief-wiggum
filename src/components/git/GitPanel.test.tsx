@@ -39,6 +39,10 @@ vi.mock('@/stores/gitStore', () => ({
   refreshRepoInfo: () => mock.refreshRepoInfo(),
 }));
 
+vi.mock('@/components/git/CommitLog', () => ({
+  default: () => <div data-testid="commit-log" />,
+}));
+
 describe('GitPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -10,6 +10,7 @@ import {
   type FileStatusKind,
   gitState,
   loadFileDiff,
+  loadCommits,
   refreshGitStatus,
   refreshRepoInfo,
   setGitProjectId,
@@ -53,10 +54,15 @@ describe('gitStore', () => {
     const mockEntries = [
       { path: 'src/main.ts', status: 'modified', is_staged: false, old_path: null },
     ];
-    vi.mocked(invoke).mockResolvedValueOnce(mockEntries);
+    vi.mocked(invoke).mockResolvedValueOnce(mockEntries).mockResolvedValueOnce([]);
     setGitProjectId('project-1');
     await refreshGitStatus();
     expect(invoke).toHaveBeenCalledWith('git_get_status', { project_id: 'project-1' });
+    expect(invoke).toHaveBeenCalledWith('git_list_commits', {
+      project_id: 'project-1',
+      skip: 0,
+      limit: 20,
+    });
     expect(gitState.statusEntries).toEqual(mockEntries);
   });
 
@@ -139,5 +145,29 @@ describe('gitStore — diff loading', () => {
       file_path: 'src/main.ts',
       staged: true,
     });
+  });
+
+  it('loadCommits loads first page by default', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce([
+      {
+        sha: '0123456789',
+        short_sha: '0123456',
+        summary: 'init',
+        message: 'init',
+        author: 'Test',
+        author_email: 'test@example.com',
+        timestamp: 1000,
+      },
+    ]);
+
+    setGitProjectId('project-1');
+    await loadCommits();
+
+    expect(invoke).toHaveBeenCalledWith('git_list_commits', {
+      project_id: 'project-1',
+      skip: 0,
+      limit: 20,
+    });
+    expect(gitState.commits).toHaveLength(1);
   });
 });
