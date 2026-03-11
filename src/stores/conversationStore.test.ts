@@ -212,3 +212,28 @@ describe('conversationStore', () => {
     expect(args?.message_images?.[0]?.data_base64).toBe('YWJj');
   });
 });
+
+describe('interruptSession', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls interrupt_session IPC with correct session_id', async () => {
+    let capturedArgs: Record<string, unknown> | null = null;
+    mockIpcCommand('interrupt_session', (args) => {
+      capturedArgs = args;
+      return undefined;
+    });
+    const { interruptSession } = await import('./conversationStore');
+    await interruptSession('session-abc');
+    expect(capturedArgs).toEqual({ session_id: 'session-abc' });
+  });
+
+  it('does not throw on IPC failure', async () => {
+    mockIpcCommand('interrupt_session', () => {
+      throw new Error('IPC error');
+    });
+    const { interruptSession } = await import('./conversationStore');
+    await expect(interruptSession('session-abc')).resolves.toBeUndefined();
+  });
+});

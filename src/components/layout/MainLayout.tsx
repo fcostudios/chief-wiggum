@@ -40,6 +40,7 @@ import { sessionState, createNewSession } from '@/stores/sessionStore';
 import {
   sendMessage,
   conversationState,
+  interruptSession,
   recordPermissionOutcome,
 } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
@@ -308,6 +309,10 @@ const MainLayout: Component = () => {
                     sendMessage(text, session.id, images);
                   });
                 }
+              }}
+              onCancel={() => {
+                const sessionId = sessionState.activeSessionId;
+                if (sessionId) void interruptSession(sessionId);
               }}
               isLoading={conversationState.isLoading}
               isDisabled={!cliState.isDetected}
