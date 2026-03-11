@@ -78,11 +78,7 @@ where
     Ok(())
 }
 
-pub fn pull<F>(
-    repo_root: &Path,
-    remote_name: &str,
-    progress_cb: F,
-) -> Result<PullResult, AppError>
+pub fn pull<F>(repo_root: &Path, remote_name: &str, progress_cb: F) -> Result<PullResult, AppError>
 where
     F: FnMut(GitProgressPayload),
 {
@@ -147,7 +143,10 @@ where
     Ok(PullResult {
         commits_pulled,
         had_conflicts: false,
-        message: format!("Pulled {} commit(s) from {}/{}", commits_pulled, remote_name, branch_name),
+        message: format!(
+            "Pulled {} commit(s) from {}/{}",
+            commits_pulled, remote_name, branch_name
+        ),
     })
 }
 
@@ -230,7 +229,12 @@ mod tests {
         run_git(seed.path(), &["commit", "-m", "seed"]);
         run_git(
             seed.path(),
-            &["remote", "add", "origin", bare.path().to_str().expect("bare path")],
+            &[
+                "remote",
+                "add",
+                "origin",
+                bare.path().to_str().expect("bare path"),
+            ],
         );
         run_git(seed.path(), &["push", "-u", "origin", "main"]);
 
@@ -241,7 +245,12 @@ mod tests {
         let clone = TempDir::new().expect("create clone temp dir");
         run_git(
             clone.path(),
-            &["clone", "--local", remote.to_str().expect("remote path"), "."],
+            &[
+                "clone",
+                "--local",
+                remote.to_str().expect("remote path"),
+                ".",
+            ],
         );
         run_git(clone.path(), &["config", "user.email", "test@example.com"]);
         run_git(clone.path(), &["config", "user.name", "Test User"]);
@@ -304,17 +313,19 @@ mod tests {
         run_git(dir.path(), &["init", "-b", "main"]);
         let result = fetch(dir.path(), "nonexistent", |_| {});
         assert!(result.is_err());
-        assert!(
-            result
-                .expect_err("expected missing remote error")
-                .to_string()
-                .contains("not found")
-        );
+        assert!(result
+            .expect_err("expected missing remote error")
+            .to_string()
+            .contains("not found"));
     }
 
     #[test]
     fn credentials_callback_handles_default_credentials() {
         let mut callback = make_credentials_callback();
-        let _ = callback("https://example.com/repo.git", None, git2::CredentialType::DEFAULT);
+        let _ = callback(
+            "https://example.com/repo.git",
+            None,
+            git2::CredentialType::DEFAULT,
+        );
     }
 }

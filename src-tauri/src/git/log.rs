@@ -43,7 +43,9 @@ pub fn list_commits(
     let mut entries = Vec::with_capacity(limit);
     for oid_result in revwalk.skip(skip).take(limit) {
         let oid = oid_result.map_err(|e| AppError::Git(e.to_string()))?;
-        let commit = repo.find_commit(oid).map_err(|e| AppError::Git(e.to_string()))?;
+        let commit = repo
+            .find_commit(oid)
+            .map_err(|e| AppError::Git(e.to_string()))?;
 
         let sha = oid.to_string();
         let short_sha: String = sha.chars().take(7).collect();

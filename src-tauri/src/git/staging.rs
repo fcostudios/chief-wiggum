@@ -71,9 +71,19 @@ fn build_single_hunk_patch(file_path: &str, hunk: &diff::DiffHunk, reverse: bool
     patch.push_str(&format!("+++ {}\n", new_path));
 
     let (hunk_old_start, hunk_old_lines, hunk_new_start, hunk_new_lines) = if reverse {
-        (hunk.new_start, hunk.new_lines, hunk.old_start, hunk.old_lines)
+        (
+            hunk.new_start,
+            hunk.new_lines,
+            hunk.old_start,
+            hunk.old_lines,
+        )
     } else {
-        (hunk.old_start, hunk.old_lines, hunk.new_start, hunk.new_lines)
+        (
+            hunk.old_start,
+            hunk.old_lines,
+            hunk.new_start,
+            hunk.new_lines,
+        )
     };
 
     patch.push_str(&format!(

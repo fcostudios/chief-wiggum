@@ -56,7 +56,10 @@ const RemoteActions: Component = () => {
         title="Pull"
         aria-label="Pull from remote"
       >
-        <ArrowDown size={11} classList={{ 'animate-bounce': gitState.remoteOperation === 'pull' }} />
+        <ArrowDown
+          size={11}
+          classList={{ 'animate-bounce': gitState.remoteOperation === 'pull' }}
+        />
         <span class="hidden sm:inline">Pull</span>
       </button>
 

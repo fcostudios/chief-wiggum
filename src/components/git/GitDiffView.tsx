@@ -66,7 +66,10 @@ const GitDiffView: Component = () => {
               'border-bottom': '1px solid var(--color-border-secondary)',
             }}
           >
-            <FileCode size={13} style={{ color: 'var(--color-text-tertiary)', 'flex-shrink': '0' }} />
+            <FileCode
+              size={13}
+              style={{ color: 'var(--color-text-tertiary)', 'flex-shrink': '0' }}
+            />
             <span
               class="min-w-0 flex-1 truncate font-mono text-xs"
               style={{ color: 'var(--color-text-primary)' }}

@@ -71,7 +71,10 @@ const CommitBox: Component = () => {
   }
 
   return (
-    <div class="shrink-0 px-3 py-3" style={{ 'border-top': '1px solid var(--color-border-secondary)' }}>
+    <div
+      class="shrink-0 px-3 py-3"
+      style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
+    >
       <div class="relative mb-2">
         <textarea
           class="w-full resize-none rounded-md px-3 py-2 font-mono text-sm transition-colors"

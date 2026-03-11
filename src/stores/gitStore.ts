@@ -302,10 +302,11 @@ export async function pullRemote(): Promise<string> {
   setGitState('remoteError', null);
   try {
     await startListeningRemoteProgress();
-    const result = await invoke<{ commits_pulled: number; had_conflicts: boolean; message: string }>(
-      'git_pull',
-      { project_id: projectId },
-    );
+    const result = await invoke<{
+      commits_pulled: number;
+      had_conflicts: boolean;
+      message: string;
+    }>('git_pull', { project_id: projectId });
     await refreshRepoInfo();
     await refreshGitStatus();
     return result.message;

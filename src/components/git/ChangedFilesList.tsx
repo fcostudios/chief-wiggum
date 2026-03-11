@@ -113,10 +113,10 @@ const ChangedFilesList: Component<Props> = (props) => {
                       class="shrink-0 max-w-[80px] truncate text-[10px] font-mono"
                       style={{ color: 'var(--color-text-tertiary)' }}
                       title={dirname}
-                  >
-                    {dirname}
-                  </span>
-                </Show>
+                    >
+                      {dirname}
+                    </span>
+                  </Show>
                 </button>
               );
             }}

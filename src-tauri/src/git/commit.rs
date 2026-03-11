@@ -77,7 +77,14 @@ pub fn amend_commit(repo_root: &Path, message: &str) -> Result<String, AppError>
         .map_err(|e| AppError::Git(e.to_string()))?;
 
     let oid = head_commit
-        .amend(Some("HEAD"), Some(&sig), Some(&sig), None, Some(message), Some(&tree))
+        .amend(
+            Some("HEAD"),
+            Some(&sig),
+            Some(&sig),
+            None,
+            Some(message),
+            Some(&tree),
+        )
         .map_err(|e| AppError::Git(format!("Amend failed: {}", e)))?;
 
     Ok(format!("{:.7}", oid))

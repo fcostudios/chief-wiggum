@@ -80,7 +80,10 @@ pub fn get_file_diff(
         return Ok(None);
     }
 
-    let delta = diff.deltas().next().expect("pathspec filtered to one delta");
+    let delta = diff
+        .deltas()
+        .next()
+        .expect("pathspec filtered to one delta");
     let path = delta
         .new_file()
         .path()
@@ -216,8 +219,11 @@ mod tests {
     #[test]
     fn test_unstaged_diff_for_modified_file() {
         let dir = init_repo_with_commit();
-        std::fs::write(dir.path().join("README.md"), "line 1\nline 2 modified\nline 3\n")
-            .expect("modify file");
+        std::fs::write(
+            dir.path().join("README.md"),
+            "line 1\nline 2 modified\nline 3\n",
+        )
+        .expect("modify file");
 
         let result = get_file_diff(dir.path(), "README.md", false).expect("get unstaged diff");
         assert!(result.is_some());
@@ -234,8 +240,11 @@ mod tests {
     #[test]
     fn test_staged_diff_for_staged_file() {
         let dir = init_repo_with_commit();
-        std::fs::write(dir.path().join("README.md"), "line 1\nline 2 staged\nline 3\n")
-            .expect("modify file");
+        std::fs::write(
+            dir.path().join("README.md"),
+            "line 1\nline 2 staged\nline 3\n",
+        )
+        .expect("modify file");
         Command::new("git")
             .args(["add", "."])
             .current_dir(dir.path())
@@ -258,8 +267,7 @@ mod tests {
     #[test]
     fn test_diff_for_new_staged_file() {
         let dir = init_repo_with_commit();
-        std::fs::write(dir.path().join("new.ts"), "export const x = 1;\n")
-            .expect("write new file");
+        std::fs::write(dir.path().join("new.ts"), "export const x = 1;\n").expect("write new file");
         Command::new("git")
             .args(["add", "."])
             .current_dir(dir.path())
@@ -277,8 +285,11 @@ mod tests {
     #[test]
     fn test_hunk_header_format() {
         let dir = init_repo_with_commit();
-        std::fs::write(dir.path().join("README.md"), "line 1\nline 2 changed\nline 3\n")
-            .expect("modify file");
+        std::fs::write(
+            dir.path().join("README.md"),
+            "line 1\nline 2 changed\nline 3\n",
+        )
+        .expect("modify file");
         Command::new("git")
             .args(["add", "."])
             .current_dir(dir.path())
@@ -299,8 +310,11 @@ mod tests {
     #[test]
     fn test_line_numbers_populated() {
         let dir = init_repo_with_commit();
-        std::fs::write(dir.path().join("README.md"), "line 1\nNEW LINE\nline 2\nline 3\n")
-            .expect("modify file");
+        std::fs::write(
+            dir.path().join("README.md"),
+            "line 1\nNEW LINE\nline 2\nline 3\n",
+        )
+        .expect("modify file");
         Command::new("git")
             .args(["add", "."])
             .current_dir(dir.path())

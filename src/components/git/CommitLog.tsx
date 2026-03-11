@@ -48,7 +48,10 @@ const CommitLogEntry: Component<{ entry: CommitEntry }> = (props) => (
 
 const CommitLog: Component = () => {
   const hasMore = createMemo(
-    () => gitState.commitsLoaded && gitState.commits.length > 0 && gitState.commits.length % PAGE_SIZE === 0,
+    () =>
+      gitState.commitsLoaded &&
+      gitState.commits.length > 0 &&
+      gitState.commits.length % PAGE_SIZE === 0,
   );
 
   return (
@@ -61,7 +64,11 @@ const CommitLog: Component = () => {
           Recent Commits
         </span>
         <Show when={gitState.commitsLoading}>
-          <RefreshCw size={10} class="animate-spin" style={{ color: 'var(--color-text-tertiary)' }} />
+          <RefreshCw
+            size={10}
+            class="animate-spin"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          />
         </Show>
       </div>
 
