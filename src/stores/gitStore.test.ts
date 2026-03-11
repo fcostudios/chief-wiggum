@@ -5,12 +5,23 @@ vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
 }));
 
+const mockEvent = vi.hoisted(() => ({
+  listen: vi.fn().mockResolvedValue(vi.fn()),
+}));
+
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: mockEvent.listen,
+}));
+
 import { invoke } from '@tauri-apps/api/core';
 import {
+  fetchRemote,
   type FileStatusKind,
   gitState,
   loadFileDiff,
   loadCommits,
+  pullRemote,
+  pushRemote,
   refreshGitStatus,
   refreshRepoInfo,
   setGitProjectId,
@@ -169,5 +180,73 @@ describe('gitStore — diff loading', () => {
       limit: 20,
     });
     expect(gitState.commits).toHaveLength(1);
+  });
+});
+
+describe('gitStore — remote operations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setGitProjectId('project-1');
+  });
+
+  it('fetchRemote calls git_fetch and refreshes repo/status', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce(undefined) // git_fetch
+      .mockResolvedValueOnce({
+        root: '/tmp/repo',
+        head_branch: 'main',
+        is_dirty: false,
+        ahead: 0,
+        behind: 0,
+      }) // git_get_repo_info
+      .mockResolvedValueOnce([]) // git_get_status
+      .mockResolvedValueOnce([]); // git_list_commits
+
+    await fetchRemote();
+
+    expect(invoke).toHaveBeenCalledWith('git_fetch', { project_id: 'project-1' });
+    expect(invoke).toHaveBeenCalledWith('git_get_repo_info', { project_id: 'project-1' });
+    expect(invoke).toHaveBeenCalledWith('git_get_status', { project_id: 'project-1' });
+    expect(gitState.remoteOperation).toBeNull();
+    expect(gitState.remoteError).toBeNull();
+    expect(mockEvent.listen).toHaveBeenCalledWith('git:progress', expect.any(Function));
+  });
+
+  it('pullRemote returns backend message', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce({
+        commits_pulled: 1,
+        had_conflicts: false,
+        message: 'Pulled 1 commit(s)',
+      }) // git_pull
+      .mockResolvedValueOnce({
+        root: '/tmp/repo',
+        head_branch: 'main',
+        is_dirty: false,
+        ahead: 0,
+        behind: 0,
+      }) // git_get_repo_info
+      .mockResolvedValueOnce([]) // git_get_status
+      .mockResolvedValueOnce([]); // git_list_commits
+
+    const message = await pullRemote();
+    expect(message).toContain('Pulled');
+    expect(invoke).toHaveBeenCalledWith('git_pull', { project_id: 'project-1' });
+  });
+
+  it('pushRemote calls git_push and refreshes repo info', async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce(undefined) // git_push
+      .mockResolvedValueOnce({
+        root: '/tmp/repo',
+        head_branch: 'main',
+        is_dirty: false,
+        ahead: 0,
+        behind: 0,
+      }); // git_get_repo_info
+
+    await pushRemote();
+    expect(invoke).toHaveBeenCalledWith('git_push', { project_id: 'project-1' });
+    expect(invoke).toHaveBeenCalledWith('git_get_repo_info', { project_id: 'project-1' });
   });
 });

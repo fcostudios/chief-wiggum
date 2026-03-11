@@ -15,6 +15,7 @@ import {
 import ChangedFilesList from '@/components/git/ChangedFilesList';
 import CommitBox from '@/components/git/CommitBox';
 import CommitLog from '@/components/git/CommitLog';
+import RemoteActions from '@/components/git/RemoteActions';
 
 const GitPanel: Component = () => {
   onMount(() => {
@@ -82,17 +83,40 @@ const GitPanel: Component = () => {
           </Show>
         </div>
 
-        <button
-          class="rounded p-1 transition-opacity hover:opacity-70"
-          style={{ color: 'var(--color-text-tertiary)', background: 'none', border: 'none' }}
-          onClick={handleRefresh}
-          title="Refresh Git status"
-          aria-label="Refresh Git status"
-          disabled={gitState.isLoading}
-        >
-          <RefreshCw size={13} classList={{ 'animate-spin': gitState.isLoading }} />
-        </button>
+        <div class="flex items-center gap-1">
+          <Show when={gitState.repoInfo}>
+            <RemoteActions />
+          </Show>
+          <button
+            class="rounded p-1 transition-opacity hover:opacity-70"
+            style={{ color: 'var(--color-text-tertiary)', background: 'none', border: 'none' }}
+            onClick={handleRefresh}
+            title="Refresh Git status"
+            aria-label="Refresh Git status"
+            disabled={gitState.isLoading}
+          >
+            <RefreshCw size={13} classList={{ 'animate-spin': gitState.isLoading }} />
+          </button>
+        </div>
       </div>
+
+      <Show when={gitState.remoteOperation !== null && gitState.remoteProgress}>
+        {(progress) => (
+          <div class="h-0.5 w-full shrink-0" style={{ background: 'var(--color-bg-elevated)' }}>
+            <div
+              class="h-full"
+              style={{
+                background: 'var(--color-accent)',
+                width:
+                  progress().total > 0
+                    ? `${Math.min(100, Math.round((progress().current / progress().total) * 100))}%`
+                    : '30%',
+                transition: 'width 0.2s ease',
+              }}
+            />
+          </div>
+        )}
+      </Show>
 
       <div class="min-h-0 flex-1 overflow-y-auto py-2">
         <Show when={!gitState.repoInfo && !gitState.isLoading}>

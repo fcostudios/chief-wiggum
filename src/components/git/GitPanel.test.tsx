@@ -25,6 +25,8 @@ const mock = vi.hoisted(() => ({
   gitState: {
     repoInfo: null as RepoInfo | null,
     statusEntries: [] as FileStatusEntry[],
+    remoteOperation: null as 'fetch' | 'pull' | 'push' | null,
+    remoteProgress: null as { current: number; total: number; message: string } | null,
     isLoading: false,
     error: null as string | null,
   },
@@ -43,11 +45,17 @@ vi.mock('@/components/git/CommitLog', () => ({
   default: () => <div data-testid="commit-log" />,
 }));
 
+vi.mock('@/components/git/RemoteActions', () => ({
+  default: () => <div data-testid="remote-actions" />,
+}));
+
 describe('GitPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mock.gitState.repoInfo = null;
     mock.gitState.statusEntries = [];
+    mock.gitState.remoteOperation = null;
+    mock.gitState.remoteProgress = null;
     mock.gitState.isLoading = false;
     mock.gitState.error = null;
     mock.stagedFiles = [];

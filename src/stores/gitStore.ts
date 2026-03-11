@@ -4,6 +4,7 @@
 
 import { createStore } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 export interface RepoInfo {
   root: string;
@@ -64,6 +65,14 @@ export interface CommitEntry {
   timestamp: number;
 }
 
+export type RemoteOperation = 'fetch' | 'pull' | 'push';
+
+export interface RemoteProgressState {
+  current: number;
+  total: number;
+  message: string;
+}
+
 interface GitState {
   projectId: string | null;
   repoInfo: RepoInfo | null;
@@ -71,6 +80,9 @@ interface GitState {
   commits: CommitEntry[];
   commitsLoaded: boolean;
   commitsLoading: boolean;
+  remoteOperation: RemoteOperation | null;
+  remoteProgress: RemoteProgressState | null;
+  remoteError: string | null;
   isLoading: boolean;
   error: string | null;
   selectedGitFile: FileStatusEntry | null;
@@ -85,6 +97,9 @@ const [gitState, setGitState] = createStore<GitState>({
   commits: [],
   commitsLoaded: false,
   commitsLoading: false,
+  remoteOperation: null,
+  remoteProgress: null,
+  remoteError: null,
   isLoading: false,
   error: null,
   selectedGitFile: null,
@@ -94,6 +109,7 @@ const [gitState, setGitState] = createStore<GitState>({
 
 export { gitState };
 const COMMITS_PAGE_SIZE = 20;
+let remoteProgressUnlisten: UnlistenFn | null = null;
 
 export function setGitProjectId(id: string | null): void {
   setGitState('projectId', id);
@@ -102,6 +118,9 @@ export function setGitProjectId(id: string | null): void {
   setGitState('commits', []);
   setGitState('commitsLoaded', false);
   setGitState('commitsLoading', false);
+  setGitState('remoteOperation', null);
+  setGitState('remoteProgress', null);
+  setGitState('remoteError', null);
 }
 
 export function setSelectedGitFile(entry: FileStatusEntry | null): void {
@@ -228,6 +247,96 @@ export async function loadCommits(reset = false): Promise<void> {
     setGitState('error', String(err));
   } finally {
     setGitState('commitsLoading', false);
+  }
+}
+
+export async function startListeningRemoteProgress(): Promise<void> {
+  if (remoteProgressUnlisten) return;
+  remoteProgressUnlisten = await listen<{
+    operation: string;
+    current: number;
+    total: number;
+    message: string;
+  }>('git:progress', (event) => {
+    setGitState('remoteProgress', {
+      current: event.payload.current,
+      total: event.payload.total,
+      message: event.payload.message,
+    });
+  });
+}
+
+export function stopListeningRemoteProgress(): void {
+  remoteProgressUnlisten?.();
+  remoteProgressUnlisten = null;
+}
+
+export async function fetchRemote(): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  setGitState('remoteOperation', 'fetch');
+  setGitState('remoteProgress', null);
+  setGitState('remoteError', null);
+  try {
+    await startListeningRemoteProgress();
+    await invoke('git_fetch', { project_id: projectId });
+    await refreshRepoInfo();
+    await refreshGitStatus();
+  } catch (err) {
+    setGitState('remoteError', String(err));
+    throw err;
+  } finally {
+    setGitState('remoteOperation', null);
+    setGitState('remoteProgress', null);
+    stopListeningRemoteProgress();
+  }
+}
+
+export async function pullRemote(): Promise<string> {
+  const projectId = gitState.projectId;
+  if (!projectId) return '';
+
+  setGitState('remoteOperation', 'pull');
+  setGitState('remoteProgress', null);
+  setGitState('remoteError', null);
+  try {
+    await startListeningRemoteProgress();
+    const result = await invoke<{ commits_pulled: number; had_conflicts: boolean; message: string }>(
+      'git_pull',
+      { project_id: projectId },
+    );
+    await refreshRepoInfo();
+    await refreshGitStatus();
+    return result.message;
+  } catch (err) {
+    setGitState('remoteError', String(err));
+    throw err;
+  } finally {
+    setGitState('remoteOperation', null);
+    setGitState('remoteProgress', null);
+    stopListeningRemoteProgress();
+  }
+}
+
+export async function pushRemote(): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  setGitState('remoteOperation', 'push');
+  setGitState('remoteProgress', null);
+  setGitState('remoteError', null);
+  try {
+    await startListeningRemoteProgress();
+    await invoke('git_push', { project_id: projectId });
+    await refreshRepoInfo();
+  } catch (err) {
+    setGitState('remoteError', String(err));
+    throw err;
+  } finally {
+    setGitState('remoteOperation', null);
+    setGitState('remoteProgress', null);
+    stopListeningRemoteProgress();
   }
 }
 
