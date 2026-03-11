@@ -30,7 +30,13 @@ describe('gitStore', () => {
   });
 
   it('refreshRepoInfo calls git_get_repo_info with project id', async () => {
-    const mockInfo = { root: '/tmp/repo', head_branch: 'main', is_dirty: false };
+    const mockInfo = {
+      root: '/tmp/repo',
+      head_branch: 'main',
+      is_dirty: false,
+      ahead: 0,
+      behind: 0,
+    };
     vi.mocked(invoke).mockResolvedValueOnce(mockInfo);
     setGitProjectId('project-1');
     await refreshRepoInfo();
@@ -64,7 +70,7 @@ describe('gitStore', () => {
 
     const fetchPromise = refreshRepoInfo();
     expect(gitState.isLoading).toBe(true);
-    resolvePromise({ root: '/r', head_branch: 'main', is_dirty: false });
+    resolvePromise({ root: '/r', head_branch: 'main', is_dirty: false, ahead: 0, behind: 0 });
     await fetchPromise;
     expect(gitState.isLoading).toBe(false);
   });

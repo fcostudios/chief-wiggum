@@ -9,6 +9,8 @@ export interface RepoInfo {
   root: string;
   head_branch: string | null;
   is_dirty: boolean;
+  ahead: number;
+  behind: number;
 }
 
 export type FileStatusKind =

@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@solidjs/testing-library';
 import GitPanel from './GitPanel';
 
-type RepoInfo = { root: string; head_branch: string | null; is_dirty: boolean };
+type RepoInfo = {
+  root: string;
+  head_branch: string | null;
+  is_dirty: boolean;
+  ahead: number;
+  behind: number;
+};
 type FileStatusEntry = {
   path: string;
   status: 'staged' | 'modified' | 'untracked' | 'deleted' | 'renamed' | 'conflicted';
@@ -56,7 +62,13 @@ describe('GitPanel', () => {
   });
 
   it('shows changed file sections when status entries exist', () => {
-    mock.gitState.repoInfo = { root: '/tmp/repo', head_branch: 'main', is_dirty: true };
+    mock.gitState.repoInfo = {
+      root: '/tmp/repo',
+      head_branch: 'main',
+      is_dirty: true,
+      ahead: 0,
+      behind: 0,
+    };
     mock.unstagedFiles = [
       { path: 'src/app.ts', status: 'modified', is_staged: false, old_path: null },
     ];

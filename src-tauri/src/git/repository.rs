@@ -12,6 +12,10 @@ pub struct RepoInfo {
     pub head_branch: Option<String>,
     /// Whether the repository has any uncommitted changes.
     pub is_dirty: bool,
+    /// Commits ahead of the tracking upstream branch.
+    pub ahead: u32,
+    /// Commits behind the tracking upstream branch.
+    pub behind: u32,
 }
 
 /// Discover the Git repository root starting from `start_path`.
@@ -21,6 +25,37 @@ pub fn discover_repository(start_path: &Path) -> Option<PathBuf> {
     git2::Repository::discover(start_path)
         .ok()
         .and_then(|repo| repo.workdir().map(|p| p.to_path_buf()))
+}
+
+fn compute_ahead_behind(repo: &git2::Repository) -> (u32, u32) {
+    let head = match repo.head() {
+        Ok(head) => head,
+        Err(_) => return (0, 0),
+    };
+
+    let local_oid = match head.target() {
+        Some(oid) => oid,
+        None => return (0, 0),
+    };
+
+    let branch_name = match head.shorthand() {
+        Some(name) => name,
+        None => return (0, 0),
+    };
+
+    let upstream_oid = match repo
+        .find_branch(branch_name, git2::BranchType::Local)
+        .ok()
+        .and_then(|branch| branch.upstream().ok())
+        .and_then(|branch| branch.get().target())
+    {
+        Some(oid) => oid,
+        None => return (0, 0),
+    };
+
+    repo.graph_ahead_behind(local_oid, upstream_oid)
+        .map(|(ahead, behind)| (ahead as u32, behind as u32))
+        .unwrap_or((0, 0))
 }
 
 /// Get basic repo info for the repository containing `start_path`.
@@ -51,11 +86,14 @@ pub fn get_repo_info(start_path: &Path) -> Result<Option<RepoInfo>, AppError> {
             .map(|s| !s.is_empty())
             .unwrap_or(false)
     };
+    let (ahead, behind) = compute_ahead_behind(&repo);
 
     Ok(Some(RepoInfo {
         root: workdir,
         head_branch,
         is_dirty,
+        ahead,
+        behind,
     }))
 }
 
@@ -137,6 +175,8 @@ mod tests {
             .expect("repo should exist");
         assert_eq!(info.head_branch.as_deref(), Some("main"));
         assert!(!info.is_dirty);
+        assert_eq!(info.ahead, 0);
+        assert_eq!(info.behind, 0);
     }
 
     #[test]
@@ -161,6 +201,28 @@ mod tests {
             .expect("get repo info")
             .expect("repo should exist");
         assert!(info.is_dirty);
+    }
+
+    #[test]
+    fn test_get_repo_info_ahead_behind_no_remote() {
+        let dir = init_test_repo();
+        std::fs::write(dir.path().join("README.md"), "hello").expect("write readme");
+        Command::new("git")
+            .args(["add", "."])
+            .current_dir(dir.path())
+            .output()
+            .expect("git add");
+        Command::new("git")
+            .args(["commit", "-m", "init"])
+            .current_dir(dir.path())
+            .output()
+            .expect("git commit");
+
+        let info = get_repo_info(dir.path())
+            .expect("get repo info")
+            .expect("repo should exist");
+        assert_eq!(info.ahead, 0, "no remote should report ahead=0");
+        assert_eq!(info.behind, 0, "no remote should report behind=0");
     }
 
     #[test]

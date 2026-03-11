@@ -61,6 +61,24 @@ const GitPanel: Component = () => {
               </span>
             )}
           </Show>
+          <Show when={gitState.repoInfo && gitState.repoInfo.ahead > 0}>
+            <span
+              class="font-mono text-[10px] font-semibold"
+              style={{ color: 'var(--color-success)' }}
+              title={`${gitState.repoInfo!.ahead} commit(s) ahead of upstream`}
+            >
+              ↑{gitState.repoInfo!.ahead}
+            </span>
+          </Show>
+          <Show when={gitState.repoInfo && gitState.repoInfo.behind > 0}>
+            <span
+              class="font-mono text-[10px] font-semibold"
+              style={{ color: 'var(--color-warning)' }}
+              title={`${gitState.repoInfo!.behind} commit(s) behind upstream`}
+            >
+              ↓{gitState.repoInfo!.behind}
+            </span>
+          </Show>
         </div>
 
         <button
