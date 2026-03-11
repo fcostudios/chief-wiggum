@@ -318,6 +318,9 @@ fn main() {
             chief_wiggum_lib::commands::git::git_amend_commit,
             chief_wiggum_lib::commands::git::git_get_last_commit_message,
             chief_wiggum_lib::commands::git::git_list_commits,
+            chief_wiggum_lib::commands::git::git_fetch,
+            chief_wiggum_lib::commands::git::git_pull,
+            chief_wiggum_lib::commands::git::git_push,
         ])
         .setup(|app| {
             use tauri::Manager;

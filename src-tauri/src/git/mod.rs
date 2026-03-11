@@ -5,6 +5,7 @@ pub mod branches;
 pub mod commit;
 pub mod diff;
 pub mod log;
+pub mod remote;
 pub mod repository;
 pub mod staging;
 pub mod status;

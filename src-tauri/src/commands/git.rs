@@ -6,11 +6,12 @@ use crate::git::branches::{self, BranchInfo};
 use crate::git::commit;
 use crate::git::diff::{self, FileDiff};
 use crate::git::log::{self, CommitEntry};
+use crate::git::remote;
 use crate::git::repository;
 use crate::git::staging;
 use crate::git::status::{self, FileStatusEntry};
 use crate::AppError;
-use tauri::State;
+use tauri::{Emitter, State};
 
 /// Get repository info for a project's root directory.
 /// Returns None if the project path is not inside a Git repository.
@@ -230,4 +231,70 @@ pub fn git_list_commits(
         return Ok(vec![]);
     }
     log::list_commits(std::path::Path::new(&project.path), skip, limit)
+}
+
+/// Fetch updates from the remote and emit progress events.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(app, db), fields(project_id = %project_id))]
+pub async fn git_fetch(
+    app: tauri::AppHandle,
+    db: State<'_, Database>,
+    project_id: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let path = project.path.clone();
+    let app_handle = app.clone();
+
+    tokio::task::spawn_blocking(move || {
+        remote::fetch(std::path::Path::new(&path), "origin", move |payload| {
+            let _ = app_handle.emit("git:progress", &payload);
+        })
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("git_fetch task failed: {}", e)))?
+}
+
+/// Pull updates from the remote and emit progress events.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(app, db), fields(project_id = %project_id))]
+pub async fn git_pull(
+    app: tauri::AppHandle,
+    db: State<'_, Database>,
+    project_id: String,
+) -> Result<remote::PullResult, AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let path = project.path.clone();
+    let app_handle = app.clone();
+
+    tokio::task::spawn_blocking(move || {
+        remote::pull(std::path::Path::new(&path), "origin", move |payload| {
+            let _ = app_handle.emit("git:progress", &payload);
+        })
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("git_pull task failed: {}", e)))?
+}
+
+/// Push local commits to remote and emit progress events.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(app, db), fields(project_id = %project_id))]
+pub async fn git_push(
+    app: tauri::AppHandle,
+    db: State<'_, Database>,
+    project_id: String,
+) -> Result<(), AppError> {
+    let project = queries::get_project(&db, &project_id)?
+        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
+    let path = project.path.clone();
+    let app_handle = app.clone();
+
+    tokio::task::spawn_blocking(move || {
+        remote::push(std::path::Path::new(&path), "origin", move |payload| {
+            let _ = app_handle.emit("git:progress", &payload);
+        })
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("git_push task failed: {}", e)))?
 }
