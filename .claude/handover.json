@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-12T12:00:00Z",
+  "last_updated": "2026-03-12T14:00:00Z",
   "last_updated_by": "cowork",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -330,10 +330,11 @@
       "tasks": {
         "CHI-263": {
           "title": "EQ-1: Fix Cancel Button + Wire Interrupt",
-          "status": "backlog",
+          "status": "done",
           "priority": "Urgent",
           "size": 2,
-          "depends_on": []
+          "depends_on": [],
+          "completed_at": "2026-03-11T10:32:27Z"
         },
         "CHI-264": {
           "title": "EQ-2: Enable Input During Streaming",
