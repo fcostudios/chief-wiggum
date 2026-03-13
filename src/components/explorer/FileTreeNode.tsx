@@ -3,7 +3,7 @@
 // Expands directories on click, selects files for preview.
 
 import type { Component } from 'solid-js';
-import { Show, For, createSignal, onCleanup } from 'solid-js';
+import { Show, For, createMemo, createSignal, onCleanup } from 'solid-js';
 import {
   ChevronRight,
   File,
@@ -17,7 +17,9 @@ import {
   FolderPlus,
   Image as ImageIcon,
   Layers,
+  Minus,
   Music,
+  X,
   Trash2,
 } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
@@ -45,6 +47,14 @@ import {
 } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
 import { addFileBundle, addFileReference } from '@/stores/contextStore';
+import {
+  gitState,
+  refreshGitStatus,
+  stageFile,
+  type DiscardResult,
+  type FileStatusEntry,
+  unstageFile,
+} from '@/stores/gitStore';
 import { addToast } from '@/stores/toastStore';
 import { t } from '@/stores/i18nStore';
 import ContextMenu, { type ContextMenuItem } from '@/components/common/ContextMenu';
@@ -111,6 +121,10 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
   } | null>(null);
   let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
   const isRenaming = () => fileState.renamingPath === props.node.relative_path;
+  const gitStatusEntry = createMemo(
+    (): FileStatusEntry | null =>
+      gitState.statusEntries.find((entry) => entry.path === props.node.relative_path) ?? null,
+  );
 
   onCleanup(() => {
     if (hoverTimeout) clearTimeout(hoverTimeout);
@@ -288,6 +302,68 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           addFileBundle(bundle);
         },
       });
+    }
+
+    const status = gitStatusEntry();
+    if (status) {
+      items.push({ separator: true, label: 'separator-git' });
+
+      if (!status.is_staged) {
+        items.push({
+          label: 'Stage',
+          icon: Plus,
+          onClick: () => {
+            void stageFile(status).catch((err: unknown) => {
+              addToast(`Stage failed: ${String(err)}`, 'error');
+            });
+          },
+        });
+        items.push({
+          label: 'Discard changes',
+          icon: X,
+          onClick: () => {
+            const pid = gitState.projectId;
+            if (!pid) return;
+
+            void invoke<DiscardResult>('git_discard_file', {
+              project_id: pid,
+              file_path: status.path,
+            })
+              .then(async (result) => {
+                await refreshGitStatus();
+                addToast(
+                  `Changes discarded for ${props.node.name}`,
+                  'undo',
+                  result.old_content
+                    ? {
+                        label: 'Undo',
+                        onClick: () => {
+                          void invoke('write_file_content', {
+                            project_id: pid,
+                            relative_path: status.path,
+                            content: result.old_content,
+                          }).then(() => refreshGitStatus());
+                        },
+                      }
+                    : undefined,
+                );
+              })
+              .catch((err: unknown) => {
+                addToast(`Discard failed: ${String(err)}`, 'error');
+              });
+          },
+        });
+      } else {
+        items.push({
+          label: 'Unstage',
+          icon: Minus,
+          onClick: () => {
+            void unstageFile(status).catch((err: unknown) => {
+              addToast(`Unstage failed: ${String(err)}`, 'error');
+            });
+          },
+        });
+      }
     }
 
     return items;
