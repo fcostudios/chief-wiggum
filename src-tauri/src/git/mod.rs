@@ -4,8 +4,10 @@
 pub mod branches;
 pub mod commit;
 pub mod diff;
+pub mod discard;
 pub mod log;
 pub mod remote;
 pub mod repository;
 pub mod staging;
+pub mod stash;
 pub mod status;

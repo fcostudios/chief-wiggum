@@ -12,6 +12,7 @@ const CommitBox: Component = () => {
   const [message, setMessage] = createSignal('');
   const [amend, setAmend] = createSignal(false);
   const [isCommitting, setIsCommitting] = createSignal(false);
+  const [isGenerating, setIsGenerating] = createSignal(false);
 
   const staged = createMemo(() => getStagedFiles());
   const stagedCount = createMemo(() => staged().length);
@@ -60,6 +61,24 @@ const CommitBox: Component = () => {
       } catch {
         // Ignore prefill failures.
       }
+    }
+  }
+
+  async function handleGenerateMessage() {
+    const projectId = gitState.projectId;
+    if (!projectId || stagedCount() === 0) return;
+
+    setIsGenerating(true);
+    try {
+      const generated = await invoke<string>('git_generate_commit_message', {
+        project_id: projectId,
+      });
+      setMessage(generated);
+    } catch (err) {
+      const reason = String(err).split(':').pop()?.trim() ?? 'unknown';
+      addToast(`AI message generation failed: ${reason}`, 'error');
+    } finally {
+      setIsGenerating(false);
     }
   }
 
@@ -125,13 +144,26 @@ const CommitBox: Component = () => {
             background: 'var(--color-bg-elevated)',
             border: '1px solid var(--color-border-secondary)',
           }}
-          disabled={stagedCount() === 0}
-          onClick={() => addToast('AI commit message generation coming soon (CHI-328)', 'info')}
+          disabled={stagedCount() === 0 || isGenerating()}
+          onClick={() => void handleGenerateMessage()}
           title={stagedCount() === 0 ? 'Stage changes first' : 'Generate AI commit message'}
           aria-label="Generate AI commit message"
         >
-          <Sparkles size={11} />
-          AI Message
+          <Show
+            when={isGenerating()}
+            fallback={
+              <>
+                <Sparkles size={11} />
+                AI Message
+              </>
+            }
+          >
+            <svg class="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25" />
+              <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4Z" />
+            </svg>
+            Generating...
+          </Show>
         </button>
 
         <button

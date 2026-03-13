@@ -2,7 +2,7 @@
 // Renders a unified diff for the selected Git file (CHI-318).
 
 import type { Component } from 'solid-js';
-import { For, Show, createEffect } from 'solid-js';
+import { For, Show, createEffect, createSignal } from 'solid-js';
 import { FileCode, RefreshCw } from 'lucide-solid';
 import {
   gitState,
@@ -48,17 +48,65 @@ function diffLinePrefixColor(kind: DiffLineKind): string {
 }
 
 const GitDiffView: Component = () => {
+  const [focusedHunk, setFocusedHunk] = createSignal(0);
+
   createEffect(() => {
     const file = gitState.selectedGitFile;
     if (file) {
       void loadFileDiff(file);
     }
+    setFocusedHunk(0);
   });
+
+  const hunkCount = () => gitState.selectedFileDiff?.hunks.length ?? 0;
+
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+
+    const file = gitState.selectedGitFile;
+    if (!file) return;
+
+    switch (e.key) {
+      case 'j':
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedHunk((prev) => Math.min(prev + 1, Math.max(hunkCount() - 1, 0)));
+        break;
+      case 'k':
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedHunk((prev) => Math.max(prev - 1, 0));
+        break;
+      case 's':
+        e.preventDefault();
+        if (!file.is_staged) {
+          void stageHunk(file.path, focusedHunk());
+        }
+        break;
+      case 'u':
+        e.preventDefault();
+        if (file.is_staged) {
+          void unstageHunk(file.path, focusedHunk());
+        }
+        break;
+      default:
+        break;
+    }
+  }
 
   return (
     <Show when={gitState.selectedGitFile}>
       {(file) => (
-        <div class="flex h-full flex-col" style={{ background: 'var(--color-bg-primary)' }}>
+        <div
+          data-testid="git-diff-view"
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          class="flex h-full flex-col overflow-hidden focus-visible:ring-1 focus-visible:ring-[var(--color-accent)]"
+          style={{ background: 'var(--color-bg-primary)', outline: 'none' }}
+          aria-label="Git diff viewer — use j/k to navigate hunks, s to stage, u to unstage"
+        >
           <div
             class="flex shrink-0 items-center gap-2 px-3 py-2"
             style={{
@@ -152,7 +200,14 @@ const GitDiffView: Component = () => {
             >
               <For each={gitState.selectedFileDiff?.hunks ?? []}>
                 {(hunk, hunkIdx) => (
-                  <div>
+                  <div
+                    style={{
+                      'border-left':
+                        hunkIdx() === focusedHunk()
+                          ? '3px solid var(--color-accent)'
+                          : '3px solid transparent',
+                    }}
+                  >
                     <div
                       class="sticky top-0 flex items-center justify-between px-2 py-0.5 font-mono text-[10px]"
                       style={{

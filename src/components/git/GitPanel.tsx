@@ -15,7 +15,9 @@ import {
 import ChangedFilesList from '@/components/git/ChangedFilesList';
 import CommitBox from '@/components/git/CommitBox';
 import CommitLog from '@/components/git/CommitLog';
+import MergeConflictBanner, { hasConflicts } from '@/components/git/MergeConflictBanner';
 import RemoteActions from '@/components/git/RemoteActions';
+import StashList from '@/components/git/StashList';
 
 const GitPanel: Component = () => {
   onMount(() => {
@@ -119,6 +121,10 @@ const GitPanel: Component = () => {
       </Show>
 
       <div class="min-h-0 flex-1 overflow-y-auto py-2">
+        <Show when={hasConflicts(gitState.statusEntries)}>
+          <MergeConflictBanner />
+        </Show>
+
         <Show when={!gitState.repoInfo && !gitState.isLoading}>
           <div
             class="flex flex-col items-center justify-center px-6 py-12 text-center"
@@ -176,6 +182,7 @@ const GitPanel: Component = () => {
       <Show when={gitState.repoInfo}>
         <CommitBox />
         <CommitLog />
+        <StashList />
       </Show>
     </div>
   );

@@ -273,6 +273,11 @@ describe('keybindings', () => {
     expect(mocks.toast.addToast).toHaveBeenCalledWith('No running actions', 'info');
   });
 
+  it('Cmd+Shift+G switches to git view', () => {
+    handleGlobalKeyDown(createKeyEvent('KeyG', { shiftKey: true }));
+    expect(mocks.ui.setActiveView).toHaveBeenCalledWith('git');
+  });
+
   it('Ctrl+Tab opens quick session switcher', () => {
     handleGlobalKeyDown(createKeyEvent('Tab', { metaKey: false, ctrlKey: true }));
     expect(mocks.ui.openQuickSwitcher).toHaveBeenCalled();

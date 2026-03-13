@@ -25,6 +25,7 @@ const mock = vi.hoisted(() => ({
   gitState: {
     repoInfo: null as RepoInfo | null,
     statusEntries: [] as FileStatusEntry[],
+    stashes: [] as { index: number; message: string; oid: string }[],
     remoteOperation: null as 'fetch' | 'pull' | 'push' | null,
     remoteProgress: null as { current: number; total: number; message: string } | null,
     isLoading: false,
@@ -45,8 +46,21 @@ vi.mock('@/components/git/CommitLog', () => ({
   default: () => <div data-testid="commit-log" />,
 }));
 
+vi.mock('@/components/git/CommitBox', () => ({
+  default: () => <div data-testid="commit-box" />,
+}));
+
 vi.mock('@/components/git/RemoteActions', () => ({
   default: () => <div data-testid="remote-actions" />,
+}));
+
+vi.mock('@/components/git/StashList', () => ({
+  default: () => <div data-testid="stash-list" />,
+}));
+
+vi.mock('@/components/git/MergeConflictBanner', () => ({
+  default: () => <div data-testid="merge-conflict-banner" />,
+  hasConflicts: (entries: FileStatusEntry[]) => entries.some((entry) => entry.status === 'conflicted'),
 }));
 
 describe('GitPanel', () => {
@@ -54,6 +68,7 @@ describe('GitPanel', () => {
     vi.clearAllMocks();
     mock.gitState.repoInfo = null;
     mock.gitState.statusEntries = [];
+    mock.gitState.stashes = [];
     mock.gitState.remoteOperation = null;
     mock.gitState.remoteProgress = null;
     mock.gitState.isLoading = false;
