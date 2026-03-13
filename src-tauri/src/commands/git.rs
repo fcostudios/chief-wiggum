@@ -358,3 +358,24 @@ pub fn git_drop_stash(
     let project_root = get_project_root(&db, &project_id)?;
     stash::drop_stash(&project_root, index)
 }
+
+/// Abort an in-progress merge by cleaning up merge state and restoring HEAD.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id))]
+pub fn git_abort_merge(db: State<'_, Database>, project_id: String) -> Result<(), AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    let repo = git2::Repository::open(&project_root).map_err(|e| AppError::Git(e.to_string()))?;
+
+    repo.cleanup_state()
+        .map_err(|e| AppError::Git(format!("Abort merge failed: {}", e)))?;
+
+    let mut checkout = git2::build::CheckoutBuilder::new();
+    checkout
+        .force()
+        .allow_conflicts(true)
+        .conflict_style_merge(false);
+    repo.checkout_head(Some(&mut checkout))
+        .map_err(|e| AppError::Git(format!("Checkout after abort failed: {}", e)))?;
+
+    Ok(())
+}

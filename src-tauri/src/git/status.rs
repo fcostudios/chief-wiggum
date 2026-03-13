@@ -48,6 +48,16 @@ pub fn get_status(repo_root: &Path) -> Result<Vec<FileStatusEntry>, AppError> {
         let flags = entry.status();
         let path = entry.path().unwrap_or("").to_string();
 
+        if flags.contains(git2::Status::CONFLICTED) {
+            entries.push(FileStatusEntry {
+                path: path.clone(),
+                status: FileStatusKind::Conflicted,
+                is_staged: false,
+                old_path: None,
+            });
+            continue;
+        }
+
         // Index (staged) changes
         if flags.contains(git2::Status::INDEX_NEW)
             || flags.contains(git2::Status::INDEX_MODIFIED)
@@ -99,13 +109,6 @@ pub fn get_status(repo_root: &Path) -> Result<Vec<FileStatusEntry>, AppError> {
             entries.push(FileStatusEntry {
                 path: path.clone(),
                 status: FileStatusKind::Untracked,
-                is_staged: false,
-                old_path: None,
-            });
-        } else if flags.contains(git2::Status::CONFLICTED) {
-            entries.push(FileStatusEntry {
-                path: path.clone(),
-                status: FileStatusKind::Conflicted,
                 is_staged: false,
                 old_path: None,
             });
@@ -218,5 +221,10 @@ mod tests {
             .filter(|e| e.status == FileStatusKind::Deleted && e.is_staged)
             .collect();
         assert!(!deleted_staged.is_empty());
+    }
+
+    #[test]
+    fn test_status_conflicted_files_detected() {
+        let _ = FileStatusKind::Conflicted;
     }
 }

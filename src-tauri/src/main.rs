@@ -327,6 +327,7 @@ fn main() {
             chief_wiggum_lib::commands::git::git_apply_stash,
             chief_wiggum_lib::commands::git::git_pop_stash,
             chief_wiggum_lib::commands::git::git_drop_stash,
+            chief_wiggum_lib::commands::git::git_abort_merge,
         ])
         .setup(|app| {
             use tauri::Manager;
