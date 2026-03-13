@@ -10,6 +10,7 @@ use crate::git::log::{self, CommitEntry};
 use crate::git::remote;
 use crate::git::repository;
 use crate::git::staging;
+use crate::git::stash::{self, StashEntry};
 use crate::git::status::{self, FileStatusEntry};
 use crate::paths::normalize_project_path;
 use crate::AppError;
@@ -293,4 +294,67 @@ pub fn git_discard_file(
 ) -> Result<DiscardResult, AppError> {
     let project_root = get_project_root(&db, &project_id)?;
     discard::discard_file(&project_root, &file_path)
+}
+
+/// List all stash entries for a project's repository.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id))]
+pub fn git_list_stashes(
+    db: State<'_, Database>,
+    project_id: String,
+) -> Result<Vec<StashEntry>, AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    if git2::Repository::discover(&project_root).is_err() {
+        return Ok(vec![]);
+    }
+    stash::list_stashes(&project_root)
+}
+
+/// Push a stash with optional message.
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, include_untracked = %include_untracked))]
+pub fn git_push_stash(
+    db: State<'_, Database>,
+    project_id: String,
+    message: String,
+    include_untracked: bool,
+) -> Result<String, AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    stash::push_stash(&project_root, &message, include_untracked)
+}
+
+/// Apply a stash by index (does not drop it).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, index = %index))]
+pub fn git_apply_stash(
+    db: State<'_, Database>,
+    project_id: String,
+    index: usize,
+) -> Result<(), AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    stash::apply_stash(&project_root, index)
+}
+
+/// Pop a stash by index (apply + drop).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, index = %index))]
+pub fn git_pop_stash(
+    db: State<'_, Database>,
+    project_id: String,
+    index: usize,
+) -> Result<(), AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    stash::pop_stash(&project_root, index)
+}
+
+/// Drop a stash entry by index (discard permanently).
+#[tauri::command(rename_all = "snake_case")]
+#[tracing::instrument(skip(db), fields(project_id = %project_id, index = %index))]
+pub fn git_drop_stash(
+    db: State<'_, Database>,
+    project_id: String,
+    index: usize,
+) -> Result<(), AppError> {
+    let project_root = get_project_root(&db, &project_id)?;
+    stash::drop_stash(&project_root, index)
 }

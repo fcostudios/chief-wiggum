@@ -70,6 +70,12 @@ export interface DiscardResult {
   was_untracked: boolean;
 }
 
+export interface StashEntry {
+  index: number;
+  message: string;
+  oid: string;
+}
+
 export type RemoteOperation = 'fetch' | 'pull' | 'push';
 
 export interface RemoteProgressState {
@@ -85,6 +91,9 @@ interface GitState {
   commits: CommitEntry[];
   commitsLoaded: boolean;
   commitsLoading: boolean;
+  stashes: StashEntry[];
+  stashesLoaded: boolean;
+  isStashing: boolean;
   remoteOperation: RemoteOperation | null;
   remoteProgress: RemoteProgressState | null;
   remoteError: string | null;
@@ -102,6 +111,9 @@ const [gitState, setGitState] = createStore<GitState>({
   commits: [],
   commitsLoaded: false,
   commitsLoading: false,
+  stashes: [],
+  stashesLoaded: false,
+  isStashing: false,
   remoteOperation: null,
   remoteProgress: null,
   remoteError: null,
@@ -123,6 +135,9 @@ export function setGitProjectId(id: string | null): void {
   setGitState('commits', []);
   setGitState('commitsLoaded', false);
   setGitState('commitsLoading', false);
+  setGitState('stashes', []);
+  setGitState('stashesLoaded', false);
+  setGitState('isStashing', false);
   setGitState('remoteOperation', null);
   setGitState('remoteProgress', null);
   setGitState('remoteError', null);
@@ -253,6 +268,64 @@ export async function loadCommits(reset = false): Promise<void> {
   } finally {
     setGitState('commitsLoading', false);
   }
+}
+
+export async function loadStashes(): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  try {
+    const entries = await invoke<StashEntry[]>('git_list_stashes', { project_id: projectId });
+    setGitState('stashes', entries);
+    setGitState('stashesLoaded', true);
+  } catch (err) {
+    setGitState('stashes', []);
+    setGitState('error', String(err));
+  }
+}
+
+export async function pushStash(message: string, includeUntracked = true): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  setGitState('isStashing', true);
+  try {
+    await invoke('git_push_stash', {
+      project_id: projectId,
+      message,
+      include_untracked: includeUntracked,
+    });
+    await refreshGitStatus();
+    await loadStashes();
+  } finally {
+    setGitState('isStashing', false);
+  }
+}
+
+export async function popStash(index: number): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  await invoke('git_pop_stash', { project_id: projectId, index });
+  await refreshGitStatus();
+  await loadStashes();
+}
+
+export async function applyStash(index: number): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  await invoke('git_apply_stash', { project_id: projectId, index });
+  await refreshGitStatus();
+  await loadStashes();
+}
+
+export async function dropStash(index: number): Promise<void> {
+  const projectId = gitState.projectId;
+  if (!projectId) return;
+
+  await invoke('git_drop_stash', { project_id: projectId, index });
+  await loadStashes();
 }
 
 export async function startListeningRemoteProgress(): Promise<void> {

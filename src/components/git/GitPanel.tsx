@@ -16,6 +16,7 @@ import ChangedFilesList from '@/components/git/ChangedFilesList';
 import CommitBox from '@/components/git/CommitBox';
 import CommitLog from '@/components/git/CommitLog';
 import RemoteActions from '@/components/git/RemoteActions';
+import StashList from '@/components/git/StashList';
 
 const GitPanel: Component = () => {
   onMount(() => {
@@ -176,6 +177,7 @@ const GitPanel: Component = () => {
       <Show when={gitState.repoInfo}>
         <CommitBox />
         <CommitLog />
+        <StashList />
       </Show>
     </div>
   );
