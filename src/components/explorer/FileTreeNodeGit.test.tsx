@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, waitFor } from '@solidjs/testing-library';
+import { For } from 'solid-js';
 import type { FileNode } from '@/lib/types';
 import FileTreeNode from './FileTreeNode';
 
@@ -59,21 +60,23 @@ vi.mock('@/components/common/ContextMenu', () => ({
     onClose: () => void;
   }) => (
     <div role="menu">
-      {props.items.map((item) =>
-        item.separator ? (
-          <div role="separator" />
-        ) : (
-          <button
-            role="menuitem"
-            onClick={() => {
-              item.onClick?.();
-              props.onClose();
-            }}
-          >
-            {item.label}
-          </button>
-        ),
-      )}
+      <For each={props.items}>
+        {(item) =>
+          item.separator ? (
+            <div role="separator" />
+          ) : (
+            <button
+              role="menuitem"
+              onClick={() => {
+                item.onClick?.();
+                props.onClose();
+              }}
+            >
+              {item.label}
+            </button>
+          )
+        }
+      </For>
     </div>
   ),
 }));

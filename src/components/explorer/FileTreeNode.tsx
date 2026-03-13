@@ -202,6 +202,37 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
     }
   }
 
+  async function handleDiscardChanges(status: FileStatusEntry): Promise<void> {
+    const pid = gitState.projectId;
+    if (!pid) return;
+
+    try {
+      const result = await invoke<DiscardResult>('git_discard_file', {
+        project_id: pid,
+        file_path: status.path,
+      });
+      await refreshGitStatus();
+      addToast(
+        `Changes discarded for ${props.node.name}`,
+        'undo',
+        result.old_content
+          ? {
+              label: 'Undo',
+              onClick: () => {
+                void invoke('write_file_content', {
+                  project_id: pid,
+                  relative_path: status.path,
+                  content: result.old_content,
+                }).then(() => refreshGitStatus());
+              },
+            }
+          : undefined,
+      );
+    } catch (err) {
+      addToast(`Discard failed: ${String(err)}`, 'error');
+    }
+  }
+
   const contextMenuItems = (): ContextMenuItem[] => {
     const items: ContextMenuItem[] = [
       {
@@ -322,35 +353,7 @@ const FileTreeNode: Component<FileTreeNodeProps> = (props) => {
           label: 'Discard changes',
           icon: X,
           onClick: () => {
-            const pid = gitState.projectId;
-            if (!pid) return;
-
-            void invoke<DiscardResult>('git_discard_file', {
-              project_id: pid,
-              file_path: status.path,
-            })
-              .then(async (result) => {
-                await refreshGitStatus();
-                addToast(
-                  `Changes discarded for ${props.node.name}`,
-                  'undo',
-                  result.old_content
-                    ? {
-                        label: 'Undo',
-                        onClick: () => {
-                          void invoke('write_file_content', {
-                            project_id: pid,
-                            relative_path: status.path,
-                            content: result.old_content,
-                          }).then(() => refreshGitStatus());
-                        },
-                      }
-                    : undefined,
-                );
-              })
-              .catch((err: unknown) => {
-                addToast(`Discard failed: ${String(err)}`, 'error');
-              });
+            void handleDiscardChanges(status);
           },
         });
       } else {
