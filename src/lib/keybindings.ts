@@ -274,6 +274,13 @@ export function handleGlobalKeyDown(e: KeyboardEvent): void {
     return;
   }
 
+  // Cmd+Shift+G — switch to Git panel
+  if (e.code === 'KeyG' && e.shiftKey) {
+    e.preventDefault();
+    setActiveView('git');
+    return;
+  }
+
   // Cmd+Shift+F12 — toggle Developer mode (blocked while agent is responding)
   if (e.code === 'F12' && e.shiftKey) {
     e.preventDefault();
