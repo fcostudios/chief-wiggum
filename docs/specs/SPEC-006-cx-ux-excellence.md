@@ -590,6 +590,360 @@ When input textarea has >50 characters and user navigates away (session switch, 
 - Rate limits → "Rate limited. Waiting before retrying..."
 - Each includes "What to try" suggestion
 
+### 4.25 Git Panel (New)
+
+**Purpose:** Provide a dedicated Git workflow view for branch management, staging, committing, and remote operations — integrated natively into the 5-zone layout.
+
+**Layout — Z2 Sidebar entry:**
+- Icon: `GitBranch` (lucide) in sidebar nav, positioned below Files, above Settings
+- Badge: shows count of all uncommitted changes (staged + unstaged + untracked) when > 0
+- Badge style: `--color-accent` background, `--text-xs`, `--font-mono`, pill shape
+
+**Layout — Z3 Main Content (when activeView === 'git'):**
+
+```
+┌─────────────────────────────────────────────┐
+│ Header: Branch + Remote Actions             │
+│ ⎇ main ▾  │  ↑2 ↓0  │  Fetch  Pull  Push  │
+├─────────────────────────────────────────────┤
+│ Staged Changes (N)                  [– all] │
+│   ✓ file.ts                      M    [–]   │
+├─────────────────────────────────────────────┤
+│ Changes (N)                        [+ all]  │
+│   ○ file.ts                    M   [+] [✕]  │
+├─────────────────────────────────────────────┤
+│ Untracked (N)                      [+ all]  │
+│   ? file.ts                    ?     [+]    │
+├─────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────┐ │
+│ │ Commit message...                       │ │
+│ └─────────────────────────────────────────┘ │
+│ [✨ AI Message]             [Commit (N)]    │
+├─────────────────────────────────────────────┤
+│ Recent Commits (scrollable)                 │
+│  abc1234  Fix type error in utils      2m   │
+│  def5678  Add gitStore basics         15m   │
+└─────────────────────────────────────────────┘
+```
+
+**Header bar:**
+- Left: `BranchSelector` (§4.26) — current branch name with dropdown arrow
+- Center: Ahead/behind badges — `↑N` (green text if > 0), `↓N` (amber text if > 0)
+- Right: Remote action buttons (§4.29) — ghost variant, `--text-sm`
+
+**Changed files groups:**
+- Three collapsible sections: Staged, Changes (unstaged modified/deleted), Untracked
+- Section header: group name + count in parentheses + bulk action button
+- Bulk actions: `[– all]` to unstage all, `[+ all]` to stage all — icon-only buttons with `aria-label`
+- Collapse: `ChevronRight` rotates to `ChevronDown`, remembers state per session
+
+**File item row:**
+- Left: status icon (✓ staged, ○ modified, ? untracked)
+- Center: relative file path, truncated from left with `…/` if needed, `--font-mono --text-sm`
+- Right: status letter badge (M/A/D/R/C/?) + action buttons
+- Action buttons visible on hover or keyboard focus: `[+]` stage, `[–]` unstage, `[✕]` discard
+- Discard uses soft undo pattern (§5.5)
+- Click on file → opens diff in Z4 details panel (§4.27)
+- Selected file: `--color-bg-elevated` background, `--color-accent` left border (2px)
+
+**Commit box (§4.28):**
+- Always visible below file groups
+- `textarea` with placeholder "Commit message...", auto-expands up to 4 lines
+- Left button: `✨ AI Message` — generates commit message from staged diff via Claude
+- Right button: `Commit (N)` — primary variant, N = staged count, disabled when 0
+
+**Recent commits section:**
+- Below commit box, scrollable, lazy-loaded (20 entries, load more on scroll)
+- Each entry: short hash (`--font-mono --text-xs --color-text-tertiary`), message (truncated), relative time
+- Click → shows full commit diff in Z4
+
+**Empty states:**
+- No git repo detected: "Not a Git repository. Initialize one?" with [git init] ghost button
+- No changes: "Working tree clean ✓" centered text, `--color-text-tertiary`
+- No commits yet: "No commits yet. Stage files and make your first commit."
+
+**Performance:**
+- Status refresh: auto-refresh on window focus, on file save events (from file watcher), debounced 500ms
+- File list: virtualized if > 100 items (use `@tanstack/virtual` or equivalent)
+
+### 4.26 Branch Selector (New)
+
+**Trigger:** Click branch name in Git panel header OR click `BranchIndicator` in status bar (§4.25).
+
+**Dropdown behavior:**
+- Position: below trigger element, aligned left, max-height 300px with scroll
+- Width: min 200px, max 320px
+- Background: `--color-bg-elevated`, `--shadow-lg`, `--radius-md`
+- Animation: `--duration-micro` fade + translateY(-4px)
+
+**Content:**
+1. Search input (sticky top): placeholder "Find branch...", `--text-sm`, auto-focus on open
+2. Current branch: highlighted row with `✓` icon, `--color-accent` text
+3. Local branches: sorted alphabetically, grouped under "Local" header
+4. Remote branches: grouped under "Remote" header (collapsed by default)
+5. Divider + "New Branch..." action at bottom with `+` icon
+
+**Interactions:**
+- Type to filter (instant, case-insensitive substring match)
+- `Enter` switches to highlighted branch
+- `Escape` closes dropdown
+- Arrow keys navigate list
+- If working tree is dirty when switching: show confirmation dialog — "You have N uncommitted change(s). Stash and switch, or cancel?" with [Stash & Switch] primary + [Cancel] ghost buttons
+- On switch success: toast "Switched to `branch-name`", refresh git status
+
+**New branch flow:**
+- Click "New Branch..." → inline input replaces the action row
+- Placeholder: "new-branch-name", validates kebab-case
+- `Enter` creates + switches, `Escape` cancels
+- Creates from current HEAD by default
+
+### 4.27 Git Diff Viewer (New)
+
+**Trigger:** Click any file in the Git panel's changed files list.
+
+**Display — Z4 Details Panel:**
+- Reuses the existing `DiffPreviewPane` + `InlineDiff` component infrastructure
+- Header: file path + status badge + action buttons ([Stage], [Unstage], [Discard], [Open File])
+- Content: unified diff with syntax highlighting (existing `highlight.js` integration)
+
+**Diff rendering:**
+- Uses existing diff color tokens: `--color-diff-add-bg`, `--color-diff-remove-bg`, `--color-diff-modify-bg`
+- Line numbers: dual column (old line / new line), `--font-mono --text-xs`, right-aligned 48px each
+- Hunk headers: `@@` lines with `--color-text-tertiary` background, bold
+- Context lines: default background, `--color-text-secondary`
+- Added lines: `--color-diff-add-bg` background, `+` prefix in green
+- Removed lines: `--color-diff-remove-bg` background, `-` prefix in red
+
+**Hunk-level staging:**
+- Each hunk has gutter buttons on hover: `[+]` stage hunk, `[–]` unstage hunk
+- Buttons appear in the hunk header row, right-aligned
+- After staging a hunk: hunk visually moves from "Changes" diff to "Staged" diff
+- Split view option: show staged diff on left, unstaged diff on right (via `viewStore.splitView()`)
+
+**Binary files:**
+- Show placeholder: "Binary file changed (N bytes → M bytes)" with file type icon
+- Image files: show side-by-side thumbnail preview (reuse `ImagePreview` component)
+
+**Large diffs:**
+- Diffs > 500 lines: show collapsed with "Show full diff (N lines)" expand button
+- Diffs > 5000 lines: show warning "Very large diff — may impact performance" before expanding
+
+**Keyboard navigation:**
+- `j`/`k` or arrow keys: move between hunks
+- `s`: stage current hunk
+- `u`: unstage current hunk
+- `n`/`p`: next/previous file in the changed files list
+
+### 4.28 Commit Interface (New)
+
+**Commit message input:**
+- `textarea` element, `--font-mono --text-sm`
+- Min height: 1 line; max height: 4 lines (auto-expand)
+- Placeholder: "Commit message..." in `--color-text-tertiary`
+- Border: `1px solid --color-border-primary`, focus: `--color-accent`
+- Supports multi-line: first line = summary (≤72 chars), blank line, then body
+- Character counter appears after 50 chars on first line: "52/72" in `--color-text-tertiary`, turns `--color-warning` at 72+
+
+**AI commit message generation:**
+- Button: `✨ AI Message` — ghost variant, left of commit button
+- Behavior: sends staged diff content to Claude via existing CLI bridge
+- Loading state: button shows spinner, text changes to "Generating..."
+- Result: populates textarea with generated message, cursor at end
+- User can edit before committing
+- If no staged changes: button disabled, tooltip "Stage changes first"
+
+**Commit button:**
+- Text: `Commit (N)` where N = staged file count
+- Variant: primary when N > 0, disabled when N === 0
+- On click: calls `git_commit` IPC with message text
+- Success: toast "Committed abc1234 — message summary", clear textarea, refresh status
+- Error: error toast with reason (e.g., "Nothing staged", "Empty commit message")
+- Keyboard: `Cmd+Enter` when textarea focused
+
+**Amend mode:**
+- Checkbox or toggle below textarea: "☐ Amend last commit"
+- When checked: pre-fills textarea with last commit message, button text changes to "Amend (N)"
+- When amending with no new staged changes: allowed (message-only amend)
+
+**Commit validation:**
+- Empty message → disable commit button, no error
+- Whitespace-only message → disable commit button
+- No staged files → disable commit button, tooltip "Stage changes to commit"
+
+### 4.29 Remote Operations (New)
+
+**Buttons in Git panel header:**
+- Three ghost-variant buttons: Fetch, Pull, Push
+- Icons: `RefreshCw` (fetch), `ArrowDown` (pull), `ArrowUp` (push)
+- Text labels visible at panel widths ≥ 300px, icon-only below
+- Each has `aria-label` for accessibility
+
+**Fetch:**
+- Fetches all remotes
+- Loading: button shows spinner for duration
+- Success: silently updates ahead/behind counts, no toast
+- Error: error toast "Fetch failed: reason"
+- Auto-fetch: optionally on window focus (configurable in settings)
+
+**Pull:**
+- Pulls current branch from tracking remote
+- Loading: button shows spinner, disable other remote buttons
+- Success: toast "Pulled N commit(s) from origin/branch"
+- Conflict: `MergeConflictBanner` appears (see below), toast "Pull completed with conflicts in N file(s)"
+- Error: error toast with reason
+
+**Push:**
+- Pushes current branch to tracking remote
+- Loading: button shows spinner + progress bar in header (use `--color-progress-fill`)
+- Success: toast "Pushed to origin/branch"
+- Rejected (non-fast-forward): error toast "Push rejected — pull first?" with [Pull & Push] action button
+- No upstream: dialog "No upstream branch. Push to origin/branch-name?" with [Push] primary + [Cancel]
+- Error: error toast with reason
+
+**Progress streaming (push/pull/fetch):**
+- Tauri events: `git:progress` with `{ operation, current, total, message }`
+- Progress bar: thin bar in Git panel header, `--color-progress-fill`, animate width
+- Cancel: long-running operations (> 5s) show "Cancel" ghost button
+
+**Merge Conflict Banner:**
+- Appears at top of Git panel when conflicts detected
+- Background: `--color-diff-modify-bg` (amber tone)
+- Text: "Merge conflict in N file(s)" with file list
+- Actions: [Resolve] (opens first conflicted file in diff viewer), [Abort Merge] (soft undo pattern)
+- Conflicted files in the changed files list get a special icon (⚠) and `--color-warning` text
+
+### 4.30 Integrated Terminal (New)
+
+**Location:** Z3 (Main Content) when `activeView === 'terminal'`.
+**Sidebar entry:** "Terminal" icon (already registered). Badge shows count of active terminal sessions.
+**Existing asset:** `TerminalPane.tsx` — xterm.js v6.0.0 with WebGL, FitAddon, dark/light themes. Currently UI-only (no backend connection).
+
+**Layout — Terminal Panel:**
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ [+]  │ ● zsh (1)  │ ● node (2)  │         [⊞] [✕]     │  ← Tab bar
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  $ npm run build                                         │
+│  > chief-wiggum@0.1.0 build                              │
+│  > vite build                                            │
+│  ...                                                     │
+│                                                          │
+│  $ █                                                     │  ← Active terminal
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Tab bar:**
+- Left: [+] button creates new terminal session (default shell)
+- Center: tabs — each tab shows shell name + index (e.g., "zsh (1)")
+- Tab has colored dot: green = running, gray = exited
+- Right: [⊞] split button (future — Phase 5), [✕] close active tab
+- Active tab uses `--color-tab-active-bg` / `--color-tab-active-text`
+- Inactive tabs use `--color-tab-inactive-text`
+- Close individual tab: middle-click or ✕ icon on hover
+
+**Terminal instance:**
+- Each tab owns one xterm.js `Terminal` instance connected to one backend PTY session
+- Input: `terminal.onData()` → IPC `terminal_write` → PTY stdin
+- Output: Tauri event `terminal:output` → `terminal.write()`
+- Resize: `FitAddon.fit()` → `terminal.onResize()` → IPC `terminal_resize` → PTY resize
+
+**Shell selection:**
+- Default shell: detected from `$SHELL` (macOS/Linux) or `ComSpec` (Windows)
+- [+] button long-press or dropdown arrow: choose shell (bash, zsh, fish, PowerShell, cmd)
+- Shell path configurable via Settings → Terminal → Default Shell
+
+**Session lifecycle:**
+- Tab created → IPC `spawn_terminal(shell, cwd)` → backend spawns PTY → returns `terminal_id`
+- Tab receives output via `terminal:output` event filtered by `terminal_id`
+- User types → `terminal_write(terminal_id, data)` → PTY stdin
+- Process exits → `terminal:exit` event → tab dot turns gray, "[Process exited]" message
+- User closes tab → IPC `kill_terminal(terminal_id)` if still running → confirm if process active
+
+**Empty state (no tabs):**
+- Center: terminal icon (muted), "Open a terminal" text, [New Terminal] CTA button
+- Matches empty state pattern from §4.7
+
+**Performance:**
+- PTY output chunks: 4KB buffer, streamed via Tauri events (not polling)
+- xterm.js WebGL addon for GPU-accelerated rendering (fallback to canvas)
+- Offscreen terminals (inactive tabs) suspend rendering but continue receiving output
+- Maximum 10 concurrent terminal sessions (configurable in settings)
+- Output buffer: 10,000 lines scrollback per session (xterm.js `scrollback` option)
+
+### 4.31 Terminal Tab Management (New)
+
+**Tab creation:**
+- Keyboard: `Cmd+Shift+T` (macOS) / `Ctrl+Shift+T` — new terminal tab
+- Tab bar: click [+] button
+- Context menu: right-click tab bar → "New Terminal", "New Terminal with Profile..."
+- Working directory: inherits from active project's root path (`projectStore.activeProject.path`)
+
+**Tab switching:**
+- Click tab
+- Keyboard: `Cmd+Shift+[` / `Cmd+Shift+]` — prev/next terminal tab
+- Keyboard: `Cmd+1` through `Cmd+9` — jump to tab by index (when terminal view is active)
+
+**Tab closing:**
+- Click ✕ on tab (appears on hover)
+- Middle-click tab
+- Keyboard: `Cmd+Shift+W` — close active terminal tab
+- If process is still running: confirmation dialog "Terminal has a running process. Close anyway?" → [Cancel] [Close]
+- Last tab closed → show empty state
+
+**Tab renaming:**
+- Double-click tab title → inline edit (text input replaces tab title)
+- Enter confirms, Escape cancels
+- Default name: shell name + index (e.g., "zsh (1)")
+
+**Tab reordering:**
+- Drag-and-drop tabs to reorder
+- Visual feedback: drop indicator line between tabs
+
+**Tab overflow:**
+- When tabs exceed available width: horizontal scroll with left/right arrow buttons
+- Dropdown: overflow menu showing all tabs (click to switch)
+
+### 4.32 Terminal Working Directory & Links (New)
+
+**Working directory:**
+- New terminals open in the active project's root directory
+- Status: current working directory shown in status bar Z5 when terminal is active (truncated with `~/` prefix)
+- CWD tracking: if shell integration is available (see below), update displayed CWD on each prompt
+
+**Clickable file paths (addon-web-links):**
+- File paths in terminal output are clickable
+- Click: opens file in File Explorer / Details Panel (Z4)
+- Cmd+Click: opens file in system default editor
+- Visual: underline on hover, `cursor: pointer`
+- Pattern matching: absolute paths (`/foo/bar.ts`), relative paths (`./src/index.ts`), and common formats (`file:///`, `at /path:line:col`)
+
+**Shell integration (future enhancement — Phase 5):**
+- OSC escape sequences for CWD tracking, command start/end markers
+- Enables: command decoration (success/failure icons per command), CWD in prompt
+- Not required for MVP — basic terminal works without shell integration
+
+### 4.33 Terminal Settings (New)
+
+**Settings → Terminal section:**
+
+| Setting | Type | Default | Notes |
+|---|---|---|---|
+| Default shell | string (path) | Auto-detected (`$SHELL`) | Dropdown with detected shells + custom path |
+| Font size | number | 14 | Range: 8–32 |
+| Font family | string | `'JetBrains Mono', ...` | Monospace fonts only |
+| Cursor style | enum | `block` | `block`, `underline`, `bar` |
+| Cursor blink | boolean | `true` | |
+| Scrollback lines | number | 10,000 | Range: 1,000–100,000 |
+| Max concurrent sessions | number | 10 | Range: 1–20 |
+| Copy on select | boolean | `false` | Auto-copy selected text to clipboard |
+| Paste on right-click | boolean | `false` | Right-click pastes clipboard |
+| Bell | enum | `none` | `none`, `sound`, `visual` (flash) |
+
+**Theme:** Terminal theme colors are derived from the global appearance theme (dark/light/system) — already implemented in `TerminalPane.tsx`. No separate terminal theme setting.
+
 ---
 
 ## 5. Interaction Patterns (New)
@@ -640,6 +994,27 @@ For destructive actions (message delete, context chip remove, session close), pr
 - Resume: continues from where it left off (if CLI supports) or regenerates
 - Visual: message bubble shows "Paused" badge, amber left border
 
+### 5.5 Git Operation Undo & Confirmation
+
+**Soft Undo (extends §5.1) — applies to:**
+- Discard file changes: "Changes discarded for file.ts. [Undo]" — restores from stash
+- Delete branch: "Branch feature-x deleted. [Undo]" — re-creates from last ref
+- Stash drop: "Stash dropped. [Undo]" — re-applies stash
+
+**Implementation:** Before discard/delete, Git stashes or stores the ref. Undo re-applies. After 5-second timeout, cleanup.
+
+**Confirmation dialogs (destructive, no undo):**
+- Force push: "Force push will overwrite remote history. This cannot be undone." [Force Push] destructive + [Cancel]
+- Reset hard: "This will discard all uncommitted changes permanently." [Reset] destructive + [Cancel]
+- Abort merge: "Abort merge and discard merge state?" [Abort] destructive + [Cancel]
+
+**No confirmation needed (low risk):**
+- Stage / unstage files or hunks
+- Commit (reversible via amend or revert)
+- Fetch (read-only)
+- Create branch
+- Switch branch (with dirty-tree stash prompt if needed)
+
 ---
 
 ## 6. Accessibility Updates
@@ -672,6 +1047,28 @@ Audit all places where color alone indicates state. Add text or icon pairs:
 - Add `role="status"` to streaming activity section
 - Ensure all tooltips use `aria-describedby` pattern
 
+### 6.4 Git Panel Accessibility (New)
+
+- Changed file groups use `role="group"` with `aria-label` ("Staged changes, 3 files")
+- File action buttons (stage, unstage, discard) have `aria-label` describing action + filename
+- Diff viewer lines use `aria-label` for added/removed status (not color alone)
+- Branch selector dropdown uses `role="listbox"` with `aria-activedescendant`
+- Commit button announces staged count: `aria-label="Commit 3 staged files"`
+- Remote operation progress uses `aria-live="polite"` with `role="progressbar"`
+- Merge conflict banner uses `role="alert"` for immediate screen reader announcement
+- All keyboard shortcuts listed in help overlay (§4.15)
+
+### 6.5 Terminal Accessibility (New)
+
+- Terminal tab bar uses `role="tablist"` with `aria-label="Terminal sessions"`
+- Each tab uses `role="tab"` with `aria-selected` and `aria-label` including shell name and status (e.g., "zsh, running")
+- Terminal content area uses `role="tabpanel"` linked to active tab via `aria-labelledby`
+- New terminal button: `aria-label="Open new terminal session"`
+- Close tab button: `aria-label="Close terminal session: zsh (1)"`
+- Terminal exit notification uses `aria-live="polite"`: "Terminal process exited with code 0"
+- xterm.js has built-in screen reader support via `screenReaderMode` option (enable when screen reader detected)
+- All keyboard shortcuts listed in help overlay (§4.15)
+
 ---
 
 ## 7. Performance Requirements
@@ -683,6 +1080,16 @@ Audit all places where color alone indicates state. Add text or icon pairs:
 - **Draft save:** Debounced 2s, non-blocking
 - **Cost update:** Real-time during streaming, <100ms latency
 - **Animation budget:** Maximum 2 concurrent animations (progress bar + streaming cursor)
+- **Git status refresh:** <200ms for repos with <1000 files, debounced 500ms on file changes
+- **Diff render:** <100ms for files under 1000 lines, lazy-load for larger diffs
+- **Branch list load:** <150ms for repos with <100 branches
+- **Commit log load:** <200ms for initial 20 entries, paginated thereafter
+- **Remote progress events:** Streamed at ≤100ms intervals, non-blocking UI
+- **Terminal spawn:** PTY process spawn <300ms from tab creation to first output
+- **Terminal input latency:** Keypress → PTY write → echo back <50ms (local)
+- **Terminal output throughput:** Handle 10MB/s output without dropping frames (xterm.js WebGL)
+- **Terminal resize:** FitAddon.fit() + PTY resize <100ms, debounced 150ms on window resize
+- **Terminal tab switch:** Inactive → active tab render <50ms (reattach to existing Terminal instance)
 
 ---
 
@@ -727,6 +1134,12 @@ Each component change must include:
 3. **Keyboard test:** Every new interactive element reachable and operable via keyboard
 4. **Motion test:** Verify `prefers-reduced-motion` disables all new animations
 5. **Screen reader test:** New ARIA attributes verified with VoiceOver or NVDA
+6. **Git integration tests:** Temp repo init → modify files → verify status → stage → commit → verify log
+7. **Git error handling:** Test non-repo directory, network failures, merge conflicts, dirty-tree switch
+8. **Git performance:** Benchmark status refresh and diff render against target thresholds (§7)
+9. **Terminal integration tests:** Spawn PTY → write input → verify output → resize → verify PTY dimensions → kill → verify exit event
+10. **Terminal tab management:** Create tab → switch tabs → close tab → verify lifecycle events
+11. **Terminal performance:** Benchmark spawn latency, input echo latency, and output throughput against target thresholds (§7)
 
 ---
 
@@ -753,6 +1166,45 @@ Each component change must include:
 --duration-micro: 60ms;
 --duration-celebration: 400ms;
 --ease-celebration: cubic-bezier(0.22, 1.0, 0.36, 1.0);
+```
+
+### Git-related tokens (reuse existing)
+
+```css
+/* Diff colors — already defined in SPEC-002 §3.4 */
+--color-diff-add-bg: #1B3A28;
+--color-diff-add-text: #3FB950;
+--color-diff-remove-bg: #3D1A1E;
+--color-diff-remove-text: #F85149;
+--color-diff-modify-bg: #2A2112;
+
+/* Reused for git panel */
+--color-bg-sidebar       /* file groups */
+--color-bg-content       /* diff viewer */
+--color-bg-details       /* commit info */
+--color-bg-elevated      /* selected file, dropdowns */
+--color-progress-fill    /* push/pull progress */
+--color-progress-track   /* progress background */
+--color-warning          /* merge conflict indicators */
+```
+
+### Terminal-related tokens (reuse existing)
+
+```css
+/* Terminal themes — already implemented in TerminalPane.tsx */
+/* Dark theme: background=#010409, foreground=#e6edf3, cursor=#e8825a */
+/* Light theme: background=#ffffff, foreground=#1f2328, cursor=#cf6e3e */
+/* Full ANSI color palette mapped to SPEC-002 tokens in both modes */
+
+/* Reused for terminal panel */
+--color-tab-active-bg        /* active terminal tab */
+--color-tab-active-text      /* active terminal tab text */
+--color-tab-inactive-text    /* inactive terminal tabs */
+--color-bg-content           /* tab bar background */
+--color-bg-elevated          /* tab hover state */
+--color-text-secondary       /* CWD display, session status */
+--color-success              /* running process indicator (green dot) */
+--color-text-tertiary        /* exited process indicator (gray dot) */
 ```
 
 ### Amended tokens

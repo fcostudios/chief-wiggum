@@ -2,7 +2,7 @@
 // Main Git panel view — shows repo status, branch, changed files (CHI-316).
 
 import type { Component } from 'solid-js';
-import { Show, createMemo, onMount } from 'solid-js';
+import { Show, createEffect, createMemo } from 'solid-js';
 import { GitBranch, RefreshCw } from 'lucide-solid';
 import {
   getStagedFiles,
@@ -11,7 +11,9 @@ import {
   gitState,
   refreshGitStatus,
   refreshRepoInfo,
+  setGitProjectId,
 } from '@/stores/gitStore';
+import { projectState } from '@/stores/projectStore';
 import ChangedFilesList from '@/components/git/ChangedFilesList';
 import CommitBox from '@/components/git/CommitBox';
 import CommitLog from '@/components/git/CommitLog';
@@ -20,9 +22,13 @@ import RemoteActions from '@/components/git/RemoteActions';
 import StashList from '@/components/git/StashList';
 
 const GitPanel: Component = () => {
-  onMount(() => {
-    void refreshRepoInfo();
-    void refreshGitStatus();
+  createEffect(() => {
+    const projectId = projectState.activeProjectId;
+    setGitProjectId(projectId);
+    if (projectId) {
+      void refreshRepoInfo();
+      void refreshGitStatus();
+    }
   });
 
   const staged = createMemo(() => getStagedFiles());

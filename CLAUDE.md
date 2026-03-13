@@ -2,7 +2,7 @@
 
 > **Read this first.** Auto-loaded by Claude Code at session start. Keep under 150 lines.
 > Full completed task history → `.claude/COMPLETED.md`
-> Updated: 2026-03-08
+> Updated: 2026-03-13
 
 ---
 
@@ -30,6 +30,7 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 | CHI-307: Export Quality Upgrade | ✅ Done | Secret redaction, interactive HTML, JSON export (CHI-308-310) |
 | CHI-301: JSONL Session Import | ✅ Done | Parser, discovery, import engine, UI, consistency checker (CHI-302-306) |
 | CHI-287: Performance Tuning | ✅ Done | Query/event/render optimization + memory/build tuning (CHI-292-295) |
+| CHI-311: Git Integration | ✅ Done | Full Phase 4 Git workflow complete (CHI-312-330) |
 | CHI-276: Binary File Preview | ✅ Done | Image, SVG, PDF, Audio previews (BP-1 through BP-4) |
 | CHI-269: File & Folder Creation | ✅ Done | Full file management (CHI-272 context menu remains) |
 | CHI-277: AskUserQuestion Dialog | ✅ Done | Interactive agent questions (CHI-284, CHI-285) |
@@ -38,22 +39,9 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 
 | Epic | Status | Notes |
 |------|--------|-------|
-| CHI-311: Git Integration | 🔄 In Progress | 13/19 subtasks done (CHI-312–325). Remaining: discard, stash, merge, AI msg, ctx menu, shortcuts. |
+| CHI-331: Terminal Integration | 🔄 Next Major Focus | Backend PTY/session lifecycle and UI wiring remain open. |
 
 ### Remaining Backlog (Next Focus)
-
-#### CHI-311: Git Integration (Phase 4 — 6 remaining of 19)
-
-✅ Done: CHI-312 through CHI-325 (GIT-1 through GIT-14 — scaffold, branches, status, store, panel, diff, staging, commit, remote ops, log, ahead/behind)
-
-| Task | Priority | Spec |
-|------|----------|------|
-| CHI-321: GIT-10 Discard changes with soft undo | Medium | SPEC-006 §5.5 |
-| CHI-326: GIT-15 Stash operations | Medium | SPEC-006 §4.25, §5.5 |
-| CHI-327: GIT-16 Merge conflict detection + banner | Medium | SPEC-006 §4.29 |
-| CHI-328: GIT-17 AI commit message generation | Medium | SPEC-006 §4.28 |
-| CHI-329: GIT-18 Context menu git actions on file tree | Low | SPEC-006 §4.25 |
-| CHI-330: GIT-19 Keyboard shortcuts for Git operations | Low | SPEC-006 §4.27 |
 
 #### CHI-331: Terminal Integration (Phase 4 — 12 subtasks)
 
@@ -89,7 +77,6 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 | CHI-202: E3 Voice Input/Output | Low | Conversation Utility |
 
 **Suggested next (Terminal):** CHI-332 → CHI-333 → CHI-334 → CHI-335 → CHI-336 → CHI-338
-**Suggested next (Git):** CHI-321 → CHI-326 → CHI-327 → CHI-328 → CHI-329 → CHI-330
 
 ### Epic Closure
 
@@ -120,7 +107,7 @@ src-tauri/src/
 ├── commands/     # IPC handlers — session, cli, project, bridge, slash, files, git, terminal
 ├── db/           # SQLite — connection.rs, migrations.rs, queries.rs
 ├── files/        # File scanner + watcher (CHI-115)
-├── git/          # Git operations via git2-rs (Phase 4 — CHI-311) [planned]
+├── git/          # Git operations via git2-rs (Phase 4 — CHI-311 complete)
 ├── terminal/     # General-purpose terminal PTY backend (Phase 4 — CHI-331) [planned]
 ├── logging/      # 3-layer tracing (CHI-94)
 ├── slash/        # Slash command discovery (CHI-106)
@@ -133,7 +120,7 @@ src/
 │   ├── explorer/     # FileTree, FileTreeNode, FilePreview
 │   ├── common/       # ModelSelector, CommandPalette, ToastContainer
 │   ├── permissions/  # PermissionDialog, YoloWarningDialog
-│   ├── git/          # GitPanel, BranchSelector, CommitBox, GitDiffView [planned]
+│   ├── git/          # GitPanel, ChangedFilesList, CommitBox, GitDiffView, RemoteActions, StashList
 │   └── terminal/     # TerminalPane, TerminalTabs [existing UI, backend wiring planned]
 ├── stores/           # uiStore, sessionStore, conversationStore, fileStore, contextStore, gitStore, terminalStore, etc.
 └── lib/              # types.ts, keybindings.ts, typewriterBuffer.ts, logger.ts

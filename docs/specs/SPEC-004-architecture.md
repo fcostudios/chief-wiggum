@@ -41,7 +41,8 @@ chief-wiggum/
 │   │   │   ├── mcp.rs              # MCP server management commands (future)
 │   │   │   ├── settings.rs         # Settings CRUD commands (Phase 3 — CHI-122)
 │   │   │   ├── actions.rs          # Project Actions discovery/lifecycle (Phase 3 — CHI-138)
-│   │   │   ├── git.rs              # Git operations commands (future)
+│   │   │   ├── git.rs              # Git operations commands (Phase 4 — Git Integration)
+    │   │   │   ├── terminal.rs        # Terminal session commands (Phase 4 — Terminal Integration)
 │   │   │   └── automation.rs       # Automation CRUD commands (future)
 │   │   ├── actions/                # Project Actions backend (Phase 3 — CHI-138)
 │   │   │   ├── mod.rs              # ActionDefinition and shared types
@@ -67,12 +68,22 @@ chief-wiggum/
 │   │   │   ├── schema.rs           # Table definitions, migrations
 │   │   │   ├── queries.rs          # Typed query functions
 │   │   │   └── export.rs           # Data export/import (SPEC-005)
-│   │   ├── git/                    # Git operations via git2-rs
-│   │   │   ├── mod.rs
-│   │   │   ├── worktree.rs         # Worktree management
-│   │   │   ├── status.rs           # Status, branch, log queries
-│   │   │   └── commit.rs           # Commit, PR creation
-│   │   ├── slash/                   # Slash command discovery (Phase 3 — CHI-105)
+│   │   ├── git/                    # Git operations via git2-rs (Phase 4 — Git Integration)
+│   │   │   ├── mod.rs              # Module exports, GitError enum
+│   │   │   ├── repository.rs       # Repository discovery, open, validate
+│   │   │   ├── status.rs           # Working tree status, staged/unstaged/untracked
+│   │   │   ├── branch.rs           # Branch list, create, delete, switch, current
+│   │   │   ├── commit.rs           # Commit creation, log/history, amend
+│   │   │   ├── diff.rs             # File diff generation, hunk parsing
+│   │   │   ├── remote.rs           # Push, pull, fetch with progress callbacks
+│   │   │   ├── stash.rs            # Stash list, save, pop, apply, drop
+│   │   │   ├── merge.rs            # Merge, conflict detection, resolution helpers
+│   │   │   └── worktree.rs         # Worktree management
+│   │   ├── terminal/                # General-purpose terminal backend (Phase 4 — Terminal Integration)
+    │   │   │   ├── mod.rs              # Module exports, TerminalError enum
+    │   │   │   ├── session.rs          # Terminal session lifecycle (spawn, write, resize, kill)
+    │   │   │   └── manager.rs          # TerminalSessionMap — maps terminal_id to PTY processes
+    │   │   ├── slash/                   # Slash command discovery (Phase 3 — CHI-105)
 │   │   │   ├── mod.rs              # SlashCommand type, CommandSource enum
 │   │   │   ├── scanner.rs          # File-based command scanner (.claude/commands/)
 │   │   │   └── registry.rs         # CommandRegistry: merge file-scanned + SDK-discovered
@@ -217,7 +228,9 @@ chief-wiggum/
 | `bridge/event_loop.rs` | Streaming event loop: reads bridge output, emits Tauri events (chunk, complete, exited, permission). | `bridge/`, `tauri` | Phase 2 |
 | `cost/` | Calculate token costs, enforce budgets, emit cost events. | `db/` | Phase 2 |
 | `db/` | SQLite CRUD operations, schema migrations, data export/import. | `rusqlite` | Phase 1 |
-| `git/` | Git operations: status, worktree management, commit, branch. | `git2-rs` | Future |
+| `git/` | Git operations: repository, status, branch, commit, diff, remote, stash, merge, worktree. See SPEC-006 §4.25–4.29. | `git2-rs` | Phase 4 |
+| `terminal/` | General-purpose terminal: PTY session lifecycle, multi-session management, input/output streaming. See SPEC-006 §4.30–4.33. | `portable-pty`, `tokio`, `tauri` | Phase 4 |
+| `commands/terminal.rs` | Terminal IPC: spawn, write, resize, kill, list sessions. | `terminal/` | Phase 4 |
 | `mcp/` | MCP server registration, connection lifecycle, OAuth flows. | `reqwest`, `tokio` | Future |
 | `actions/` | Project action discovery, process lifecycle, concurrent runtime event emission. | `portable-pty`, `tokio`, `tauri` | Phase 3 |
 
@@ -236,6 +249,7 @@ chief-wiggum/
 | `settingsStore` | User preferences, autosave/retry/save status, settings IPC sync | Settings IPC (`get/update/reset`) + settings events | Phase 3 |
 | `i18nStore` | Active locale, lazy-loaded dictionaries, translation lookup/fallback | Settings-driven locale sync + dynamic locale loaders | Phase 3 |
 | `actionStore` | Discovered actions, running states, output buffers, selected action output, custom action CRUD helpers, recent action events | Actions IPC + Tauri `action:*` events | Phase 3 |
+| `terminalStore` | Terminal sessions, active tab, per-session state (status, cwd, title) | IPC commands (`spawn/write/resize/kill`) + Tauri events (`terminal:output`, `terminal:exit`) | Phase 4 |
 | `mcpStore` | Server list, connection status, tools | IPC commands + events | Future |
 
 ---
@@ -298,12 +312,81 @@ export const addMcpServer = (config: McpServerConfig) =>
 export const removeMcpServer = (server_id: string) =>
   invoke<void>('remove_mcp_server', { server_id });
 
-// Git commands
-export const getGitStatus = (project_path: string) =>
-  invoke<GitStatus>('get_git_status', { project_path });
+// Git commands (Phase 4 — Git Integration, see SPEC-006 §4.25–4.29)
 
+// Repository & Status
+export const gitGetStatus = (project_path: string) =>
+  invoke<GitRepoStatus>('git_get_status', { project_path });
+
+// Branches
+export const gitGetBranches = (project_path: string) =>
+  invoke<GitBranch[]>('git_get_branches', { project_path });
+export const gitSwitchBranch = (project_path: string, branch_name: string) =>
+  invoke<void>('git_switch_branch', { project_path, branch_name });
+export const gitCreateBranch = (project_path: string, name: string, from?: string) =>
+  invoke<GitBranch>('git_create_branch', { project_path, name, from });
+export const gitDeleteBranch = (project_path: string, name: string, force?: boolean) =>
+  invoke<void>('git_delete_branch', { project_path, name, force });
+
+// Staging
+export const gitStageFiles = (project_path: string, paths: string[]) =>
+  invoke<void>('git_stage_files', { project_path, paths });
+export const gitUnstageFiles = (project_path: string, paths: string[]) =>
+  invoke<void>('git_unstage_files', { project_path, paths });
+export const gitStageHunk = (project_path: string, file_path: string, hunk_index: number) =>
+  invoke<void>('git_stage_hunk', { project_path, file_path, hunk_index });
+export const gitDiscardChanges = (project_path: string, paths: string[]) =>
+  invoke<void>('git_discard_changes', { project_path, paths });
+
+// Diff
+export const gitGetDiff = (project_path: string, file_path?: string, staged?: boolean) =>
+  invoke<GitFileDiff[]>('git_get_diff', { project_path, file_path, staged });
+
+// Commit
+export const gitCommit = (project_path: string, message: string, amend?: boolean) =>
+  invoke<GitCommitInfo>('git_commit', { project_path, message, amend });
+export const gitGetLog = (project_path: string, limit?: number, path?: string) =>
+  invoke<GitLogEntry[]>('git_get_log', { project_path, limit, path });
+
+// Remote
+export const gitPush = (project_path: string, remote?: string, branch?: string) =>
+  invoke<void>('git_push', { project_path, remote, branch });
+export const gitPull = (project_path: string, remote?: string, branch?: string) =>
+  invoke<PullResult>('git_pull', { project_path, remote, branch });
+export const gitFetch = (project_path: string, remote?: string) =>
+  invoke<void>('git_fetch', { project_path, remote });
+
+// Stash
+export const gitStashSave = (project_path: string, message?: string) =>
+  invoke<void>('git_stash_save', { project_path, message });
+export const gitStashList = (project_path: string) =>
+  invoke<GitStashEntry[]>('git_stash_list', { project_path });
+export const gitStashPop = (project_path: string, index?: number) =>
+  invoke<void>('git_stash_pop', { project_path, index });
+
+// Worktree (existing)
 export const createWorktree = (project_path: string, branch_name: string) =>
   invoke<string>('create_worktree', { project_path, branch_name });
+
+// Terminal commands (Phase 4 — Terminal Integration, see SPEC-006 §4.30–4.33)
+
+// Session lifecycle
+export const spawnTerminal = (shell?: string, cwd?: string) =>
+  invoke<TerminalSession>('spawn_terminal', { shell, cwd });
+export const killTerminal = (terminal_id: string) =>
+  invoke<void>('kill_terminal', { terminal_id });
+export const listTerminals = () =>
+  invoke<TerminalSession[]>('list_terminals');
+
+// Input/Output
+export const terminalWrite = (terminal_id: string, data: string) =>
+  invoke<void>('terminal_write', { terminal_id, data });
+export const terminalResize = (terminal_id: string, cols: number, rows: number) =>
+  invoke<void>('terminal_resize', { terminal_id, cols, rows });
+
+// Shell detection
+export const getAvailableShells = () =>
+  invoke<ShellInfo[]>('get_available_shells');
 
 // Export commands
 export const exportData = (format: string, path: string) =>
@@ -362,6 +445,13 @@ export const onPermissionRequest = (handler: (req: PermissionRequest) => void) =
 // MCP events
 export const onMcpStatusChange = (handler: (status: McpStatus) => void) =>
   listen<McpStatus>('mcp:status_change', (event) => handler(event.payload));
+
+// Terminal events (Phase 4 — Terminal Integration)
+export const onTerminalOutput = (handler: (data: { terminal_id: string; data: string }) => void) =>
+  listen<{ terminal_id: string; data: string }>('terminal:output', (event) => handler(event.payload));
+
+export const onTerminalExit = (handler: (data: { terminal_id: string; exit_code: number | null }) => void) =>
+  listen<{ terminal_id: string; exit_code: number | null }>('terminal:exit', (event) => handler(event.payload));
 ```
 
 ```rust
@@ -394,6 +484,8 @@ Pattern: `{domain}:{action}` in lowercase snake_case.
 | `cost:budget_warning` | `{ scope, percent, limit_cents, spent_cents }` | Backend → Frontend | Future |
 | `context:update` | `{ session_id, tokens_used, tokens_limit, zone }` | Backend → Frontend | Future |
 | `mcp:status_change` | `{ server_id, old_status, new_status }` | Backend → Frontend | Future |
+| `terminal:output` | `{ terminal_id, data }` | Backend → Frontend | Phase 4 |
+| `terminal:exit` | `{ terminal_id, exit_code }` | Backend → Frontend | Phase 4 |
 
 ### 4.4 Phase 2 IPC Contracts (Implemented)
 
@@ -1326,6 +1418,110 @@ interface Settings {
   terminal: TerminalSettings;
   permissions: PermissionSettings;
   agents: AgentSettings;
+}
+
+// Git types (Phase 4 — Git Integration, see SPEC-006 §4.25–4.29)
+
+interface GitRepoStatus {
+  is_git_repo: boolean;
+  current_branch: string | null;
+  ahead: number;
+  behind: number;
+  staged: GitFileChange[];
+  unstaged: GitFileChange[];
+  untracked: GitFileChange[];
+  has_conflicts: boolean;
+}
+
+interface GitFileChange {
+  path: string;
+  status: 'added' | 'modified' | 'deleted' | 'renamed' | 'copied' | 'untracked' | 'conflict';
+  old_path?: string;  // for renames
+}
+
+interface GitBranch {
+  name: string;
+  is_current: boolean;
+  is_remote: boolean;
+  upstream?: string;
+  last_commit_hash?: string;
+  last_commit_message?: string;
+  last_commit_time?: string;
+}
+
+interface GitFileDiff {
+  file_path: string;
+  old_path?: string;
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  hunks: GitDiffHunk[];
+  is_binary: boolean;
+  additions: number;
+  deletions: number;
+}
+
+interface GitDiffHunk {
+  header: string;               // @@ line
+  old_start: number;
+  old_lines: number;
+  new_start: number;
+  new_lines: number;
+  lines: GitDiffLine[];
+}
+
+interface GitDiffLine {
+  content: string;
+  type: 'context' | 'add' | 'remove';
+  old_lineno?: number;
+  new_lineno?: number;
+}
+
+interface GitCommitInfo {
+  hash: string;
+  short_hash: string;
+  message: string;
+  author: string;
+  timestamp: string;
+}
+
+interface GitLogEntry {
+  hash: string;
+  short_hash: string;
+  message: string;
+  author_name: string;
+  author_email: string;
+  timestamp: string;
+  parent_hashes: string[];
+}
+
+interface GitStashEntry {
+  index: number;
+  message: string;
+  timestamp: string;
+  branch: string;
+}
+
+interface PullResult {
+  commits_pulled: number;
+  has_conflicts: boolean;
+  conflicted_files: string[];
+}
+
+// Terminal types (Phase 4 — Terminal Integration, see SPEC-006 §4.30–4.33)
+
+interface TerminalSession {
+  terminal_id: string;
+  shell: string;          // e.g., "/bin/zsh", "powershell.exe"
+  cwd: string;            // initial working directory
+  status: 'running' | 'exited';
+  exit_code?: number | null;
+  title?: string;         // user-assigned or auto-detected tab title
+  created_at: string;     // ISO timestamp
+}
+
+interface ShellInfo {
+  name: string;           // e.g., "zsh", "bash", "fish", "PowerShell"
+  path: string;           // e.g., "/bin/zsh", "/usr/bin/bash"
+  is_default: boolean;    // true if this is $SHELL / ComSpec
 }
 ```
 

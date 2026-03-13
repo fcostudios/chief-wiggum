@@ -16,10 +16,8 @@ import { contextState } from '@/stores/contextStore';
 import { t } from '@/stores/i18nStore';
 import MarkdownContent from '@/components/conversation/MarkdownContent';
 import FilePreview from '@/components/explorer/FilePreview';
-import GitDiffView from '@/components/git/GitDiffView';
 import ActionOutputPanel from '@/components/actions/ActionOutputPanel';
 import { loadPinnedSections, savePinnedSections } from '@/components/layout/detailsPanelPins';
-import { gitState } from '@/stores/gitStore';
 
 interface SectionProps {
   id: string;
@@ -35,13 +33,14 @@ interface SectionProps {
 const CollapsibleSection: Component<SectionProps> = (props) => {
   return (
     <section
-      class="flex flex-col shrink-0"
+      class="flex flex-col shrink-0 overflow-hidden relative isolate"
       classList={{ 'flex-1': props.open && props.focused, 'min-h-0': props.open && props.focused }}
       data-section-id={props.id}
+      style={{ 'border-top': '1px solid var(--color-border-secondary)' }}
     >
       <div class="group flex items-center">
         <button
-          class="flex-1 flex items-center gap-2 min-w-0 px-3 py-2.5 text-left transition-colors"
+          class="flex-1 flex items-center gap-2 min-w-0 h-8 px-3 text-left transition-colors"
           style={{
             'transition-duration': 'var(--duration-fast)',
             background: props.focused ? 'rgba(232, 130, 90, 0.07)' : 'transparent',
@@ -69,6 +68,7 @@ const CollapsibleSection: Component<SectionProps> = (props) => {
             class="font-semibold uppercase truncate"
             style={{
               'font-size': '10px',
+              'line-height': '1',
               color: 'var(--color-text-tertiary)',
               'letter-spacing': '0.1em',
             }}
@@ -122,7 +122,6 @@ const DetailsPanel: Component = () => {
   const [sectionOpenState, setSectionOpenState] = createSignal<Record<string, boolean>>({
     actionOutput: false,
     filePreview: false,
-    gitDiff: false,
     projectContext: false,
     context: false,
     cost: false,
@@ -287,10 +286,6 @@ const DetailsPanel: Component = () => {
       !(fileState.selectedPath || (fileState.isVisible && projectState.activeProjectId))
     ) {
       setFocusedSectionId(null);
-      return;
-    }
-    if (focused === 'gitDiff' && !gitState.selectedGitFile) {
-      setFocusedSectionId(null);
     }
   });
 
@@ -322,13 +317,6 @@ const DetailsPanel: Component = () => {
     if (!hasFile) return;
     openSection('filePreview');
     setFocusedSectionId('filePreview');
-  });
-
-  // Auto-expand gitDiff section when a Git file is selected.
-  createEffect(() => {
-    if (gitState.selectedGitFile) {
-      openSection('gitDiff');
-    }
   });
 
   // Auto-expand: action output when action selected.
@@ -424,28 +412,6 @@ const DetailsPanel: Component = () => {
           <p class="text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
             {t('detailsPanel.selectFileHint')}
           </p>
-        </CollapsibleSection>
-      </Show>
-
-      <Show when={gitState.selectedGitFile}>
-        <CollapsibleSection
-          id="gitDiff"
-          title={<>Git Diff</>}
-          open={isSectionOpen('gitDiff')}
-          focused={isFocused('gitDiff')}
-          pinned={isPinned('gitDiff')}
-          onHeaderClick={() => handleSectionHeaderClick('gitDiff')}
-          onPinToggle={() => togglePin('gitDiff')}
-        >
-          <div
-            classList={{
-              'h-full': isFocused('gitDiff'),
-              'min-h-0': isFocused('gitDiff'),
-              'h-[380px]': !isFocused('gitDiff'),
-            }}
-          >
-            <GitDiffView />
-          </div>
         </CollapsibleSection>
       </Show>
 

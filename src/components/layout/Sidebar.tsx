@@ -19,6 +19,8 @@ import {
   GitBranch,
   Search,
   X,
+  Eye,
+  EyeOff,
 } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type { Message, Session } from '@/lib/types';
@@ -50,7 +52,7 @@ import {
   setActiveProject,
   getActiveProject,
 } from '@/stores/projectStore';
-import { fileState, toggleFilesVisible } from '@/stores/fileStore';
+import { fileState, toggleFilesVisible, toggleShowIgnoredFiles } from '@/stores/fileStore';
 import { actionState, discoverActions } from '@/stores/actionStore';
 import { uiState, setActiveView, setViewBadge } from '@/stores/uiStore';
 import { openImportDialog } from '@/stores/importStore';
@@ -409,10 +411,8 @@ const Sidebar: Component = () => {
             }
           >
             {/* Files header */}
-            <button
-              class="flex items-center justify-between w-full px-3 py-2 text-left"
-              onClick={handleFilesSectionHeaderClick}
-              aria-expanded={fileState.isVisible}
+            <div
+              class="flex items-center justify-between w-full px-3 py-2"
               style={{
                 background:
                   fileState.isVisible && focusedContentSection() === 'files'
@@ -420,20 +420,57 @@ const Sidebar: Component = () => {
                     : 'transparent',
               }}
             >
-              <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-                {t('sidebar.files')}
-              </span>
-              <span
-                class="text-[9px] transition-transform"
+              <button
+                class="flex items-center gap-1 min-w-0 text-left"
+                onClick={handleFilesSectionHeaderClick}
+                aria-expanded={fileState.isVisible}
+              >
+                <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+                  {t('sidebar.files')}
+                </span>
+                <span
+                  class="text-[9px] transition-transform"
+                  style={{
+                    color: 'var(--color-text-tertiary)',
+                    transform: fileState.isVisible ? 'rotate(90deg)' : 'rotate(0deg)',
+                    'transition-duration': 'var(--duration-fast)',
+                  }}
+                >
+                  ›
+                </span>
+              </button>
+              <button
+                class="shrink-0 p-1 rounded transition-colors"
                 style={{
-                  color: 'var(--color-text-tertiary)',
-                  transform: fileState.isVisible ? 'rotate(90deg)' : 'rotate(0deg)',
+                  color: fileState.showIgnoredFiles
+                    ? 'var(--color-accent)'
+                    : 'var(--color-text-tertiary)',
+                  background: fileState.showIgnoredFiles
+                    ? 'var(--color-accent-muted)'
+                    : 'transparent',
                   'transition-duration': 'var(--duration-fast)',
                 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleShowIgnoredFiles();
+                }}
+                aria-label={
+                  fileState.showIgnoredFiles
+                    ? t('explorer.hideIgnoredFiles')
+                    : t('explorer.showIgnoredFiles')
+                }
+                aria-pressed={fileState.showIgnoredFiles}
+                title={
+                  fileState.showIgnoredFiles
+                    ? t('explorer.hideIgnoredFilesShortcut')
+                    : t('explorer.showIgnoredFilesShortcut')
+                }
               >
-                ›
-              </span>
-            </button>
+                <Show when={fileState.showIgnoredFiles} fallback={<EyeOff size={12} />}>
+                  <Eye size={12} />
+                </Show>
+              </button>
+            </div>
 
             {/* File tree (collapsible) */}
             <Show when={fileState.isVisible}>

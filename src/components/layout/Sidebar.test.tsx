@@ -10,6 +10,7 @@ let mockProjects: Project[] = [];
 let mockActiveProjectId: string | null = null;
 let mockSidebarState: 'expanded' | 'collapsed' | 'hidden' = 'expanded';
 let mockFileVisible = false;
+let mockShowIgnoredFiles = false;
 let mockActions: Array<{ id: string }> = [];
 let mockCrossProjectRunning: Array<{ id: string }> = [];
 
@@ -34,6 +35,7 @@ const mockClearSessionUnread = vi.fn();
 const mockPickAndCreateProject = vi.fn(() => Promise.resolve());
 const mockSetActiveProject = vi.fn();
 const mockToggleFilesVisible = vi.fn();
+const mockToggleShowIgnoredFiles = vi.fn();
 const mockDiscoverActions = vi.fn(() => Promise.resolve());
 const mockSetViewBadge = vi.fn();
 
@@ -130,8 +132,12 @@ vi.mock('@/stores/fileStore', () => ({
     get isVisible() {
       return mockFileVisible;
     },
+    get showIgnoredFiles() {
+      return mockShowIgnoredFiles;
+    },
   },
   toggleFilesVisible: () => mockToggleFilesVisible(),
+  toggleShowIgnoredFiles: () => mockToggleShowIgnoredFiles(),
 }));
 
 vi.mock('@/stores/actionStore', () => ({
@@ -210,6 +216,7 @@ describe('Sidebar', () => {
     mockSummaryLoading = {};
     mockSidebarState = 'expanded';
     mockFileVisible = false;
+    mockShowIgnoredFiles = false;
     mockActions = [];
     mockCrossProjectRunning = [];
 
@@ -269,5 +276,15 @@ describe('Sidebar', () => {
     fireEvent.keyDown(sessionRow, { key: 'F10', shiftKey: true });
     expect(await screen.findByRole('menu')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument();
+  });
+
+  it('shows ignored-files toggle in files header and triggers toggle handler', async () => {
+    mockProjects = [makeProject()];
+    mockActiveProjectId = 'p1';
+    mockFileVisible = true;
+
+    render(() => <Sidebar />);
+    fireEvent.click(screen.getByRole('button', { name: 'explorer.showIgnoredFiles' }));
+    expect(mockToggleShowIgnoredFiles).toHaveBeenCalledTimes(1);
   });
 });

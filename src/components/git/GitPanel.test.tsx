@@ -17,8 +17,12 @@ type FileStatusEntry = {
 };
 
 const mock = vi.hoisted(() => ({
+  setGitProjectId: vi.fn(),
   refreshGitStatus: vi.fn(),
   refreshRepoInfo: vi.fn(),
+  projectState: {
+    activeProjectId: 'proj-1' as string | null,
+  },
   stagedFiles: [] as FileStatusEntry[],
   unstagedFiles: [] as FileStatusEntry[],
   untrackedFiles: [] as FileStatusEntry[],
@@ -38,8 +42,13 @@ vi.mock('@/stores/gitStore', () => ({
   getStagedFiles: () => mock.stagedFiles,
   getUnstagedFiles: () => mock.unstagedFiles,
   getUntrackedFiles: () => mock.untrackedFiles,
+  setGitProjectId: (id: string | null) => mock.setGitProjectId(id),
   refreshGitStatus: () => mock.refreshGitStatus(),
   refreshRepoInfo: () => mock.refreshRepoInfo(),
+}));
+
+vi.mock('@/stores/projectStore', () => ({
+  projectState: mock.projectState,
 }));
 
 vi.mock('@/components/git/CommitLog', () => ({
@@ -66,6 +75,7 @@ vi.mock('@/components/git/MergeConflictBanner', () => ({
 describe('GitPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mock.projectState.activeProjectId = 'proj-1';
     mock.gitState.repoInfo = null;
     mock.gitState.statusEntries = [];
     mock.gitState.stashes = [];
@@ -81,11 +91,22 @@ describe('GitPanel', () => {
   it('renders the Git panel header', () => {
     const { getByText } = render(() => <GitPanel />);
     expect(getByText('Git')).toBeTruthy();
+    expect(mock.setGitProjectId).toHaveBeenCalledWith('proj-1');
+    expect(mock.refreshRepoInfo).toHaveBeenCalled();
+    expect(mock.refreshGitStatus).toHaveBeenCalled();
   });
 
   it('shows no-repo message when repoInfo is null', () => {
     const { getByText } = render(() => <GitPanel />);
     expect(getByText(/no git repository/i)).toBeTruthy();
+  });
+
+  it('does not refresh git data when no active project is selected', () => {
+    mock.projectState.activeProjectId = null;
+    render(() => <GitPanel />);
+    expect(mock.setGitProjectId).toHaveBeenCalledWith(null);
+    expect(mock.refreshRepoInfo).not.toHaveBeenCalled();
+    expect(mock.refreshGitStatus).not.toHaveBeenCalled();
   });
 
   it('shows changed file sections when status entries exist', () => {
