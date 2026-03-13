@@ -11,6 +11,7 @@ pub mod files;
 pub mod git;
 pub mod import;
 pub mod logging;
+pub mod paths;
 pub mod security;
 pub mod settings;
 pub mod slash;

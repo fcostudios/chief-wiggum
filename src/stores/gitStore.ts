@@ -65,6 +65,11 @@ export interface CommitEntry {
   timestamp: number;
 }
 
+export interface DiscardResult {
+  old_content: string | null;
+  was_untracked: boolean;
+}
+
 export type RemoteOperation = 'fetch' | 'pull' | 'push';
 
 export interface RemoteProgressState {

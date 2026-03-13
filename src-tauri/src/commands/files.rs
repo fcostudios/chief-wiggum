@@ -6,6 +6,7 @@ use crate::files::bundles::{self, FileBundle, FileBundleEntry};
 use crate::files::suggestions::{self, FileSuggestion};
 use crate::files::watcher::FileWatcherManager;
 use crate::files::{scanner, FileContent, FileNode, FileSearchResult};
+use crate::paths::normalize_project_path;
 use crate::AppError;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -20,7 +21,7 @@ pub struct GitFileStatus {
 fn get_project_root(db: &Database, project_id: &str) -> Result<PathBuf, AppError> {
     let project = queries::get_project(db, project_id)?
         .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    Ok(PathBuf::from(project.path))
+    Ok(normalize_project_path(&project.path))
 }
 
 /// List files/directories under a project path.
@@ -33,11 +34,9 @@ pub fn list_project_files(
     max_depth: Option<usize>,
     show_ignored: Option<bool>,
 ) -> Result<Vec<FileNode>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
+    let project_root = get_project_root(&db, &project_id)?;
     scanner::list_files(
-        project_root,
+        &project_root,
         relative_path.as_deref(),
         max_depth,
         show_ignored.unwrap_or(false),
@@ -54,10 +53,8 @@ pub fn read_project_file(
     start_line: Option<usize>,
     end_line: Option<usize>,
 ) -> Result<FileContent, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
-    scanner::read_file(project_root, &relative_path, start_line, end_line)
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::read_file(&project_root, &relative_path, start_line, end_line)
 }
 
 /// Get file modification time in milliseconds since Unix epoch.
@@ -69,9 +66,7 @@ pub fn get_file_mtime(
     project_id: String,
     relative_path: String,
 ) -> Result<Option<i64>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
+    let project_root = get_project_root(&db, &project_id)?;
     let full_path = project_root.join(&relative_path);
 
     let mtime = std::fs::metadata(&full_path)
@@ -92,12 +87,10 @@ pub fn resolve_file_path(
     project_id: String,
     relative_path: String,
 ) -> Result<String, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
+    let project_root = get_project_root(&db, &project_id)?;
     let full_path = project_root.join(&relative_path);
 
-    scanner::ensure_within_root(project_root, &full_path, &relative_path)?;
+    scanner::ensure_within_root(&project_root, &full_path, &relative_path)?;
     Ok(full_path.to_string_lossy().to_string())
 }
 
@@ -138,10 +131,8 @@ pub fn write_file_content(
     relative_path: String,
     content: String,
 ) -> Result<(), AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
-    scanner::write_file(project_root, &relative_path, &content)
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::write_file(&project_root, &relative_path, &content)
 }
 
 /// Create a new file in the project tree.
@@ -216,10 +207,8 @@ pub fn search_project_files(
     query: String,
     max_results: Option<usize>,
 ) -> Result<Vec<FileSearchResult>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
-    scanner::search_files(project_root, &query, max_results)
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::search_files(&project_root, &query, max_results)
 }
 
 /// Search project source files for symbols (function/class/variable).
@@ -231,10 +220,8 @@ pub fn list_symbols(
     kind: String,
     query: String,
 ) -> Result<Vec<scanner::SymbolMatch>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
-    scanner::scan_symbols(project_root, &query, &kind)
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::scan_symbols(&project_root, &query, &kind)
 }
 
 /// Estimate token count for a file (~chars/4).
@@ -245,10 +232,8 @@ pub fn get_file_token_estimate(
     project_id: String,
     relative_path: String,
 ) -> Result<usize, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
-    scanner::estimate_tokens(project_root, &relative_path)
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::estimate_tokens(&project_root, &relative_path)
 }
 
 /// Suggest related files based on attached files (imports and test files).
@@ -264,9 +249,7 @@ pub fn get_file_suggestions(
     _conversation_keywords: Vec<String>,
     limit: Option<usize>,
 ) -> Result<Vec<FileSuggestion>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
+    let project_root = get_project_root(&db, &project_id)?;
     let limit = limit.unwrap_or(5).min(10);
 
     let attached_set: HashSet<&str> = attached_paths.iter().map(String::as_str).collect();
@@ -289,7 +272,7 @@ pub fn get_file_suggestions(
                 continue;
             }
 
-            let estimated_tokens = scanner::estimate_tokens(project_root, &resolved).unwrap_or(0);
+            let estimated_tokens = scanner::estimate_tokens(&project_root, &resolved).unwrap_or(0);
             all_suggestions.push(FileSuggestion {
                 path: resolved,
                 reason: format!("imported by {}", attached_path),
@@ -304,7 +287,7 @@ pub fn get_file_suggestions(
                 continue;
             }
 
-            let estimated_tokens = scanner::estimate_tokens(project_root, &test_path).unwrap_or(0);
+            let estimated_tokens = scanner::estimate_tokens(&project_root, &test_path).unwrap_or(0);
             all_suggestions.push(FileSuggestion {
                 path: test_path,
                 reason: "test file".to_string(),
@@ -345,11 +328,9 @@ pub fn get_file_bundles(
     project_id: String,
     relative_path: String,
 ) -> Result<Vec<FileBundle>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
+    let project_root = get_project_root(&db, &project_id)?;
 
-    let detected = bundles::detect_bundles(project_root, &relative_path);
+    let detected = bundles::detect_bundles(&project_root, &relative_path);
     let mut result = Vec::new();
 
     for bundle in detected {
@@ -357,7 +338,7 @@ pub fn get_file_bundles(
         let mut total_tokens = 0usize;
 
         for path in bundle.paths {
-            let estimated_tokens = scanner::estimate_tokens(project_root, &path).unwrap_or(0);
+            let estimated_tokens = scanner::estimate_tokens(&project_root, &path).unwrap_or(0);
             total_tokens = total_tokens.saturating_add(estimated_tokens);
             entries.push(FileBundleEntry {
                 name: std::path::Path::new(&path)
@@ -399,13 +380,11 @@ pub fn get_git_file_statuses(
     db: State<'_, Database>,
     project_id: String,
 ) -> Result<HashMap<String, GitFileStatus>, AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
+    let project_root = get_project_root(&db, &project_id)?;
 
     let output = std::process::Command::new("git")
         .args(["status", "--porcelain=v1"])
-        .current_dir(project_root)
+        .current_dir(&project_root)
         .output()
         .map_err(|e| AppError::Other(format!("Failed to run git status: {}", e)))?;
 
@@ -463,10 +442,8 @@ pub fn open_project_file_in_system(
     project_id: String,
     relative_path: String,
 ) -> Result<(), AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    let project_root = std::path::Path::new(&project.path);
-    scanner::open_file_in_system(project_root, &relative_path)
+    let project_root = get_project_root(&db, &project_id)?;
+    scanner::open_file_in_system(&project_root, &relative_path)
 }
 
 /// Start filesystem watcher for the given project.
@@ -478,9 +455,8 @@ pub fn start_project_file_watcher(
     watcher_manager: State<'_, FileWatcherManager>,
     project_id: String,
 ) -> Result<(), AppError> {
-    let project = queries::get_project(&db, &project_id)?
-        .ok_or_else(|| AppError::Other(format!("Project not found: {}", project_id)))?;
-    watcher_manager.start_watching(app, project_id, std::path::PathBuf::from(project.path))
+    let project_root = get_project_root(&db, &project_id)?;
+    watcher_manager.start_watching(app, project_id, project_root)
 }
 
 /// Stop filesystem watcher for the given project.

@@ -321,6 +321,7 @@ fn main() {
             chief_wiggum_lib::commands::git::git_fetch,
             chief_wiggum_lib::commands::git::git_pull,
             chief_wiggum_lib::commands::git::git_push,
+            chief_wiggum_lib::commands::git::git_discard_file,
         ])
         .setup(|app| {
             use tauri::Manager;
