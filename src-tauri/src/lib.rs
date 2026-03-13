@@ -15,6 +15,7 @@ pub mod paths;
 pub mod security;
 pub mod settings;
 pub mod slash;
+pub mod terminal;
 
 /// Unified application error type per GUIDE-001 §2.4 and SPEC-004 §7.
 #[derive(Debug, thiserror::Error)]
@@ -75,6 +76,9 @@ pub enum AppError {
 
     #[error("Git error: {0}")]
     Git(String),
+
+    #[error("Terminal error: {0}")]
+    Terminal(String),
 
     #[error("{0}")]
     Other(String),
