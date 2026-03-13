@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@solidjs/testing-library';
 
-let mockActiveView: 'conversation' | 'agents' | 'diff' | 'git' | 'terminal' | 'actions_center' =
+let mockActiveView: 'conversation' | 'agents' | 'diff' | 'terminal' | 'actions_center' | 'git' =
   'conversation';
 let mockSidebarState: 'expanded' | 'collapsed' | 'hidden' = 'expanded';
 let mockSidebarWidth = 240;
@@ -22,9 +22,9 @@ let mockViewBadges: Record<string, number> = {
   conversation: 0,
   agents: 0,
   diff: 0,
-  git: 0,
   terminal: 0,
   actions_center: 0,
+  git: 0,
 };
 let mockLayoutMode: 'single' | 'split' = 'single';
 let mockActivePaneId = 'main';
@@ -32,9 +32,10 @@ let mockCliDetected = true;
 let mockSessionId: string | null = 'session-1';
 let mockIsLoading = false;
 let mockEditorTakeoverActive = false;
-let mockActiveProjectId: string | null = 'project-1';
 
 const mockSetActiveView = vi.fn();
+const mockToggleSidebar = vi.fn();
+const mockToggleDetailsPanel = vi.fn();
 const mockSetSidebarWidth = vi.fn((width: number) => {
   mockSidebarWidth = width;
 });
@@ -50,9 +51,6 @@ const mockCreateNewSession = vi.fn(() => Promise.resolve({ id: 'session-new' }))
 const mockSendMessage = vi.fn();
 const mockRecordPermissionOutcome = vi.fn();
 const mockEnsureMainPaneSession = vi.fn();
-const mockSetGitProjectId = vi.fn();
-const mockRefreshRepoInfo = vi.fn();
-const mockRefreshGitStatus = vi.fn();
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(() => Promise.resolve()) }));
 vi.mock('@tauri-apps/api/window', () => ({
@@ -128,6 +126,8 @@ vi.mock('@/stores/uiStore', () => ({
   closeQuickSwitcher: () => mockCloseQuickSwitcher(),
   closeChangelog: () => mockCloseChangelog(),
   closeAbout: () => mockCloseAbout(),
+  toggleSidebar: () => mockToggleSidebar(),
+  toggleDetailsPanel: () => mockToggleDetailsPanel(),
 }));
 
 vi.mock('@/stores/sessionStore', () => ({
@@ -181,23 +181,6 @@ vi.mock('@/stores/fileStore', () => ({
   },
 }));
 
-vi.mock('@/stores/projectStore', () => ({
-  projectState: {
-    get activeProjectId() {
-      return mockActiveProjectId;
-    },
-  },
-}));
-
-vi.mock('@/stores/gitStore', () => ({
-  setGitProjectId: (...args: unknown[]) =>
-    (mockSetGitProjectId as unknown as (...inner: unknown[]) => unknown)(...args),
-  refreshRepoInfo: (...args: unknown[]) =>
-    (mockRefreshRepoInfo as unknown as (...inner: unknown[]) => unknown)(...args),
-  refreshGitStatus: (...args: unknown[]) =>
-    (mockRefreshGitStatus as unknown as (...inner: unknown[]) => unknown)(...args),
-}));
-
 vi.mock('./TitleBar', () => ({ default: () => <div data-testid="titlebar">TitleBar</div> }));
 vi.mock('./Sidebar', () => ({ default: () => <div data-testid="sidebar">Sidebar</div> }));
 vi.mock('./StatusBar', () => ({ default: () => <div data-testid="statusbar">StatusBar</div> }));
@@ -223,6 +206,9 @@ vi.mock('@/components/terminal/TerminalPane', () => ({
 }));
 vi.mock('@/components/actions/ActionsCenter', () => ({
   default: () => <div data-testid="actions-center">ActionsCenter</div>,
+}));
+vi.mock('@/components/git/GitPanel', () => ({
+  default: () => <div data-testid="git-panel">GitPanel</div>,
 }));
 vi.mock('@/components/common/CommandPalette', () => ({
   default: () => <div data-testid="command-palette">CommandPalette</div>,
@@ -260,9 +246,6 @@ vi.mock('@/components/layout/SplitPaneContainer', () => ({
 vi.mock('@/components/editor/EditorTakeover', () => ({
   default: () => <div data-testid="editor-takeover">EditorTakeover</div>,
 }));
-vi.mock('@/components/git/GitPanel', () => ({
-  default: () => <div data-testid="git-panel">GitPanel</div>,
-}));
 
 import MainLayout from './MainLayout';
 
@@ -288,9 +271,9 @@ describe('MainLayout', () => {
       conversation: 0,
       agents: 0,
       diff: 0,
-      git: 0,
       terminal: 0,
       actions_center: 0,
+      git: 0,
     };
     mockLayoutMode = 'single';
     mockActivePaneId = 'main';
@@ -298,7 +281,6 @@ describe('MainLayout', () => {
     mockSessionId = 'session-1';
     mockIsLoading = false;
     mockEditorTakeoverActive = false;
-    mockActiveProjectId = 'project-1';
     vi.clearAllMocks();
   });
 
@@ -330,13 +312,9 @@ describe('MainLayout', () => {
     expect(screen.getByRole('button', { name: 'Conversation' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Agents' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Diff' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Git' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Terminal' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument();
     expect(mockEnsureMainPaneSession).toHaveBeenCalledWith('session-1');
-    expect(mockSetGitProjectId).toHaveBeenCalledWith('project-1');
-    expect(mockRefreshRepoInfo).toHaveBeenCalled();
-    expect(mockRefreshGitStatus).toHaveBeenCalled();
   });
 
   it('clicking a view tab requests a view switch', () => {
@@ -345,10 +323,30 @@ describe('MainLayout', () => {
     expect(mockSetActiveView).toHaveBeenCalledWith('diff');
   });
 
-  it('renders git panel when git view is active', () => {
-    mockActiveView = 'git';
+  it('renders panel toggle buttons and wires click handlers', () => {
     render(() => <MainLayout />);
-    expect(screen.getByTestId('git-panel')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle left panel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle right panel' }));
+    expect(mockToggleSidebar).toHaveBeenCalledTimes(1);
+    expect(mockToggleDetailsPanel).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows state-aware left panel toggle tooltip text when hidden', () => {
+    mockSidebarState = 'hidden';
+    render(() => <MainLayout />);
+    expect(screen.getByRole('button', { name: 'Toggle left panel' })).toHaveAttribute(
+      'title',
+      'Show left panel (Cmd+B)',
+    );
+  });
+
+  it('shows state-aware left panel toggle tooltip text when collapsed', () => {
+    mockSidebarState = 'collapsed';
+    render(() => <MainLayout />);
+    expect(screen.getByRole('button', { name: 'Toggle left panel' })).toHaveAttribute(
+      'title',
+      'Hide left panel (Cmd+B)',
+    );
   });
 
   it('renders conversation/split modes and conditional overlays', () => {
@@ -394,5 +392,32 @@ describe('MainLayout', () => {
     expect(screen.getByTestId('conversation-view')).toBeInTheDocument();
     expect(screen.getByTestId('editor-takeover')).toBeInTheDocument();
     expect(screen.queryByTestId('message-input')).toBeNull();
+  });
+
+  it('renders GitPanel when activeView is git', () => {
+    mockActiveView = 'git';
+    render(() => <MainLayout />);
+    expect(screen.getByTestId('git-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('conversation-view')).toBeNull();
+  });
+
+  it('renders correct view component for each activeView value', () => {
+    const viewTests: Array<{
+      view: typeof mockActiveView;
+      testId: string;
+    }> = [
+      { view: 'conversation', testId: 'conversation-view' },
+      { view: 'terminal', testId: 'terminal-pane' },
+      { view: 'diff', testId: 'diff-pane' },
+      { view: 'actions_center', testId: 'actions-center' },
+      { view: 'git', testId: 'git-panel' },
+    ];
+
+    for (const { view, testId } of viewTests) {
+      mockActiveView = view;
+      const { unmount } = render(() => <MainLayout />);
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
+      unmount();
+    }
   });
 });

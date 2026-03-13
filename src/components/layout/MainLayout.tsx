@@ -7,12 +7,24 @@
 // Z5: StatusBar (bottom, fixed height)
 
 import type { Component } from 'solid-js';
-import { createEffect, onCleanup, onMount, Show } from 'solid-js';
+import { onMount, onCleanup, Show } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
-import { MessageSquare, Users, GitCompare, GitBranch, Terminal, Zap } from 'lucide-solid';
+import {
+  MessageSquare,
+  Users,
+  GitCompare,
+  Terminal,
+  Zap,
+  GitBranch,
+  PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from 'lucide-solid';
 import {
   uiState,
   setActiveView,
@@ -21,6 +33,8 @@ import {
   closeAbout,
   closeQuickSwitcher,
   closeSessionSwitcher,
+  toggleSidebar,
+  toggleDetailsPanel,
   setDetailsPanelWidth,
   setSidebarWidth,
   type ActiveView,
@@ -46,6 +60,7 @@ import {
 import { cliState } from '@/stores/cliStore';
 import TerminalPane from '@/components/terminal/TerminalPane';
 import ActionsCenter from '@/components/actions/ActionsCenter';
+import GitPanel from '@/components/git/GitPanel';
 import CommandPalette from '@/components/common/CommandPalette';
 import KeyboardHelp from '@/components/common/KeyboardHelp';
 import ExportDialog from '@/components/diagnostics/ExportDialog';
@@ -59,25 +74,34 @@ import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
 import EditorTakeover from '@/components/editor/EditorTakeover';
 import { fileState } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
-import { refreshGitStatus, refreshRepoInfo, setGitProjectId } from '@/stores/gitStore';
 import ChangelogModal from '@/components/common/ChangelogModal';
 import AboutModal from '@/components/common/AboutModal';
 import QuickSessionSwitcher from '@/components/common/QuickSessionSwitcher';
 import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
 import { t } from '@/stores/i18nStore';
-import GitPanel from '@/components/git/GitPanel';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
   agents: Users,
   diff: GitCompare,
-  git: GitBranch,
   terminal: Terminal,
   actions_center: Zap,
+  git: GitBranch,
 };
 
 const MainLayout: Component = () => {
   let layoutRowRef: HTMLDivElement | undefined;
+  const leftPanelIcon = () => {
+    if (uiState.sidebarState === 'hidden') return PanelLeftOpen;
+    if (uiState.sidebarState === 'collapsed') return PanelLeft;
+    return PanelLeftClose;
+  };
+
+  const leftPanelTitle = () => {
+    if (uiState.sidebarState === 'hidden') return 'Show left panel (Cmd+B)';
+    if (uiState.sidebarState === 'collapsed') return 'Hide left panel (Cmd+B)';
+    return 'Collapse left panel (Cmd+B)';
+  };
 
   function startSidebarResize(event: MouseEvent): void {
     if (uiState.sidebarState !== 'expanded') return;
@@ -142,15 +166,6 @@ const MainLayout: Component = () => {
   // Seed the primary pane with the current active session after app/session restore.
   onMount(() => {
     ensureMainPaneSession(sessionState.activeSessionId);
-  });
-
-  // Sync selected project with gitStore and refresh repository metadata.
-  createEffect(() => {
-    const projectId = projectState.activeProjectId;
-    setGitProjectId(projectId ?? null);
-    if (!projectId) return;
-    void refreshRepoInfo();
-    void refreshGitStatus();
   });
 
   // Warn before closing the app when there is unsent content.
@@ -236,18 +251,89 @@ const MainLayout: Component = () => {
 
         {/* Z3: Main Content */}
         <main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden" tabindex={-1}>
-          {/* View tabs — refined with subtle bottom border */}
-          <div class="flex items-center gap-0.5 px-3 bg-bg-primary">
-            <ViewTab label="Conversation" view="conversation" />
-            <ViewTab label="Agents" view="agents" />
-            <ViewTab label="Diff" view="diff" />
-            <ViewTab label="Git" view="git" />
-            <ViewTab label="Terminal" view="terminal" />
-            <ViewTab
-              label="Actions"
-              view="actions_center"
-              title="Background tasks & execution history"
-            />
+          {/* View tabs + panel controls */}
+          <div class="flex items-center gap-1 px-2 bg-bg-primary">
+            <button
+              class="shrink-0 h-7 w-7 rounded-md flex items-center justify-center transition-colors"
+              style={{
+                color:
+                  uiState.sidebarState === 'hidden'
+                    ? 'var(--color-accent)'
+                    : 'var(--color-text-tertiary)',
+                background:
+                  uiState.sidebarState === 'hidden' ? 'var(--color-accent-muted)' : 'transparent',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-text-primary)';
+                if (uiState.sidebarState !== 'hidden') {
+                  e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color =
+                  uiState.sidebarState === 'hidden'
+                    ? 'var(--color-accent)'
+                    : 'var(--color-text-tertiary)';
+                e.currentTarget.style.background =
+                  uiState.sidebarState === 'hidden' ? 'var(--color-accent-muted)' : 'transparent';
+              }}
+              onClick={toggleSidebar}
+              aria-label="Toggle left panel"
+              title={leftPanelTitle()}
+            >
+              <Dynamic component={leftPanelIcon()} size={13} />
+            </button>
+
+            <div class="flex items-center gap-0.5 min-w-0 flex-1 overflow-x-auto">
+              <ViewTab label="Conversation" view="conversation" />
+              <ViewTab label="Agents" view="agents" />
+              <ViewTab label="Diff" view="diff" />
+              <ViewTab label="Terminal" view="terminal" />
+              <ViewTab
+                label="Actions"
+                view="actions_center"
+                title="Background tasks & execution history"
+              />
+            </div>
+
+            <button
+              class="shrink-0 h-7 w-7 rounded-md flex items-center justify-center transition-colors"
+              style={{
+                color: uiState.detailsPanelVisible
+                  ? 'var(--color-text-tertiary)'
+                  : 'var(--color-accent)',
+                background: uiState.detailsPanelVisible
+                  ? 'transparent'
+                  : 'var(--color-accent-muted)',
+                'transition-duration': 'var(--duration-fast)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--color-text-primary)';
+                if (uiState.detailsPanelVisible) {
+                  e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = uiState.detailsPanelVisible
+                  ? 'var(--color-text-tertiary)'
+                  : 'var(--color-accent)';
+                e.currentTarget.style.background = uiState.detailsPanelVisible
+                  ? 'transparent'
+                  : 'var(--color-accent-muted)';
+              }}
+              onClick={toggleDetailsPanel}
+              aria-label="Toggle right panel"
+              title={
+                uiState.detailsPanelVisible
+                  ? 'Collapse right panel (Cmd+Shift+B)'
+                  : 'Show right panel (Cmd+Shift+B)'
+              }
+            >
+              <Show when={uiState.detailsPanelVisible} fallback={<PanelRightOpen size={13} />}>
+                <PanelRightClose size={13} />
+              </Show>
+            </button>
           </div>
 
           {/* View content area */}
@@ -272,14 +358,14 @@ const MainLayout: Component = () => {
             <Show when={uiState.activeView === 'diff' && !fileState.editorTakeoverActive}>
               <DiffPreviewPane />
             </Show>
-            <Show when={uiState.activeView === 'git' && !fileState.editorTakeoverActive}>
-              <GitPanel />
-            </Show>
             <Show when={uiState.activeView === 'terminal' && !fileState.editorTakeoverActive}>
               <TerminalPane />
             </Show>
             <Show when={uiState.activeView === 'actions_center' && !fileState.editorTakeoverActive}>
               <ActionsCenter />
+            </Show>
+            <Show when={uiState.activeView === 'git' && !fileState.editorTakeoverActive}>
+              <GitPanel />
             </Show>
             <Show when={fileState.editorTakeoverActive}>
               <div class="absolute inset-0 z-10">
