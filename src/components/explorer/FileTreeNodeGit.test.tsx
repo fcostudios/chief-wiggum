@@ -17,7 +17,13 @@ vi.mock('@/stores/projectStore', () => ({
 }));
 
 vi.mock('@/stores/fileStore', () => ({
-  fileState: { selectedPath: null, creatingIn: null, renamingPath: null, creatingInFolder: null, creatingType: null },
+  fileState: {
+    selectedPath: null,
+    creatingIn: null,
+    renamingPath: null,
+    creatingInFolder: null,
+    creatingType: null,
+  },
   setSelectedPath: vi.fn(),
   selectFile: vi.fn(),
   isExpanded: vi.fn(() => false),

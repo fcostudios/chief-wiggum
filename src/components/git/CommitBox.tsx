@@ -159,8 +159,19 @@ const CommitBox: Component = () => {
             }
           >
             <svg class="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25" />
-              <path fill="currentColor" opacity="0.75" d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4Z" />
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+                opacity="0.25"
+              />
+              <path
+                fill="currentColor"
+                opacity="0.75"
+                d="M4 12a8 8 0 0 1 8-8V0C5.37 0 0 5.37 0 12h4Z"
+              />
             </svg>
             Generating...
           </Show>

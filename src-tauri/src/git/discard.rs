@@ -18,6 +18,7 @@ pub struct DiscardResult {
 ///
 /// - Modified/deleted tracked files: restore from HEAD via checkout.
 /// - Untracked files: delete from disk.
+///
 /// Returns the old content so the frontend can offer a soft undo.
 pub fn discard_file(repo_root: &Path, file_path: &str) -> Result<DiscardResult, AppError> {
     let repo = git2::Repository::open(repo_root).map_err(|e| AppError::Git(e.to_string()))?;

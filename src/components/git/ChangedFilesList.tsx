@@ -143,9 +143,7 @@ const ChangedFilesList: Component<Props> = (props) => {
                     style={{ 'min-height': '24px' }}
                     onClick={() => setSelectedGitFile(file)}
                   >
-                    <span
-                      style={{ color, 'flex-shrink': '0' }}
-                    >
+                    <span style={{ color, 'flex-shrink': '0' }}>
                       <Icon size={11} />
                     </span>
                     <span

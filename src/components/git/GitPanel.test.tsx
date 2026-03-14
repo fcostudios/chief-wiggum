@@ -69,7 +69,8 @@ vi.mock('@/components/git/StashList', () => ({
 
 vi.mock('@/components/git/MergeConflictBanner', () => ({
   default: () => <div data-testid="merge-conflict-banner" />,
-  hasConflicts: (entries: FileStatusEntry[]) => entries.some((entry) => entry.status === 'conflicted'),
+  hasConflicts: (entries: FileStatusEntry[]) =>
+    entries.some((entry) => entry.status === 'conflicted'),
 }));
 
 describe('GitPanel', () => {
