@@ -4,7 +4,7 @@
 
 import type { Component } from 'solid-js';
 import { For, Show, createMemo, createSignal, onCleanup, onMount } from 'solid-js';
-import { AlertTriangle, ChevronDown, Coins, Copy, Info, XCircle } from 'lucide-solid';
+import { AlertTriangle, ChevronDown, Coins, Copy, FolderOpen, Info, XCircle } from 'lucide-solid';
 import { Dynamic } from 'solid-js/web';
 import {
   closeStatusCostPopover,
@@ -37,6 +37,7 @@ import {
 import OnboardingTooltip from '@/components/common/OnboardingTooltip';
 import { shouldShowTooltip } from '@/stores/onboardingStore';
 import BranchIndicator from '@/components/git/BranchIndicator';
+import { terminalState } from '@/stores/terminalStore';
 
 function formatCost(cents: number | null | undefined): string {
   return `$${((cents ?? 0) / 100).toFixed(2)}`;
@@ -192,6 +193,13 @@ const StatusBar: Component = () => {
     }
     return null;
   });
+  const activeTerminalCwd = createMemo(() => {
+    if (uiState.activeView !== 'terminal') return null;
+    const session = terminalState.sessions.find(
+      (entry) => entry.terminal_id === terminalState.activeTerminalId,
+    );
+    return session?.cwd ?? null;
+  });
 
   const statusPill = createMemo(() => {
     if (!cliState.isDetected) {
@@ -251,6 +259,11 @@ const StatusBar: Component = () => {
     void navigator.clipboard.writeText(text).then(() => {
       addToast(t('errorLog.copiedAll'), 'success');
     });
+  }
+
+  function formatTerminalCwd(cwd: string): string {
+    const shortened = cwd.replace(/^\/Users\/[^/]+/, '~').replace(/^\/home\/[^/]+/, '~');
+    return shortened.length > 35 ? `\u2026${shortened.slice(-32)}` : shortened;
   }
 
   onMount(() => {
@@ -712,6 +725,16 @@ const StatusBar: Component = () => {
       {/* Center: branch indicator + token usage */}
       <div class="flex items-center gap-2">
         <BranchIndicator />
+        <Show when={activeTerminalCwd()}>
+          <span
+            class="flex items-center gap-1"
+            style={{ color: 'var(--color-text-tertiary)', 'font-size': '10px' }}
+            title={activeTerminalCwd() ?? ''}
+          >
+            <FolderOpen size={10} />
+            <span class="font-mono">{formatTerminalCwd(activeTerminalCwd()!)}</span>
+          </span>
+        </Show>
         <span
           class="font-mono text-text-tertiary/70"
           style={{ 'font-size': '10px', 'letter-spacing': '0.02em' }}
