@@ -201,8 +201,8 @@ vi.mock('@/components/permissions/PermissionDialog', () => ({
 vi.mock('@/components/permissions/AutoApproveWarningDialog', () => ({
   default: () => <div data-testid="auto-approve-warning">AutoApproveWarningDialog</div>,
 }));
-vi.mock('@/components/terminal/TerminalPane', () => ({
-  default: () => <div data-testid="terminal-pane">TerminalPane</div>,
+vi.mock('@/components/terminal/TerminalContainer', () => ({
+  default: () => <div data-testid="terminal-container">TerminalContainer</div>,
 }));
 vi.mock('@/components/actions/ActionsCenter', () => ({
   default: () => <div data-testid="actions-center">ActionsCenter</div>,
@@ -407,7 +407,7 @@ describe('MainLayout', () => {
       testId: string;
     }> = [
       { view: 'conversation', testId: 'conversation-view' },
-      { view: 'terminal', testId: 'terminal-pane' },
+      { view: 'terminal', testId: 'terminal-container' },
       { view: 'diff', testId: 'diff-pane' },
       { view: 'actions_center', testId: 'actions-center' },
       { view: 'git', testId: 'git-panel' },

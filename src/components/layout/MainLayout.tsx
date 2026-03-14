@@ -58,7 +58,7 @@ import {
   recordPermissionOutcome,
 } from '@/stores/conversationStore';
 import { cliState } from '@/stores/cliStore';
-import TerminalPane from '@/components/terminal/TerminalPane';
+import TerminalContainer from '@/components/terminal/TerminalContainer';
 import ActionsCenter from '@/components/actions/ActionsCenter';
 import GitPanel from '@/components/git/GitPanel';
 import CommandPalette from '@/components/common/CommandPalette';
@@ -359,7 +359,7 @@ const MainLayout: Component = () => {
               <DiffPreviewPane />
             </Show>
             <Show when={uiState.activeView === 'terminal' && !fileState.editorTakeoverActive}>
-              <TerminalPane />
+              <TerminalContainer />
             </Show>
             <Show when={uiState.activeView === 'actions_center' && !fileState.editorTakeoverActive}>
               <ActionsCenter />
