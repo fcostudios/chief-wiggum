@@ -2,6 +2,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::path::{Path, PathBuf};
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 
 #[allow(unused_variables)]
 fn apply_platform_window_effects(window: &tauri::WebviewWindow) {
@@ -203,6 +207,8 @@ fn main() {
     let file_watcher_manager = chief_wiggum_lib::files::watcher::FileWatcherManager::new();
     // Project actions process manager (CHI-140)
     let action_map = chief_wiggum_lib::actions::manager::ActionBridgeMap::new();
+    // PTY terminal session manager (CHI-333)
+    let terminal_manager = chief_wiggum_lib::terminal::manager::TerminalManager::new();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -215,6 +221,7 @@ fn main() {
         .manage(permission_manager)
         .manage(file_watcher_manager)
         .manage(action_map)
+        .manage(terminal_manager)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -329,6 +336,12 @@ fn main() {
             chief_wiggum_lib::commands::git::git_drop_stash,
             chief_wiggum_lib::commands::git::git_abort_merge,
             chief_wiggum_lib::commands::git::git_generate_commit_message,
+            chief_wiggum_lib::commands::terminal::spawn_terminal,
+            chief_wiggum_lib::commands::terminal::kill_terminal,
+            chief_wiggum_lib::commands::terminal::list_terminals,
+            chief_wiggum_lib::commands::terminal::terminal_write,
+            chief_wiggum_lib::commands::terminal::terminal_resize,
+            chief_wiggum_lib::commands::terminal::list_shells,
         ])
         .setup(|app| {
             use tauri::Manager;
@@ -341,15 +354,38 @@ fn main() {
                 .state::<chief_wiggum_lib::actions::manager::ActionBridgeMap>()
                 .inner()
                 .clone();
+            let terminal_manager = app
+                .state::<chief_wiggum_lib::terminal::manager::TerminalManager>()
+                .inner()
+                .clone();
 
             if let Some(main_window) = app.get_webview_window("main") {
                 apply_platform_window_effects(&main_window);
 
+                let close_state = Arc::new(AtomicU8::new(0));
+                let close_window = main_window.clone();
                 main_window.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        match close_state.load(Ordering::SeqCst) {
+                            // Shutdown already finished; allow the explicit close to proceed.
+                            2 => return,
+                            // Cleanup is still running; keep the window alive until it completes.
+                            1 => {
+                                api.prevent_close();
+                                return;
+                            }
+                            _ => {}
+                        }
+
+                        api.prevent_close();
+                        close_state.store(1, Ordering::SeqCst);
+
                         let bridge_map = bridge_map.clone();
                         let action_map = action_map.clone();
-                        tauri::async_runtime::block_on(async move {
+                        let terminal_manager = terminal_manager.clone();
+                        let close_state = close_state.clone();
+                        let window = close_window.clone();
+                        tauri::async_runtime::spawn(async move {
                             tracing::info!("App closing — shutting down all CLI processes");
                             if let Err(e) = bridge_map.shutdown_all().await {
                                 tracing::warn!("Error during CLI shutdown: {}", e);
@@ -358,7 +394,15 @@ fn main() {
                             if let Err(e) = action_map.shutdown_all().await {
                                 tracing::warn!("Error during action shutdown: {}", e);
                             }
+                            tracing::info!("App closing — shutting down all terminal sessions");
+                            terminal_manager.kill_all();
                             tracing::info!("All CLI processes shut down");
+
+                            close_state.store(2, Ordering::SeqCst);
+                            if let Err(e) = window.close() {
+                                tracing::error!("Failed to close main window after shutdown: {}", e);
+                                close_state.store(0, Ordering::SeqCst);
+                            }
                         });
                     }
                 });
