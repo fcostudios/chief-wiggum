@@ -364,10 +364,11 @@ fn main() {
 
                 let close_state = Arc::new(AtomicU8::new(0));
                 let close_window = main_window.clone();
+                let app_handle = app.handle().clone();
                 main_window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         match close_state.load(Ordering::SeqCst) {
-                            // Shutdown already finished; allow the explicit close to proceed.
+                            // Shutdown already finished or app exit has already been requested.
                             2 => return,
                             // Cleanup is still running; keep the window alive until it completes.
                             1 => {
@@ -379,12 +380,16 @@ fn main() {
 
                         api.prevent_close();
                         close_state.store(1, Ordering::SeqCst);
+                        if let Err(e) = close_window.hide() {
+                            tracing::warn!("Failed to hide main window during shutdown: {}", e);
+                        }
 
                         let bridge_map = bridge_map.clone();
                         let action_map = action_map.clone();
                         let terminal_manager = terminal_manager.clone();
                         let close_state = close_state.clone();
                         let window = close_window.clone();
+                        let app_handle = app_handle.clone();
                         tauri::async_runtime::spawn(async move {
                             tracing::info!("App closing — shutting down all CLI processes");
                             if let Err(e) = bridge_map.shutdown_all().await {
@@ -399,10 +404,10 @@ fn main() {
                             tracing::info!("All CLI processes shut down");
 
                             close_state.store(2, Ordering::SeqCst);
-                            if let Err(e) = window.close() {
-                                tracing::error!("Failed to close main window after shutdown: {}", e);
-                                close_state.store(0, Ordering::SeqCst);
+                            if let Err(e) = window.destroy() {
+                                tracing::warn!("Failed to destroy main window after shutdown: {}", e);
                             }
+                            app_handle.exit(0);
                         });
                     }
                 });

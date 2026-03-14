@@ -39,21 +39,15 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 
 | Epic | Status | Notes |
 |------|--------|-------|
-| CHI-331: Terminal Integration | 🔄 Next Major Focus | 0/12 subtasks done. All tasks in backlog. Start with CHI-332 (PTY scaffold). |
+| CHI-331: Terminal Integration | 🔄 Next Major Focus | 6/12 subtasks done. PTY backend, store wiring, multi-tab UI, and auto-spawn are on main. Next: CHI-337, CHI-339, CHI-340. |
 
 ### Remaining Backlog (Next Focus)
 
-#### CHI-331: Terminal Integration (Phase 4 — 0/12 done)
+#### CHI-331: Terminal Integration (Phase 4 — 6/12 done)
 
 | Task | Priority | Spec |
 |------|----------|------|
-| CHI-332: TERM-1 Backend scaffold + PTY session lifecycle | High | SPEC-006 §4.30 |
-| CHI-333: TERM-2 Output streaming via Tauri events | High | SPEC-006 §4.30 |
-| CHI-334: TERM-3 terminalStore + wire TerminalPane to backend | High | SPEC-006 §4.30 |
-| CHI-335: TERM-4 Shell detection + selection | Medium | SPEC-006 §4.30 |
-| CHI-336: TERM-5 Multi-tab UI (TerminalTabs.tsx) | High | SPEC-006 §4.31 |
 | CHI-337: TERM-6 Tab rename + reorder + overflow | Medium | SPEC-006 §4.31 |
-| CHI-338: TERM-7 Empty state + auto-spawn on view switch | Medium | SPEC-006 §4.30 |
 | CHI-339: TERM-8 Clickable file paths (addon-web-links) | Medium | SPEC-006 §4.32 |
 | CHI-340: TERM-9 CWD tracking + status bar display | Medium | SPEC-006 §4.30, §4.32 |
 | CHI-341: TERM-10 Terminal settings UI | Low | SPEC-006 §4.33 |
@@ -76,7 +70,7 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 | CHI-252: T5.5 Smart Agent Notifications | Low | SPEC-006 §4 |
 | CHI-202: E3 Voice Input/Output | Low | Conversation Utility |
 
-**Suggested next (Terminal):** CHI-332 → CHI-333 → CHI-334 → CHI-335 → CHI-336 → CHI-338
+**Suggested next (Terminal):** CHI-337 → CHI-339 → CHI-340
 
 ### Epic Closure
 
@@ -108,7 +102,7 @@ src-tauri/src/
 ├── db/           # SQLite — connection.rs, migrations.rs, queries.rs
 ├── files/        # File scanner + watcher (CHI-115)
 ├── git/          # Git operations via git2-rs (Phase 4 — CHI-311 complete)
-├── terminal/     # General-purpose terminal PTY backend (Phase 4 — CHI-331 pending)
+├── terminal/     # General-purpose terminal PTY backend (Phase 4 — foundation landed; CHI-337/339/340 next)
 ├── logging/      # 3-layer tracing (CHI-94)
 ├── slash/        # Slash command discovery (CHI-106)
 └── settings/     # Settings backend (CHI-122)
