@@ -2,7 +2,7 @@
 
 > **Read this first.** Auto-loaded by Claude Code at session start. Keep under 150 lines.
 > Full completed task history → `.claude/COMPLETED.md`
-> Updated: 2026-03-13
+> Updated: 2026-03-14
 
 ---
 
@@ -12,7 +12,7 @@
 
 - **GitHub:** `github.com/fcostudios/chief-wiggum`
 - **Linear workspace:** `linear.app/chief-wiggum` · Team: **CHI**
-- **Current phase:** Phase 3 (ongoing) — Phase 1 & 2 complete
+- **Current phase:** Phase 4 (ongoing) — Phase 1, 2 & 3 complete
 
 ---
 
@@ -39,21 +39,21 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 
 | Epic | Status | Notes |
 |------|--------|-------|
-| CHI-331: Terminal Integration | 🔄 Next Major Focus | Backend PTY/session lifecycle and UI wiring remain open. |
+| CHI-331: Terminal Integration | 🔄 Next Major Focus | 0/12 subtasks done. All tasks in backlog. Start with CHI-332 (PTY scaffold). |
 
 ### Remaining Backlog (Next Focus)
 
-#### CHI-331: Terminal Integration (Phase 4 — 12 subtasks)
+#### CHI-331: Terminal Integration (Phase 4 — 0/12 done)
 
 | Task | Priority | Spec |
 |------|----------|------|
-| CHI-332: TERM-1 Terminal backend module scaffold + PTY session lifecycle | High | SPEC-006 §4.30, SPEC-004 §2 |
-| CHI-333: TERM-2 Terminal output streaming via Tauri events | High | SPEC-004 §4.2, §4.3 |
-| CHI-334: TERM-3 terminalStore.ts + wire TerminalPane to backend | High | SPEC-004 §3.2, SPEC-006 §4.30 |
-| CHI-335: TERM-4 Shell detection + selection | Medium | SPEC-006 §4.30, §4.33 |
-| CHI-336: TERM-5 Multi-tab UI (TerminalTabs.tsx) | High | SPEC-006 §4.30, §4.31 |
+| CHI-332: TERM-1 Backend scaffold + PTY session lifecycle | High | SPEC-006 §4.30 |
+| CHI-333: TERM-2 Output streaming via Tauri events | High | SPEC-006 §4.30 |
+| CHI-334: TERM-3 terminalStore + wire TerminalPane to backend | High | SPEC-006 §4.30 |
+| CHI-335: TERM-4 Shell detection + selection | Medium | SPEC-006 §4.30 |
+| CHI-336: TERM-5 Multi-tab UI (TerminalTabs.tsx) | High | SPEC-006 §4.31 |
 | CHI-337: TERM-6 Tab rename + reorder + overflow | Medium | SPEC-006 §4.31 |
-| CHI-338: TERM-7 Empty state + auto-spawn on view switch | Medium | SPEC-006 §4.7, §4.30 |
+| CHI-338: TERM-7 Empty state + auto-spawn on view switch | Medium | SPEC-006 §4.30 |
 | CHI-339: TERM-8 Clickable file paths (addon-web-links) | Medium | SPEC-006 §4.32 |
 | CHI-340: TERM-9 CWD tracking + status bar display | Medium | SPEC-006 §4.30, §4.32 |
 | CHI-341: TERM-10 Terminal settings UI | Low | SPEC-006 §4.33 |
@@ -80,7 +80,7 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 
 ### Epic Closure
 
-All Phase 3 epics (CHI-286, CHI-287, CHI-296, CHI-301, CHI-307) are **closed in Linear**.
+All Phase 3 epics (CHI-286, CHI-287, CHI-296, CHI-301, CHI-307) and Phase 4 Git epic (CHI-311) are **closed in Linear**.
 See `.claude/handover.json` `epic_closure_protocol` for the process used.
 
 ---
@@ -108,7 +108,7 @@ src-tauri/src/
 ├── db/           # SQLite — connection.rs, migrations.rs, queries.rs
 ├── files/        # File scanner + watcher (CHI-115)
 ├── git/          # Git operations via git2-rs (Phase 4 — CHI-311 complete)
-├── terminal/     # General-purpose terminal PTY backend (Phase 4 — CHI-331) [planned]
+├── terminal/     # General-purpose terminal PTY backend (Phase 4 — CHI-331 pending)
 ├── logging/      # 3-layer tracing (CHI-94)
 ├── slash/        # Slash command discovery (CHI-106)
 └── settings/     # Settings backend (CHI-122)
@@ -121,7 +121,7 @@ src/
 │   ├── common/       # ModelSelector, CommandPalette, ToastContainer
 │   ├── permissions/  # PermissionDialog, YoloWarningDialog
 │   ├── git/          # GitPanel, ChangedFilesList, CommitBox, GitDiffView, RemoteActions, StashList
-│   └── terminal/     # TerminalPane, TerminalTabs [existing UI, backend wiring planned]
+│   └── terminal/     # TerminalContainer, TerminalPane, TerminalTabs (PTY-backed terminal UI)
 ├── stores/           # uiStore, sessionStore, conversationStore, fileStore, contextStore, gitStore, terminalStore, etc.
 └── lib/              # types.ts, keybindings.ts, typewriterBuffer.ts, logger.ts
 ```
