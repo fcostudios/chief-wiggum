@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@solidjs/testing-library';
-import { onTerminalOutput, resizeTerminal, writeToTerminal } from '@/stores/terminalStore';
+import {
+  onTerminalOutput,
+  resizeTerminal,
+  updateSessionCwd,
+  writeToTerminal,
+} from '@/stores/terminalStore';
 
 let mockTheme: 'dark' | 'light' | 'system' = 'dark';
 
@@ -12,6 +17,9 @@ const mocks = vi.hoisted(() => {
     write = vi.fn();
     dispose = vi.fn();
     registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
+    parser = {
+      registerOscHandler: vi.fn(() => ({ dispose: vi.fn() })),
+    };
     onData = vi.fn((callback: (data: string) => void) => {
       store.onDataCallbacks.push(callback);
       return { dispose: vi.fn() };
@@ -85,6 +93,7 @@ vi.mock('@/stores/terminalStore', () => ({
   onTerminalOutput: vi.fn(() => vi.fn()),
   writeToTerminal: vi.fn(() => Promise.resolve()),
   resizeTerminal: vi.fn(() => Promise.resolve()),
+  updateSessionCwd: vi.fn(),
 }));
 
 import TerminalPane from './TerminalPane';
@@ -167,5 +176,11 @@ describe('TerminalPane', () => {
     render(() => <TerminalPane terminalId="link-test" />);
     const mockTerminal = getMockTerminal();
     expect(mockTerminal.registerLinkProvider).toHaveBeenCalledOnce();
+  });
+
+  it('registers an OSC 7 handler on mount', () => {
+    render(() => <TerminalPane terminalId="osc-test" />);
+    const mockTerminal = getMockTerminal();
+    expect(mockTerminal.parser.registerOscHandler).toHaveBeenCalledWith(7, expect.any(Function));
   });
 });

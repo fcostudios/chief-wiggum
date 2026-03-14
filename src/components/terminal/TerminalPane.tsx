@@ -9,7 +9,12 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { settingsState } from '@/stores/settingsStore';
-import { onTerminalOutput, resizeTerminal, writeToTerminal } from '@/stores/terminalStore';
+import {
+  onTerminalOutput,
+  resizeTerminal,
+  updateSessionCwd,
+  writeToTerminal,
+} from '@/stores/terminalStore';
 
 const darkTerminalTheme = {
   background: '#010409',
@@ -175,6 +180,16 @@ const TerminalPane: Component<Props> = (props) => {
     });
 
     const linkProviderDisposable = terminal.registerLinkProvider(makeFileLinkProvider(terminal));
+    const oscDisposable = terminal.parser.registerOscHandler(7, (data: string) => {
+      try {
+        const url = new URL(data);
+        const cwd = decodeURIComponent(url.pathname);
+        updateSessionCwd(props.terminalId, cwd);
+      } catch {
+        // Ignore malformed OSC 7 payloads.
+      }
+      return false;
+    });
 
     resizeObserver = new ResizeObserver(() => {
       fitAddon?.fit();
@@ -195,6 +210,7 @@ const TerminalPane: Component<Props> = (props) => {
       inputDisposable.dispose();
       resizeDisposable.dispose();
       linkProviderDisposable.dispose();
+      oscDisposable.dispose();
       resizeObserver?.disconnect();
       systemThemeMediaQuery?.removeEventListener('change', handleSystemThemeChange);
       terminal?.dispose();

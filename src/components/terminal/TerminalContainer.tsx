@@ -3,6 +3,7 @@
 
 import type { Component } from 'solid-js';
 import { createEffect, For, onMount, Show } from 'solid-js';
+import { getActiveProject } from '@/stores/projectStore';
 import { addToast } from '@/stores/toastStore';
 import {
   initTerminalListeners,
@@ -32,7 +33,8 @@ const TerminalContainer: Component = () => {
 
   async function handleNewTerminal() {
     try {
-      await spawnTerminal();
+      const cwd = getActiveProject()?.path;
+      await spawnTerminal(undefined, cwd);
     } catch (error) {
       addToast(`Failed to open terminal: ${String(error)}`, 'error');
     }

@@ -184,6 +184,11 @@ export function reorderSessions(fromId: string, toId: string): void {
   });
 }
 
+/** Update the current working directory for a session (CHI-340). */
+export function updateSessionCwd(terminalId: string, cwd: string): void {
+  setTerminalState('sessions', (session) => session.terminal_id === terminalId, 'cwd', cwd);
+}
+
 /** Load available system shells. */
 export async function loadAvailableShells(): Promise<void> {
   const shells = await invoke<ShellInfo[]>('list_shells');

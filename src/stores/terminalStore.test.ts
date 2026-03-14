@@ -127,3 +127,23 @@ describe('reorderSessions', () => {
     expect(terminalState.sessions[1].terminal_id).toBe('first');
   });
 });
+
+describe('updateSessionCwd', () => {
+  it('updates cwd for matching session', async () => {
+    vi.mocked(invoke).mockResolvedValueOnce({
+      terminal_id: 'cwd-test',
+      shell: '/bin/zsh',
+      cwd: '/old',
+      status: 'running',
+      exit_code: null,
+      title: null,
+      created_at: '',
+    });
+    const { spawnTerminal, updateSessionCwd, terminalState } = await import('./terminalStore');
+    await spawnTerminal();
+    updateSessionCwd('cwd-test', '/new/path');
+    expect(terminalState.sessions.find((s) => s.terminal_id === 'cwd-test')?.cwd).toBe(
+      '/new/path',
+    );
+  });
+});
