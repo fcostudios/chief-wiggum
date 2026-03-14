@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => {
     open = vi.fn();
     write = vi.fn();
     dispose = vi.fn();
+    registerLinkProvider = vi.fn(() => ({ dispose: vi.fn() }));
     onData = vi.fn((callback: (data: string) => void) => {
       store.onDataCallbacks.push(callback);
       return { dispose: vi.fn() };
@@ -88,6 +89,14 @@ vi.mock('@/stores/terminalStore', () => ({
 
 import TerminalPane from './TerminalPane';
 
+function getMockTerminal() {
+  const terminal = mocks.terminals[mocks.terminals.length - 1];
+  if (!terminal) {
+    throw new Error('Expected a mock terminal to be created');
+  }
+  return terminal;
+}
+
 describe('TerminalPane', () => {
   beforeEach(() => {
     mockTheme = 'dark';
@@ -152,5 +161,11 @@ describe('TerminalPane', () => {
 
     expect(mocks.resizeObservers[0]?.instance.disconnect).toHaveBeenCalled();
     expect(mocks.terminals[0]?.dispose).toHaveBeenCalled();
+  });
+
+  it('registers a file path link provider on mount', () => {
+    render(() => <TerminalPane terminalId="link-test" />);
+    const mockTerminal = getMockTerminal();
+    expect(mockTerminal.registerLinkProvider).toHaveBeenCalledOnce();
   });
 });

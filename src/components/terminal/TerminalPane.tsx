@@ -3,7 +3,8 @@
 
 import type { Component } from 'solid-js';
 import { createEffect, createSignal, onCleanup, onMount, untrack } from 'solid-js';
-import { Terminal } from '@xterm/xterm';
+import { invoke } from '@tauri-apps/api/core';
+import { Terminal, type ILink, type ILinkProvider } from '@xterm/xterm';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -62,6 +63,50 @@ const lightTerminalTheme = {
 
 interface Props {
   terminalId: string;
+}
+
+const FILE_PATH_RE = /((?:\/|~\/|\.\/|\.\.\/)[\w./\-@]+(?::\d+(?::\d+)?)?)/g;
+
+function stripLineCol(path: string): string {
+  return path.replace(/:\d+(?::\d+)?$/, '');
+}
+
+function makeFileLinkProvider(terminal: Terminal): ILinkProvider {
+  return {
+    provideLinks(lineIndex: number, callback: (links: ILink[] | undefined) => void): void {
+      const line = terminal.buffer.active.getLine(lineIndex);
+      if (!line) {
+        callback(undefined);
+        return;
+      }
+
+      const text = line.translateToString(true);
+      const links: ILink[] = [];
+      FILE_PATH_RE.lastIndex = 0;
+
+      let match: RegExpExecArray | null;
+      while ((match = FILE_PATH_RE.exec(text)) !== null) {
+        const matchText = match[0];
+        const startX = match.index + 1;
+        const endX = startX + matchText.length;
+        const path = stripLineCol(matchText);
+
+        links.push({
+          range: {
+            start: { x: startX, y: lineIndex + 1 },
+            end: { x: endX, y: lineIndex + 1 },
+          },
+          text: matchText,
+          decorations: { underline: true, pointerCursor: true },
+          activate(_event: MouseEvent, _text: string): void {
+            void invoke('open_project_file_in_system', { path }).catch(() => {});
+          },
+        });
+      }
+
+      callback(links.length > 0 ? links : undefined);
+    },
+  };
 }
 
 const TerminalPane: Component<Props> = (props) => {
@@ -129,6 +174,8 @@ const TerminalPane: Component<Props> = (props) => {
       void resizeTerminal(mountedTerminalId, cols, rows).catch(() => {});
     });
 
+    const linkProviderDisposable = terminal.registerLinkProvider(makeFileLinkProvider(terminal));
+
     resizeObserver = new ResizeObserver(() => {
       fitAddon?.fit();
       const cols = terminal?.cols ?? 0;
@@ -147,6 +194,7 @@ const TerminalPane: Component<Props> = (props) => {
       unsubscribeOutput();
       inputDisposable.dispose();
       resizeDisposable.dispose();
+      linkProviderDisposable.dispose();
       resizeObserver?.disconnect();
       systemThemeMediaQuery?.removeEventListener('change', handleSystemThemeChange);
       terminal?.dispose();
