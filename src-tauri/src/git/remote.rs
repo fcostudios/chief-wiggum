@@ -216,9 +216,23 @@ mod tests {
         );
     }
 
+    fn current_branch(dir: &Path) -> String {
+        let output = Command::new("git")
+            .args(["branch", "--show-current"])
+            .current_dir(dir)
+            .output()
+            .expect("read current branch");
+        assert!(
+            output.status.success(),
+            "git branch --show-current failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    }
+
     fn init_remote_with_seed_commit() -> (TempDir, TempDir) {
         let bare = TempDir::new().expect("create bare temp dir");
-        run_git(bare.path(), &["init", "--bare"]);
+        run_git(bare.path(), &["init", "--bare", "--initial-branch=main"]);
 
         let seed = TempDir::new().expect("create seed temp dir");
         run_git(seed.path(), &["init", "-b", "main"]);
@@ -261,7 +275,8 @@ mod tests {
         std::fs::write(repo.join(filename), message).expect("write commit file");
         run_git(repo, &["add", "."]);
         run_git(repo, &["commit", "-m", message]);
-        run_git(repo, &["push", "origin", "main"]);
+        let branch = current_branch(repo);
+        run_git(repo, &["push", "origin", branch.as_str()]);
     }
 
     #[test]

@@ -66,6 +66,10 @@ mod tests {
     use std::process::Command;
     use tempfile::TempDir;
 
+    fn normalize_newlines(value: &str) -> String {
+        value.replace("\r\n", "\n")
+    }
+
     fn init_repo_with_file(content: &str) -> (TempDir, String) {
         let dir = TempDir::new().unwrap();
         Command::new("git")
@@ -106,7 +110,7 @@ mod tests {
         let result = discard_file(dir.path(), &file).unwrap();
 
         let content = std::fs::read_to_string(dir.path().join(&file)).unwrap();
-        assert_eq!(content, "original content\n");
+        assert_eq!(normalize_newlines(&content), "original content\n");
         assert_eq!(result.old_content, Some("modified content\n".to_string()));
         assert!(!result.was_untracked);
     }

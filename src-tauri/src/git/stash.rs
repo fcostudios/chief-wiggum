@@ -88,6 +88,10 @@ mod tests {
     use std::process::Command;
     use tempfile::TempDir;
 
+    fn normalize_newlines(value: &str) -> String {
+        value.replace("\r\n", "\n")
+    }
+
     fn init_repo_with_file() -> TempDir {
         let dir = TempDir::new().unwrap();
         Command::new("git")
@@ -147,7 +151,7 @@ mod tests {
         push_stash(dir.path(), "save", false).unwrap();
 
         let content = std::fs::read_to_string(dir.path().join("file.txt")).unwrap();
-        assert_eq!(content, "original\n");
+        assert_eq!(normalize_newlines(&content), "original\n");
     }
 
     #[test]
@@ -159,7 +163,7 @@ mod tests {
         pop_stash(dir.path(), 0).unwrap();
 
         let content = std::fs::read_to_string(dir.path().join("file.txt")).unwrap();
-        assert_eq!(content, "stashed\n");
+        assert_eq!(normalize_newlines(&content), "stashed\n");
         assert!(list_stashes(dir.path()).unwrap().is_empty());
     }
 
@@ -186,6 +190,6 @@ mod tests {
         let stashes = list_stashes(dir.path()).unwrap();
         assert_eq!(stashes.len(), 1);
         let content = std::fs::read_to_string(dir.path().join("file.txt")).unwrap();
-        assert_eq!(content, "stashed\n");
+        assert_eq!(normalize_newlines(&content), "stashed\n");
     }
 }

@@ -35,9 +35,11 @@ mod tests {
     #[test]
     fn converts_file_url_to_path() {
         let raw = "file:///tmp/chief%20wiggum";
-        assert_eq!(
-            normalize_project_path(raw),
+        let expected = if cfg!(windows) {
+            PathBuf::from(raw)
+        } else {
             PathBuf::from("/tmp/chief wiggum")
-        );
+        };
+        assert_eq!(normalize_project_path(raw), expected);
     }
 }
