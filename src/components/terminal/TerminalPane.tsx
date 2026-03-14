@@ -1,18 +1,15 @@
 // src/components/terminal/TerminalPane.tsx
-// xterm.js terminal per SPEC-003 §3.4 and SPEC-001 §6.5.
-// WebGL addon for GPU-accelerated rendering, fit addon for auto-resize.
-// Theme follows the current appearance setting (dark/light/system).
-// TODO: Connect to PTY via IPC when backend commands are wired.
+// xterm.js terminal pane wired to a backend PTY session (CHI-334/336).
 
 import type { Component } from 'solid-js';
-import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
+import { createEffect, createSignal, onCleanup, onMount, untrack } from 'solid-js';
 import { Terminal } from '@xterm/xterm';
 import { WebglAddon } from '@xterm/addon-webgl';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { settingsState } from '@/stores/settingsStore';
+import { onTerminalOutput, resizeTerminal, writeToTerminal } from '@/stores/terminalStore';
 
-/** xterm.js theme mapped to SPEC-002 dark tokens */
 const darkTerminalTheme = {
   background: '#010409',
   foreground: '#e6edf3',
@@ -38,7 +35,6 @@ const darkTerminalTheme = {
   brightWhite: '#ffffff',
 };
 
-/** xterm.js theme mapped to SPEC-002 light tokens */
 const lightTerminalTheme = {
   background: '#ffffff',
   foreground: '#1f2328',
@@ -64,7 +60,11 @@ const lightTerminalTheme = {
   brightWhite: '#ffffff',
 };
 
-const TerminalPane: Component = () => {
+interface Props {
+  terminalId: string;
+}
+
+const TerminalPane: Component<Props> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let terminal: Terminal | undefined;
   let fitAddon: FitAddon | undefined;
@@ -85,6 +85,7 @@ const TerminalPane: Component = () => {
 
   onMount(() => {
     if (!containerRef) return;
+    const mountedTerminalId = untrack(() => props.terminalId);
 
     systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     setPrefersDarkSystem(systemThemeMediaQuery.matches);
@@ -106,10 +107,8 @@ const TerminalPane: Component = () => {
 
     fitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
-
     terminal.open(containerRef);
 
-    // Try WebGL addon — falls back to canvas if unavailable
     try {
       const webglAddon = new WebglAddon();
       webglAddon.onContextLoss(() => {
@@ -117,26 +116,40 @@ const TerminalPane: Component = () => {
       });
       terminal.loadAddon(webglAddon);
     } catch {
-      // WebGL not supported — canvas renderer works fine
+      // Canvas renderer fallback is acceptable.
     }
 
     fitAddon.fit();
 
-    // Auto-resize on container size change
+    const inputDisposable = terminal.onData((data) => {
+      void writeToTerminal(mountedTerminalId, data).catch(() => {});
+    });
+
+    const resizeDisposable = terminal.onResize(({ cols, rows }) => {
+      void resizeTerminal(mountedTerminalId, cols, rows).catch(() => {});
+    });
+
     resizeObserver = new ResizeObserver(() => {
       fitAddon?.fit();
+      const cols = terminal?.cols ?? 0;
+      const rows = terminal?.rows ?? 0;
+      if (cols > 0 && rows > 0) {
+        void resizeTerminal(mountedTerminalId, cols, rows).catch(() => {});
+      }
     });
     resizeObserver.observe(containerRef);
 
-    // Write welcome message
-    // TODO: Replace with actual PTY output when IPC is connected
-    terminal.writeln('\x1b[1;38;2;232;130;90m Chief Wiggum Terminal \x1b[0m');
-    terminal.writeln('');
-    terminal.writeln('\x1b[38;2;110;118;129mTerminal ready. Connect a session to begin.\x1b[0m');
-    terminal.writeln('');
+    const unsubscribeOutput = onTerminalOutput(mountedTerminalId, (data) => {
+      terminal?.write(data);
+    });
 
     onCleanup(() => {
+      unsubscribeOutput();
+      inputDisposable.dispose();
+      resizeDisposable.dispose();
+      resizeObserver?.disconnect();
       systemThemeMediaQuery?.removeEventListener('change', handleSystemThemeChange);
+      terminal?.dispose();
     });
   });
 
@@ -150,12 +163,7 @@ const TerminalPane: Component = () => {
     }
   });
 
-  onCleanup(() => {
-    resizeObserver?.disconnect();
-    terminal?.dispose();
-  });
-
-  return <div ref={containerRef} class="flex-1 w-full h-full" />;
+  return <div ref={containerRef} class="flex-1 h-full w-full min-h-0" />;
 };
 
 export default TerminalPane;
