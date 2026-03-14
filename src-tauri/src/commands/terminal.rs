@@ -8,14 +8,14 @@ use crate::terminal::{
 use crate::AppResult;
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_terminals(
     manager: State<'_, TerminalManager>,
 ) -> AppResult<Vec<TerminalSession>> {
     Ok(manager.list())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn spawn_terminal(
     shell: Option<String>,
     cwd: Option<String>,
@@ -31,7 +31,7 @@ pub async fn spawn_terminal(
     manager.spawn(resolved_shell, resolved_cwd, app)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn terminal_write(
     terminal_id: String,
     data: String,
@@ -40,7 +40,7 @@ pub async fn terminal_write(
     manager.write(&terminal_id, &data)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn terminal_resize(
     terminal_id: String,
     cols: u16,
@@ -50,7 +50,7 @@ pub async fn terminal_resize(
     manager.resize(&terminal_id, cols, rows)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn kill_terminal(
     terminal_id: String,
     manager: State<'_, TerminalManager>,
@@ -58,7 +58,7 @@ pub async fn kill_terminal(
     manager.kill(&terminal_id)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_shells() -> AppResult<Vec<ShellInfo>> {
     Ok(shells::list_available_shells())
 }
