@@ -165,6 +165,25 @@ export function setActiveTerminal(terminalId: string): void {
   setTerminalState('activeTerminalId', terminalId);
 }
 
+/** Update the display title of a terminal tab (CHI-337). */
+export function setSessionTitle(terminalId: string, title: string | null): void {
+  setTerminalState('sessions', (session) => session.terminal_id === terminalId, 'title', title);
+}
+
+/** Reorder sessions: move `fromId` to the position currently occupied by `toId` (CHI-337). */
+export function reorderSessions(fromId: string, toId: string): void {
+  if (fromId === toId) return;
+  setTerminalState('sessions', (sessions) => {
+    const from = sessions.findIndex((session) => session.terminal_id === fromId);
+    const to = sessions.findIndex((session) => session.terminal_id === toId);
+    if (from === -1 || to === -1) return sessions;
+    const result = [...sessions];
+    const [item] = result.splice(from, 1);
+    result.splice(to, 0, item);
+    return result;
+  });
+}
+
 /** Load available system shells. */
 export async function loadAvailableShells(): Promise<void> {
   const shells = await invoke<ShellInfo[]>('list_shells');

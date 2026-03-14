@@ -8,7 +8,9 @@ import {
   initTerminalListeners,
   killTerminal,
   loadAvailableShells,
+  reorderSessions,
   setActiveTerminal,
+  setSessionTitle,
   spawnTerminal,
   terminalState,
 } from '@/stores/terminalStore';
@@ -67,6 +69,8 @@ const TerminalContainer: Component = () => {
           onSelect={setActiveTerminal}
           onClose={(terminalId) => void handleCloseTerminal(terminalId)}
           onNew={() => void handleNewTerminal()}
+          onRename={(terminalId, title) => setSessionTitle(terminalId, title)}
+          onReorder={(fromId, toId) => reorderSessions(fromId, toId)}
         />
       </Show>
 
