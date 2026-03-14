@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-14T14:00:00Z",
-  "last_updated_by": "claude-code",
+  "last_updated": "2026-03-14T23:31:08Z",
+  "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
     "linear_project_id": "63e009bd-5e43-4575-a7be-2e3b1cface5f",
@@ -674,8 +674,22 @@
         },
         "CHI-337": {
           "title": "TERM-6: Tab rename + reorder + overflow",
-          "status": "backlog",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "assigned_to": "codex",
+          "started_at": "2026-03-14T23:15:00Z",
+          "updated_at": "2026-03-14T23:31:08Z",
+          "worktree": ".worktrees/terminal-tab-rename-links-cwd",
+          "last_updated_by": "codex",
+          "completed_at": "2026-03-14T23:31:08Z",
+          "files": [
+            "src/stores/terminalStore.ts",
+            "src/stores/terminalStore.test.ts",
+            "src/components/terminal/TerminalTabs.tsx",
+            "src/components/terminal/TerminalTabs.test.tsx",
+            "src/components/terminal/TerminalContainer.tsx"
+          ],
+          "notes": "Implemented inline tab rename, drag reorder, and overflow scroll controls with store support. branch=codex/terminal-tab-rename-links-cwd; commits=9e0f14b"
         },
         "CHI-338": {
           "title": "TERM-7: Empty state + auto-spawn on view switch",
@@ -695,13 +709,39 @@
         },
         "CHI-339": {
           "title": "TERM-8: Clickable file paths (addon-web-links)",
-          "status": "backlog",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "assigned_to": "codex",
+          "started_at": "2026-03-14T23:15:00Z",
+          "updated_at": "2026-03-14T23:31:08Z",
+          "worktree": ".worktrees/terminal-tab-rename-links-cwd",
+          "last_updated_by": "codex",
+          "completed_at": "2026-03-14T23:31:08Z",
+          "files": [
+            "src/components/terminal/TerminalPane.tsx",
+            "src/components/terminal/TerminalPane.test.tsx"
+          ],
+          "notes": "Registered an xterm link provider for terminal file paths and routed activation to open_project_file_in_system. branch=codex/terminal-tab-rename-links-cwd; commits=72b2724"
         },
         "CHI-340": {
           "title": "TERM-9: CWD tracking + status bar display",
-          "status": "backlog",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "assigned_to": "codex",
+          "started_at": "2026-03-14T23:15:00Z",
+          "updated_at": "2026-03-14T23:31:08Z",
+          "worktree": ".worktrees/terminal-tab-rename-links-cwd",
+          "last_updated_by": "codex",
+          "completed_at": "2026-03-14T23:31:08Z",
+          "files": [
+            "src/stores/terminalStore.ts",
+            "src/stores/terminalStore.test.ts",
+            "src/components/terminal/TerminalPane.tsx",
+            "src/components/terminal/TerminalPane.test.tsx",
+            "src/components/terminal/TerminalContainer.tsx",
+            "src/components/layout/StatusBar.tsx"
+          ],
+          "notes": "Added project-root terminal spawn, OSC 7 CWD tracking, store CWD updates, and status bar CWD display. branch=codex/terminal-tab-rename-links-cwd; commits=b82f9cc,69f8391"
         },
         "CHI-341": {
           "title": "TERM-10: Terminal settings UI",
@@ -4183,9 +4223,23 @@
     },
     "CHI-337": {
       "title": "TERM-6: Tab rename + reorder + overflow",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
-      "parent_epic": "CHI-331"
+      "parent_epic": "CHI-331",
+      "assigned_to": "codex",
+      "started_at": "2026-03-14T23:15:00Z",
+      "updated_at": "2026-03-14T23:31:08Z",
+      "worktree": ".worktrees/terminal-tab-rename-links-cwd",
+      "last_updated_by": "codex",
+      "completed_at": "2026-03-14T23:31:08Z",
+      "files": [
+        "src/stores/terminalStore.ts",
+        "src/stores/terminalStore.test.ts",
+        "src/components/terminal/TerminalTabs.tsx",
+        "src/components/terminal/TerminalTabs.test.tsx",
+        "src/components/terminal/TerminalContainer.tsx"
+      ],
+      "notes": "Implemented inline tab rename, drag reorder, and overflow scroll controls with store support. branch=codex/terminal-tab-rename-links-cwd; commits=9e0f14b"
     },
     "CHI-338": {
       "title": "TERM-7: Empty state + auto-spawn on view switch",
@@ -4206,15 +4260,41 @@
     },
     "CHI-339": {
       "title": "TERM-8: Clickable file paths (addon-web-links)",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
-      "parent_epic": "CHI-331"
+      "parent_epic": "CHI-331",
+      "assigned_to": "codex",
+      "started_at": "2026-03-14T23:15:00Z",
+      "updated_at": "2026-03-14T23:31:08Z",
+      "worktree": ".worktrees/terminal-tab-rename-links-cwd",
+      "last_updated_by": "codex",
+      "completed_at": "2026-03-14T23:31:08Z",
+      "files": [
+        "src/components/terminal/TerminalPane.tsx",
+        "src/components/terminal/TerminalPane.test.tsx"
+      ],
+      "notes": "Registered an xterm link provider for terminal file paths and routed activation to open_project_file_in_system. branch=codex/terminal-tab-rename-links-cwd; commits=72b2724"
     },
     "CHI-340": {
       "title": "TERM-9: CWD tracking + status bar display",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
-      "parent_epic": "CHI-331"
+      "parent_epic": "CHI-331",
+      "assigned_to": "codex",
+      "started_at": "2026-03-14T23:15:00Z",
+      "updated_at": "2026-03-14T23:31:08Z",
+      "worktree": ".worktrees/terminal-tab-rename-links-cwd",
+      "last_updated_by": "codex",
+      "completed_at": "2026-03-14T23:31:08Z",
+      "files": [
+        "src/stores/terminalStore.ts",
+        "src/stores/terminalStore.test.ts",
+        "src/components/terminal/TerminalPane.tsx",
+        "src/components/terminal/TerminalPane.test.tsx",
+        "src/components/terminal/TerminalContainer.tsx",
+        "src/components/layout/StatusBar.tsx"
+      ],
+      "notes": "Added project-root terminal spawn, OSC 7 CWD tracking, store CWD updates, and status bar CWD display. branch=codex/terminal-tab-rename-links-cwd; commits=b82f9cc,69f8391"
     },
     "CHI-341": {
       "title": "TERM-10: Terminal settings UI",
@@ -4241,10 +4321,10 @@
       "parent_epic": null,
       "assigned_to": null,
       "started_at": "2026-03-13T22:49:42Z",
-      "updated_at": "2026-03-14T22:17:36Z",
+      "updated_at": "2026-03-14T23:31:08Z",
       "worktree": null,
-      "last_updated_by": "claude-code",
-      "notes": "Foundation slice CHI-332/333/334/335/336/338 landed on main=98e85de. Remaining backlog: CHI-337, CHI-339, CHI-340, CHI-341, CHI-342, CHI-343. repaired_after_erroneous_revert=1dd50ba; completed_by=claude-code; lock_acquired_at=2026-03-14T22:17:36Z"
+      "last_updated_by": "codex",
+      "notes": "Foundation slice CHI-332/333/334/335/336/338 landed on main=98e85de. Follow-up slice CHI-337/339/340 is complete on branch=codex/terminal-tab-rename-links-cwd with commits=9e0f14b,72b2724,b82f9cc,69f8391. Remaining backlog: CHI-341, CHI-342, CHI-343. repaired_after_erroneous_revert=1dd50ba"
     }
   },
   "epics_new": {
@@ -6416,9 +6496,9 @@
     }
   },
   "recommended_next": [
-    "CHI-337: TERM-6 Tab rename + reorder + overflow",
-    "CHI-339: TERM-8 Clickable file paths (addon-web-links)",
-    "CHI-340: TERM-9 CWD tracking + status bar display"
+    "CHI-341: TERM-10 Terminal settings UI",
+    "CHI-342: TERM-11 Terminal keyboard shortcuts",
+    "CHI-343: TERM-12 Terminal accessibility"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
