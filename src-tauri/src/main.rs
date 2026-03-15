@@ -264,6 +264,7 @@ fn main() {
             chief_wiggum_lib::commands::export::open_path_in_shell,
             chief_wiggum_lib::commands::import::check_session_consistency,
             chief_wiggum_lib::commands::import::discover_importable_sessions,
+            chief_wiggum_lib::commands::import::inspect_importable_files,
             chief_wiggum_lib::commands::import::import_jsonl_file,
             chief_wiggum_lib::commands::import::import_jsonl_batch,
             chief_wiggum_lib::commands::logging::log_from_frontend,

@@ -7,6 +7,7 @@ use crate::import::consistency::{
 };
 use crate::import::discover::{mark_already_imported, scan_projects_dir, DiscoveredSession};
 use crate::import::engine::{import_session_file, ImportOutcome, ImportResult};
+use crate::import::review::{inspect_selected_files, ImportReviewItem};
 use crate::AppError;
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -45,6 +46,23 @@ pub fn discover_importable_sessions(
     let known_ids: HashSet<String> = list_all_cli_session_ids(&db)?.into_iter().collect();
     mark_already_imported(&mut discovered, &known_ids);
     Ok(discovered)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub fn inspect_importable_files(
+    file_paths: Vec<String>,
+) -> Result<Vec<ImportReviewItem>, AppError> {
+    if file_paths.is_empty() {
+        return Err(AppError::Validation(
+            "file_paths cannot be empty".to_string(),
+        ));
+    }
+    if file_paths.iter().any(|path| path.trim().is_empty()) {
+        return Err(AppError::Validation(
+            "file_paths cannot contain empty values".to_string(),
+        ));
+    }
+    Ok(inspect_selected_files(&file_paths))
 }
 
 /// Import a single JSONL file into the selected project.
@@ -98,4 +116,42 @@ pub fn import_jsonl_batch(
         }
     }
     Ok(results)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn write_temp_jsonl(root: &TempDir, name: &str, content: &str) -> String {
+        let path = root.path().join(name);
+        fs::write(&path, content).expect("write temp jsonl");
+        path.to_string_lossy().to_string()
+    }
+
+    #[test]
+    fn inspect_importable_files_rejects_empty_lists() {
+        let error = inspect_importable_files(Vec::new()).expect_err("empty file list should fail");
+        assert!(matches!(error, AppError::Validation(_)));
+    }
+
+    #[test]
+    fn inspect_importable_files_marks_invalid_and_valid_rows() {
+        let root = TempDir::new().expect("temp dir");
+        let valid = write_temp_jsonl(
+            &root,
+            "valid.jsonl",
+            "{\"type\":\"system\",\"subtype\":\"init\",\"sessionId\":\"valid-1\"}\n",
+        );
+        let invalid = write_temp_jsonl(&root, "invalid.jsonl", "{ nope }\n");
+
+        let items =
+            inspect_importable_files(vec![valid, invalid]).expect("inspection should succeed");
+
+        assert_eq!(items.len(), 2);
+        assert!(items.iter().any(|item| item.is_valid_jsonl));
+        assert!(items.iter().any(|item| !item.is_valid_jsonl));
+        assert!(items.iter().all(|item| item.source == "picked"));
+    }
 }
