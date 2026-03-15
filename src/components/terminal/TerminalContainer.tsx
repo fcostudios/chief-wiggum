@@ -2,8 +2,10 @@
 // Multi-tab terminal shell composed of tabs + persistent panes (CHI-336/338).
 
 import type { Component } from 'solid-js';
-import { createEffect, For, onMount, Show } from 'solid-js';
+import { createEffect, createSignal, For, onCleanup, onMount, Show } from 'solid-js';
+import { listen } from '@tauri-apps/api/event';
 import { getActiveProject } from '@/stores/projectStore';
+import { settingsState } from '@/stores/settingsStore';
 import { addToast } from '@/stores/toastStore';
 import {
   initTerminalListeners,
@@ -21,6 +23,8 @@ import TerminalTabs from './TerminalTabs';
 
 const TerminalContainer: Component = () => {
   let autoSpawnInFlight = false;
+  let unlistenExit: (() => void) | null = null;
+  const [exitNotification, setExitNotification] = createSignal('');
 
   onMount(() => {
     void initTerminalListeners().catch((error) => {
@@ -29,12 +33,32 @@ const TerminalContainer: Component = () => {
     void loadAvailableShells().catch(() => {
       // Shell picker is not rendered yet; ignore load failures for now.
     });
+    void listen<{ terminal_id: string; exit_code: number | null }>(
+      'terminal:exit',
+      ({ payload }) => {
+        const session = terminalState.sessions.find(
+          (item) => item.terminal_id === payload.terminal_id,
+        );
+        const label = session?.title ?? session?.shell.split('/').pop() ?? 'Terminal';
+        const code = payload.exit_code ?? 0;
+        setExitNotification(`Terminal process "${label}" exited with code ${code}.`);
+        window.setTimeout(() => setExitNotification(''), 3000);
+      },
+    ).then((unlisten) => {
+      unlistenExit = unlisten;
+    });
+
+    onCleanup(() => {
+      unlistenExit?.();
+      unlistenExit = null;
+    });
   });
 
   async function handleNewTerminal() {
     try {
+      const configuredShell = settingsState.settings.terminal.default_shell.trim();
       const cwd = getActiveProject()?.path;
-      await spawnTerminal(undefined, cwd);
+      await spawnTerminal(configuredShell || undefined, cwd);
     } catch (error) {
       addToast(`Failed to open terminal: ${String(error)}`, 'error');
     }
@@ -60,6 +84,61 @@ const TerminalContainer: Component = () => {
     void handleNewTerminal().finally(() => {
       autoSpawnInFlight = false;
     });
+  });
+
+  onMount(() => {
+    function handleTerminalKeydown(event: KeyboardEvent): void {
+      if (uiState.activeView !== 'terminal') return;
+      const cmd = event.metaKey || event.ctrlKey;
+
+      if (cmd && event.shiftKey && event.code === 'KeyT') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        void handleNewTerminal();
+        return;
+      }
+
+      if (cmd && event.shiftKey && event.code === 'KeyW') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (terminalState.activeTerminalId) {
+          void handleCloseTerminal(terminalState.activeTerminalId);
+        }
+        return;
+      }
+
+      if (cmd && event.shiftKey && event.code === 'BracketLeft') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const sessions = terminalState.sessions;
+        const index = sessions.findIndex(
+          (session) => session.terminal_id === terminalState.activeTerminalId,
+        );
+        if (index > 0) {
+          setActiveTerminal(sessions[index - 1]!.terminal_id);
+        } else if (sessions.length > 0) {
+          setActiveTerminal(sessions[sessions.length - 1]!.terminal_id);
+        }
+        return;
+      }
+
+      if (cmd && event.shiftKey && event.code === 'BracketRight') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const sessions = terminalState.sessions;
+        const index = sessions.findIndex(
+          (session) => session.terminal_id === terminalState.activeTerminalId,
+        );
+        if (index >= 0 && index < sessions.length - 1) {
+          setActiveTerminal(sessions[index + 1]!.terminal_id);
+        } else if (sessions.length > 0) {
+          setActiveTerminal(sessions[0]!.terminal_id);
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleTerminalKeydown, true);
+    onCleanup(() => document.removeEventListener('keydown', handleTerminalKeydown, true));
   });
 
   return (
@@ -100,6 +179,8 @@ const TerminalContainer: Component = () => {
         <For each={terminalState.sessions}>
           {(session) => (
             <div
+              role="tabpanel"
+              aria-labelledby={`terminal-tab-${session.terminal_id}`}
               class="flex flex-1 flex-col min-h-0"
               style={{
                 display: terminalState.activeTerminalId === session.terminal_id ? 'flex' : 'none',
@@ -110,6 +191,10 @@ const TerminalContainer: Component = () => {
           )}
         </For>
       </Show>
+
+      <div role="status" aria-live="polite" aria-atomic="true" class="sr-only">
+        {exitNotification()}
+      </div>
     </div>
   );
 };
