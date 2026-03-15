@@ -79,6 +79,12 @@ const CATEGORIES: CategoryDef[] = [
     description: 'Concurrency, autosave, and resume behavior',
   },
   {
+    id: 'terminal',
+    label: 'Terminal',
+    icon: Terminal,
+    description: 'Shell, font, cursor, clipboard, and bell behavior',
+  },
+  {
     id: 'keybindings',
     label: 'Keybindings',
     icon: Keyboard,
@@ -127,6 +133,17 @@ const SEARCH_INDEX: Record<SettingsCategory, Array<{ label: string; description:
       label: 'Resume Card Inactivity Window',
       description: 'Minutes before showing the session resume summary card',
     },
+  ],
+  terminal: [
+    { label: 'Default Shell', description: 'Shell path used for new terminal sessions' },
+    { label: 'Terminal Font Size', description: 'Font size for terminal cells' },
+    { label: 'Font Family', description: 'Monospace font stack for terminal text' },
+    { label: 'Cursor Style', description: 'Block, underline, or bar cursor' },
+    { label: 'Cursor Blink', description: 'Whether the terminal cursor blinks' },
+    { label: 'Scrollback Lines', description: 'Command history retained in terminal' },
+    { label: 'Copy on Select', description: 'Copy selected text to clipboard automatically' },
+    { label: 'Paste on Right Click', description: 'Paste clipboard contents on context click' },
+    { label: 'Bell', description: 'How the terminal reacts to BEL events' },
   ],
   keybindings: [{ label: 'Keybindings JSON', description: 'Custom shortcut overrides' }],
   privacy: [
@@ -634,6 +651,143 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
             </Show>
           </Match>
 
+          <Match when={props.category === 'terminal'}>
+            <Show when={visible('Default Shell', 'Shell path used for new terminal sessions')}>
+              <SettingCard
+                label="Default Shell"
+                description="Leave empty to auto-detect from your system environment"
+              >
+                <input
+                  type="text"
+                  value={settings().terminal.default_shell}
+                  onInput={(e) => updateSetting('terminal', 'default_shell', e.currentTarget.value)}
+                  placeholder="/bin/zsh"
+                  class={`${INPUT_CLASS} w-full`}
+                  aria-label="Default Shell"
+                />
+              </SettingCard>
+            </Show>
+
+            <Show when={visible('Terminal Font Size', 'Font size for terminal cells')}>
+              <RangeCard
+                label="Terminal Font Size"
+                description="Terminal text size (8–32 px)"
+                value={settings().terminal.font_size}
+                min={8}
+                max={32}
+                unit="px"
+                onChange={(value) => updateSetting('terminal', 'font_size', value)}
+              />
+            </Show>
+
+            <Show when={visible('Font Family', 'Monospace font stack for terminal text')}>
+              <SettingCard
+                label="Font Family"
+                description="CSS font stack used by the terminal renderer"
+              >
+                <input
+                  type="text"
+                  value={settings().terminal.font_family}
+                  onInput={(e) => updateSetting('terminal', 'font_family', e.currentTarget.value)}
+                  class={`${INPUT_CLASS} w-full`}
+                  aria-label="Terminal Font Family"
+                />
+              </SettingCard>
+            </Show>
+
+            <Show when={visible('Cursor Style', 'Block, underline, or bar cursor')}>
+              <SettingCard
+                label="Cursor Style"
+                description="Choose the terminal cursor shape"
+              >
+                <select
+                  class={SELECT_CLASS}
+                  value={settings().terminal.cursor_style}
+                  onChange={(e) =>
+                    updateSetting(
+                      'terminal',
+                      'cursor_style',
+                      e.currentTarget.value as UserSettings['terminal']['cursor_style'],
+                    )
+                  }
+                  aria-label="Terminal Cursor Style"
+                >
+                  <option value="block">Block</option>
+                  <option value="underline">Underline</option>
+                  <option value="bar">Bar</option>
+                </select>
+              </SettingCard>
+            </Show>
+
+            <Show when={visible('Cursor Blink', 'Whether the terminal cursor blinks')}>
+              <ToggleCard
+                label="Cursor Blink"
+                description="Animate the terminal cursor while the session is focused"
+                checked={settings().terminal.cursor_blink}
+                onChange={(checked) => updateSetting('terminal', 'cursor_blink', checked)}
+              />
+            </Show>
+
+            <Show when={visible('Scrollback Lines', 'Command history retained in terminal')}>
+              <RangeCard
+                label="Scrollback Lines"
+                description="How many lines of terminal history remain available"
+                value={settings().terminal.scrollback_lines}
+                min={1000}
+                max={100000}
+                step={1000}
+                unit=""
+                onChange={(value) => updateSetting('terminal', 'scrollback_lines', value)}
+              />
+            </Show>
+
+            <Show when={visible('Copy on Select', 'Copy selected text to clipboard automatically')}>
+              <ToggleCard
+                label="Copy on Select"
+                description="Copy the current terminal selection to the clipboard automatically"
+                checked={settings().terminal.copy_on_select}
+                onChange={(checked) => updateSetting('terminal', 'copy_on_select', checked)}
+              />
+            </Show>
+
+            <Show
+              when={visible('Paste on Right Click', 'Paste clipboard contents on context click')}
+            >
+              <ToggleCard
+                label="Paste on Right Click"
+                description="Use right click to paste clipboard contents into the terminal"
+                checked={settings().terminal.paste_on_right_click}
+                onChange={(checked) =>
+                  updateSetting('terminal', 'paste_on_right_click', checked)
+                }
+              />
+            </Show>
+
+            <Show when={visible('Bell', 'How the terminal reacts to BEL events')}>
+              <SettingCard
+                label="Bell"
+                description="Choose whether BEL emits nothing, a sound, or a visual flash"
+              >
+                <select
+                  class={SELECT_CLASS}
+                  value={settings().terminal.bell}
+                  onChange={(e) =>
+                    updateSetting(
+                      'terminal',
+                      'bell',
+                      e.currentTarget.value as UserSettings['terminal']['bell'],
+                    )
+                  }
+                  aria-label="Terminal Bell"
+                >
+                  <option value="none">None</option>
+                  <option value="sound">Sound</option>
+                  <option value="visual">Visual</option>
+                </select>
+              </SettingCard>
+            </Show>
+          </Match>
+
           <Match when={props.category === 'keybindings'}>
             <Show when={visible('Keybindings JSON', 'Custom shortcut overrides')}>
               <SettingCard
@@ -944,6 +1098,7 @@ const RangeCard: Component<{
   value: number;
   min: number;
   max: number;
+  step?: number;
   unit: string;
   onChange: (value: number) => void;
 }> = (props) => (
@@ -953,6 +1108,7 @@ const RangeCard: Component<{
         type="range"
         min={props.min}
         max={props.max}
+        step={props.step}
         value={props.value}
         onInput={(e) => props.onChange(Number(e.currentTarget.value))}
         class="w-40 accent-[var(--color-accent)]"

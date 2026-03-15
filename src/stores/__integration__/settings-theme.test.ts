@@ -4,7 +4,7 @@ import type { UserSettings } from '@/lib/types';
 
 function makeSettings(): UserSettings {
   return {
-    version: 2,
+    version: 3,
     appearance: { theme: 'dark', font_size: 13, code_font_size: 12, sidebar_default: 'expanded' },
     i18n: { locale: 'en', date_format: 'relative', number_format: 'standard' },
     cli: { default_model: 'claude-sonnet-4-6', default_effort: 'high' },
@@ -13,6 +13,18 @@ function makeSettings(): UserSettings {
     keybindings: {},
     privacy: { log_redaction_level: 'standard' },
     advanced: { cli_path_override: '', debug_mode: false, developer_mode: false },
+    terminal: {
+      default_shell: '',
+      font_size: 14,
+      font_family:
+        "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+      cursor_style: 'block',
+      cursor_blink: true,
+      scrollback_lines: 10000,
+      copy_on_select: false,
+      paste_on_right_click: false,
+      bell: 'none',
+    },
   };
 }
 

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Current schema version. Bump when adding/removing/renaming fields.
-pub const SETTINGS_VERSION: u32 = 2;
+pub const SETTINGS_VERSION: u32 = 3;
 /// Default inactivity window before showing "resume session" UI.
 pub const DEFAULT_RESUME_INACTIVITY_MINUTES: u32 = 5;
 
@@ -19,6 +19,45 @@ fn default_resume_inactivity_minutes() -> u32 {
 
 fn default_hints_enabled() -> bool {
     true
+}
+
+/// Terminal emulator settings.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct TerminalSettings {
+    /// Shell binary path. Empty string = auto-detect from $SHELL / %ComSpec%.
+    pub default_shell: String,
+    /// Terminal font size in px (8–32).
+    pub font_size: u8,
+    /// Terminal font family (CSS font stack).
+    pub font_family: String,
+    /// Cursor style: `"block"`, `"underline"`, or `"bar"`.
+    pub cursor_style: String,
+    /// Whether the cursor blinks.
+    pub cursor_blink: bool,
+    /// Number of scrollback lines (1_000–100_000).
+    pub scrollback_lines: u32,
+    /// Copy to clipboard on text selection.
+    pub copy_on_select: bool,
+    /// Paste clipboard on right-click.
+    pub paste_on_right_click: bool,
+    /// Bell mode: `"none"`, `"sound"`, or `"visual"`.
+    pub bell: String,
+}
+
+impl Default for TerminalSettings {
+    fn default() -> Self {
+        TerminalSettings {
+            default_shell: String::new(),
+            font_size: 14,
+            font_family: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace".to_string(),
+            cursor_style: "block".to_string(),
+            cursor_blink: true,
+            scrollback_lines: 10_000,
+            copy_on_select: false,
+            paste_on_right_click: false,
+            bell: "none".to_string(),
+        }
+    }
 }
 
 /// Root settings structure persisted to disk.
@@ -34,6 +73,8 @@ pub struct UserSettings {
     pub keybindings: HashMap<String, String>,
     pub privacy: PrivacySettings,
     pub advanced: AdvancedSettings,
+    #[serde(default)]
+    pub terminal: TerminalSettings,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -149,6 +190,7 @@ impl Default for UserSettings {
                 debug_mode: false,
                 developer_mode: false,
             },
+            terminal: TerminalSettings::default(),
         }
     }
 }
@@ -160,8 +202,14 @@ impl UserSettings {
         if self.version >= SETTINGS_VERSION {
             return false;
         }
-        // Future migrations go here:
-        // if self.version < 2 { ... self.version = 2; }
+        let from_version = self.version;
+        if from_version < 3 {
+            self.terminal = TerminalSettings::default();
+            tracing::info!(
+                "Migrated settings from v{} to v3: added terminal defaults",
+                from_version
+            );
+        }
         self.version = SETTINGS_VERSION;
         true
     }

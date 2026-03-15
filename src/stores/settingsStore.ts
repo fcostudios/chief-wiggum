@@ -23,7 +23,7 @@ interface SettingsStoreState {
 
 /** Mirrors Rust defaults (CHI-122) so the UI still renders if backend load fails. */
 const DEFAULTS: UserSettings = {
-  version: 2,
+  version: 3,
   appearance: {
     theme: 'dark',
     font_size: 13,
@@ -57,6 +57,18 @@ const DEFAULTS: UserSettings = {
     cli_path_override: '',
     debug_mode: false,
     developer_mode: false,
+  },
+  terminal: {
+    default_shell: '',
+    font_size: 14,
+    font_family:
+      "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+    cursor_style: 'block',
+    cursor_blink: true,
+    scrollback_lines: 10000,
+    copy_on_select: false,
+    paste_on_right_click: false,
+    bell: 'none',
   },
 };
 

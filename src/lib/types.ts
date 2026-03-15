@@ -623,6 +623,7 @@ export interface UserSettings {
   keybindings: Record<string, string>;
   privacy: PrivacySettings;
   advanced: AdvancedSettings;
+  terminal: TerminalSettings;
 }
 
 export interface AppearanceSettings {
@@ -663,6 +664,18 @@ export interface AdvancedSettings {
   cli_path_override: string;
   debug_mode: boolean;
   developer_mode: boolean;
+}
+
+export interface TerminalSettings {
+  default_shell: string;
+  font_size: number;
+  font_family: string;
+  cursor_style: 'block' | 'underline' | 'bar';
+  cursor_blink: boolean;
+  scrollback_lines: number;
+  copy_on_select: boolean;
+  paste_on_right_click: boolean;
+  bell: 'none' | 'sound' | 'visual';
 }
 
 /** Payload from `settings:updated` backend event. */

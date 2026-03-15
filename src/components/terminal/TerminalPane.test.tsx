@@ -3,11 +3,8 @@ import { render } from '@solidjs/testing-library';
 import {
   onTerminalOutput,
   resizeTerminal,
-  updateSessionCwd,
   writeToTerminal,
 } from '@/stores/terminalStore';
-
-let mockTheme: 'dark' | 'light' | 'system' = 'dark';
 
 const mocks = vi.hoisted(() => {
   class MockTerminal {
@@ -20,6 +17,14 @@ const mocks = vi.hoisted(() => {
     parser = {
       registerOscHandler: vi.fn(() => ({ dispose: vi.fn() })),
     };
+    onSelectionChange = vi.fn((callback: () => void) => {
+      store.onSelectionCallbacks.push(callback);
+      return { dispose: vi.fn() };
+    });
+    onBell = vi.fn((callback: () => void) => {
+      store.onBellCallbacks.push(callback);
+      return { dispose: vi.fn() };
+    });
     onData = vi.fn((callback: (data: string) => void) => {
       store.onDataCallbacks.push(callback);
       return { dispose: vi.fn() };
@@ -30,6 +35,7 @@ const mocks = vi.hoisted(() => {
     });
     cols = 80;
     rows = 24;
+    getSelection = vi.fn(() => store.selectionText);
 
     constructor(options: Record<string, unknown>) {
       this.options = options;
@@ -67,6 +73,9 @@ const mocks = vi.hoisted(() => {
     resizeObservers: [] as { instance: MockResizeObserver; cb: ResizeObserverCallback }[],
     onDataCallbacks: [] as Array<(data: string) => void>,
     onResizeCallbacks: [] as Array<(size: { cols: number; rows: number }) => void>,
+    onSelectionCallbacks: [] as Array<() => void>,
+    onBellCallbacks: [] as Array<() => void>,
+    selectionText: '',
     MockTerminal,
     MockFitAddon,
     MockWebglAddon,
@@ -81,13 +90,35 @@ vi.mock('@xterm/addon-fit', () => ({ FitAddon: mocks.MockFitAddon }));
 vi.mock('@xterm/addon-webgl', () => ({ WebglAddon: mocks.MockWebglAddon }));
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}));
 
-vi.mock('@/stores/settingsStore', () => ({
-  settingsState: {
-    get settings() {
-      return { appearance: { theme: mockTheme } };
+vi.mock('@/stores/settingsStore', async () => {
+  const { createStore } = await import('solid-js/store');
+  const [settings, setSettings] = createStore({
+    appearance: { theme: 'dark' as const },
+    terminal: {
+      default_shell: '',
+      font_size: 14,
+      font_family:
+        "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+      cursor_style: 'block' as const,
+      cursor_blink: true,
+      scrollback_lines: 10000,
+      copy_on_select: false,
+      paste_on_right_click: false,
+      bell: 'none' as const,
     },
-  },
-}));
+  });
+
+  return {
+    settingsState: {
+      get settings() {
+        return settings;
+      },
+    },
+    __setMockSettings(patch: Partial<typeof settings>) {
+      setSettings(patch as never);
+    },
+  };
+});
 
 vi.mock('@/stores/terminalStore', () => ({
   onTerminalOutput: vi.fn(() => vi.fn()),
@@ -98,6 +129,30 @@ vi.mock('@/stores/terminalStore', () => ({
 
 import TerminalPane from './TerminalPane';
 
+type MockSettingsPatch = Partial<{
+  appearance: { theme: 'dark' | 'light' | 'system' };
+  terminal: {
+    default_shell: string;
+    font_size: number;
+    font_family: string;
+    cursor_style: 'block' | 'underline' | 'bar';
+    cursor_blink: boolean;
+    scrollback_lines: number;
+    copy_on_select: boolean;
+    paste_on_right_click: boolean;
+    bell: 'none' | 'sound' | 'visual';
+  };
+}>;
+
+async function setMockSettings(
+  patch: MockSettingsPatch,
+) {
+  const mod = (await import('@/stores/settingsStore')) as typeof import('@/stores/settingsStore') & {
+    __setMockSettings: (patch: MockSettingsPatch) => void;
+  };
+  mod.__setMockSettings(patch);
+}
+
 function getMockTerminal() {
   const terminal = mocks.terminals[mocks.terminals.length - 1];
   if (!terminal) {
@@ -107,14 +162,16 @@ function getMockTerminal() {
 }
 
 describe('TerminalPane', () => {
-  beforeEach(() => {
-    mockTheme = 'dark';
+  beforeEach(async () => {
     mocks.terminals.length = 0;
     mocks.fitAddons.length = 0;
     mocks.webglAddons.length = 0;
     mocks.resizeObservers.length = 0;
     mocks.onDataCallbacks.length = 0;
     mocks.onResizeCallbacks.length = 0;
+    mocks.onSelectionCallbacks.length = 0;
+    mocks.onBellCallbacks.length = 0;
+    mocks.selectionText = '';
     vi.clearAllMocks();
     vi.stubGlobal('ResizeObserver', mocks.MockResizeObserver);
     vi.stubGlobal(
@@ -125,6 +182,27 @@ describe('TerminalPane', () => {
         removeEventListener: vi.fn(),
       }),
     );
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+        readText: vi.fn().mockResolvedValue('pwd\n'),
+      },
+    });
+    await setMockSettings({
+      appearance: { theme: 'dark' },
+      terminal: {
+        default_shell: '',
+        font_size: 14,
+        font_family:
+          "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+        cursor_style: 'block',
+        cursor_blink: true,
+        scrollback_lines: 10000,
+        copy_on_select: false,
+        paste_on_right_click: false,
+        bell: 'none',
+      },
+    });
   });
 
   it('renders a terminal container without crashing', () => {
@@ -156,8 +234,8 @@ describe('TerminalPane', () => {
     expect(resizeTerminal).toHaveBeenCalledWith('my-term', 120, 40);
   });
 
-  it('applies theme and disposes resources on unmount', () => {
-    mockTheme = 'light';
+  it('applies theme and disposes resources on unmount', async () => {
+    await setMockSettings({ appearance: { theme: 'light' } });
     const { container, unmount } = render(() => <TerminalPane terminalId="test-id" />);
     const root = container.firstElementChild as HTMLDivElement;
 
@@ -182,5 +260,109 @@ describe('TerminalPane', () => {
     render(() => <TerminalPane terminalId="osc-test" />);
     const mockTerminal = getMockTerminal();
     expect(mockTerminal.parser.registerOscHandler).toHaveBeenCalledWith(7, expect.any(Function));
+  });
+
+  it('initializes terminal with font settings from user settings', async () => {
+    await setMockSettings({
+      terminal: {
+        default_shell: '',
+        font_size: 16,
+        font_family: 'Fira Code',
+        cursor_style: 'underline',
+        cursor_blink: false,
+        scrollback_lines: 20000,
+        copy_on_select: false,
+        paste_on_right_click: false,
+        bell: 'none',
+      },
+    });
+
+    render(() => <TerminalPane terminalId="settings-init" />);
+
+    expect(getMockTerminal().options).toMatchObject({
+      fontSize: 16,
+      fontFamily: 'Fira Code',
+      cursorStyle: 'underline',
+      cursorBlink: false,
+      scrollback: 20000,
+      screenReaderMode: true,
+    });
+  });
+
+  it('updates terminal options when settings change', async () => {
+    render(() => <TerminalPane terminalId="settings-reactive" />);
+
+    await setMockSettings({
+      terminal: {
+        default_shell: '',
+        font_size: 18,
+        font_family: 'Cascadia Code',
+        cursor_style: 'bar',
+        cursor_blink: false,
+        scrollback_lines: 30000,
+        copy_on_select: false,
+        paste_on_right_click: false,
+        bell: 'none',
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(getMockTerminal().options.fontSize).toBe(18);
+      expect(getMockTerminal().options.fontFamily).toBe('Cascadia Code');
+      expect(getMockTerminal().options.cursorStyle).toBe('bar');
+      expect(getMockTerminal().options.cursorBlink).toBe(false);
+      expect(getMockTerminal().options.scrollback).toBe(30000);
+    });
+  });
+
+  it('copies selection to clipboard when copy-on-select is enabled', async () => {
+    await setMockSettings({
+      terminal: {
+        default_shell: '',
+        font_size: 14,
+        font_family:
+          "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+        cursor_style: 'block',
+        cursor_blink: true,
+        scrollback_lines: 10000,
+        copy_on_select: true,
+        paste_on_right_click: false,
+        bell: 'none',
+      },
+    });
+    mocks.selectionText = 'selected output';
+
+    render(() => <TerminalPane terminalId="copy-select" />);
+    mocks.onSelectionCallbacks[0]?.();
+
+    await vi.waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('selected output');
+    });
+  });
+
+  it('pastes clipboard contents on right click when enabled', async () => {
+    await setMockSettings({
+      terminal: {
+        default_shell: '',
+        font_size: 14,
+        font_family:
+          "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+        cursor_style: 'block',
+        cursor_blink: true,
+        scrollback_lines: 10000,
+        copy_on_select: false,
+        paste_on_right_click: true,
+        bell: 'none',
+      },
+    });
+
+    const { container } = render(() => <TerminalPane terminalId="paste-right-click" />);
+    const root = container.firstElementChild as HTMLDivElement;
+    root.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() => {
+      expect(navigator.clipboard.readText).toHaveBeenCalledOnce();
+      expect(writeToTerminal).toHaveBeenCalledWith('paste-right-click', 'pwd\n');
+    });
   });
 });

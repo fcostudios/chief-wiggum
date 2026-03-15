@@ -1,6 +1,6 @@
 //! Type-safe validation for user settings fields (CHI-122).
 
-use super::UserSettings;
+use super::{TerminalSettings, UserSettings};
 use crate::AppError;
 
 /// Allowed theme values.
@@ -27,6 +27,7 @@ pub fn validate(settings: &UserSettings) -> Result<(), AppError> {
     validate_cli(settings)?;
     validate_sessions(settings)?;
     validate_privacy(settings)?;
+    validate_terminal(&settings.terminal)?;
     Ok(())
 }
 
@@ -125,6 +126,41 @@ fn validate_privacy(s: &UserSettings) -> Result<(), AppError> {
             "Invalid log_redaction_level '{}'. Must be one of: {}",
             s.privacy.log_redaction_level,
             VALID_REDACTION_LEVELS.join(", ")
+        )));
+    }
+    Ok(())
+}
+
+/// Allowed cursor styles.
+const VALID_CURSOR_STYLES: &[&str] = &["block", "underline", "bar"];
+/// Allowed bell modes.
+const VALID_BELL_MODES: &[&str] = &["none", "sound", "visual"];
+
+fn validate_terminal(t: &TerminalSettings) -> Result<(), AppError> {
+    if t.font_size < 8 || t.font_size > 32 {
+        return Err(AppError::Validation(format!(
+            "terminal.font_size must be 8–32, got {}",
+            t.font_size
+        )));
+    }
+    if !VALID_CURSOR_STYLES.contains(&t.cursor_style.as_str()) {
+        return Err(AppError::Validation(format!(
+            "Invalid terminal.cursor_style '{}'. Must be one of: {}",
+            t.cursor_style,
+            VALID_CURSOR_STYLES.join(", ")
+        )));
+    }
+    if t.scrollback_lines < 1_000 || t.scrollback_lines > 100_000 {
+        return Err(AppError::Validation(format!(
+            "terminal.scrollback_lines must be 1000–100000, got {}",
+            t.scrollback_lines
+        )));
+    }
+    if !VALID_BELL_MODES.contains(&t.bell.as_str()) {
+        return Err(AppError::Validation(format!(
+            "Invalid terminal.bell '{}'. Must be one of: {}",
+            t.bell,
+            VALID_BELL_MODES.join(", ")
         )));
     }
     Ok(())
@@ -234,13 +270,48 @@ mod tests {
     }
 
     #[test]
+    fn terminal_font_size_out_of_range_rejected() {
+        let mut settings = UserSettings::default();
+        settings.terminal.font_size = 40;
+        let err = validate(&settings).unwrap_err();
+        assert!(err.to_string().contains("terminal.font_size must be 8–32"));
+    }
+
+    #[test]
+    fn invalid_terminal_cursor_style_rejected() {
+        let mut settings = UserSettings::default();
+        settings.terminal.cursor_style = "beam".to_string();
+        let err = validate(&settings).unwrap_err();
+        assert!(err.to_string().contains("Invalid terminal.cursor_style"));
+    }
+
+    #[test]
+    fn terminal_scrollback_out_of_range_rejected() {
+        let mut settings = UserSettings::default();
+        settings.terminal.scrollback_lines = 100;
+        let err = validate(&settings).unwrap_err();
+        assert!(err
+            .to_string()
+            .contains("terminal.scrollback_lines must be 1000–100000"));
+    }
+
+    #[test]
+    fn invalid_terminal_bell_rejected() {
+        let mut settings = UserSettings::default();
+        settings.terminal.bell = "beep".to_string();
+        let err = validate(&settings).unwrap_err();
+        assert!(err.to_string().contains("Invalid terminal.bell"));
+    }
+
+    #[test]
     fn migration_from_v1_updates_version() {
         let mut settings = UserSettings {
             version: 1,
             ..UserSettings::default()
         };
         assert!(settings.migrate());
-        assert_eq!(settings.version, 2);
+        assert_eq!(settings.version, 3);
+        assert_eq!(settings.terminal, TerminalSettings::default());
     }
 
     #[test]

@@ -114,6 +114,30 @@ function makeFileLinkProvider(terminal: Terminal): ILinkProvider {
   };
 }
 
+function playBellSound(): void {
+  const AudioContextCtor = window.AudioContext ?? (window as typeof window & {
+    webkitAudioContext?: typeof AudioContext;
+  }).webkitAudioContext;
+  if (!AudioContextCtor) return;
+
+  const context = new AudioContextCtor();
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+
+  oscillator.type = 'sine';
+  oscillator.frequency.value = 880;
+  gain.gain.value = 0.03;
+
+  oscillator.connect(gain);
+  gain.connect(context.destination);
+
+  oscillator.start();
+  oscillator.stop(context.currentTime + 0.08);
+  oscillator.onended = () => {
+    void context.close().catch(() => {});
+  };
+}
+
 const TerminalPane: Component<Props> = (props) => {
   let containerRef: HTMLDivElement | undefined;
   let terminal: Terminal | undefined;
@@ -121,6 +145,7 @@ const TerminalPane: Component<Props> = (props) => {
   let resizeObserver: ResizeObserver | undefined;
   let systemThemeMediaQuery: MediaQueryList | undefined;
   const [prefersDarkSystem, setPrefersDarkSystem] = createSignal(true);
+  const [bellFlash, setBellFlash] = createSignal(false);
 
   const resolvedThemeMode = () => {
     const configuredTheme = settingsState.settings.appearance.theme ?? 'dark';
@@ -144,15 +169,16 @@ const TerminalPane: Component<Props> = (props) => {
     };
     systemThemeMediaQuery.addEventListener('change', handleSystemThemeChange);
 
+    const ts = settingsState.settings.terminal;
     terminal = new Terminal({
-      fontSize: 14,
-      fontFamily:
-        "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace",
+      fontSize: ts.font_size,
+      fontFamily: ts.font_family,
       theme: activeTerminalTheme(),
-      cursorBlink: true,
-      cursorStyle: 'block',
+      cursorBlink: ts.cursor_blink,
+      cursorStyle: ts.cursor_style,
       allowTransparency: false,
-      scrollback: 10000,
+      scrollback: ts.scrollback_lines,
+      screenReaderMode: true,
     });
 
     fitAddon = new FitAddon();
@@ -175,8 +201,29 @@ const TerminalPane: Component<Props> = (props) => {
       void writeToTerminal(mountedTerminalId, data).catch(() => {});
     });
 
+    const selectionDisposable = terminal.onSelectionChange(() => {
+      if (!settingsState.settings.terminal.copy_on_select) return;
+      const selection = terminal?.getSelection();
+      if (!selection) return;
+      const clipboard = navigator.clipboard;
+      if (!clipboard) return;
+      void clipboard.writeText(selection).catch(() => {});
+    });
+
     const resizeDisposable = terminal.onResize(({ cols, rows }) => {
       void resizeTerminal(mountedTerminalId, cols, rows).catch(() => {});
+    });
+
+    const bellDisposable = terminal.onBell(() => {
+      const mode = settingsState.settings.terminal.bell;
+      if (mode === 'sound') {
+        playBellSound();
+        return;
+      }
+      if (mode === 'visual') {
+        setBellFlash(true);
+        window.setTimeout(() => setBellFlash(false), 180);
+      }
     });
 
     const linkProviderDisposable = terminal.registerLinkProvider(makeFileLinkProvider(terminal));
@@ -184,7 +231,7 @@ const TerminalPane: Component<Props> = (props) => {
       try {
         const url = new URL(data);
         const cwd = decodeURIComponent(url.pathname);
-        updateSessionCwd(props.terminalId, cwd);
+        updateSessionCwd(mountedTerminalId, cwd);
       } catch {
         // Ignore malformed OSC 7 payloads.
       }
@@ -205,13 +252,45 @@ const TerminalPane: Component<Props> = (props) => {
       terminal?.write(data);
     });
 
+    createEffect(() => {
+      if (!terminal) return;
+      const nextSettings = settingsState.settings.terminal;
+      terminal.options.fontSize = nextSettings.font_size;
+      terminal.options.fontFamily = nextSettings.font_family;
+      terminal.options.cursorStyle = nextSettings.cursor_style;
+      terminal.options.cursorBlink = nextSettings.cursor_blink;
+      terminal.options.scrollback = nextSettings.scrollback_lines;
+      fitAddon?.fit();
+    });
+
+    function handleContextMenu(event: MouseEvent): void {
+      if (!settingsState.settings.terminal.paste_on_right_click) return;
+      event.preventDefault();
+      const clipboard = navigator.clipboard;
+      if (!clipboard) return;
+      void clipboard
+        .readText()
+        .then((text) => {
+          if (text) {
+            return writeToTerminal(mountedTerminalId, text);
+          }
+          return undefined;
+        })
+        .catch(() => {});
+    }
+
+    containerRef.addEventListener('contextmenu', handleContextMenu);
+
     onCleanup(() => {
       unsubscribeOutput();
       inputDisposable.dispose();
+      selectionDisposable.dispose();
       resizeDisposable.dispose();
+      bellDisposable.dispose();
       linkProviderDisposable.dispose();
       oscDisposable.dispose();
       resizeObserver?.disconnect();
+      containerRef?.removeEventListener('contextmenu', handleContextMenu);
       systemThemeMediaQuery?.removeEventListener('change', handleSystemThemeChange);
       terminal?.dispose();
     });
@@ -224,6 +303,7 @@ const TerminalPane: Component<Props> = (props) => {
     }
     if (containerRef) {
       containerRef.style.backgroundColor = theme.background ?? 'transparent';
+      containerRef.style.boxShadow = bellFlash() ? 'inset 0 0 0 2px var(--color-accent)' : 'none';
     }
   });
 
