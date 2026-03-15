@@ -20,7 +20,8 @@ function makeItem(
     source: overrides.source ?? 'scanned',
     file_path: overrides.file_path,
     project_path: overrides.project_path,
-    cli_session_id: overrides.cli_session_id ?? overrides.file_path.split('/').at(-1) ?? 'session',
+    cli_session_id:
+      overrides.cli_session_id ?? overrides.file_path.split('/').slice(-1)[0] ?? 'session',
     file_size_bytes: overrides.file_size_bytes ?? 128,
     line_count: overrides.line_count ?? 4,
     model: overrides.model ?? 'claude-sonnet-4-6',

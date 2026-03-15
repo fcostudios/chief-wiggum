@@ -68,7 +68,7 @@ function matchesSearch(item: ImportReviewItem, query: string): boolean {
     return true;
   }
   const haystacks = [
-    item.file_path.split('/').at(-1) ?? '',
+    item.file_path.split('/').slice(-1)[0] ?? '',
     item.file_path,
     item.project_path,
     item.cli_session_id,
