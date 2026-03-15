@@ -31,6 +31,7 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 | CHI-301: JSONL Session Import | ✅ Done | Parser, discovery, import engine, UI, consistency checker (CHI-302-306) |
 | CHI-287: Performance Tuning | ✅ Done | Query/event/render optimization + memory/build tuning (CHI-292-295) |
 | CHI-311: Git Integration | ✅ Done | Full Phase 4 Git workflow complete (CHI-312-330) |
+| CHI-331: Terminal Integration | ✅ Done | Full integrated terminal workflow complete (CHI-332-343) |
 | CHI-276: Binary File Preview | ✅ Done | Image, SVG, PDF, Audio previews (BP-1 through BP-4) |
 | CHI-269: File & Folder Creation | ✅ Done | Full file management (CHI-272 context menu remains) |
 | CHI-277: AskUserQuestion Dialog | ✅ Done | Interactive agent questions (CHI-284, CHI-285) |
@@ -39,17 +40,9 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 
 | Epic | Status | Notes |
 |------|--------|-------|
-| CHI-331: Terminal Integration | 🔄 In Progress | 9/12 subtasks done. Phases A-C complete. Remaining: CHI-341 (settings), CHI-342 (shortcuts), CHI-343 (accessibility). |
+| No active epic currently in progress | — | Next focus is Enqueue & Steer (CHI-262) and remaining backlog tasks. |
 
 ### Remaining Backlog (Next Focus)
-
-#### CHI-331: Terminal Integration (Phase 4 — 9/12 done, Phase D Polish remaining)
-
-| Task | Priority | Spec |
-|------|----------|------|
-| CHI-341: TERM-10 Terminal settings UI | Low | SPEC-006 §4.33 |
-| CHI-342: TERM-11 Terminal keyboard shortcuts | Low | SPEC-006 §4.31 |
-| CHI-343: TERM-12 Terminal accessibility | Medium | SPEC-006 §6.5 |
 
 #### Other Backlog
 
@@ -67,11 +60,11 @@ Check `.claude/handover.json` for latest status and epic closure protocol.
 | CHI-252: T5.5 Smart Agent Notifications | Low | SPEC-006 §4 |
 | CHI-202: E3 Voice Input/Output | Low | Conversation Utility |
 
-**Suggested next (Terminal):** CHI-341 → CHI-342 → CHI-343
+**Suggested next:** CHI-264 → CHI-265 → CHI-266 → CHI-267
 
 ### Epic Closure
 
-All Phase 3 epics (CHI-286, CHI-287, CHI-296, CHI-301, CHI-307) and Phase 4 Git epic (CHI-311) are **closed in Linear**.
+All Phase 3 epics (CHI-286, CHI-287, CHI-296, CHI-301, CHI-307) and Phase 4 epics CHI-311 and CHI-331 are **closed in Linear**.
 See `.claude/handover.json` `epic_closure_protocol` for the process used.
 
 ---

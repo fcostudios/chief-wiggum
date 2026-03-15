@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-14T18:00:00Z",
+  "last_updated": "2026-03-15T02:30:05Z",
   "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -577,7 +577,7 @@
     },
     "CHI-331": {
       "title": "Terminal Integration",
-      "status": "in_progress",
+      "status": "done",
       "linear_id": "e68db033-f13f-477c-be3f-9cc52177732e",
       "priority": "High",
       "tasks": {
@@ -745,23 +745,66 @@
         },
         "CHI-341": {
           "title": "TERM-10: Terminal settings UI",
-          "status": "backlog",
-          "priority": "Low"
+          "status": "done",
+          "priority": "Low",
+          "assigned_to": "codex",
+          "updated_at": "2026-03-15T02:30:05Z",
+          "worktree": ".worktrees/terminal-settings-shortcuts-accessibility",
+          "last_updated_by": "codex",
+          "completed_at": "2026-03-15T02:30:05Z",
+          "files": [
+            "src-tauri/src/settings/mod.rs",
+            "src-tauri/src/settings/validation.rs",
+            "src/lib/types.ts",
+            "src/stores/settingsStore.ts",
+            "src/stores/settingsStore.test.ts",
+            "src/stores/__integration__/settings-theme.test.ts",
+            "src/components/settings/SettingsModal.tsx",
+            "src/components/settings/SettingsModal.test.tsx",
+            "src/components/terminal/TerminalPane.tsx",
+            "src/components/terminal/TerminalPane.test.tsx"
+          ],
+          "notes": "Implemented terminal settings schema v3, settings modal category, default-shell wiring, live terminal preference updates, and coverage for settings defaults/integration. branch=codex/terminal-settings-shortcuts-accessibility; commits=a69333f"
         },
         "CHI-342": {
           "title": "TERM-11: Terminal keyboard shortcuts",
-          "status": "backlog",
-          "priority": "Low"
+          "status": "done",
+          "priority": "Low",
+          "assigned_to": "codex",
+          "updated_at": "2026-03-15T02:30:05Z",
+          "worktree": ".worktrees/terminal-settings-shortcuts-accessibility",
+          "last_updated_by": "codex",
+          "completed_at": "2026-03-15T02:30:05Z",
+          "files": [
+            "src/components/terminal/TerminalContainer.tsx",
+            "src/components/terminal/TerminalContainer.test.tsx"
+          ],
+          "notes": "Added capture-phase terminal-only shortcuts for new tab, close tab, and previous/next tab cycling with tests. branch=codex/terminal-settings-shortcuts-accessibility; commits=17169c0"
         },
         "CHI-343": {
           "title": "TERM-12: Terminal accessibility",
-          "status": "backlog",
-          "priority": "Medium"
+          "status": "done",
+          "priority": "Medium",
+          "assigned_to": "codex",
+          "updated_at": "2026-03-15T02:30:05Z",
+          "worktree": ".worktrees/terminal-settings-shortcuts-accessibility",
+          "last_updated_by": "codex",
+          "completed_at": "2026-03-15T02:30:05Z",
+          "files": [
+            "src/components/terminal/TerminalPane.tsx",
+            "src/components/terminal/TerminalTabs.tsx",
+            "src/components/terminal/TerminalTabs.test.tsx",
+            "src/components/terminal/TerminalContainer.tsx",
+            "src/components/terminal/TerminalContainer.test.tsx"
+          ],
+          "notes": "Improved terminal accessibility with xterm screen reader mode, terminal session aria labels, tabpanel linkage, and aria-live exit announcements. branch=codex/terminal-settings-shortcuts-accessibility; commits=17169c0,23d85b8"
         }
       },
-      "assigned_to": null,
-      "updated_at": "2026-03-14T22:17:36Z",
-      "last_updated_by": "claude-code"
+      "assigned_to": "codex",
+      "updated_at": "2026-03-15T02:30:05Z",
+      "last_updated_by": "codex",
+      "completed_at": "2026-03-15T02:30:05Z",
+      "notes": "Terminal Integration epic complete. CHI-332 through CHI-343 are implemented and verified with cargo fmt --check, cargo test, full vitest, tsc --noEmit, eslint, and vite build. branch=codex/terminal-settings-shortcuts-accessibility; commits=a69333f,17169c0,23d85b8"
     }
   },
   "tasks": {
@@ -4298,28 +4341,28 @@
     },
     "CHI-341": {
       "title": "TERM-10: Terminal settings UI",
-      "status": "backlog",
+      "status": "done",
       "priority": "Low",
       "parent_epic": "CHI-331"
     },
     "CHI-342": {
       "title": "TERM-11: Terminal keyboard shortcuts",
-      "status": "backlog",
+      "status": "done",
       "priority": "Low",
       "parent_epic": "CHI-331"
     },
     "CHI-343": {
       "title": "TERM-12: Terminal accessibility",
-      "status": "backlog",
+      "status": "done",
       "priority": "Medium",
       "parent_epic": "CHI-331"
     },
     "CHI-331": {
       "title": "Terminal Integration",
-      "status": "in_progress",
+      "status": "done",
       "priority": "High",
       "parent_epic": null,
-      "assigned_to": null,
+      "assigned_to": "codex",
       "started_at": "2026-03-13T22:49:42Z",
       "updated_at": "2026-03-14T23:31:08Z",
       "worktree": null,
@@ -6496,9 +6539,10 @@
     }
   },
   "recommended_next": [
-    "CHI-341: TERM-10 Terminal settings UI",
-    "CHI-342: TERM-11 Terminal keyboard shortcuts",
-    "CHI-343: TERM-12 Terminal accessibility"
+    "CHI-264: EQ-2 Enable input during streaming",
+    "CHI-265: EQ-3 Message queue store + auto-send",
+    "CHI-266: EQ-4 Queue panel UI component",
+    "CHI-267: EQ-5 Steer flow interrupt + redirect"
   ],
   "critical_path": [
     "Complete remaining Conversation Experience polish tasks: CHI-196 and CHI-197.",
@@ -8673,7 +8717,7 @@
       }
     }
   },
-  "last_agent": "claude-code",
+  "last_agent": "codex",
   "execution_plan": {
     "created": "2026-03-03T03:37:31Z",
     "description": "CX/UX Excellence execution order based on dependency graph and impact analysis",
@@ -8781,9 +8825,9 @@
   },
   "counts": {
     "total": 179,
-    "done": 161,
-    "in_progress": 1,
-    "backlog": 17
+    "done": 165,
+    "in_progress": 0,
+    "backlog": 14
   },
   "epic_closure_protocol": {
     "_comment": "When all sub-tasks of an epic are marked done, follow these steps:",
@@ -8831,6 +8875,12 @@
         "title": "Binary File Preview",
         "linear_id": "05c904f6-0770-4c60-9348-44554341d2f5",
         "closed_at": "2026-03-08T17:16:10Z"
+      },
+      {
+        "id": "CHI-331",
+        "title": "Terminal Integration",
+        "linear_id": "e68db033-f13f-477c-be3f-9cc52177732e",
+        "closed_at": "2026-03-15T02:30:05Z"
       }
     ],
     "epics_partially_done": [
@@ -8877,8 +8927,8 @@
   },
   "summary": {
     "total": 179,
-    "done": 158,
+    "done": 165,
     "in_progress": 0,
-    "backlog": 21
+    "backlog": 14
   }
 }
