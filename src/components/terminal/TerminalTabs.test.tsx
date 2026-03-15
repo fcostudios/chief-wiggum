@@ -61,7 +61,7 @@ describe('TerminalTabs', () => {
         onReorder={noop}
       />
     ));
-    fireEvent.click(getByLabelText('New terminal'));
+    fireEvent.click(getByLabelText('Open new terminal session'));
     expect(onNew).toHaveBeenCalledOnce();
   });
 
@@ -78,7 +78,7 @@ describe('TerminalTabs', () => {
         onReorder={noop}
       />
     ));
-    fireEvent.click(getByLabelText('Close terminal z'));
+    fireEvent.click(getByLabelText('Close terminal session: zsh'));
     expect(onClose).toHaveBeenCalledWith('z');
   });
 
@@ -152,5 +152,39 @@ describe('TerminalTabs', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(onRename).not.toHaveBeenCalled();
     expect(document.querySelector('input[data-rename-input]')).toBeNull();
+  });
+
+  it('tablist has the expected accessibility label', () => {
+    const { getByRole } = render(() => (
+      <TerminalTabs
+        sessions={[makeSession('aria')]}
+        activeId="aria"
+        onSelect={noop}
+        onClose={noop}
+        onNew={noop}
+        onRename={noop}
+        onReorder={noop}
+      />
+    ));
+
+    expect(getByRole('tablist')).toHaveAttribute('aria-label', 'Terminal sessions');
+  });
+
+  it('adds status-rich aria labels and ids to tabs', () => {
+    const { getByRole } = render(() => (
+      <TerminalTabs
+        sessions={[{ ...makeSession('ax'), status: 'exited' }]}
+        activeId="ax"
+        onSelect={noop}
+        onClose={noop}
+        onNew={noop}
+        onRename={noop}
+        onReorder={noop}
+      />
+    ));
+
+    const tab = getByRole('tab');
+    expect(tab).toHaveAttribute('id', 'terminal-tab-ax');
+    expect(tab).toHaveAttribute('aria-label', 'zsh, exited');
   });
 });

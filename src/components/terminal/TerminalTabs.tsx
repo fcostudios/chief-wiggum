@@ -79,7 +79,7 @@ const TerminalTabs: Component<Props> = (props) => {
   return (
     <div
       role="tablist"
-      aria-label="Terminal tabs"
+      aria-label="Terminal sessions"
       class="flex shrink-0 items-center"
       style={{
         'min-height': '32px',
@@ -113,9 +113,11 @@ const TerminalTabs: Component<Props> = (props) => {
 
             return (
               <button
+                id={`terminal-tab-${session.terminal_id}`}
                 type="button"
                 role="tab"
                 aria-selected={isActive()}
+                aria-label={`${label()}, ${session.status === 'running' ? 'running' : 'exited'}`}
                 data-terminal-id={session.terminal_id}
                 draggable={!isEditing()}
                 class="flex shrink-0 items-center gap-1 px-3 py-1 text-xs transition-colors"
@@ -213,7 +215,7 @@ const TerminalTabs: Component<Props> = (props) => {
                   tabindex={0}
                   class="ml-1 rounded p-0.5 transition-opacity hover:opacity-80"
                   style={{ color: 'var(--color-text-tertiary)' }}
-                  aria-label={`Close terminal ${session.terminal_id}`}
+                  aria-label={`Close terminal session: ${label()}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     props.onClose(session.terminal_id);
@@ -250,7 +252,7 @@ const TerminalTabs: Component<Props> = (props) => {
         type="button"
         class="flex shrink-0 items-center px-2 py-1 transition-opacity hover:opacity-80"
         style={{ color: 'var(--color-text-tertiary)' }}
-        aria-label="New terminal"
+        aria-label="Open new terminal session"
         title="New terminal (Cmd+Shift+T)"
         onClick={() => props.onNew()}
       >
