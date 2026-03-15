@@ -145,7 +145,8 @@ export interface ImportResult {
   warnings: string[];
 }
 
-export interface DiscoveredSession {
+export interface ImportReviewItem {
+  source: 'scanned' | 'picked';
   file_path: string;
   project_path: string;
   cli_session_id: string;
@@ -153,8 +154,14 @@ export interface DiscoveredSession {
   line_count: number;
   model: string | null;
   first_timestamp: string | null;
+  last_modified_timestamp: string | null;
+  first_user_preview: string | null;
   already_imported: boolean;
+  is_valid_jsonl: boolean;
+  warning: string | null;
 }
+
+export type DiscoveredSession = ImportReviewItem;
 
 // ── Prompt Templates (CHI-259) ────────────────────────────────
 
