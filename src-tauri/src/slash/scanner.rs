@@ -93,6 +93,59 @@ fn extract_description(path: &Path) -> String {
     "Custom command".to_string()
 }
 
+/// Extract a YAML frontmatter field from a markdown file.
+fn extract_frontmatter_field(path: &Path, key: &str) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    if !content.starts_with("---") {
+        return None;
+    }
+
+    let mut in_frontmatter = true;
+    for line in content.lines().skip(1) {
+        if line.trim() == "---" {
+            in_frontmatter = false;
+            continue;
+        }
+        if !in_frontmatter {
+            break;
+        }
+
+        let trimmed = line.trim();
+        let prefix = format!("{key}:");
+        if let Some(value) = trimmed.strip_prefix(&prefix) {
+            let value = value.trim().trim_matches('"').trim_matches('\'');
+            if !value.is_empty() {
+                return Some(value.to_string());
+            }
+        }
+    }
+
+    None
+}
+
+/// Convert a human-friendly skill name into a slash-safe command token.
+fn normalize_skill_name(value: &str) -> Option<String> {
+    let mut output = String::new();
+    let mut last_was_dash = false;
+
+    for ch in value.chars() {
+        if ch.is_ascii_alphanumeric() {
+            output.push(ch.to_ascii_lowercase());
+            last_was_dash = false;
+        } else if !last_was_dash {
+            output.push('-');
+            last_was_dash = true;
+        }
+    }
+
+    let normalized = output.trim_matches('-').to_string();
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized)
+    }
+}
+
 /// Truncate a string to max_len, adding "..." if truncated.
 fn truncate(s: &str, max_len: usize) -> String {
     if s.len() <= max_len {
@@ -118,45 +171,68 @@ pub fn scan_user_commands() -> Vec<SlashCommand> {
 }
 
 /// Scan Claude Code skills from `~/.claude/skills/`.
-/// Each skill lives in a subdirectory containing a `SKILL.md` file.
-/// The skill name is taken from the directory name.
+/// Supports nested skill directories and prefers frontmatter `name:` when present.
+fn scan_skills_directory(skills_dir: &Path) -> Vec<SlashCommand> {
+    let Ok(entries) = std::fs::read_dir(skills_dir) else {
+        return Vec::new();
+    };
+
+    let mut commands = Vec::new();
+    let mut stack = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir())
+        .collect::<Vec<_>>();
+
+    while let Some(path) = stack.pop() {
+        if !path.is_dir() {
+            continue;
+        }
+        let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if dir_name.is_empty() || dir_name.starts_with('.') {
+            continue;
+        }
+
+        let skill_md = path.join("SKILL.md");
+        if skill_md.exists() {
+            let name = extract_frontmatter_field(&skill_md, "name")
+                .and_then(|value| normalize_skill_name(&value))
+                .or_else(|| normalize_skill_name(dir_name))
+                .unwrap_or_else(|| dir_name.to_string());
+            let description = extract_description(&skill_md);
+            commands.push(SlashCommand {
+                name,
+                description,
+                category: CommandCategory::Skill,
+                args_hint: None,
+                source_path: Some(skill_md),
+                from_sdk: false,
+            });
+            continue;
+        }
+
+        if let Ok(children) = std::fs::read_dir(&path) {
+            stack.extend(
+                children
+                    .flatten()
+                    .map(|entry| entry.path())
+                    .filter(|child| child.is_dir()),
+            );
+        }
+    }
+
+    commands.sort_by(|a, b| a.name.cmp(&b.name));
+    commands
+}
+
 pub fn scan_user_skills() -> Vec<SlashCommand> {
     let Some(home) = dirs::home_dir() else {
         return Vec::new();
     };
     let skills_dir = home.join(".claude").join("skills");
-    let Ok(entries) = std::fs::read_dir(&skills_dir) else {
-        return Vec::new();
-    };
-
-    let mut commands = Vec::new();
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        let name = match path.file_name().and_then(|n| n.to_str()) {
-            Some(s) if !s.is_empty() && !s.starts_with('.') => s.to_string(),
-            _ => continue,
-        };
-        let skill_md = path.join("SKILL.md");
-        if !skill_md.exists() {
-            continue;
-        }
-        let description = extract_description(&skill_md);
-        commands.push(SlashCommand {
-            name,
-            description,
-            category: CommandCategory::Skill,
-            args_hint: None,
-            source_path: Some(skill_md),
-            from_sdk: false,
-        });
-    }
-
-    commands.sort_by(|a, b| a.name.cmp(&b.name));
-    commands
+    scan_skills_directory(&skills_dir)
 }
 
 /// Discover all slash commands: built-in + skills + project + user.
@@ -310,6 +386,43 @@ mod tests {
 
         let desc = extract_description(&skill_dir.join("SKILL.md"));
         assert_eq!(desc, "Create implementation plans before coding");
+    }
+
+    #[test]
+    fn scan_skills_directory_discovers_nested_skill_md_files() {
+        let skills_root = tempfile::tempdir().unwrap();
+        let nested = skills_root
+            .path()
+            .join("bmad")
+            .join("core")
+            .join("bmad-master");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(
+            nested.join("SKILL.md"),
+            "---\nname: BMad Master\ndescription: Core BMAD Method orchestrator\n---\n",
+        )
+        .unwrap();
+
+        let result = scan_skills_directory(skills_root.path());
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "bmad-master");
+        assert_eq!(result[0].description, "Core BMAD Method orchestrator");
+    }
+
+    #[test]
+    fn scan_skills_directory_uses_frontmatter_name_when_present() {
+        let skills_root = tempfile::tempdir().unwrap();
+        let nested = skills_root.path().join("bmad").join("bmm").join("pm");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(
+            nested.join("SKILL.md"),
+            "---\nname: Product Manager\ndescription: Product requirements and planning specialist\n---\n",
+        )
+        .unwrap();
+
+        let result = scan_skills_directory(skills_root.path());
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "product-manager");
     }
 
     #[test]
