@@ -1,25 +1,42 @@
 import type { Component } from 'solid-js';
-import { createSignal, For, Show } from 'solid-js';
+import { Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
-import type { DiscoveredSession, ImportResult } from '@/lib/types';
-import { closeImportDialog, importState, setImportPhase } from '@/stores/importStore';
+import type { ImportResult, ImportReviewItem } from '@/lib/types';
+import {
+  closeImportDialog,
+  getSelectedImportFilePaths,
+  getVisibleImportReviewItems,
+  importState,
+  mergePickedReviewItems,
+  setFocusedImportItem,
+  setImportPhase,
+  setImportResults,
+  setImportReviewItems,
+  setImportSearchQuery,
+  toggleImportSelection,
+} from '@/stores/importStore';
 import { projectState } from '@/stores/projectStore';
 import { loadSessions } from '@/stores/sessionStore';
 import { addToast } from '@/stores/toastStore';
 import ImportProgress from './ImportProgress';
+import ImportReviewList from './ImportReviewList';
+import ImportSessionDetails from './ImportSessionDetails';
 
 const ImportDialog: Component = () => {
-  const [discovered, setDiscovered] = createSignal<DiscoveredSession[]>([]);
-  const [selected, setSelected] = createSignal<Set<string>>(new Set());
-  const [results, setResults] = createSignal<ImportResult[]>([]);
-
-  const activeProject = () => projectState.activeProjectId ?? '';
+  const activeProjectId = () => projectState.activeProjectId ?? '';
+  const activeProject = () =>
+    projectState.projects.find((project) => project.id === projectState.activeProjectId) ?? null;
+  const activeProjectPath = () => activeProject()?.path ?? '';
+  const visibleItems = () => getVisibleImportReviewItems();
+  const focusedItem = () =>
+    importState.reviewItems.find((item) => item.file_path === importState.focusedPath) ?? null;
+  const selectedCount = () => getSelectedImportFilePaths().length;
 
   async function discoverFromClaudeDir() {
     setImportPhase('discovering');
     try {
-      const sessions = await invoke<DiscoveredSession[]>('discover_importable_sessions');
-      setDiscovered(sessions);
+      const sessions = await invoke<ImportReviewItem[]>('discover_importable_sessions');
+      setImportReviewItems(sessions);
       setImportPhase('idle');
     } catch (error) {
       setImportPhase('error', String(error));
@@ -33,7 +50,9 @@ const ImportDialog: Component = () => {
     picker.accept = '.jsonl';
     picker.onchange = async () => {
       const files = Array.from(picker.files ?? []);
-      if (files.length === 0) return;
+      if (files.length === 0) {
+        return;
+      }
       const paths = files
         .map((file) => {
           const maybePath = (file as File & { path?: string }).path;
@@ -44,19 +63,32 @@ const ImportDialog: Component = () => {
         addToast('Could not read selected file path(s)', 'error');
         return;
       }
-      await runImport(paths);
+
+      setImportPhase('discovering');
+      try {
+        const reviewItems = await invoke<ImportReviewItem[]>('inspect_importable_files', {
+          file_paths: paths,
+        });
+        mergePickedReviewItems(reviewItems);
+        setImportPhase('idle');
+      } catch (error) {
+        setImportPhase('error', String(error));
+        addToast(`Could not inspect selected file(s): ${String(error)}`, 'error');
+      }
     };
     picker.click();
   }
 
   async function importSelected() {
-    const paths = [...selected()];
-    if (paths.length === 0) return;
-    await runImport(paths);
+    const filePaths = getSelectedImportFilePaths();
+    if (filePaths.length === 0) {
+      return;
+    }
+    await runImport(filePaths);
   }
 
   async function runImport(filePaths: string[]) {
-    if (!activeProject()) {
+    if (!activeProjectId()) {
       addToast('No active project selected', 'error');
       return;
     }
@@ -65,9 +97,9 @@ const ImportDialog: Component = () => {
     try {
       const importResults = await invoke<ImportResult[]>('import_jsonl_batch', {
         file_paths: filePaths,
-        project_id: activeProject(),
+        project_id: activeProjectId(),
       });
-      setResults(importResults);
+      setImportResults(importResults);
       setImportPhase('done');
       await loadSessions();
     } catch (error) {
@@ -76,22 +108,10 @@ const ImportDialog: Component = () => {
     }
   }
 
-  function toggleSelect(filePath: string) {
-    setSelected((previous) => {
-      const next = new Set(previous);
-      if (next.has(filePath)) {
-        next.delete(filePath);
-      } else {
-        next.add(filePath);
-      }
-      return next;
-    });
-  }
-
   return (
     <Show when={importState.dialogOpen}>
       <div
-        class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60"
+        class="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 px-6 py-8"
         onClick={(event) => {
           if (event.target === event.currentTarget) {
             closeImportDialog();
@@ -99,11 +119,19 @@ const ImportDialog: Component = () => {
         }}
       >
         <div
-          class="relative flex w-full max-w-xl flex-col rounded-xl border border-border-primary bg-bg-secondary shadow-2xl"
-          style={{ 'max-height': '80vh' }}
+          class="relative flex w-full max-w-6xl flex-col rounded-2xl border border-border-primary bg-bg-secondary shadow-2xl"
+          style={{ 'max-height': '88vh' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Import Sessions"
         >
-          <div class="flex items-center justify-between border-b border-border-secondary px-5 py-4">
-            <h2 class="text-base font-semibold text-text-primary">Import Sessions</h2>
+          <div class="flex items-center justify-between border-b border-border-secondary px-6 py-4">
+            <div>
+              <h2 class="text-base font-semibold text-text-primary">Import Sessions</h2>
+              <p class="mt-1 text-sm text-text-secondary">
+                Review each session before importing it into the active project.
+              </p>
+            </div>
             <button
               onClick={closeImportDialog}
               class="text-lg leading-none text-text-tertiary transition-colors hover:text-text-primary"
@@ -115,7 +143,11 @@ const ImportDialog: Component = () => {
 
           <div class="flex-1 overflow-y-auto">
             <Show when={importState.phase === 'done'}>
-              <ImportProgress results={results()} isRunning={false} onClose={closeImportDialog} />
+              <ImportProgress
+                results={importState.results}
+                isRunning={false}
+                onClose={closeImportDialog}
+              />
             </Show>
 
             <Show when={importState.phase === 'importing'}>
@@ -123,12 +155,12 @@ const ImportDialog: Component = () => {
             </Show>
 
             <Show when={importState.phase !== 'done' && importState.phase !== 'importing'}>
-              <div class="flex flex-col gap-4 p-5">
-                <div class="flex gap-2">
+              <div class="flex flex-col gap-4 p-6">
+                <div class="flex flex-wrap gap-3">
                   <button
                     onClick={discoverFromClaudeDir}
                     disabled={importState.phase === 'discovering'}
-                    class="flex-1 rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm font-medium text-text-primary"
+                    class="rounded-lg border border-border-default bg-bg-primary px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:border-accent/60 disabled:cursor-wait disabled:opacity-70"
                   >
                     {importState.phase === 'discovering'
                       ? 'Scanning...'
@@ -136,78 +168,62 @@ const ImportDialog: Component = () => {
                   </button>
                   <button
                     onClick={pickFiles}
-                    class="flex-1 rounded-md bg-accent px-3 py-2 text-sm font-medium text-bg-primary"
+                    class="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-primary transition-opacity hover:opacity-90"
                   >
                     Pick File...
                   </button>
                 </div>
 
-                <Show when={importState.phase === 'error'}>
-                  <div class="rounded-md border border-error bg-error/10 px-3 py-2 text-sm text-error">
+                <Show when={importState.phase === 'error' && importState.error}>
+                  <div class="rounded-lg border border-error bg-error/10 px-4 py-3 text-sm text-error">
                     {importState.error}
                   </div>
                 </Show>
 
-                <Show when={discovered().length > 0}>
-                  <div class="flex flex-col gap-1">
-                    <div class="mb-1 text-xs font-medium text-text-secondary">
-                      {discovered().length} session{discovered().length !== 1 ? 's' : ''} found
-                    </div>
-                    <For each={discovered()}>
-                      {(session) => (
-                        <label
-                          class="flex cursor-pointer items-start gap-3 rounded-md px-3 py-2"
-                          style={{
-                            background: session.already_imported
-                              ? 'transparent'
-                              : 'var(--color-bg-primary)',
-                            opacity: session.already_imported ? '0.5' : '1',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={session.already_imported}
-                            checked={selected().has(session.file_path)}
-                            onChange={() => toggleSelect(session.file_path)}
-                            class="mt-0.5 shrink-0"
-                          />
-                          <div class="min-w-0 flex-1">
-                            <div class="truncate text-sm font-medium text-text-primary">
-                              {session.project_path}
-                            </div>
-                            <div class="truncate text-xs text-text-tertiary">
-                              {session.cli_session_id}
-                              {session.model ? ` • ${session.model}` : ''}
-                              {session.already_imported ? ' • already imported' : ''}
-                            </div>
-                          </div>
-                        </label>
-                      )}
-                    </For>
-
-                    <button
-                      onClick={importSelected}
-                      disabled={selected().size === 0}
-                      class="mt-2 w-full rounded-md px-4 py-2 text-sm font-medium"
-                      style={{
-                        background:
-                          selected().size > 0 ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
-                        color:
-                          selected().size > 0
-                            ? 'var(--color-bg-primary)'
-                            : 'var(--color-text-tertiary)',
-                      }}
-                    >
-                      Import{' '}
-                      {selected().size > 0
-                        ? `${selected().size} session${selected().size !== 1 ? 's' : ''}`
-                        : '...'}
-                    </button>
-                  </div>
-                </Show>
+                <div class="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(21rem,1.05fr)]">
+                  <ImportReviewList
+                    items={visibleItems()}
+                    selectedPaths={importState.selectedPaths}
+                    focusedPath={importState.focusedPath}
+                    searchQuery={importState.searchQuery}
+                    activeProjectPath={activeProjectPath()}
+                    onSearchQueryChange={setImportSearchQuery}
+                    onToggleSelect={toggleImportSelection}
+                    onFocus={setFocusedImportItem}
+                  />
+                  <ImportSessionDetails
+                    item={focusedItem()}
+                    activeProjectPath={activeProjectPath()}
+                  />
+                </div>
               </div>
             </Show>
           </div>
+
+          <Show when={importState.phase !== 'done' && importState.phase !== 'importing'}>
+            <div class="flex items-center justify-between gap-4 border-t border-border-secondary px-6 py-4">
+              <div class="text-sm text-text-secondary">
+                {selectedCount()} session{selectedCount() === 1 ? '' : 's'} selected
+                <Show when={activeProject()}>
+                  {(project) => <span>{` • Importing into ${project().name}`}</span>}
+                </Show>
+              </div>
+              <button
+                onClick={importSelected}
+                disabled={selectedCount() === 0}
+                class="rounded-lg px-4 py-2 text-sm font-medium transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                style={{
+                  background: 'var(--color-accent)',
+                  color: 'var(--color-bg-primary)',
+                }}
+              >
+                Import{' '}
+                {selectedCount() > 0
+                  ? `${selectedCount()} session${selectedCount() === 1 ? '' : 's'}`
+                  : 'sessions'}
+              </button>
+            </div>
+          </Show>
         </div>
       </div>
     </Show>
