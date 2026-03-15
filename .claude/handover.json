@@ -1,6 +1,6 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-14T23:31:08Z",
+  "last_updated": "2026-03-14T18:00:00Z",
   "last_updated_by": "codex",
   "phase": {
     "name": "Phase 2: Make It Real",
@@ -4316,7 +4316,7 @@
     },
     "CHI-331": {
       "title": "Terminal Integration",
-      "status": "backlog",
+      "status": "in_progress",
       "priority": "High",
       "parent_epic": null,
       "assigned_to": null,
@@ -8781,9 +8781,9 @@
   },
   "counts": {
     "total": 179,
-    "done": 158,
-    "in_progress": 0,
-    "backlog": 21
+    "done": 161,
+    "in_progress": 1,
+    "backlog": 17
   },
   "epic_closure_protocol": {
     "_comment": "When all sub-tasks of an epic are marked done, follow these steps:",
