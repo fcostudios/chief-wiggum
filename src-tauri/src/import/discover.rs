@@ -1,26 +1,12 @@
 //! Session discovery scanner for `~/.claude/projects/` (CHI-303).
 
-use crate::import::jsonl::JsonlLine;
+use crate::import::review::inspect_jsonl_file;
 use crate::AppResult;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
 use std::path::Path;
 use tracing::warn;
 
-/// Metadata for an importable JSONL session file discovered on disk.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct DiscoveredSession {
-    pub file_path: String,
-    pub project_path: String,
-    pub cli_session_id: String,
-    pub file_size_bytes: u64,
-    pub line_count: u64,
-    pub model: Option<String>,
-    pub first_timestamp: Option<String>,
-    pub already_imported: bool,
-}
+pub use crate::import::review::ImportReviewItem as DiscoveredSession;
 
 /// Decode Claude's encoded folder naming (`-home-user-proj`) to a path (`/home/user/proj`).
 pub fn decode_project_path(encoded: &str) -> String {
@@ -85,34 +71,11 @@ pub fn scan_projects_dir(base_dir: &Path) -> AppResult<Vec<DiscoveredSession>> {
                 continue;
             }
 
-            let cli_session_id = path
-                .file_stem()
-                .and_then(|stem| stem.to_str())
-                .unwrap_or_default()
-                .to_string();
-            if cli_session_id.is_empty() {
-                continue;
-            }
-
-            let metadata = match std::fs::metadata(&path) {
-                Ok(value) => value,
-                Err(err) => {
-                    warn!("Skipping {:?} due to metadata error: {}", path, err);
-                    continue;
-                }
-            };
-
-            let (line_count, model, first_timestamp) = read_first_line_metadata(&path);
-            sessions.push(DiscoveredSession {
-                file_path: path.to_string_lossy().to_string(),
-                project_path: decoded_project.clone(),
-                cli_session_id,
-                file_size_bytes: metadata.len(),
-                line_count,
-                model,
-                first_timestamp,
-                already_imported: false,
-            });
+            sessions.push(inspect_jsonl_file(
+                &path,
+                "scanned",
+                decoded_project.clone(),
+            ));
         }
     }
 
@@ -128,41 +91,6 @@ pub fn mark_already_imported(
     for session in sessions {
         session.already_imported = imported_cli_ids.contains(&session.cli_session_id);
     }
-}
-
-fn read_first_line_metadata(path: &Path) -> (u64, Option<String>, Option<String>) {
-    let file = match File::open(path) {
-        Ok(value) => value,
-        Err(_) => return (0, None, None),
-    };
-    let reader = BufReader::new(file);
-    let mut line_count = 0_u64;
-    let mut model: Option<String> = None;
-    let mut first_timestamp: Option<String> = None;
-    let mut first_non_blank_seen = false;
-
-    for line in reader.lines() {
-        let line = match line {
-            Ok(value) => value,
-            Err(_) => continue,
-        };
-        if line.trim().is_empty() {
-            continue;
-        }
-        line_count += 1;
-
-        if !first_non_blank_seen {
-            first_non_blank_seen = true;
-            if let Ok(parsed) = serde_json::from_str::<JsonlLine>(&line) {
-                model = parsed
-                    .model
-                    .or_else(|| parsed.message.and_then(|msg| msg.model));
-                first_timestamp = parsed.timestamp;
-            }
-        }
-    }
-
-    (line_count, model, first_timestamp)
 }
 
 #[cfg(test)]
