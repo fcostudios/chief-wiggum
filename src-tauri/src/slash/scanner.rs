@@ -6,7 +6,7 @@ use std::path::Path;
 
 use super::{CommandCategory, SlashCommand};
 
-/// Scan a directory for `.md` command files.
+/// Scan a directory recursively for `.md` command files.
 /// Returns an empty Vec if the directory doesn't exist or is unreadable.
 fn scan_directory(dir: &Path, category: CommandCategory) -> Vec<SlashCommand> {
     let Ok(entries) = std::fs::read_dir(dir) else {
@@ -14,9 +14,18 @@ fn scan_directory(dir: &Path, category: CommandCategory) -> Vec<SlashCommand> {
     };
 
     let mut commands = Vec::new();
+    let mut stack = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .collect::<Vec<_>>();
 
-    for entry in entries.flatten() {
-        let path = entry.path();
+    while let Some(path) = stack.pop() {
+        if path.is_dir() {
+            if let Ok(children) = std::fs::read_dir(&path) {
+                stack.extend(children.flatten().map(|entry| entry.path()));
+            }
+            continue;
+        }
         if !path.is_file() {
             continue;
         }
@@ -303,6 +312,18 @@ mod tests {
         assert_eq!(result.len(), 2);
         assert!(result.iter().any(|c| c.name == "deploy"));
         assert!(result.iter().any(|c| c.name == "lint"));
+    }
+
+    #[test]
+    fn scan_directory_finds_nested_md_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let nested = dir.path().join("bmad");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(nested.join("workflow-status.md"), "# Workflow status").unwrap();
+
+        let result = scan_directory(dir.path(), CommandCategory::User);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].name, "workflow-status");
     }
 
     #[test]
