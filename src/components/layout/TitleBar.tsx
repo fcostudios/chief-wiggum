@@ -83,6 +83,7 @@ const TitleBar: Component = () => {
   return (
     <header
       class="flex items-center select-none relative"
+      data-tauri-drag-region
       style={{
         'z-index': '20',
         height: 'var(--title-bar-height)',
@@ -90,6 +91,7 @@ const TitleBar: Component = () => {
           'linear-gradient(180deg, var(--color-chrome-bg-strong) 0%, var(--color-chrome-bg) 100%)',
         'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.08)',
         'border-bottom': '1px solid var(--color-chrome-border)',
+        '-webkit-app-region': 'drag',
       }}
     >
       {/* Subtle warm glow on bottom edge */}
@@ -107,8 +109,7 @@ const TitleBar: Component = () => {
       </Show>
 
       <div class="flex-1 min-w-0 flex items-center">
-        <div class="flex-1 h-full" data-tauri-drag-region />
-
+        <div class="flex-1 h-full" />
         <div
           class="flex items-center gap-1.5 px-2 py-1 rounded-full min-w-0 max-w-[40%]"
           style={{
@@ -127,6 +128,7 @@ const TitleBar: Component = () => {
           style={{
             background: 'rgba(28, 33, 40, 0.45)',
             border: '1px solid var(--color-border-secondary)',
+            '-webkit-app-region': 'no-drag',
           }}
         >
           <ModelSelector
@@ -146,7 +148,7 @@ const TitleBar: Component = () => {
           </div>
         </Show>
 
-        <div class="flex-1 h-full" data-tauri-drag-region />
+        <div class="flex-1 h-full" />
       </div>
 
       {/* Right: settings + window controls */}
@@ -154,7 +156,10 @@ const TitleBar: Component = () => {
         <HelpMenu onOpenChangelog={openChangelog} onOpenAbout={openAbout} />
         <button
           class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
-          style={{ 'transition-duration': 'var(--duration-fast)' }}
+          style={{
+            'transition-duration': 'var(--duration-fast)',
+            '-webkit-app-region': 'no-drag',
+          }}
           onClick={openSettings}
           aria-label="Open settings"
           title="Open settings (Cmd+,)"
@@ -170,6 +175,7 @@ const TitleBar: Component = () => {
               style={{
                 height: 'var(--title-bar-height)',
                 'transition-duration': 'var(--duration-fast)',
+                '-webkit-app-region': 'no-drag',
               }}
               onClick={() => withCurrentWindow((appWindow) => void appWindow.minimize())}
               aria-label="Minimize"
@@ -181,6 +187,7 @@ const TitleBar: Component = () => {
               style={{
                 height: 'var(--title-bar-height)',
                 'transition-duration': 'var(--duration-fast)',
+                '-webkit-app-region': 'no-drag',
               }}
               onClick={() => withCurrentWindow((appWindow) => void appWindow.toggleMaximize())}
               aria-label="Maximize"
@@ -192,6 +199,7 @@ const TitleBar: Component = () => {
               style={{
                 height: 'var(--title-bar-height)',
                 'transition-duration': 'var(--duration-fast)',
+                '-webkit-app-region': 'no-drag',
               }}
               onClick={() => withCurrentWindow((appWindow) => void appWindow.close())}
               aria-label="Close"

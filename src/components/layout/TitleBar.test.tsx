@@ -142,7 +142,16 @@ describe('TitleBar', () => {
 
   it('renders drag regions for native window movement', () => {
     render(() => <TitleBar />);
-    expect(document.querySelector('[data-tauri-drag-region]')).toBeTruthy();
+    const header = screen.getByLabelText('Open settings').closest('header');
+    expect(header).toHaveAttribute('data-tauri-drag-region');
+    expect(header?.getAttribute('style')).toContain('-webkit-app-region:drag');
+  });
+
+  it('marks interactive controls as no-drag inside the titlebar', () => {
+    render(() => <TitleBar />);
+    expect(screen.getByLabelText('Open settings').getAttribute('style')).toContain(
+      '-webkit-app-region:no-drag',
+    );
   });
 
   it('keeps titlebar above conversation overlays for selector popovers', () => {

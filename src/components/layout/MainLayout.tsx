@@ -252,7 +252,12 @@ const MainLayout: Component = () => {
         {/* Z3: Main Content */}
         <main id="main-content" class="flex-1 flex flex-col min-w-0 overflow-hidden" tabindex={-1}>
           {/* View tabs + panel controls */}
-          <div class="flex items-center gap-1 px-2 bg-bg-primary">
+          <div
+            class="flex items-center gap-1 px-2 bg-bg-primary"
+            data-tauri-drag-region
+            data-testid="view-toolbar"
+            style={{ '-webkit-app-region': 'drag' }}
+          >
             <button
               class="shrink-0 h-7 w-7 rounded-md flex items-center justify-center transition-colors"
               style={{
@@ -263,6 +268,7 @@ const MainLayout: Component = () => {
                 background:
                   uiState.sidebarState === 'hidden' ? 'var(--color-accent-muted)' : 'transparent',
                 'transition-duration': 'var(--duration-fast)',
+                '-webkit-app-region': 'no-drag',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--color-text-primary)';
@@ -285,7 +291,10 @@ const MainLayout: Component = () => {
               <Dynamic component={leftPanelIcon()} size={13} />
             </button>
 
-            <div class="flex items-center gap-0.5 min-w-0 flex-1 overflow-x-auto">
+            <div
+              class="flex items-center gap-0.5 min-w-0 flex-1 overflow-x-auto"
+              style={{ '-webkit-app-region': 'drag' }}
+            >
               <ViewTab label="Conversation" view="conversation" />
               <ViewTab label="Agents" view="agents" />
               <ViewTab label="Diff" view="diff" />
@@ -307,6 +316,7 @@ const MainLayout: Component = () => {
                   ? 'transparent'
                   : 'var(--color-accent-muted)',
                 'transition-duration': 'var(--duration-fast)',
+                '-webkit-app-region': 'no-drag',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--color-text-primary)';
@@ -411,12 +421,15 @@ const MainLayout: Component = () => {
             role="separator"
             aria-label="Resize details panel"
             aria-orientation="vertical"
-            class="w-1 shrink-0 cursor-col-resize group relative"
-            onMouseDown={startDetailsResize}
+            class="relative shrink-0 w-px"
           >
             <div
-              class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px transition-colors"
+              class="absolute inset-y-0 left-0 w-px transition-colors"
               style={{ background: 'var(--color-border-secondary)' }}
+            />
+            <div
+              class="absolute inset-y-0 -left-1.5 -right-1.5 cursor-col-resize"
+              onMouseDown={startDetailsResize}
             />
           </div>
         </Show>
@@ -429,9 +442,7 @@ const MainLayout: Component = () => {
             'transition-duration': 'var(--duration-slow)',
             'transition-timing-function': 'var(--ease-default)',
             background: 'var(--color-bg-details)',
-            'border-left': uiState.detailsPanelVisible
-              ? '1px solid var(--color-chrome-border)'
-              : 'none',
+            'border-left': 'none',
           }}
         >
           <div class="h-full" style={{ width: `${uiState.detailsPanelWidth}px` }}>
@@ -545,6 +556,7 @@ const ViewTab: Component<{ label: string; view: ActiveView; title?: string }> = 
         'transition-duration': 'var(--duration-normal)',
         background: isActive() ? 'var(--color-tab-active-bg)' : 'transparent',
         color: isActive() ? 'var(--color-tab-active-text)' : 'var(--color-tab-inactive-text)',
+        '-webkit-app-region': 'no-drag',
       }}
       onClick={() => setActiveView(props.view)}
       title={props.title ?? props.label}

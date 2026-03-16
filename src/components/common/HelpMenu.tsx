@@ -98,11 +98,14 @@ const HelpMenu: Component<HelpMenuProps> = (props) => {
   });
 
   return (
-    <div class="relative">
+    <div class="relative" style={{ '-webkit-app-region': 'no-drag' }}>
       <button
         ref={buttonRef}
         class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"
-        style={{ 'transition-duration': 'var(--duration-fast)' }}
+        style={{
+          'transition-duration': 'var(--duration-fast)',
+          '-webkit-app-region': 'no-drag',
+        }}
         onClick={() => setOpenState((prev) => !prev)}
         aria-expanded={openState()}
         aria-haspopup="menu"
@@ -122,6 +125,7 @@ const HelpMenu: Component<HelpMenuProps> = (props) => {
             background: 'var(--color-bg-elevated)',
             border: '1px solid var(--color-border-primary)',
             'box-shadow': 'var(--shadow-lg)',
+            '-webkit-app-region': 'no-drag',
           }}
         >
           <For each={actions()}>

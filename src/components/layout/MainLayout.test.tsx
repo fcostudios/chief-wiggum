@@ -298,6 +298,11 @@ describe('MainLayout', () => {
     expect(screen.getByLabelText('Resize details panel')).toBeInTheDocument();
   });
 
+  it('uses a hairline details separator without adding an extra panel border', () => {
+    render(() => <MainLayout />);
+    expect(screen.getByLabelText('Resize details panel')).toHaveClass('w-px');
+  });
+
   it('renders skip-to-content link and main landmark', () => {
     render(() => <MainLayout />);
     expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute(
@@ -315,6 +320,13 @@ describe('MainLayout', () => {
     expect(screen.getByRole('button', { name: 'Terminal' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument();
     expect(mockEnsureMainPaneSession).toHaveBeenCalledWith('session-1');
+  });
+
+  it('keeps the view toolbar draggable while tabs stay interactive', () => {
+    render(() => <MainLayout />);
+    expect(screen.getByTestId('view-toolbar')).toHaveAttribute('data-tauri-drag-region');
+    fireEvent.click(screen.getByRole('button', { name: 'Conversation' }));
+    expect(mockSetActiveView).toHaveBeenCalledWith('conversation');
   });
 
   it('clicking a view tab requests a view switch', () => {
