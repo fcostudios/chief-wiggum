@@ -34,9 +34,12 @@ fn scan_directory(dir: &Path, category: CommandCategory) -> Vec<SlashCommand> {
             continue;
         }
 
-        let name = match path.file_stem().and_then(|s| s.to_str()) {
-            Some(s) if !s.is_empty() => s.to_string(),
-            _ => continue,
+        let Ok(relative) = path.strip_prefix(dir) else {
+            continue;
+        };
+        let name = match command_name_from_relative_path(relative) {
+            Some(name) => name,
+            None => continue,
         };
 
         let description = extract_description(&path);
@@ -53,6 +56,22 @@ fn scan_directory(dir: &Path, category: CommandCategory) -> Vec<SlashCommand> {
 
     commands.sort_by(|a, b| a.name.cmp(&b.name));
     commands
+}
+
+fn command_name_from_relative_path(relative: &Path) -> Option<String> {
+    let mut segments = relative
+        .components()
+        .map(|component| component.as_os_str().to_str())
+        .collect::<Option<Vec<_>>>()?;
+
+    let file_name = segments.pop()?;
+    let stem = Path::new(file_name).file_stem()?.to_str()?;
+    if stem.is_empty() {
+        return None;
+    }
+
+    segments.push(stem);
+    Some(segments.join(":"))
 }
 
 /// Extract a description from the first meaningful line of a `.md` file.
@@ -323,7 +342,14 @@ mod tests {
 
         let result = scan_directory(dir.path(), CommandCategory::User);
         assert_eq!(result.len(), 1);
-        assert_eq!(result[0].name, "workflow-status");
+        assert_eq!(result[0].name, "bmad:workflow-status");
+    }
+
+    #[test]
+    fn command_name_from_relative_path_namespaces_nested_segments() {
+        let relative = Path::new("bmad/core/workflow-status.md");
+        let name = command_name_from_relative_path(relative).expect("command name");
+        assert_eq!(name, "bmad:core:workflow-status");
     }
 
     #[test]

@@ -190,6 +190,7 @@ export interface CliInitEvent {
   model: string;
   tools: string[];
   mcp_servers: string[];
+  slash_commands: string[];
 }
 
 /** Buffered event from backend replay after frontend reconnect. */

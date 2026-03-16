@@ -104,6 +104,8 @@ pub enum BridgeEvent {
         mcp_servers: Vec<String>,
         /// All available tool names from the init event.
         tools: Vec<String>,
+        /// All available slash command names from the init event.
+        slash_commands: Vec<String>,
     },
 
     /// Raw/unrecognized output line (forward-compatible).
@@ -548,11 +550,31 @@ impl StreamParser {
                         })
                         .unwrap_or_default();
 
+                    let slash_commands = event
+                        .data
+                        .get("slash_commands")
+                        .and_then(|v| v.as_array())
+                        .or_else(|| {
+                            event
+                                .data
+                                .get("message")
+                                .and_then(|message| message.get("slash_commands"))
+                                .and_then(|v| v.as_array())
+                        })
+                        .map(|arr| {
+                            arr.iter()
+                                .filter_map(|cmd| cmd.as_str())
+                                .map(|cmd| cmd.to_string())
+                                .collect()
+                        })
+                        .unwrap_or_default();
+
                     Ok(Some(ParsedOutput::Event(BridgeEvent::SystemInit {
                         cli_session_id,
                         model,
                         mcp_servers,
                         tools,
+                        slash_commands,
                     })))
                 } else {
                     Ok(Some(ParsedOutput::Event(BridgeEvent::SystemMessage {
@@ -886,6 +908,24 @@ mod tests {
                 assert_eq!(mcp_servers[1], "claude.ai/Linear");
                 assert_eq!(tools.len(), 2);
                 assert!(tools.contains(&"mcp__plugin_context7_context7__query-docs".to_string()));
+            }
+            _ => panic!("Expected SystemInit event"),
+        }
+    }
+
+    #[test]
+    fn parse_system_init_extracts_slash_commands() {
+        let mut parser = make_parser();
+        let line = r#"{"type":"system","subtype":"init","session_id":"s1","model":"claude-sonnet-4-6","slash_commands":["compact","bmad:workflow-status"],"message":{"slash_commands":["ignored:fallback"]}}"#;
+        let outputs = parser.feed(&format!("{}\n", line));
+
+        assert_eq!(outputs.len(), 1);
+        match &outputs[0] {
+            ParsedOutput::Event(BridgeEvent::SystemInit { slash_commands, .. }) => {
+                assert_eq!(
+                    slash_commands,
+                    &vec!["compact".to_string(), "bmad:workflow-status".to_string()]
+                );
             }
             _ => panic!("Expected SystemInit event"),
         }

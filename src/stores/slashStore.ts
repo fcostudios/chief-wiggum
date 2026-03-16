@@ -190,7 +190,11 @@ export async function startSdkCommandListener(): Promise<void> {
   if (sdkInitUnlisten) return;
   try {
     sdkInitUnlisten = await listen<CliInitEvent>('cli:init', (event) => {
-      if (event.payload.tools.length === 0 && event.payload.mcp_servers.length === 0) {
+      if (
+        event.payload.tools.length === 0 &&
+        event.payload.mcp_servers.length === 0 &&
+        event.payload.slash_commands.length === 0
+      ) {
         return;
       }
       const projectPath = getActiveProject()?.path;

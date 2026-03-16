@@ -174,7 +174,7 @@ fn extract_first_user_preview(parsed: &JsonlLine) -> Option<String> {
         .message
         .as_ref()
         .and_then(|message| message.role.as_deref())
-        .or_else(|| match parsed.event_type.as_str() {
+        .or(match parsed.event_type.as_str() {
             "user" => Some("user"),
             "assistant" | "result" => Some("assistant"),
             _ => None,

@@ -71,6 +71,7 @@ pub struct CliInitPayload {
     pub model: String,
     pub tools: Vec<String>,
     pub mcp_servers: Vec<String>,
+    pub slash_commands: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -266,13 +267,15 @@ async fn emit_bridge_output(
                 model,
                 mcp_servers,
                 tools,
+                slash_commands,
             } => {
                 tracing::info!(
-                    "Event loop [{}]: emitting cli:init (cli_session_id: {}, mcp_servers: {}, tools: {})",
+                    "Event loop [{}]: emitting cli:init (cli_session_id: {}, mcp_servers: {}, tools: {}, slash_commands: {})",
                     session_id,
                     cli_session_id,
                     mcp_servers.len(),
-                    tools.len()
+                    tools.len(),
+                    slash_commands.len()
                 );
 
                 // Cache MCP server prefixes for --allowedTools on subsequent messages.
@@ -308,7 +311,8 @@ async fn emit_bridge_output(
 
                 // Convert SDK tools into slash commands for frontend discovery (CHI-108).
                 {
-                    let sdk_cmds = crate::slash::from_sdk_tools(&tools, &mcp_servers);
+                    let sdk_cmds =
+                        crate::slash::from_sdk_init(&tools, &mcp_servers, &slash_commands);
                     if !sdk_cmds.is_empty() {
                         tracing::info!(
                             "Event loop [{}]: discovered {} SDK commands from system:init",
@@ -326,6 +330,7 @@ async fn emit_bridge_output(
                     model,
                     tools,
                     mcp_servers,
+                    slash_commands,
                 };
                 if let Err(e) = app.emit("cli:init", &payload) {
                     tracing::warn!("Failed to emit cli:init: {}", e);
@@ -861,11 +866,13 @@ mod tests {
             model: "claude-sonnet-4-6".to_string(),
             tools: vec!["Read".to_string(), "Write".to_string()],
             mcp_servers: vec!["server1".to_string()],
+            slash_commands: vec!["review".to_string(), "bmad:workflow-status".to_string()],
         };
         let json = serde_json::to_string(&payload).expect("serialize init payload");
         assert!(json.contains("\"cli_session_id\":\"cli-abc123\""));
         assert!(json.contains("\"Read\""));
         assert!(json.contains("\"server1\""));
+        assert!(json.contains("\"bmad:workflow-status\""));
     }
 
     #[test]

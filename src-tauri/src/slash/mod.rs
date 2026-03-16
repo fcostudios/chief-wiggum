@@ -142,7 +142,11 @@ pub fn builtin_commands() -> Vec<SlashCommand> {
 /// Built-in SDK tools (Read/Write/Bash/etc.) are filtered out because they are
 /// tool-use primitives, not user-invocable slash commands. MCP tools and custom
 /// tools are included for discovery.
-pub fn from_sdk_tools(tools: &[String], mcp_servers: &[String]) -> Vec<SlashCommand> {
+pub fn from_sdk_init(
+    tools: &[String],
+    mcp_servers: &[String],
+    slash_commands: &[String],
+) -> Vec<SlashCommand> {
     let builtin_tools: std::collections::HashSet<&str> = [
         "Read",
         "Write",
@@ -207,6 +211,20 @@ pub fn from_sdk_tools(tools: &[String], mcp_servers: &[String]) -> Vec<SlashComm
         }
     }
 
+    for slash_command in slash_commands {
+        if commands.iter().any(|c| c.name == *slash_command) {
+            continue;
+        }
+        commands.push(SlashCommand {
+            name: slash_command.clone(),
+            description: format!("CLI slash command: /{}", slash_command),
+            category: CommandCategory::Sdk,
+            args_hint: None,
+            source_path: None,
+            from_sdk: true,
+        });
+    }
+
     commands
 }
 
@@ -257,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn from_sdk_tools_filters_builtin_tools() {
+    fn from_sdk_init_filters_builtin_tools() {
         let tools = vec![
             "Read".to_string(),
             "Write".to_string(),
@@ -266,8 +284,9 @@ mod tests {
             "CustomTool".to_string(),
         ];
         let mcp_servers = vec!["context7".to_string()];
+        let slash_commands = vec!["review".to_string(), "bmad:workflow-status".to_string()];
 
-        let commands = from_sdk_tools(&tools, &mcp_servers);
+        let commands = from_sdk_init(&tools, &mcp_servers, &slash_commands);
 
         assert!(!commands.iter().any(|c| c.name == "Read"));
         assert!(!commands.iter().any(|c| c.name == "Write"));
@@ -276,6 +295,8 @@ mod tests {
             .iter()
             .any(|c| c.name == "mcp__context7__query-docs"));
         assert!(commands.iter().any(|c| c.name == "CustomTool"));
+        assert!(commands.iter().any(|c| c.name == "review"));
+        assert!(commands.iter().any(|c| c.name == "bmad:workflow-status"));
         for cmd in &commands {
             assert_eq!(cmd.category, CommandCategory::Sdk);
             assert!(cmd.from_sdk);
@@ -283,21 +304,21 @@ mod tests {
     }
 
     #[test]
-    fn from_sdk_tools_handles_empty_input() {
-        let commands = from_sdk_tools(&[], &[]);
+    fn from_sdk_init_handles_empty_input() {
+        let commands = from_sdk_init(&[], &[], &[]);
         assert!(commands.is_empty());
     }
 
     #[test]
-    fn from_sdk_tools_mcp_server_description() {
+    fn from_sdk_init_mcp_server_description() {
         let tools = vec!["mcp__linear__list-issues".to_string()];
-        let commands = from_sdk_tools(&tools, &[]);
+        let commands = from_sdk_init(&tools, &[], &[]);
         assert_eq!(commands.len(), 1);
         assert!(commands[0].description.contains("linear"));
     }
 
     #[test]
-    fn from_sdk_tools_skips_all_builtin_tools() {
+    fn from_sdk_init_skips_all_builtin_tools() {
         let builtin_tools = vec![
             "Read",
             "Write",
@@ -316,7 +337,7 @@ mod tests {
         .map(String::from)
         .collect::<Vec<_>>();
 
-        let commands = from_sdk_tools(&builtin_tools, &[]);
+        let commands = from_sdk_init(&builtin_tools, &[], &[]);
         assert!(
             commands.is_empty(),
             "All built-in tools should be filtered: {:?}",
@@ -325,17 +346,30 @@ mod tests {
     }
 
     #[test]
-    fn from_sdk_tools_deduplicates_mcp_servers() {
+    fn from_sdk_init_deduplicates_mcp_servers() {
         let tools = vec![
             "mcp__linear__list-issues".to_string(),
             "mcp__linear__get-issue".to_string(),
         ];
         let mcp_servers = vec!["linear".to_string()];
-        let commands = from_sdk_tools(&tools, &mcp_servers);
+        let commands = from_sdk_init(&tools, &mcp_servers, &[]);
         let names: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
         assert!(names.contains(&"mcp__linear__list-issues"));
         assert!(names.contains(&"mcp__linear__get-issue"));
         assert!(!names.contains(&"mcp__linear"));
+    }
+
+    #[test]
+    fn from_sdk_init_deduplicates_slash_commands_against_tools() {
+        let commands = from_sdk_init(
+            &["review".to_string()],
+            &[],
+            &["review".to_string(), "remote-control".to_string()],
+        );
+
+        let names: Vec<&str> = commands.iter().map(|c| c.name.as_str()).collect();
+        assert_eq!(names.iter().filter(|name| **name == "review").count(), 1);
+        assert!(names.contains(&"remote-control"));
     }
 
     #[test]
