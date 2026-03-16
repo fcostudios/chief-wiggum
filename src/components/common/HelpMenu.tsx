@@ -98,7 +98,7 @@ const HelpMenu: Component<HelpMenuProps> = (props) => {
   });
 
   return (
-    <div class="relative" style={{ '-webkit-app-region': 'no-drag' }}>
+    <div class="relative" style={{ '-webkit-app-region': 'no-drag' }} data-no-window-drag="true">
       <button
         ref={buttonRef}
         class="flex items-center justify-center w-10 h-full text-text-tertiary hover:text-text-primary transition-colors"

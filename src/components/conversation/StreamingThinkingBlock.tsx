@@ -40,7 +40,7 @@ export const StreamingThinkingBlock: Component<StreamingThinkingBlockProps> = (p
   return (
     <div class="flex justify-start animate-fade-in">
       <div
-        class="max-w-[85%] w-full rounded-md overflow-hidden"
+        class="max-w-[92%] w-full rounded-md overflow-hidden"
         style={{
           background: 'rgba(22, 27, 34, 0.5)',
           border: '1px solid var(--color-border-secondary)',

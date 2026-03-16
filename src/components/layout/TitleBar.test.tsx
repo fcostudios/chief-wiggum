@@ -8,6 +8,7 @@ let mockProcessStatus: string = 'not_started';
 let mockIsStreaming = false;
 
 const mockOpenSettings = vi.fn();
+const mockStartDragging = vi.fn();
 
 vi.mock('@/stores/uiStore', () => ({
   uiState: {
@@ -87,6 +88,7 @@ vi.mock('@/components/common/HelpMenu', () => ({
 vi.mock('@tauri-apps/plugin-os', () => ({ platform: () => 'macos' }));
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
+    startDragging: mockStartDragging,
     minimize: vi.fn(),
     toggleMaximize: vi.fn(),
     close: vi.fn(),
@@ -103,6 +105,7 @@ describe('TitleBar', () => {
     mockProcessStatus = 'not_started';
     mockIsStreaming = false;
     mockOpenSettings.mockClear();
+    mockStartDragging.mockClear();
   });
 
   it('renders centered project context and model selector', () => {
@@ -140,18 +143,18 @@ describe('TitleBar', () => {
     expect(mockOpenSettings).toHaveBeenCalled();
   });
 
-  it('renders drag regions for native window movement', () => {
+  it('starts native window dragging when the titlebar background is pressed', () => {
     render(() => <TitleBar />);
     const header = screen.getByLabelText('Open settings').closest('header');
-    expect(header).toHaveAttribute('data-tauri-drag-region');
-    expect(header?.getAttribute('style')).toContain('-webkit-app-region:drag');
+    expect(header).toBeInTheDocument();
+    fireEvent.mouseDown(header!);
+    expect(mockStartDragging).toHaveBeenCalled();
   });
 
-  it('marks interactive controls as no-drag inside the titlebar', () => {
+  it('keeps interactive titlebar controls out of the drag handler', () => {
     render(() => <TitleBar />);
-    expect(screen.getByLabelText('Open settings').getAttribute('style')).toContain(
-      '-webkit-app-region:no-drag',
-    );
+    fireEvent.mouseDown(screen.getByLabelText('Open settings'));
+    expect(mockStartDragging).not.toHaveBeenCalled();
   });
 
   it('keeps titlebar above conversation overlays for selector popovers', () => {

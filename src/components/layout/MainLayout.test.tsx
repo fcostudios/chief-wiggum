@@ -51,10 +51,12 @@ const mockCreateNewSession = vi.fn(() => Promise.resolve({ id: 'session-new' }))
 const mockSendMessage = vi.fn();
 const mockRecordPermissionOutcome = vi.fn();
 const mockEnsureMainPaneSession = vi.fn();
+const mockStartDragging = vi.fn();
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(() => Promise.resolve()) }));
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
+    startDragging: mockStartDragging,
     onCloseRequested: vi.fn(async () => () => {}),
   }),
 }));
@@ -281,6 +283,7 @@ describe('MainLayout', () => {
     mockSessionId = 'session-1';
     mockIsLoading = false;
     mockEditorTakeoverActive = false;
+    mockStartDragging.mockClear();
     vi.clearAllMocks();
   });
 
@@ -322,11 +325,18 @@ describe('MainLayout', () => {
     expect(mockEnsureMainPaneSession).toHaveBeenCalledWith('session-1');
   });
 
-  it('keeps the view toolbar draggable while tabs stay interactive', () => {
+  it('starts native window dragging from the view toolbar background while tabs stay interactive', () => {
     render(() => <MainLayout />);
-    expect(screen.getByTestId('view-toolbar')).toHaveAttribute('data-tauri-drag-region');
+    fireEvent.mouseDown(screen.getByTestId('view-toolbar'));
+    expect(mockStartDragging).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Conversation' }));
     expect(mockSetActiveView).toHaveBeenCalledWith('conversation');
+  });
+
+  it('does not start a drag when pressing toolbar buttons', () => {
+    render(() => <MainLayout />);
+    fireEvent.mouseDown(screen.getByRole('button', { name: 'Toggle left panel' }));
+    expect(mockStartDragging).not.toHaveBeenCalled();
   });
 
   it('clicking a view tab requests a view switch', () => {

@@ -49,7 +49,7 @@ export const PermissionRecordBlock: Component<PermissionRecordBlockProps> = (pro
   return (
     <div class="flex justify-start">
       <div
-        class="max-w-[85%] w-full rounded-md overflow-hidden"
+        class="max-w-[92%] w-full rounded-md overflow-hidden"
         style={{
           background: 'var(--color-bg-secondary)',
           border: '1px solid var(--color-border-primary)',

@@ -23,7 +23,7 @@ const ContextSuggestions: Component = () => {
 
   return (
     <Show when={contextState.suggestions.length > 0}>
-      <div class="flex items-center gap-1.5 mb-2 max-w-4xl mx-auto overflow-x-auto">
+      <div class="flex items-center gap-1.5 mb-2 max-w-6xl mx-auto overflow-x-auto">
         <Lightbulb size={10} style={{ color: 'var(--color-warning)' }} class="shrink-0" />
         <span class="text-[10px] text-text-tertiary shrink-0">Suggested:</span>
         <For each={contextState.suggestions}>

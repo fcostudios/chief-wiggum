@@ -681,7 +681,7 @@ const ConversationView: Component = () => {
             </div>
           }
         >
-          <div class="px-4 py-5 max-w-4xl mx-auto w-full">
+          <div class="px-3 py-5 max-w-6xl mx-auto w-full">
             <Show when={resumeData()}>
               {(data) => (
                 <SessionResumeCard
@@ -766,7 +766,7 @@ const ConversationView: Component = () => {
             <Show when={conversationState.isStreaming && typewriter.rendered()}>
               <div class="flex justify-start mt-4 animate-fade-in-up">
                 <div
-                  class="max-w-[85%] rounded-lg px-4 py-3"
+                  class="max-w-[92%] rounded-lg px-4 py-3"
                   style={{
                     background: 'var(--color-bg-secondary)',
                     border: '1px solid var(--color-border-secondary)',

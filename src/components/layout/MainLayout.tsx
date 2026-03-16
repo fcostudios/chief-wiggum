@@ -79,6 +79,7 @@ import AboutModal from '@/components/common/AboutModal';
 import QuickSessionSwitcher from '@/components/common/QuickSessionSwitcher';
 import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
 import { t } from '@/stores/i18nStore';
+import { beginWindowDrag } from '@/lib/windowDrag';
 
 const VIEW_ICONS: Record<ActiveView, Component<{ size?: number; class?: string }>> = {
   conversation: MessageSquare,
@@ -254,9 +255,8 @@ const MainLayout: Component = () => {
           {/* View tabs + panel controls */}
           <div
             class="flex items-center gap-1 px-2 bg-bg-primary"
-            data-tauri-drag-region
             data-testid="view-toolbar"
-            style={{ '-webkit-app-region': 'drag' }}
+            onMouseDown={beginWindowDrag}
           >
             <button
               class="shrink-0 h-7 w-7 rounded-md flex items-center justify-center transition-colors"
@@ -270,6 +270,7 @@ const MainLayout: Component = () => {
                 'transition-duration': 'var(--duration-fast)',
                 '-webkit-app-region': 'no-drag',
               }}
+              data-no-window-drag="true"
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--color-text-primary)';
                 if (uiState.sidebarState !== 'hidden') {
@@ -293,7 +294,7 @@ const MainLayout: Component = () => {
 
             <div
               class="flex items-center gap-0.5 min-w-0 flex-1 overflow-x-auto"
-              style={{ '-webkit-app-region': 'drag' }}
+              style={{ 'min-height': 'var(--title-bar-height)' }}
             >
               <ViewTab label="Conversation" view="conversation" />
               <ViewTab label="Agents" view="agents" />
@@ -318,6 +319,7 @@ const MainLayout: Component = () => {
                 'transition-duration': 'var(--duration-fast)',
                 '-webkit-app-region': 'no-drag',
               }}
+              data-no-window-drag="true"
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = 'var(--color-text-primary)';
                 if (uiState.detailsPanelVisible) {
@@ -551,6 +553,7 @@ const ViewTab: Component<{ label: string; view: ActiveView; title?: string }> = 
     <button
       class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium tracking-wide transition-colors"
       data-active={isActive() ? 'true' : 'false'}
+      data-no-window-drag="true"
       aria-pressed={isActive()}
       style={{
         'transition-duration': 'var(--duration-normal)',

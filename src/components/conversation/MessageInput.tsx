@@ -1053,7 +1053,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   return (
     <div
-      class={`px-4 py-3 ${props.isDisabled ? 'opacity-50' : ''}`}
+      class={`px-3 py-3 md:px-4 ${props.isDisabled ? 'opacity-50' : ''}`}
       style={{
         background: isDragOver() ? 'var(--color-bg-elevated)' : 'var(--color-bg-secondary)',
         'box-shadow': isDragOver() ? 'inset 0 2px 0 var(--color-accent)' : 'none',
@@ -1065,7 +1065,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
     >
       {/* Context chips bar */}
       <Show when={getAttachmentCount() > 0}>
-        <div class="flex flex-wrap items-center gap-1.5 mb-2 max-w-4xl mx-auto">
+        <div class="flex flex-wrap items-center gap-1.5 mb-2 max-w-6xl mx-auto">
           <Paperclip size={10} style={{ color: 'var(--color-text-tertiary)' }} />
           <For each={contextState.attachments}>
             {(attachment) => (
@@ -1091,7 +1091,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
       {/* Image attachment thumbnails (CHI-190) */}
       <Show when={getImageCount() > 0}>
-        <div class="flex flex-wrap items-center gap-2 mb-2 max-w-4xl mx-auto">
+        <div class="flex flex-wrap items-center gap-2 mb-2 max-w-6xl mx-auto">
           <ImageIcon size={10} style={{ color: 'var(--color-text-tertiary)' }} />
           <For each={contextState.images}>
             {(image) => (
@@ -1210,7 +1210,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       <ContextSuggestions />
 
       {/* Textarea with ambient glow on focus */}
-      <div class="relative max-w-4xl mx-auto">
+      <div class="relative max-w-6xl mx-auto">
         <SlashCommandMenu
           isOpen={slashState.isOpen}
           commands={filteredCommands()}
@@ -1274,7 +1274,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       </div>
 
       <Show when={shouldShowTooltip('onboarding:at-mention', 1)}>
-        <div class="relative max-w-4xl mx-auto">
+        <div class="relative max-w-6xl mx-auto">
           <OnboardingTooltip
             id="onboarding:at-mention"
             message="Type @ to mention files from your project"
@@ -1284,7 +1284,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       </Show>
 
       <Show when={shouldShowTooltip('onboarding:drag-attach', 3)}>
-        <div class="relative max-w-4xl mx-auto">
+        <div class="relative max-w-6xl mx-auto">
           <OnboardingTooltip
             id="onboarding:drag-attach"
             message="Drag files into the input to attach them"
@@ -1300,7 +1300,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       </Show>
 
       {/* Footer: character count + buttons */}
-      <div class="flex items-center justify-between mt-2 max-w-4xl mx-auto">
+      <div class="flex items-center justify-between mt-2 max-w-6xl mx-auto">
         <div class="flex items-center gap-2">
           {/* Attach file button */}
           <button

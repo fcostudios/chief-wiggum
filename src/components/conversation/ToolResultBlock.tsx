@@ -92,7 +92,7 @@ export const ToolResultBlock: Component<ToolResultBlockProps> = (props) => {
   return (
     <div class="flex justify-start">
       <div
-        class="max-w-[85%] w-full rounded-md overflow-hidden"
+        class="max-w-[92%] w-full rounded-md overflow-hidden"
         style={{
           background: 'var(--color-bg-secondary)',
           border: `1px solid ${isError() ? 'var(--color-tool-permission-deny)' : 'var(--color-border-secondary)'}`,

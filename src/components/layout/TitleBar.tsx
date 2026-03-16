@@ -16,6 +16,7 @@ import ModelSelector from '@/components/common/ModelSelector';
 import OnboardingTooltip from '@/components/common/OnboardingTooltip';
 import { shouldShowTooltip } from '@/stores/onboardingStore';
 import HelpMenu from '@/components/common/HelpMenu';
+import { beginWindowDrag } from '@/lib/windowDrag';
 
 const TitleBar: Component = () => {
   const [isMac, setIsMac] = createSignal(false);
@@ -83,7 +84,7 @@ const TitleBar: Component = () => {
   return (
     <header
       class="flex items-center select-none relative"
-      data-tauri-drag-region
+      onMouseDown={beginWindowDrag}
       style={{
         'z-index': '20',
         height: 'var(--title-bar-height)',
@@ -91,9 +92,10 @@ const TitleBar: Component = () => {
           'linear-gradient(180deg, var(--color-chrome-bg-strong) 0%, var(--color-chrome-bg) 100%)',
         'backdrop-filter': 'blur(var(--glass-blur)) saturate(1.08)',
         'border-bottom': '1px solid var(--color-chrome-border)',
-        '-webkit-app-region': 'drag',
       }}
     >
+      <div class="absolute inset-x-0 top-0 h-3" />
+
       {/* Subtle warm glow on bottom edge */}
       <div
         class="absolute bottom-0 left-0 right-0 h-px"
@@ -116,7 +118,6 @@ const TitleBar: Component = () => {
             background: 'rgba(28, 33, 40, 0.5)',
             border: '1px solid var(--color-border-secondary)',
           }}
-          data-tauri-drag-region
           title={projectName()}
         >
           <span class="text-xs text-text-secondary truncate">{projectName()}</span>
@@ -130,6 +131,7 @@ const TitleBar: Component = () => {
             border: '1px solid var(--color-border-secondary)',
             '-webkit-app-region': 'no-drag',
           }}
+          data-no-window-drag="true"
         >
           <ModelSelector
             statusText={chipStatus().text}
@@ -160,6 +162,7 @@ const TitleBar: Component = () => {
             'transition-duration': 'var(--duration-fast)',
             '-webkit-app-region': 'no-drag',
           }}
+          data-no-window-drag="true"
           onClick={openSettings}
           aria-label="Open settings"
           title="Open settings (Cmd+,)"
@@ -177,6 +180,7 @@ const TitleBar: Component = () => {
                 'transition-duration': 'var(--duration-fast)',
                 '-webkit-app-region': 'no-drag',
               }}
+              data-no-window-drag="true"
               onClick={() => withCurrentWindow((appWindow) => void appWindow.minimize())}
               aria-label="Minimize"
             >
@@ -189,6 +193,7 @@ const TitleBar: Component = () => {
                 'transition-duration': 'var(--duration-fast)',
                 '-webkit-app-region': 'no-drag',
               }}
+              data-no-window-drag="true"
               onClick={() => withCurrentWindow((appWindow) => void appWindow.toggleMaximize())}
               aria-label="Maximize"
             >
@@ -201,6 +206,7 @@ const TitleBar: Component = () => {
                 'transition-duration': 'var(--duration-fast)',
                 '-webkit-app-region': 'no-drag',
               }}
+              data-no-window-drag="true"
               onClick={() => withCurrentWindow((appWindow) => void appWindow.close())}
               aria-label="Close"
               onMouseEnter={(e) => {

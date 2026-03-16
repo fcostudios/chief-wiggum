@@ -230,7 +230,7 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
   return (
     <div class={isUser() ? 'flex justify-end' : 'flex justify-start'}>
       <div
-        class={`max-w-[85%] rounded-lg px-4 py-3 relative${isAssistant() ? ' hover-lift' : ''}`}
+        class={`max-w-[92%] rounded-lg px-4 py-3 relative${isAssistant() ? ' hover-lift' : ''}`}
         style={{
           background: isUser()
             ? 'transparent'
