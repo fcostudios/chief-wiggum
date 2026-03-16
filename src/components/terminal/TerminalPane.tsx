@@ -115,9 +115,13 @@ function makeFileLinkProvider(terminal: Terminal): ILinkProvider {
 }
 
 function playBellSound(): void {
-  const AudioContextCtor = window.AudioContext ?? (window as typeof window & {
-    webkitAudioContext?: typeof AudioContext;
-  }).webkitAudioContext;
+  const AudioContextCtor =
+    window.AudioContext ??
+    (
+      window as typeof window & {
+        webkitAudioContext?: typeof AudioContext;
+      }
+    ).webkitAudioContext;
   if (!AudioContextCtor) return;
 
   const context = new AudioContextCtor();

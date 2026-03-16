@@ -142,8 +142,6 @@ describe('updateSessionCwd', () => {
     const { spawnTerminal, updateSessionCwd, terminalState } = await import('./terminalStore');
     await spawnTerminal();
     updateSessionCwd('cwd-test', '/new/path');
-    expect(terminalState.sessions.find((s) => s.terminal_id === 'cwd-test')?.cwd).toBe(
-      '/new/path',
-    );
+    expect(terminalState.sessions.find((s) => s.terminal_id === 'cwd-test')?.cwd).toBe('/new/path');
   });
 });

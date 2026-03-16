@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@solidjs/testing-library';
-import {
-  onTerminalOutput,
-  resizeTerminal,
-  writeToTerminal,
-} from '@/stores/terminalStore';
+import { onTerminalOutput, resizeTerminal, writeToTerminal } from '@/stores/terminalStore';
 
 const mocks = vi.hoisted(() => {
   class MockTerminal {
@@ -144,12 +140,11 @@ type MockSettingsPatch = Partial<{
   };
 }>;
 
-async function setMockSettings(
-  patch: MockSettingsPatch,
-) {
-  const mod = (await import('@/stores/settingsStore')) as typeof import('@/stores/settingsStore') & {
-    __setMockSettings: (patch: MockSettingsPatch) => void;
-  };
+async function setMockSettings(patch: MockSettingsPatch) {
+  const mod =
+    (await import('@/stores/settingsStore')) as typeof import('@/stores/settingsStore') & {
+      __setMockSettings: (patch: MockSettingsPatch) => void;
+    };
   mod.__setMockSettings(patch);
 }
 

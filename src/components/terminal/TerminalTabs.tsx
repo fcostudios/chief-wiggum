@@ -99,11 +99,7 @@ const TerminalTabs: Component<Props> = (props) => {
         </button>
       </Show>
 
-      <div
-        ref={scrollRef}
-        class="flex flex-1 items-center"
-        style={{ 'overflow-x': 'hidden' }}
-      >
+      <div ref={scrollRef} class="flex flex-1 items-center" style={{ 'overflow-x': 'hidden' }}>
         <For each={props.sessions}>
           {(session) => {
             const label = () => session.title ?? session.shell.split('/').pop() ?? 'Terminal';

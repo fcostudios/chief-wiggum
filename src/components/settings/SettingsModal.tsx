@@ -696,10 +696,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
             </Show>
 
             <Show when={visible('Cursor Style', 'Block, underline, or bar cursor')}>
-              <SettingCard
-                label="Cursor Style"
-                description="Choose the terminal cursor shape"
-              >
+              <SettingCard label="Cursor Style" description="Choose the terminal cursor shape">
                 <select
                   class={SELECT_CLASS}
                   value={settings().terminal.cursor_style}
@@ -757,9 +754,7 @@ const SettingsContent: Component<{ category: ModalCategory; searchQuery: string 
                 label="Paste on Right Click"
                 description="Use right click to paste clipboard contents into the terminal"
                 checked={settings().terminal.paste_on_right_click}
-                onChange={(checked) =>
-                  updateSetting('terminal', 'paste_on_right_click', checked)
-                }
+                onChange={(checked) => updateSetting('terminal', 'paste_on_right_click', checked)}
               />
             </Show>
 

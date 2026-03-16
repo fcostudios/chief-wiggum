@@ -89,7 +89,10 @@ describe('TerminalContainer', () => {
   it('auto-spawns a terminal when view is terminal and no sessions exist', async () => {
     render(() => <TerminalContainer />);
     await vi.waitFor(() => {
-      expect(terminalStoreMock.spawnTerminal).toHaveBeenCalledWith('/bin/bash', '/workspace/project');
+      expect(terminalStoreMock.spawnTerminal).toHaveBeenCalledWith(
+        '/bin/bash',
+        '/workspace/project',
+      );
     });
   });
 
