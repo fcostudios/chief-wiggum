@@ -47,6 +47,7 @@ import { t } from '@/stores/i18nStore';
 import { maybeShowHint } from '@/stores/hintStore';
 import { settingsState } from '@/stores/settingsStore';
 import { fileState, saveConversationScrollTop } from '@/stores/fileStore';
+import { captureViewportAnchor, restoreViewportAnchor, type ViewportAnchor } from './scrollAnchor';
 
 /** Threshold for enabling virtual scrolling. Below this, use plain <For>. */
 const VIRTUALIZATION_THRESHOLD = 50;
@@ -219,6 +220,7 @@ function VirtualMessageRow(props: {
     <div
       data-index={props.virtualItem.index}
       data-message-index={props.virtualItem.index}
+      data-message-id={props.message?.id}
       ref={rowRef}
       style={{
         position: 'absolute',
@@ -240,8 +242,11 @@ function VirtualMessageRow(props: {
 const ConversationView: Component = () => {
   let scrollRef: HTMLDivElement | undefined;
   let measureRaf: number | null = null;
+  let restoreAnchorRaf: number | null = null;
   let previousEditorTakeoverActive = false;
   let shouldRestoreLatestOnEditorClose = false;
+  let previousLayoutKey: string | null = null;
+  let lastViewportAnchor: ViewportAnchor | null = null;
   const [isAutoScroll, setIsAutoScroll] = createSignal(true);
   const [showJumpButton, setShowJumpButton] = createSignal(false);
   const [searchMatches, setSearchMatches] = createSignal<SearchMatch[]>([]);
@@ -359,6 +364,27 @@ const ConversationView: Component = () => {
     });
   }
 
+  function rememberViewportAnchor() {
+    if (!scrollRef) return;
+    lastViewportAnchor = captureViewportAnchor(scrollRef);
+  }
+
+  function scheduleViewportRestore(anchor: ViewportAnchor) {
+    if (restoreAnchorRaf !== null) {
+      cancelAnimationFrame(restoreAnchorRaf);
+      restoreAnchorRaf = null;
+    }
+    restoreAnchorRaf = requestAnimationFrame(() => {
+      scheduleVirtualMeasure();
+      requestAnimationFrame(() => {
+        if (!scrollRef) return;
+        restoreViewportAnchor(scrollRef, anchor);
+        handleScroll();
+        restoreAnchorRaf = null;
+      });
+    });
+  }
+
   onMount(() => {
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
@@ -375,6 +401,15 @@ const ConversationView: Component = () => {
     onCleanup(() => observer.disconnect());
   });
 
+  onCleanup(() => {
+    if (measureRaf !== null) {
+      cancelAnimationFrame(measureRaf);
+    }
+    if (restoreAnchorRaf !== null) {
+      cancelAnimationFrame(restoreAnchorRaf);
+    }
+  });
+
   // Reset virtualizer measurements when switching sessions / reloading message lists.
   // Without stable re-measurement, cached row heights from a previous session can
   // produce incorrect offsets and make newly rendered messages overlap older rows.
@@ -387,6 +422,46 @@ const ConversationView: Component = () => {
     void lastId;
 
     scheduleVirtualMeasure();
+  });
+
+  createEffect(() => {
+    const currentLayoutKey = [
+      useVirtualization() ? 'virtual' : 'plain',
+      hasActiveTurnLayout() ? 'active' : 'idle',
+      displayMessages().length,
+      displayMessages()[0]?.id ?? '',
+      displayMessages()[displayMessages().length - 1]?.id ?? '',
+    ].join(':');
+
+    if (!scrollRef) {
+      previousLayoutKey = currentLayoutKey;
+      return;
+    }
+
+    if (previousLayoutKey === null) {
+      previousLayoutKey = currentLayoutKey;
+      rememberViewportAnchor();
+      return;
+    }
+
+    if (previousLayoutKey === currentLayoutKey) {
+      return;
+    }
+
+    const anchor = !isAutoScroll()
+      ? (lastViewportAnchor ?? captureViewportAnchor(scrollRef))
+      : null;
+    previousLayoutKey = currentLayoutKey;
+
+    if (anchor) {
+      scheduleViewportRestore(anchor);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (!scrollRef) return;
+      handleScroll();
+    });
   });
 
   // When we switch between virtualized/non-virtualized modes (e.g. old tool-heavy
@@ -504,6 +579,7 @@ const ConversationView: Component = () => {
     saveConversationScrollTop(scrollTop);
     const distFromBottom = scrollHeight - scrollTop - clientHeight;
     const atBottom = distFromBottom < 50;
+    rememberViewportAnchor();
     setIsAutoScroll(atBottom);
     setShowJumpButton(distFromBottom > 300);
   }
@@ -546,7 +622,15 @@ const ConversationView: Component = () => {
           />
         </div>
       </Show>
-      <div ref={scrollRef} class="h-full overflow-y-auto" onScroll={handleScroll}>
+      <div
+        ref={scrollRef}
+        class="h-full overflow-y-auto"
+        style={{
+          'scrollbar-gutter': 'stable both-edges',
+          'overscroll-behavior': 'contain',
+        }}
+        onScroll={handleScroll}
+      >
         <Show
           when={displayMessages().length > 0}
           fallback={
@@ -632,6 +716,7 @@ const ConversationView: Component = () => {
                     {(msg, index) => (
                       <div
                         data-message-index={index()}
+                        data-message-id={msg.id}
                         class="animate-fade-in-up"
                         style={{
                           'animation-delay': `${Math.min(index() * 30, 200)}ms`,
