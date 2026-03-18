@@ -2,7 +2,7 @@
 // Conversation state: messages for active session, real CLI streaming.
 // Per GUIDE-001 §3.4: createStore singleton, mutations via exported functions.
 
-import { createStore } from 'solid-js/store';
+import { createStore, reconcile } from 'solid-js/store';
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { createTypewriterBuffer } from '@/lib/typewriterBuffer';
@@ -15,6 +15,7 @@ import type {
   CliLocation,
   CostUpdateEvent,
   PromptImageInput,
+  RecoveryHint,
   ToolOutputEvent,
   QuestionItem,
   QuestionRequest,
@@ -46,6 +47,9 @@ interface ConversationState {
   processStatus: ProcessStatus;
   sessionStatuses: Record<string, ProcessStatus>;
   sessionUnread: Record<string, boolean>;
+  recoverableSessions: Record<string, RecoveryHint>;
+  recoveryInFlight: Record<string, boolean>;
+  lastRecoveredAt: Record<string, number>;
   lastUserMessage: string | null;
 }
 
@@ -61,6 +65,9 @@ const [state, setState] = createStore<ConversationState>({
   processStatus: 'not_started',
   sessionStatuses: {},
   sessionUnread: {},
+  recoverableSessions: {},
+  recoveryInFlight: {},
+  lastRecoveredAt: {},
   lastUserMessage: null,
 });
 
@@ -96,6 +103,13 @@ const pendingDeleteTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Per-session event listener cleanup functions. */
 const sessionListeners = new Map<string, UnlistenFn[]>();
+
+interface RecoverySnapshot {
+  assistantUuids: Set<string>;
+  assistantFallbackKeys: Set<string>;
+  toolUseIds: Set<string>;
+  toolResultIds: Set<string>;
+}
 
 /** Get status for a specific session. */
 export function getSessionStatus(sessionId: string): ProcessStatus {
@@ -137,6 +151,142 @@ function bridgeToUiStatus(bridge: ActiveBridgeInfo): ProcessStatus {
     return bridge.has_buffered_events ? 'starting' : 'not_started';
   }
   return bridge.process_status as ProcessStatus;
+}
+
+function isBridgeRecoverable(bridge: ActiveBridgeInfo): boolean {
+  return bridge.process_status === 'running' || bridge.process_status === 'starting';
+}
+
+function setRecoveryHintForBridge(sessionId: string, bridge: ActiveBridgeInfo): void {
+  setState('recoverableSessions', sessionId, {
+    processStatus: bridgeToUiStatus(bridge),
+    cliSessionId: bridge.cli_session_id,
+    hasBufferedEvents: bridge.has_buffered_events,
+    detectedAt: Date.now(),
+  });
+}
+
+function clearRecoveryHint(sessionId: string): void {
+  const next = { ...state.recoverableSessions };
+  if (!(sessionId in next)) return;
+  delete next[sessionId];
+  setState('recoverableSessions', reconcile(next, { merge: false }));
+}
+
+function syncRecoverableSessions(
+  activeBridges: ActiveBridgeInfo[],
+  activeSessionId: string | null,
+): void {
+  const activeBridgeIds = new Set(activeBridges.map((bridge) => bridge.session_id));
+  const next = { ...state.recoverableSessions };
+  for (const sessionId of Object.keys(next)) {
+    if (sessionId === activeSessionId || !activeBridgeIds.has(sessionId)) {
+      delete next[sessionId];
+    }
+  }
+  setState('recoverableSessions', reconcile(next, { merge: false }));
+
+  for (const bridge of activeBridges) {
+    setSessionStatus(bridge.session_id, bridgeToUiStatus(bridge));
+    if (bridge.session_id !== activeSessionId && isBridgeRecoverable(bridge)) {
+      setRecoveryHintForBridge(bridge.session_id, bridge);
+    } else {
+      clearRecoveryHint(bridge.session_id);
+    }
+  }
+}
+
+function makeAssistantFallbackKey(
+  value: Pick<Message, 'role' | 'content' | 'model' | 'stop_reason' | 'parent_uuid'>,
+): string {
+  return [
+    value.role,
+    value.content,
+    value.model ?? '',
+    value.stop_reason ?? '',
+    value.parent_uuid ?? '',
+  ].join('::');
+}
+
+function parseToolUseId(content: string): string | null {
+  try {
+    const parsed = JSON.parse(content) as { tool_use_id?: string | null };
+    return parsed.tool_use_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function buildRecoverySnapshot(messages: Message[]): RecoverySnapshot {
+  const snapshot: RecoverySnapshot = {
+    assistantUuids: new Set<string>(),
+    assistantFallbackKeys: new Set<string>(),
+    toolUseIds: new Set<string>(),
+    toolResultIds: new Set<string>(),
+  };
+
+  for (const message of messages) {
+    if (message.role === 'assistant') {
+      if (message.uuid) snapshot.assistantUuids.add(message.uuid);
+      snapshot.assistantFallbackKeys.add(makeAssistantFallbackKey(message));
+      continue;
+    }
+
+    if (message.role === 'tool_use' || message.role === 'tool_result') {
+      const toolUseId = parseToolUseId(message.content);
+      if (!toolUseId) continue;
+      snapshot.toolUseIds.add(toolUseId);
+      if (message.role === 'tool_result') {
+        snapshot.toolResultIds.add(toolUseId);
+      }
+    }
+  }
+
+  return snapshot;
+}
+
+function getBufferedMessageFallbackKey(event: BufferedEvent): string {
+  return [
+    (event.role as Message['role']) ?? 'assistant',
+    event.content ?? '',
+    event.model ?? '',
+    event.stop_reason ?? '',
+    event.parent_uuid ?? '',
+  ].join('::');
+}
+
+function markBufferedCompletionPersisted(event: BufferedEvent, snapshot: RecoverySnapshot): void {
+  if (event.uuid) snapshot.assistantUuids.add(event.uuid);
+  snapshot.assistantFallbackKeys.add(getBufferedMessageFallbackKey(event));
+}
+
+function isBufferedCompletionDuplicate(
+  event: BufferedEvent,
+  snapshot: RecoverySnapshot,
+  finalContent: string,
+): boolean {
+  if (event.uuid && snapshot.assistantUuids.has(event.uuid)) return true;
+  return snapshot.assistantFallbackKeys.has(
+    [
+      (event.role as Message['role']) ?? 'assistant',
+      finalContent,
+      event.model ?? '',
+      event.stop_reason ?? '',
+      event.parent_uuid ?? '',
+    ].join('::'),
+  );
+}
+
+function markToolReplayPersisted(
+  event: BufferedEvent,
+  snapshot: RecoverySnapshot,
+  kind: 'use' | 'result',
+): void {
+  if (!event.tool_use_id) return;
+  snapshot.toolUseIds.add(event.tool_use_id);
+  if (kind === 'result') {
+    snapshot.toolResultIds.add(event.tool_use_id);
+  }
 }
 
 /** Known recoverable CLI resume failure: persisted cli_session_id no longer exists. */
@@ -1061,6 +1211,11 @@ export async function switchSession(
   const newStatus = getSessionStatus(newSessionId);
   setState('processStatus', newStatus);
 
+  if (state.recoverableSessions[newSessionId]) {
+    await resumeSessionView(newSessionId);
+    return;
+  }
+
   // Load persisted messages for the new session
   await loadMessages(newSessionId);
 
@@ -1194,82 +1349,28 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
     return; // Backend may not support this yet
   }
 
-  if (activeBridges.length === 0) return;
-
-  // Update per-session statuses for all active bridges
-  for (const bridge of activeBridges) {
-    setSessionStatus(bridge.session_id, bridgeToUiStatus(bridge));
+  if (activeBridges.length === 0) {
+    setState('recoverableSessions', {});
+    return;
   }
+
+  syncRecoverableSessions(activeBridges, activeSessionId);
 
   // For the active session, set up listeners and replay buffer
   if (activeSessionId) {
     const activeBridge = activeBridges.find((b) => b.session_id === activeSessionId);
     if (activeBridge) {
-      // Reload persisted messages from DB first — catches anything saved before the
-      // HMR reload that might not be in the ring buffer (e.g. buffer full, saved then reloaded).
-      try {
-        const dbMessages = await invoke<Message[]>('list_messages', {
-          session_id: activeSessionId,
-        });
-        if (dbMessages.length > 0) {
-          setMessagesCapped(dbMessages);
-        }
-      } catch (err) {
-        log.error(
-          'Failed to reload messages from DB after HMR: ' +
-            (err instanceof Error ? err.message : String(err)),
-        );
-      }
-
-      // Set up listeners FIRST (catches live events during drain)
-      await setupEventListeners(activeSessionId);
-
-      // Drain and replay buffered events (adds anything not yet in DB)
-      let replayedCount = 0;
-      if (activeBridge.has_buffered_events) {
-        try {
-          const buffered = await invoke<BufferedEvent[]>('drain_session_buffer', {
-            session_id: activeSessionId,
-          });
-          replayedCount = buffered.length;
-          for (const event of buffered) {
-            replayBufferedEvent(event, activeSessionId);
-          }
-        } catch (err) {
-          log.error(
-            'Failed to drain buffer: ' + (err instanceof Error ? err.message : String(err)),
-          );
-        }
-      }
-
-      // Restore UI streaming state only when buffered events suggest work was in progress.
-      if (activeBridge.has_buffered_events) {
-        setState('isLoading', true);
-      }
-
-      // Surface reconnection to the user so they know what happened.
-      if (replayedCount > 0) {
-        addToast(
-          `Reconnected after reload — ${replayedCount} event${replayedCount === 1 ? '' : 's'} replayed`,
-          'info',
-        );
-      } else {
-        // Check for orphaned user message (session ended without a response before reload)
-        const msgs = state.messages;
-        const lastMsg = msgs[msgs.length - 1];
-        if (lastMsg?.role === 'user') {
-          addToast(
-            'Last response may have been lost. Use Retry to resend your message.',
-            'warning',
-          );
-        }
-      }
+      await resumeSessionView(activeSessionId, activeBridge, { source: 'reload' });
     }
   }
 }
 
 /** Replay a single buffered event (same logic as event listeners, minus re-emission). */
-function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
+function replayBufferedEvent(
+  event: BufferedEvent,
+  sessionId: string,
+  snapshot?: RecoverySnapshot,
+): void {
   switch (event.type) {
     case 'Chunk':
       setState('streamingContent', (prev) => prev + (event.content ?? ''));
@@ -1290,10 +1391,9 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
         setSessionStatus(sessionId, 'error');
         return;
       }
-      // Check if this message was already persisted (loaded from DB)
-      const isDuplicate = state.messages.some(
-        (m) => m.role === 'assistant' && m.content === finalContent,
-      );
+      const isDuplicate = snapshot
+        ? isBufferedCompletionDuplicate(event, snapshot, finalContent)
+        : state.messages.some((m) => m.role === 'assistant' && m.content === finalContent);
       if (!isDuplicate) {
         const assistantMsg: Message = {
           id: crypto.randomUUID(),
@@ -1334,6 +1434,9 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
               (err instanceof Error ? err.message : String(err)),
           ),
         );
+        if (snapshot) {
+          markBufferedCompletionPersisted({ ...event, content: finalContent }, snapshot);
+        }
       }
       setState('streamingContent', '');
       setState('thinkingContent', '');
@@ -1350,7 +1453,9 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
         tool_input: event.tool_input,
         tool_use_id: event.tool_use_id,
       });
-      const isDup = state.messages.some((m) => m.role === 'tool_use' && m.content === toolContent);
+      const isDup = event.tool_use_id
+        ? (snapshot?.toolUseIds.has(event.tool_use_id) ?? false)
+        : state.messages.some((m) => m.role === 'tool_use' && m.content === toolContent);
       if (!isDup) {
         const msgId = crypto.randomUUID();
         const msg: Message = {
@@ -1391,6 +1496,9 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
               (err instanceof Error ? err.message : String(err)),
           ),
         );
+        if (snapshot) {
+          markToolReplayPersisted(event, snapshot, 'use');
+        }
       }
       break;
     }
@@ -1401,9 +1509,9 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
         content: event.content,
         is_error: event.is_error,
       });
-      const isDup = state.messages.some(
-        (m) => m.role === 'tool_result' && m.content === resultContent,
-      );
+      const isDup = event.tool_use_id
+        ? (snapshot?.toolResultIds.has(event.tool_use_id) ?? false)
+        : state.messages.some((m) => m.role === 'tool_result' && m.content === resultContent);
       if (!isDup) {
         const msgId = crypto.randomUUID();
         const msg: Message = {
@@ -1444,6 +1552,9 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
               (err instanceof Error ? err.message : String(err)),
           ),
         );
+        if (snapshot) {
+          markToolReplayPersisted(event, snapshot, 'result');
+        }
       }
       break;
     }
@@ -1478,6 +1589,88 @@ function replayBufferedEvent(event: BufferedEvent, sessionId: string): void {
     case 'PermissionRequest':
       // Permission requests during reload are expired -- don't re-show
       break;
+  }
+}
+
+export async function resumeSessionView(
+  sessionId: string,
+  existingBridge?: ActiveBridgeInfo | null,
+  options: { source?: 'reload' | 'activation' } = {},
+): Promise<void> {
+  if (state.recoveryInFlight[sessionId]) return;
+
+  setState('recoveryInFlight', sessionId, true);
+
+  try {
+    await loadMessages(sessionId);
+    const snapshot = buildRecoverySnapshot(state.messages);
+
+    await setupEventListeners(sessionId);
+
+    let activeBridge = existingBridge;
+    if (activeBridge === undefined) {
+      const activeBridges = await invoke<ActiveBridgeInfo[]>('list_active_bridges');
+      syncRecoverableSessions(activeBridges, getActiveSession()?.id ?? null);
+      activeBridge = activeBridges.find((bridge) => bridge.session_id === sessionId) ?? null;
+    }
+
+    if (!activeBridge) {
+      setSessionStatus(sessionId, 'not_started');
+      setState('isLoading', false);
+      setState('isStreaming', false);
+      setState('streamingContent', '');
+      setState('thinkingContent', '');
+      typewriter.reset();
+      clearRecoveryHint(sessionId);
+      setState('lastRecoveredAt', sessionId, Date.now());
+      return;
+    }
+
+    const currentStatus = bridgeToUiStatus(activeBridge);
+    setSessionStatus(sessionId, currentStatus);
+
+    let replayedCount = 0;
+    if (activeBridge.has_buffered_events) {
+      try {
+        const buffered = await invoke<BufferedEvent[]>('drain_session_buffer', {
+          session_id: sessionId,
+        });
+        replayedCount = buffered.length;
+        for (const event of buffered) {
+          replayBufferedEvent(event, sessionId, snapshot);
+        }
+      } catch (err) {
+        log.error('Failed to drain buffer: ' + (err instanceof Error ? err.message : String(err)));
+        if (isBridgeRecoverable(activeBridge)) {
+          setState('isLoading', true);
+        }
+        addToast('Reattached to running session, but some live updates may be missing', 'warning');
+        return;
+      }
+    }
+
+    setState('isLoading', activeBridge.has_buffered_events);
+    setState('lastRecoveredAt', sessionId, Date.now());
+    clearRecoveryHint(sessionId);
+
+    if (replayedCount > 0 && options.source === 'reload') {
+      addToast(
+        `Reconnected after reload — ${replayedCount} event${replayedCount === 1 ? '' : 's'} replayed`,
+        'info',
+      );
+    } else if (replayedCount === 0 && options.source === 'reload') {
+      const msgs = state.messages;
+      const lastMsg = msgs[msgs.length - 1];
+      if (lastMsg?.role === 'user') {
+        addToast('Last response may have been lost. Use Retry to resend your message.', 'warning');
+      }
+    }
+  } catch (err) {
+    log.error(
+      'Failed to recover session view: ' + (err instanceof Error ? err.message : String(err)),
+    );
+  } finally {
+    setState('recoveryInFlight', sessionId, false);
   }
 }
 

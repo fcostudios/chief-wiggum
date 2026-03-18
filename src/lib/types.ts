@@ -183,6 +183,14 @@ export interface ActiveBridgeInfo {
   has_buffered_events: boolean;
 }
 
+/** Minimal frontend metadata for a session that can be reattached after reload. */
+export interface RecoveryHint {
+  processStatus: ProcessStatus;
+  cliSessionId: string | null;
+  hasBufferedEvents: boolean;
+  detectedAt: number;
+}
+
 /** Payload from `cli:init` Tauri event (Agent SDK system:init). */
 export interface CliInitEvent {
   session_id: string;

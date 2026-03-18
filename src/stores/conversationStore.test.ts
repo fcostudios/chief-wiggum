@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockIpcCommand, mockListen } from '@/test/mockIPC';
 import { createTestMessage } from '@/test/helpers';
+import type { ActiveBridgeInfo, BufferedEvent } from '@/lib/types';
 
 const mocks = vi.hoisted(() => ({
   session: {
@@ -51,6 +52,57 @@ type ConversationStoreModule = typeof import('./conversationStore');
 
 describe('conversationStore', () => {
   let mod: ConversationStoreModule;
+
+  function setActiveSessionId(id: string): void {
+    mocks.session.activeSession = {
+      ...mocks.session.activeSession,
+      id,
+    };
+  }
+
+  function bridge(
+    overrides: Partial<ActiveBridgeInfo> & Pick<ActiveBridgeInfo, 'session_id'>,
+  ): ActiveBridgeInfo {
+    const { session_id, ...rest } = overrides;
+    return {
+      session_id,
+      process_status: 'running',
+      cli_session_id: null,
+      model: 'claude-sonnet-4-6',
+      has_buffered_events: false,
+      ...rest,
+    };
+  }
+
+  function chunk(
+    sessionId: string,
+    content: string,
+    overrides?: Partial<BufferedEvent>,
+  ): BufferedEvent {
+    return {
+      type: 'Chunk',
+      session_id: sessionId,
+      content,
+      ...overrides,
+    };
+  }
+
+  function completion(
+    sessionId: string,
+    content: string,
+    overrides?: Partial<BufferedEvent>,
+  ): BufferedEvent {
+    return {
+      type: 'MessageComplete',
+      session_id: sessionId,
+      role: 'assistant',
+      content,
+      model: 'claude-sonnet-4-6',
+      stop_reason: 'end_turn',
+      is_error: false,
+      ...overrides,
+    };
+  }
 
   beforeEach(async () => {
     vi.resetModules();
@@ -210,6 +262,198 @@ describe('conversationStore', () => {
     expect(args).toBeDefined();
     expect(args?.message_images).toHaveLength(1);
     expect(args?.message_images?.[0]?.data_base64).toBe('YWJj');
+  });
+
+  it('marks non-active running sessions as recoverable after reload', async () => {
+    setActiveSessionId('session-a');
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({
+        session_id: 'session-b',
+        cli_session_id: 'cli-b',
+        has_buffered_events: true,
+      }),
+    ]);
+
+    await mod.reconnectAfterReload('session-a');
+
+    expect(mod.conversationState.recoverableSessions['session-b']).toMatchObject({
+      processStatus: 'running',
+      cliSessionId: 'cli-b',
+      hasBufferedEvents: true,
+    });
+    expect(mocks.session.activeSession.id).toBe('session-a');
+  });
+
+  it('still recovers the selected active session during reload', async () => {
+    setActiveSessionId('session-a');
+    const persistedMessages = [
+      createTestMessage({ session_id: 'session-a', role: 'user', content: 'hello' }),
+    ];
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-a', cli_session_id: 'cli-a', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('list_messages', () => persistedMessages);
+    mockIpcCommand('drain_session_buffer', () => [chunk('session-a', 'continued work')]);
+
+    await mod.reconnectAfterReload('session-a');
+
+    expect(mod.conversationState.messages).toEqual(expect.arrayContaining(persistedMessages));
+    expect(mod.conversationState.processStatus).toBe('running');
+    expect(mod.conversationState.streamingContent).toBe('continued work');
+  });
+
+  it('recovers a background-running session when the user activates it', async () => {
+    setActiveSessionId('session-a');
+    const persistedMessages = [
+      createTestMessage({ session_id: 'session-b', role: 'user', content: 'hello' }),
+    ];
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-b', cli_session_id: 'cli-b', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('list_messages', ({ session_id }) =>
+      session_id === 'session-b' ? persistedMessages : [],
+    );
+    mockIpcCommand('drain_session_buffer', () => [chunk('session-b', 'still running')]);
+
+    await mod.reconnectAfterReload('session-a');
+    setActiveSessionId('session-b');
+
+    await mod.switchSession('session-b', 'session-a');
+
+    expect(mod.conversationState.messages).toEqual(expect.arrayContaining(persistedMessages));
+    expect(mod.conversationState.isLoading).toBe(true);
+    expect(mod.conversationState.processStatus).toBe('running');
+    expect(mod.conversationState.streamingContent).toBe('still running');
+    expect(mod.conversationState.recoverableSessions['session-b']).toBeUndefined();
+  });
+
+  it('clears the recoverable marker when the bridge already exited before activation', async () => {
+    setActiveSessionId('session-a');
+    const persistedMessages = [
+      createTestMessage({ session_id: 'session-b', role: 'assistant', content: 'done' }),
+    ];
+    let callCount = 0;
+    mockIpcCommand('list_active_bridges', () => {
+      callCount += 1;
+      return callCount === 1 ? [bridge({ session_id: 'session-b', cli_session_id: 'cli-b' })] : [];
+    });
+    mockIpcCommand('list_messages', ({ session_id }) =>
+      session_id === 'session-b' ? persistedMessages : [],
+    );
+
+    await mod.reconnectAfterReload('session-a');
+    setActiveSessionId('session-b');
+
+    await mod.switchSession('session-b', 'session-a');
+
+    expect(mod.conversationState.messages).toEqual(expect.arrayContaining(persistedMessages));
+    expect(mod.conversationState.recoverableSessions['session-b']).toBeUndefined();
+    expect(mod.conversationState.processStatus).toBe('not_started');
+  });
+
+  it('does not run recovery twice while one recovery is already in flight', async () => {
+    setActiveSessionId('session-a');
+    const drainSpy = vi.fn(
+      async () =>
+        new Promise<BufferedEvent[]>((resolve) =>
+          setTimeout(() => resolve([chunk('session-b', 'x')]), 10),
+        ),
+    );
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-b', cli_session_id: 'cli-b', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('drain_session_buffer', drainSpy);
+
+    const first = mod.resumeSessionView('session-b');
+    const second = mod.resumeSessionView('session-b');
+
+    await Promise.all([first, second]);
+
+    expect(drainSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not duplicate a persisted assistant completion during recovery replay', async () => {
+    setActiveSessionId('session-b');
+    const persistedMessages = [
+      createTestMessage({
+        session_id: 'session-b',
+        role: 'assistant',
+        content: 'Final answer',
+        uuid: 'assistant-uuid',
+        parent_uuid: 'user-uuid',
+        stop_reason: 'end_turn',
+        model: 'claude-sonnet-4-6',
+      }),
+    ];
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-b', cli_session_id: 'cli-b', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('list_messages', () => persistedMessages);
+    mockIpcCommand('drain_session_buffer', () => [
+      completion('session-b', 'Final answer', {
+        uuid: 'assistant-uuid',
+        parent_uuid: 'user-uuid',
+      }),
+    ]);
+
+    await mod.resumeSessionView('session-b');
+
+    expect(
+      mod.conversationState.messages.filter((message) => message.content === 'Final answer'),
+    ).toHaveLength(1);
+  });
+
+  it('does not duplicate tool results already represented by tool_use_id', async () => {
+    setActiveSessionId('session-b');
+    const persistedMessages = [
+      createTestMessage({
+        session_id: 'session-b',
+        role: 'tool_result',
+        content: JSON.stringify({
+          tool_use_id: 'tool-1',
+          content: 'done',
+          is_error: false,
+        }),
+      }),
+    ];
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-b', cli_session_id: 'cli-b', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('list_messages', () => persistedMessages);
+    mockIpcCommand('drain_session_buffer', () => [
+      {
+        type: 'ToolResult',
+        session_id: 'session-b',
+        tool_use_id: 'tool-1',
+        content: 'done',
+        is_error: false,
+      },
+    ]);
+
+    await mod.resumeSessionView('session-b');
+
+    expect(
+      mod.conversationState.messages.filter((message) => message.role === 'tool_result'),
+    ).toHaveLength(1);
+  });
+
+  it('restores streaming state when only chunks are buffered and no final message exists', async () => {
+    setActiveSessionId('session-b');
+    const persistedMessages = [
+      createTestMessage({ session_id: 'session-b', role: 'user', content: 'continue' }),
+    ];
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-b', cli_session_id: 'cli-b', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('list_messages', () => persistedMessages);
+    mockIpcCommand('drain_session_buffer', () => [chunk('session-b', 'partial response')]);
+
+    await mod.resumeSessionView('session-b');
+
+    expect(mod.conversationState.messages).toEqual(expect.arrayContaining(persistedMessages));
+    expect(mod.conversationState.streamingContent).toBe('partial response');
+    expect(mod.conversationState.isStreaming).toBe(true);
+    expect(mod.conversationState.isLoading).toBe(true);
   });
 });
 
