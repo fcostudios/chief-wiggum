@@ -179,6 +179,10 @@ export function toggleDetailsPanel() {
   setState('detailsPanelVisible', (prev) => !prev);
 }
 
+export function showDetailsPanel() {
+  setState('detailsPanelVisible', true);
+}
+
 /** Enter zen mode: collapse side panels and keep previous state for restore. */
 export function enterZenMode(): void {
   if (state.zenModeActive) return;

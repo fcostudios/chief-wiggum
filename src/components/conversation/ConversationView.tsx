@@ -247,6 +247,8 @@ const ConversationView: Component = () => {
   let shouldRestoreLatestOnEditorClose = false;
   let previousLayoutKey: string | null = null;
   let lastViewportAnchor: ViewportAnchor | null = null;
+  let previousViewportWidth = 0;
+  let previousViewportHeight = 0;
   const [isAutoScroll, setIsAutoScroll] = createSignal(true);
   const [showJumpButton, setShowJumpButton] = createSignal(false);
   const [searchMatches, setSearchMatches] = createSignal<SearchMatch[]>([]);
@@ -385,20 +387,69 @@ const ConversationView: Component = () => {
     });
   }
 
+  function handleViewportResize() {
+    if (!scrollRef) return;
+
+    const nextWidth = scrollRef.clientWidth;
+    const nextHeight = scrollRef.clientHeight;
+    const hasPreviousViewport = previousViewportWidth > 0 && previousViewportHeight > 0;
+    const widthChanged = hasPreviousViewport && nextWidth !== previousViewportWidth;
+    const heightChanged = hasPreviousViewport && nextHeight !== previousViewportHeight;
+
+    previousViewportWidth = nextWidth;
+    previousViewportHeight = nextHeight;
+
+    if (!widthChanged && !heightChanged) {
+      scheduleVirtualMeasure();
+      return;
+    }
+
+    const anchor = captureViewportAnchor(scrollRef);
+    if (anchor) {
+      lastViewportAnchor = anchor;
+    }
+
+    if (isAutoScroll()) {
+      requestAnimationFrame(() => {
+        scheduleVirtualMeasure();
+        requestAnimationFrame(() => {
+          scrollToLatest();
+        });
+      });
+      return;
+    }
+
+    if (anchor) {
+      scheduleViewportRestore(anchor);
+      return;
+    }
+
+    scheduleVirtualMeasure();
+  }
+
   onMount(() => {
     if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
-      scheduleVirtualMeasure();
+      handleViewportResize();
     });
+    const onWindowResize = () => {
+      handleViewportResize();
+    };
 
     createEffect(() => {
       const el = scrollRef;
       if (!el) return;
+      previousViewportWidth = el.clientWidth;
+      previousViewportHeight = el.clientHeight;
       observer.observe(el);
       onCleanup(() => observer.unobserve(el));
     });
 
-    onCleanup(() => observer.disconnect());
+    window.addEventListener('resize', onWindowResize);
+    onCleanup(() => {
+      window.removeEventListener('resize', onWindowResize);
+      observer.disconnect();
+    });
   });
 
   onCleanup(() => {

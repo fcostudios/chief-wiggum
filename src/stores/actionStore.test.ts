@@ -4,6 +4,9 @@ import type { ActionDefinition } from '@/lib/types';
 
 type ActionStoreModule = typeof import('./actionStore');
 
+const mockSetActiveView = vi.fn();
+const mockShowDetailsPanel = vi.fn();
+
 function makeAction(overrides?: Partial<ActionDefinition>): ActionDefinition {
   return {
     id: 'package_json:test',
@@ -32,6 +35,8 @@ describe('actionStore', () => {
     mockIpcCommand('save_custom_action', () => undefined);
     mockIpcCommand('delete_custom_action', () => undefined);
     mockIpcCommand('read_custom_actions', () => []);
+    mockSetActiveView.mockClear();
+    mockShowDetailsPanel.mockClear();
     mod = await import('./actionStore');
     mod.clearActionCatalog();
   });
@@ -108,6 +113,21 @@ describe('actionStore', () => {
     expect(mod.actionState.selectedActionId).toBe('some-action');
   });
 
+  it('revealActionOutput shows details panel and switches to actions view', () => {
+    mod.revealActionOutput('some-action');
+    expect(mod.actionState.selectedActionId).toBe('some-action');
+    expect(mockShowDetailsPanel).toHaveBeenCalled();
+    expect(mockSetActiveView).toHaveBeenCalledWith('actions_center');
+  });
+
+  it('revealActionOutput retriggers selection when the same action is already selected', async () => {
+    mod.selectAction('same-action');
+    mod.revealActionOutput('same-action');
+    expect(mod.actionState.selectedActionId).toBeNull();
+    await Promise.resolve();
+    expect(mod.actionState.selectedActionId).toBe('same-action');
+  });
+
   it('clearActionOutput removes output for action', () => {
     mod.clearActionOutput('test');
     expect(mod.getActionOutput('test')).toEqual([]);
@@ -140,6 +160,12 @@ describe('actionStore', () => {
     );
   });
 });
+
+vi.mock('@/stores/uiStore', () => ({
+  setActiveView: (...args: unknown[]) =>
+    (mockSetActiveView as unknown as (...inner: unknown[]) => unknown)(...args),
+  showDetailsPanel: () => mockShowDetailsPanel(),
+}));
 
 describe('loadAllRunningActions', () => {
   let mod: ActionStoreModule;

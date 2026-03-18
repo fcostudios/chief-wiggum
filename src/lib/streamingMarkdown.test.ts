@@ -50,4 +50,21 @@ describe('stabilizeStreamingMarkdown', () => {
     const result = stabilizeStreamingMarkdown(md);
     expect(result).toContain('```ts\n\n```');
   });
+
+  it('inserts a newline before streamed step labels after punctuation', () => {
+    const md = 'Implement all layers.Step 1 - DB migration';
+    expect(stabilizeStreamingMarkdown(md)).toBe('Implement all layers.\nStep 1 - DB migration');
+  });
+
+  it('adds a space between punctuation and the next streamed sentence', () => {
+    const md = 'Now update types:Step 4 - Service layer.Then verify output';
+    expect(stabilizeStreamingMarkdown(md)).toBe(
+      'Now update types:\nStep 4 - Service layer. Then verify output',
+    );
+  });
+
+  it('does not rewrite content inside fenced code blocks', () => {
+    const md = '```ts\nconst example={value:Step2};\n```';
+    expect(stabilizeStreamingMarkdown(md)).toBe(md);
+  });
 });

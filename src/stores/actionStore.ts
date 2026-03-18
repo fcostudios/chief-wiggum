@@ -18,6 +18,7 @@ import type {
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
 import { getActiveProject } from '@/stores/projectStore';
+import { setActiveView, showDetailsPanel } from '@/stores/uiStore';
 
 const log = createLogger('ui/actions');
 
@@ -240,6 +241,21 @@ export function listenToActionOutput(
 
 /** Select an action to view output. */
 export function selectAction(actionId: string | null): void {
+  setState('selectedActionId', actionId);
+}
+
+export function revealActionOutput(actionId: string): void {
+  showDetailsPanel();
+  setActiveView('actions_center');
+
+  if (state.selectedActionId === actionId) {
+    setState('selectedActionId', null);
+    queueMicrotask(() => {
+      setState('selectedActionId', actionId);
+    });
+    return;
+  }
+
   setState('selectedActionId', actionId);
 }
 
@@ -520,7 +536,7 @@ function notifyActionStarted(actionId: string): void {
   const action = getActionById(actionId);
   addToast(`Started action: ${action?.name ?? actionId}`, 'info', {
     label: 'View Output',
-    onClick: () => selectAction(actionId),
+    onClick: () => revealActionOutput(actionId),
   });
   lastNotifiedStatus.set(actionId, 'running');
 }
@@ -534,7 +550,7 @@ function notifyActionCompleted(actionId: string, exitCode: number | null): void 
   const exitText = exitCode !== null ? ` (exit ${exitCode})` : '';
   addToast(`Completed action: ${action?.name ?? actionId}${exitText}${durationText}`, 'success', {
     label: 'View Output',
-    onClick: () => selectAction(actionId),
+    onClick: () => revealActionOutput(actionId),
   });
   lastNotifiedStatus.set(actionId, 'completed');
   actionRunStartedAt.delete(actionId);
@@ -546,7 +562,7 @@ function notifyActionFailed(actionId: string, exitCode: number | null): void {
   const exitText = exitCode !== null ? ` (exit ${exitCode})` : '';
   addToast(`Action failed: ${action?.name ?? actionId}${exitText}`, 'error', {
     label: 'View Output',
-    onClick: () => selectAction(actionId),
+    onClick: () => revealActionOutput(actionId),
   });
   lastNotifiedStatus.set(actionId, 'failed');
   actionRunStartedAt.delete(actionId);
