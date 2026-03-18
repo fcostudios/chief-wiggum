@@ -455,6 +455,23 @@ describe('conversationStore', () => {
     expect(mod.conversationState.isStreaming).toBe(true);
     expect(mod.conversationState.isLoading).toBe(true);
   });
+
+  it('clears loading when recovery replay already contains the final completion', async () => {
+    setActiveSessionId('session-b');
+    mockIpcCommand('list_active_bridges', () => [
+      bridge({ session_id: 'session-b', cli_session_id: 'cli-b', has_buffered_events: true }),
+    ]);
+    mockIpcCommand('list_messages', () => [
+      createTestMessage({ session_id: 'session-b', role: 'user', content: 'continue' }),
+    ]);
+    mockIpcCommand('drain_session_buffer', () => [completion('session-b', 'done now')]);
+
+    await mod.resumeSessionView('session-b');
+
+    expect(mod.conversationState.isLoading).toBe(false);
+    expect(mod.conversationState.isStreaming).toBe(false);
+    expect(mod.conversationState.processStatus).toBe('exited');
+  });
 });
 
 describe('interruptSession', () => {

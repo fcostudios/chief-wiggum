@@ -1350,7 +1350,7 @@ export async function reconnectAfterReload(activeSessionId: string | null): Prom
   }
 
   if (activeBridges.length === 0) {
-    setState('recoverableSessions', {});
+    setState('recoverableSessions', reconcile({}, { merge: false }));
     return;
   }
 
@@ -1630,6 +1630,8 @@ export async function resumeSessionView(
     setSessionStatus(sessionId, currentStatus);
 
     let replayedCount = 0;
+    let sawTerminalReplay = false;
+    let sawStreamingReplay = false;
     if (activeBridge.has_buffered_events) {
       try {
         const buffered = await invoke<BufferedEvent[]>('drain_session_buffer', {
@@ -1637,6 +1639,12 @@ export async function resumeSessionView(
         });
         replayedCount = buffered.length;
         for (const event of buffered) {
+          if (event.type === 'MessageComplete' || event.type === 'CliExited') {
+            sawTerminalReplay = true;
+          }
+          if (event.type === 'Chunk' || event.type === 'Thinking') {
+            sawStreamingReplay = true;
+          }
           replayBufferedEvent(event, sessionId, snapshot);
         }
       } catch (err) {
@@ -1649,7 +1657,10 @@ export async function resumeSessionView(
       }
     }
 
-    setState('isLoading', activeBridge.has_buffered_events);
+    const shouldKeepLoading =
+      !sawTerminalReplay &&
+      (sawStreamingReplay || currentStatus === 'starting' || currentStatus === 'running');
+    setState('isLoading', shouldKeepLoading);
     setState('lastRecoveredAt', sessionId, Date.now());
     clearRecoveryHint(sessionId);
 
