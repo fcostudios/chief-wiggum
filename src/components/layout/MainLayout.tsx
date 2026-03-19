@@ -370,9 +370,17 @@ const MainLayout: Component = () => {
             <Show when={uiState.activeView === 'diff' && !fileState.editorTakeoverActive}>
               <DiffPreviewPane />
             </Show>
-            <Show when={uiState.activeView === 'terminal' && !fileState.editorTakeoverActive}>
+            <div
+              data-testid="terminal-view-layer"
+              class={`flex flex-col flex-1 min-h-0 ${
+                uiState.activeView === 'terminal' && !fileState.editorTakeoverActive
+                  ? 'relative'
+                  : 'absolute inset-0 opacity-0 pointer-events-none'
+              }`}
+              aria-hidden={uiState.activeView !== 'terminal' || fileState.editorTakeoverActive}
+            >
               <TerminalContainer />
-            </Show>
+            </div>
             <Show when={uiState.activeView === 'actions_center' && !fileState.editorTakeoverActive}>
               <ActionsCenter />
             </Show>

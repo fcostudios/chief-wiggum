@@ -416,6 +416,14 @@ describe('MainLayout', () => {
     expect(screen.queryByTestId('message-input')).toBeNull();
   });
 
+  it('keeps terminal mounted while another view is active so running sessions stay attached', () => {
+    mockActiveView = 'conversation';
+    render(() => <MainLayout />);
+
+    expect(screen.getByTestId('terminal-container')).toBeInTheDocument();
+    expect(screen.getByTestId('terminal-view-layer')).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('renders GitPanel when activeView is git', () => {
     mockActiveView = 'git';
     render(() => <MainLayout />);
