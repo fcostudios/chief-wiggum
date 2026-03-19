@@ -244,6 +244,21 @@ describe('Sidebar', () => {
     expect(screen.getByText('Demo Project')).toBeInTheDocument();
   });
 
+  it('renders all recent projects instead of hiding entries after five', () => {
+    mockProjects = Array.from({ length: 6 }, (_, index) =>
+      makeProject({
+        id: `p${index + 1}`,
+        name: `Project ${index + 1}`,
+        path: `/tmp/project-${index + 1}`,
+      }),
+    );
+
+    render(() => <Sidebar />);
+
+    expect(screen.getByText('Project 6')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-project-list')).toBeInTheDocument();
+  });
+
   it('renders sessions area with filter input and session title', () => {
     render(() => <Sidebar />);
     expect(screen.getByPlaceholderText('Filter sessions...')).toBeInTheDocument();

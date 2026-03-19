@@ -258,8 +258,10 @@ impl ActionBridgeMap {
     /// Stop a specific action.
     pub async fn stop_action(&self, action_id: &str) -> AppResult<()> {
         let bridge = {
-            let mut runtimes = self.runtimes.write().await;
-            runtimes.remove(action_id).map(|runtime| runtime.bridge)
+            let runtimes = self.runtimes.read().await;
+            runtimes
+                .get(action_id)
+                .map(|runtime| runtime.bridge.clone())
         };
         if let Some(bridge) = bridge {
             bridge.stop().await?;
@@ -398,7 +400,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stop_removes_from_map() {
+    async fn stop_keeps_runtime_until_process_exit() {
         let map = ActionBridgeMap::new();
         let config = ActionBridgeConfig {
             command: sleep_command(),
@@ -409,7 +411,7 @@ mod tests {
             .await
             .expect("spawn action");
         map.stop_action("test:1").await.expect("stop action");
-        assert!(!map.has("test:1").await);
+        assert!(map.has("test:1").await);
     }
 
     #[tokio::test]

@@ -318,7 +318,7 @@ const Sidebar: Component = () => {
             </button>
           </div>
 
-          {/* Recent projects list (max 5) */}
+          {/* Recent projects list */}
           <div class="px-2 pb-2">
             <Show
               when={projectState.projects.length > 0}
@@ -333,8 +333,16 @@ const Sidebar: Component = () => {
                 </button>
               }
             >
-              <div class="space-y-0.5">
-                <For each={projectState.projects.slice(0, 5)}>
+              <div
+                class="space-y-0.5 overflow-y-auto pr-1"
+                style={{
+                  'max-height': projectState.projects.length > 5 ? '12rem' : undefined,
+                  'scrollbar-gutter': projectState.projects.length > 5 ? 'stable' : undefined,
+                  'overscroll-behavior': projectState.projects.length > 5 ? 'contain' : undefined,
+                }}
+                data-testid="sidebar-project-list"
+              >
+                <For each={projectState.projects}>
                   {(project) => (
                     <button
                       class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs transition-all truncate"

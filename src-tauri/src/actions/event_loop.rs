@@ -83,54 +83,58 @@ pub fn spawn_action_event_loop(
                     }
                 }
                 Ok(Some(ActionBridgeOutput::Exited { exit_code })) => {
+                    let bridge_status = bridge.status().await;
                     let snapshot = action_map.snapshot(&action_id).await;
                     let ended_at =
                         chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
-                    if let Some(snapshot) = snapshot.clone() {
-                        let output_preview = if snapshot.output_tail.is_empty() {
-                            None
-                        } else {
-                            Some(snapshot.output_tail.join("\n"))
-                        };
-                        let duration_ms = snapshot.started_at.elapsed().as_millis() as i64;
+                    if bridge_status != ActionStatus::Stopped {
+                        if let Some(snapshot) = snapshot.clone() {
+                            let output_preview = if snapshot.output_tail.is_empty() {
+                                None
+                            } else {
+                                Some(snapshot.output_tail.join("\n"))
+                            };
+                            let duration_ms = snapshot.started_at.elapsed().as_millis() as i64;
 
-                        let db_state = app.state::<Database>();
-                        let write_started = Instant::now();
-                        let history_result = queries::insert_action_history(
-                            db_state.inner(),
-                            &queries::ActionHistoryInsert {
-                                action_id: snapshot.action_id.clone(),
-                                project_id: snapshot.project_id.clone(),
-                                project_name: snapshot.project_name.clone(),
-                                action_name: snapshot.action_name.clone(),
-                                command: snapshot.command.clone(),
-                                category: action_category_as_str(&snapshot.category).to_string(),
-                                started_at: snapshot.started_at_iso.clone(),
-                                ended_at: Some(ended_at.clone()),
-                                exit_code,
-                                duration_ms: Some(duration_ms),
-                                output_preview,
-                            },
-                        );
+                            let db_state = app.state::<Database>();
+                            let write_started = Instant::now();
+                            let history_result = queries::insert_action_history(
+                                db_state.inner(),
+                                &queries::ActionHistoryInsert {
+                                    action_id: snapshot.action_id.clone(),
+                                    project_id: snapshot.project_id.clone(),
+                                    project_name: snapshot.project_name.clone(),
+                                    action_name: snapshot.action_name.clone(),
+                                    command: snapshot.command.clone(),
+                                    category: action_category_as_str(&snapshot.category)
+                                        .to_string(),
+                                    started_at: snapshot.started_at_iso.clone(),
+                                    ended_at: Some(ended_at.clone()),
+                                    exit_code,
+                                    duration_ms: Some(duration_ms),
+                                    output_preview,
+                                },
+                            );
 
-                        match history_result {
-                            Ok(()) => {
-                                let elapsed = write_started.elapsed().as_millis() as u64;
-                                if elapsed > 100 {
-                                    tracing::warn!(
+                            match history_result {
+                                Ok(()) => {
+                                    let elapsed = write_started.elapsed().as_millis() as u64;
+                                    if elapsed > 100 {
+                                        tracing::warn!(
+                                            action_id = %action_id,
+                                            elapsed_ms = elapsed,
+                                            "Action history insert took longer than 100ms"
+                                        );
+                                    }
+                                }
+                                Err(e) => {
+                                    tracing::error!(
                                         action_id = %action_id,
-                                        elapsed_ms = elapsed,
-                                        "Action history insert took longer than 100ms"
+                                        error = %e,
+                                        "Failed to write action history"
                                     );
                                 }
-                            }
-                            Err(e) => {
-                                tracing::error!(
-                                    action_id = %action_id,
-                                    error = %e,
-                                    "Failed to write action history"
-                                );
                             }
                         }
                     }
@@ -145,9 +149,13 @@ pub fn spawn_action_event_loop(
                         ("unknown".to_string(), "Unknown Project".to_string(), 0)
                     };
 
-                    let status = match exit_code {
-                        Some(0) | None => ActionStatus::Completed,
-                        _ => ActionStatus::Failed,
+                    let status = if bridge_status == ActionStatus::Stopped {
+                        ActionStatus::Stopped
+                    } else {
+                        match exit_code {
+                            Some(0) | None => ActionStatus::Completed,
+                            _ => ActionStatus::Failed,
+                        }
                     };
                     let status_payload = ActionStatusChangedPayload {
                         action_id: action_id.clone(),
@@ -164,21 +172,23 @@ pub fn spawn_action_event_loop(
                         );
                     }
 
-                    let payload = ActionExitPayload {
-                        action_id: action_id.clone(),
-                        exit_code,
-                    };
-                    let event_name = match exit_code {
-                        Some(0) | None => "action:completed",
-                        _ => "action:failed",
-                    };
-                    if let Err(e) = app.emit(event_name, &payload) {
-                        tracing::warn!(
-                            action_id = %action_id,
-                            error = %e,
-                            event = %event_name,
-                            "Failed to emit action exit event"
-                        );
+                    if bridge_status != ActionStatus::Stopped {
+                        let payload = ActionExitPayload {
+                            action_id: action_id.clone(),
+                            exit_code,
+                        };
+                        let event_name = match exit_code {
+                            Some(0) | None => "action:completed",
+                            _ => "action:failed",
+                        };
+                        if let Err(e) = app.emit(event_name, &payload) {
+                            tracing::warn!(
+                                action_id = %action_id,
+                                error = %e,
+                                event = %event_name,
+                                "Failed to emit action exit event"
+                            );
+                        }
                     }
 
                     action_map.remove_runtime(&action_id).await;
