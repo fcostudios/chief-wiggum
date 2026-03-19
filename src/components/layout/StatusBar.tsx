@@ -26,6 +26,7 @@ import {
   type ErrorSeverity,
 } from '@/stores/errorLogStore';
 import type { ProcessStatus, Session, TodoItem } from '@/lib/types';
+import { parseTodoWriteInput } from '@/lib/todoWrite';
 import {
   actionState,
   getRecentActionEvents,
@@ -114,9 +115,9 @@ const StatusBar: Component = () => {
         if (parsed.tool_name !== 'TodoWrite' || typeof parsed.tool_input !== 'string') {
           continue;
         }
-        const input = JSON.parse(parsed.tool_input) as { todos?: unknown };
-        if (Array.isArray(input.todos) && input.todos.length > 0) {
-          return input.todos as TodoItem[];
+        const todos = parseTodoWriteInput(parsed.tool_input);
+        if (todos.length > 0) {
+          return todos;
         }
       } catch {
         // Ignore malformed tool payloads.

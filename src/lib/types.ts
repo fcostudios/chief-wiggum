@@ -91,8 +91,10 @@ export type ToolCategory = 'file' | 'bash' | 'question' | 'neutral';
 
 /** A single todo item from a TodoWrite tool call. */
 export interface TodoItem {
+  id?: string;
   content: string;
-  activeForm: string;
+  /** Current Claude Code schema requires this; old imported sessions may omit it. */
+  activeForm?: string | null;
   status: 'pending' | 'in_progress' | 'completed';
 }
 

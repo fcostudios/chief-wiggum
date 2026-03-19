@@ -1,4 +1,5 @@
 import type { Message } from './types';
+import { parseTodoWriteInput } from './todoWrite';
 
 export interface SessionResume {
   lastMessagePreview: string;
@@ -68,12 +69,10 @@ export function extractResumeData(messages: Message[]): SessionResume | null {
     if (!parsed?.tool_name || parsed.tool_name !== 'TodoWrite' || !parsed.tool_input) continue;
 
     try {
-      const input = JSON.parse(parsed.tool_input) as {
-        todos?: Array<{ content?: string; status?: string }>;
-      };
-      if (!Array.isArray(input.todos)) break;
+      const todos = parseTodoWriteInput(parsed.tool_input);
+      if (todos.length === 0) break;
       openTodos.push(
-        ...input.todos
+        ...todos
           .filter((t) => t.status !== 'completed')
           .map((t) => t.content ?? '')
           .filter(Boolean)

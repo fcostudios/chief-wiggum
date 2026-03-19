@@ -61,6 +61,31 @@ describe('extractResumeData', () => {
       tool_use_id: 'tu2',
       tool_input: JSON.stringify({
         todos: [
+          {
+            id: '1',
+            content: 'Write tests',
+            activeForm: 'Writing tests',
+            status: 'in_progress',
+          },
+          {
+            id: '2',
+            content: 'Update docs',
+            activeForm: 'Updating docs',
+            status: 'completed',
+          },
+        ],
+      }),
+    });
+    const result = extractResumeData([makeMsg('tool_use', toolUse), makeMsg('assistant', 'done')]);
+    expect(result?.openTodos).toEqual(['Write tests']);
+  });
+
+  it('still extracts open todos from legacy TodoWrite payloads without activeForm', () => {
+    const toolUse = JSON.stringify({
+      tool_name: 'TodoWrite',
+      tool_use_id: 'tu2',
+      tool_input: JSON.stringify({
+        todos: [
           { id: '1', content: 'Write tests', status: 'in_progress' },
           { id: '2', content: 'Update docs', status: 'completed' },
         ],

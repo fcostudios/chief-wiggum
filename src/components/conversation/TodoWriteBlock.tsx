@@ -2,19 +2,8 @@ import type { Component } from 'solid-js';
 import { createSignal, For, Match, Show, Switch } from 'solid-js';
 import { CheckCircle, ChevronDown, ChevronRight, Circle } from 'lucide-solid';
 import { t } from '@/stores/i18nStore';
-import type { Message, TodoItem, TodoWriteData, ToolUseData } from '@/lib/types';
-
-function parseTodos(toolInput: string): TodoItem[] {
-  try {
-    const parsed = JSON.parse(toolInput) as TodoWriteData;
-    if (Array.isArray(parsed.todos)) {
-      return parsed.todos;
-    }
-  } catch {
-    // malformed payloads should not break rendering
-  }
-  return [];
-}
+import type { Message, TodoItem, ToolUseData } from '@/lib/types';
+import { parseTodoWriteInput } from '@/lib/todoWrite';
 
 function todoCounts(todos: TodoItem[]): { done: number; inProgress: number } {
   return {
@@ -62,7 +51,7 @@ export const TodoWriteBlock: Component<{ message: Message }> = (props) => {
   const todos = (): TodoItem[] => {
     try {
       const parsed = JSON.parse(props.message.content) as ToolUseData;
-      return parseTodos(parsed.tool_input ?? '');
+      return parseTodoWriteInput(parsed.tool_input ?? '');
     } catch {
       return [];
     }
