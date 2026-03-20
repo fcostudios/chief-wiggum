@@ -5,6 +5,26 @@ import tailwindcss from '@tailwindcss/vite';
 // https://v2.tauri.app/start/frontend/vite/
 const host = process.env.TAURI_DEV_HOST;
 
+// Keep HMR scoped to the app itself. This repo also stores docs, tests, plans,
+// and local metadata that should not force a dev-page reload.
+const ignoredDevWatchGlobs = [
+  '**/src-tauri/**',
+  '**/docs/**',
+  '**/tests/**',
+  '**/test-results/**',
+  '**/playwright-report/**',
+  '**/blob-report/**',
+  '**/.worktrees/**',
+  '**/.claude/**',
+  '**/.playwright-mcp/**',
+  '**/.github/**',
+  '**/chief-wiggum.db',
+  '**/CLAUDE.md',
+  '**/README.md',
+  '**/playwright.config.ts',
+  '**/vitest.config.ts',
+];
+
 export default defineConfig({
   plugins: [tailwindcss(), solid()],
   define: {
@@ -24,7 +44,7 @@ export default defineConfig({
         }
       : undefined,
     watch: {
-      ignored: ['**/src-tauri/**'],
+      ignored: ignoredDevWatchGlobs,
     },
   },
   resolve: {
