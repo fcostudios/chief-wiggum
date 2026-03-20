@@ -22,6 +22,7 @@ const MAX_OUTPUT_BUFFER_BYTES: usize = 10 * 1024 * 1024;
 
 /// Health check interval in milliseconds.
 const HEALTH_CHECK_INTERVAL_MS: u64 = 5000;
+const MAX_EXIT_TAIL_LINES: usize = 10;
 
 /// Process status states per SPEC-003 §6 (agent lifecycle state machine).
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -38,6 +39,66 @@ pub enum ProcessStatus {
     Exited(Option<i32>),
     /// Process is in an error state.
     Error(String),
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct CliExitDiagnostics {
+    pub cli_path: String,
+    pub working_dir: Option<String>,
+    pub model: Option<String>,
+    pub mode: String,
+    pub resume_mode: String,
+    pub stdout_tail: Vec<String>,
+    pub stderr_tail: Vec<String>,
+    pub termination: Option<String>,
+}
+
+impl CliExitDiagnostics {
+    pub fn from_config(config: &BridgeConfig, mode: &str) -> Self {
+        Self {
+            cli_path: config.cli_path.clone(),
+            working_dir: config.working_dir.clone(),
+            model: config.model.clone(),
+            mode: mode.to_string(),
+            resume_mode: infer_resume_mode(&config.extra_args),
+            stdout_tail: Vec::new(),
+            stderr_tail: Vec::new(),
+            termination: None,
+        }
+    }
+
+    pub fn push_stdout_line(&mut self, line: &str) {
+        push_tail_line(&mut self.stdout_tail, line);
+    }
+
+    pub fn push_stderr_line(&mut self, line: &str) {
+        push_tail_line(&mut self.stderr_tail, line);
+    }
+
+    pub fn set_termination(&mut self, termination: impl Into<String>) {
+        self.termination = Some(termination.into());
+    }
+}
+
+fn infer_resume_mode(extra_args: &[String]) -> String {
+    if extra_args.iter().any(|arg| arg == "--resume") {
+        return "resume".to_string();
+    }
+    if extra_args.iter().any(|arg| arg == "--continue") {
+        return "continue".to_string();
+    }
+    "fresh".to_string()
+}
+
+fn push_tail_line(buffer: &mut Vec<String>, line: &str) {
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    if buffer.len() >= MAX_EXIT_TAIL_LINES {
+        buffer.remove(0);
+    }
+    buffer.push(trimmed.to_string());
 }
 
 /// Configuration for spawning a Claude Code CLI process.
@@ -155,6 +216,7 @@ pub struct CliBridge {
     /// Configuration used to spawn this process.
     #[allow(dead_code)]
     config: BridgeConfig,
+    diagnostics: Arc<RwLock<CliExitDiagnostics>>,
 }
 
 impl CliBridge {
@@ -172,6 +234,10 @@ impl CliBridge {
     /// - Thread spawning fails
     pub async fn spawn(config: BridgeConfig) -> AppResult<Self> {
         let status = Arc::new(RwLock::new(ProcessStatus::Starting));
+        let diagnostics = Arc::new(RwLock::new(CliExitDiagnostics::from_config(
+            &config,
+            "legacy_prompt",
+        )));
 
         // Allocate a PTY pair. The slave side becomes the child's stdin/stdout/stderr.
         // Using a PTY ensures Node.js sees a TTY and uses line buffering, so we get
@@ -251,11 +317,18 @@ impl CliBridge {
         let reader_status = Arc::clone(&status);
         let reader_shutdown = shutdown_rx.clone();
         let reader_output_tx = output_tx.clone();
+        let reader_diagnostics = Arc::clone(&diagnostics);
 
         std::thread::Builder::new()
             .name("cli-reader".to_string())
             .spawn(move || {
-                Self::pty_reader_loop(reader, reader_output_tx, reader_status, reader_shutdown);
+                Self::pty_reader_loop(
+                    reader,
+                    reader_output_tx,
+                    reader_status,
+                    reader_shutdown,
+                    reader_diagnostics,
+                );
             })
             .map_err(|e| AppError::Bridge(format!("Failed to spawn reader thread: {}", e)))?;
 
@@ -278,10 +351,17 @@ impl CliBridge {
         let monitor_status = Arc::clone(&status);
         let monitor_output_tx = output_tx;
         let monitor_shutdown = shutdown_rx;
+        let monitor_diagnostics = Arc::clone(&diagnostics);
 
         tokio::spawn(async move {
-            Self::pty_process_monitor(child, monitor_status, monitor_output_tx, monitor_shutdown)
-                .await;
+            Self::pty_process_monitor(
+                child,
+                monitor_status,
+                monitor_output_tx,
+                monitor_shutdown,
+                monitor_diagnostics,
+            )
+            .await;
         });
 
         // Mark as running
@@ -293,6 +373,7 @@ impl CliBridge {
             status,
             shutdown_tx,
             config,
+            diagnostics,
         })
     }
 
@@ -303,6 +384,7 @@ impl CliBridge {
         output_tx: mpsc::Sender<BridgeOutput>,
         status: Arc<RwLock<ProcessStatus>>,
         shutdown_rx: watch::Receiver<bool>,
+        diagnostics: Arc<RwLock<CliExitDiagnostics>>,
     ) {
         let mut buffer = vec![0u8; PTY_BUFFER_SIZE];
         let mut parser = StreamParser::new();
@@ -335,6 +417,12 @@ impl CliBridge {
 
                     let chunk = &buffer[..n];
                     let raw_text = String::from_utf8_lossy(chunk);
+                    {
+                        let mut shared = diagnostics.blocking_write();
+                        for line in raw_text.lines() {
+                            shared.push_stdout_line(line);
+                        }
+                    }
 
                     // Log raw data for debugging
                     tracing::trace!("CLI reader: received {} bytes (total: {})", n, total_bytes);
@@ -458,17 +546,26 @@ impl CliBridge {
         status: Arc<RwLock<ProcessStatus>>,
         output_tx: mpsc::Sender<BridgeOutput>,
         mut shutdown_rx: watch::Receiver<bool>,
+        diagnostics: Arc<RwLock<CliExitDiagnostics>>,
     ) {
         loop {
             tokio::select! {
                 _ = tokio::time::sleep(tokio::time::Duration::from_millis(HEALTH_CHECK_INTERVAL_MS)) => {
                     match child.try_wait() {
                         Ok(Some(exit_status)) => {
-                            let exit_code = if exit_status.success() { Some(0) } else { Some(1) };
+                            let exit_code = Some(exit_status.exit_code() as i32);
                             tracing::info!("Claude Code CLI exited with status: {:?} (success: {})", exit_code, exit_status.success());
 
                             *status.write().await = ProcessStatus::Exited(exit_code);
-                            let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code }).await;
+                            let mut snapshot = diagnostics.write().await;
+                            snapshot.set_termination(if exit_status.success() {
+                                "process exited normally"
+                            } else {
+                                "process exited with non-zero status"
+                            });
+                            let diagnostics = snapshot.clone();
+                            drop(snapshot);
+                            let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code, diagnostics }).await;
                             return;
                         }
                         Ok(None) => {
@@ -477,6 +574,8 @@ impl CliBridge {
                         Err(e) => {
                             tracing::error!("Process monitor: failed to check status: {}", e);
                             *status.write().await = ProcessStatus::Error(e.to_string());
+                            let mut snapshot = diagnostics.write().await;
+                            snapshot.set_termination(format!("process wait failed: {}", e));
                             return;
                         }
                     }
@@ -486,7 +585,11 @@ impl CliBridge {
                         tracing::info!("Process monitor: shutdown signal, killing process");
                         let _ = child.kill();
                         *status.write().await = ProcessStatus::Exited(None);
-                        let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code: None }).await;
+                        let mut snapshot = diagnostics.write().await;
+                        snapshot.set_termination("process terminated after shutdown signal");
+                        let diagnostics = snapshot.clone();
+                        drop(snapshot);
+                        let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code: None, diagnostics }).await;
                         return;
                     }
                 }
@@ -545,6 +648,10 @@ impl BridgeInterface for CliBridge {
         // Signal shutdown to all background threads
         let _ = self.shutdown_tx.send(true);
         *self.status.write().await = ProcessStatus::Exited(None);
+        self.diagnostics
+            .write()
+            .await
+            .set_termination("bridge killed before exit status was available");
         Ok(())
     }
 }
@@ -624,7 +731,10 @@ mod tests {
                 content: "Hello".to_string(),
                 token_count: Some(1),
             }),
-            BridgeOutput::ProcessExited { exit_code: Some(0) },
+            BridgeOutput::ProcessExited {
+                exit_code: Some(0),
+                diagnostics: CliExitDiagnostics::default(),
+            },
         ];
 
         let bridge = MockBridge::new(outputs);
@@ -693,5 +803,21 @@ mod tests {
         let status = ProcessStatus::Exited(Some(0));
         let json = serde_json::to_string(&status).unwrap();
         assert!(json.contains("Exited"));
+    }
+
+    #[test]
+    fn cli_exit_diagnostics_infers_resume_mode() {
+        let config = BridgeConfig {
+            cli_path: "claude".to_string(),
+            model: Some("claude-sonnet-4-6".to_string()),
+            working_dir: Some("/workspace/a".to_string()),
+            extra_args: vec!["--resume".to_string(), "cli-123".to_string()],
+            ..BridgeConfig::default()
+        };
+
+        let diagnostics = CliExitDiagnostics::from_config(&config, "sdk");
+        assert_eq!(diagnostics.mode, "sdk");
+        assert_eq!(diagnostics.resume_mode, "resume");
+        assert_eq!(diagnostics.working_dir.as_deref(), Some("/workspace/a"));
     }
 }

@@ -12,6 +12,7 @@ import type {
   ProcessStatus,
   ActiveBridgeInfo,
   BufferedEvent,
+  CliExitDiagnostics,
   CliLocation,
   CostUpdateEvent,
   PromptImageInput,
@@ -23,11 +24,13 @@ import type {
 import {
   updateSessionTitle,
   updateSessionCliId,
+  updateSessionProject,
   getActiveSession,
+  sessionState,
   refreshSessionById,
   touchSessionActivity,
 } from '@/stores/sessionStore';
-import { getActiveProject } from '@/stores/projectStore';
+import { getActiveProject, projectState, setActiveProject } from '@/stores/projectStore';
 import { showPermissionDialog, showQuestionDialog } from '@/stores/uiStore';
 import { createLogger } from '@/lib/logger';
 import { addToast } from '@/stores/toastStore';
@@ -171,6 +174,44 @@ function clearRecoveryHint(sessionId: string): void {
   if (!(sessionId in next)) return;
   delete next[sessionId];
   setState('recoverableSessions', reconcile(next, { merge: false }));
+}
+
+function formatCliExitError(
+  exitCode: number | null,
+  diagnostics?: CliExitDiagnostics | null,
+): string {
+  const headline =
+    exitCode == null
+      ? 'Claude Code CLI exited abnormally'
+      : `Claude Code CLI exited with code ${exitCode}`;
+
+  const details: string[] = [];
+  if (diagnostics?.working_dir) {
+    details.push(`cwd: ${diagnostics.working_dir}`);
+  }
+  if (diagnostics?.mode) {
+    const mode = diagnostics.resume_mode
+      ? `${diagnostics.mode} (${diagnostics.resume_mode})`
+      : diagnostics.mode;
+    details.push(`mode: ${mode}`);
+  }
+  if (diagnostics?.model) {
+    details.push(`model: ${diagnostics.model}`);
+  }
+  if (diagnostics?.termination) {
+    details.push(`termination: ${diagnostics.termination}`);
+  }
+  const stderrTail = diagnostics?.stderr_tail?.filter(Boolean).join(' | ');
+  if (stderrTail) {
+    details.push(`stderr: ${stderrTail}`);
+  } else {
+    const stdoutTail = diagnostics?.stdout_tail?.filter(Boolean).join(' | ');
+    if (stdoutTail) {
+      details.push(`stdout: ${stdoutTail}`);
+    }
+  }
+
+  return details.length > 0 ? `${headline}\n${details.join('\n')}` : headline;
 }
 
 function syncRecoverableSessions(
@@ -536,6 +577,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
     await listen<{
       session_id: string;
       exit_code: number | null;
+      diagnostics: CliExitDiagnostics;
       // eslint-disable-next-line solid/reactivity -- event callback, snapshot read is intentional
     }>('cli:exited', (event) => {
       if (event.payload.session_id !== sessionId) return;
@@ -653,8 +695,11 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
         setState('isStreaming', false);
       }
 
-      if (event.payload.exit_code !== 0 && event.payload.exit_code !== null && isActive) {
-        setState('error', `CLI exited with code ${event.payload.exit_code}`);
+      if (event.payload.exit_code !== 0 && isActive) {
+        setState(
+          'error',
+          formatCliExitError(event.payload.exit_code, event.payload.diagnostics),
+        );
       }
     }),
   );
@@ -882,6 +927,37 @@ export async function cleanupAllListeners(): Promise<void> {
 /** Backward compat alias -- used by older call sites. */
 export const cleanupEventListeners = cleanupAllListeners;
 
+function getSessionById(sessionId: string) {
+  return sessionState.sessions.find((session) => session.id === sessionId);
+}
+
+async function resolveAndRepairSessionProject(
+  sessionId: string,
+): Promise<{ projectId: string; projectPath: string }> {
+  const session = getSessionById(sessionId);
+  if (session?.project_id) {
+    const project = projectState.projects.find((candidate) => candidate.id === session.project_id);
+    if (!project) {
+      throw new Error(`Session project ${session.project_id} is not loaded`);
+    }
+    if (projectState.activeProjectId !== project.id) {
+      setActiveProject(project.id);
+    }
+    return { projectId: project.id, projectPath: project.path };
+  }
+
+  const activeProject = getActiveProject();
+  if (!activeProject) {
+    throw new Error('Session project could not be resolved for dispatch');
+  }
+
+  await updateSessionProject(sessionId, activeProject.id);
+  if (projectState.activeProjectId !== activeProject.id) {
+    setActiveProject(activeProject.id);
+  }
+  return { projectId: activeProject.id, projectPath: activeProject.path };
+}
+
 /** Send a user message: persist to DB, start CLI if needed, send via PTY. */
 export async function sendMessage(
   content: string,
@@ -937,7 +1013,7 @@ export async function sendMessage(
   );
 
   // Auto-title session from first message
-  const session = getActiveSession();
+  const session = getSessionById(sessionId);
   if (session && !session.title) {
     const title = content.length > 50 ? content.substring(0, 50) + '...' : content;
     updateSessionTitle(sessionId, title).catch((err) =>
@@ -970,9 +1046,8 @@ async function dispatchMessageToCli(
 ): Promise<void> {
   // Spawn CLI process with `-p "prompt"` for each message.
   // Follow-up messages use `--continue` to resume the conversation.
-  const session = getActiveSession();
-  const project = getActiveProject();
-  const projectPath = project?.path ?? '.';
+  const session = getSessionById(sessionId) ?? getActiveSession();
+  const { projectPath } = await resolveAndRepairSessionProject(sessionId);
   const model = session?.model ?? 'claude-sonnet-4-6';
   // Only mark as follow-up if there are prior assistant messages (successful responses).
   // Failed CLI attempts leave user-only messages which shouldn't trigger --continue.

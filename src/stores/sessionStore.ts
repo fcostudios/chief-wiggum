@@ -11,7 +11,7 @@ import { addToast } from '@/stores/toastStore';
 import { bindActiveSessionToFocusedPane, ensureMainPaneSession } from '@/stores/viewStore';
 import { discardUnsentContent, hasUnsentContent } from '@/stores/unsentStore';
 import { t } from '@/stores/i18nStore';
-import { projectState } from '@/stores/projectStore';
+import { projectState, setActiveProject } from '@/stores/projectStore';
 
 const log = createLogger('ui/session');
 
@@ -100,6 +100,10 @@ export async function createNewSession(model: string, projectId?: string): Promi
 export function setActiveSession(sessionId: string): void {
   if (sessionId === state.activeSessionId) return;
   if (!checkUnsentGuard()) return;
+  const session = state.sessions.find((candidate) => candidate.id === sessionId);
+  if (session?.project_id && projectState.activeProjectId !== session.project_id) {
+    setActiveProject(session.project_id);
+  }
   setState('activeSessionId', sessionId);
   bindActiveSessionToFocusedPane(sessionId);
   // Load summary for the active session (fire-and-forget).
@@ -150,6 +154,15 @@ export function getActiveSession(): Session | undefined {
 export async function updateSessionCliId(sessionId: string, cliSessionId: string): Promise<void> {
   await invoke('update_session_cli_id', { session_id: sessionId, cli_session_id: cliSessionId });
   setState('sessions', (s) => s.id === sessionId, 'cli_session_id', cliSessionId);
+}
+
+/** Persist a repaired session/project binding and mirror it into local store state. */
+export async function updateSessionProject(
+  sessionId: string,
+  projectId: string | null,
+): Promise<void> {
+  await invoke('update_session_project', { session_id: sessionId, project_id: projectId });
+  setState('sessions', (session) => session.id === sessionId, 'project_id', projectId);
 }
 
 /** Change the model for the active session. */

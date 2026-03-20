@@ -193,6 +193,17 @@ export interface RecoveryHint {
   detectedAt: number;
 }
 
+export interface CliExitDiagnostics {
+  cli_path: string;
+  working_dir: string | null;
+  model: string | null;
+  mode: string;
+  resume_mode: string;
+  stdout_tail: string[];
+  stderr_tail: string[];
+  termination: string | null;
+}
+
 /** Payload from `cli:init` Tauri event (Agent SDK system:init). */
 export interface CliInitEvent {
   session_id: string;
@@ -234,6 +245,7 @@ export interface BufferedEvent {
   cli_session_id?: string;
   // CliExited fields
   exit_code?: number | null;
+  diagnostics?: CliExitDiagnostics;
   // ToolUse fields
   tool_use_id?: string;
   tool_name?: string;

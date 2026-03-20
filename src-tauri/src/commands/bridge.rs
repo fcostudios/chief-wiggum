@@ -9,6 +9,8 @@ use crate::bridge::permission::{PermissionAction, PermissionManager, PermissionR
 use crate::bridge::process::{BridgeConfig, ProcessStatus};
 use crate::bridge::CliLocation;
 use crate::bridge::{control, ControlRequest};
+use crate::db::queries::{self, ProjectRow, SessionRow};
+use crate::db::Database;
 use crate::AppError;
 use std::collections::HashMap;
 use tauri::State;
@@ -80,6 +82,55 @@ fn build_question_updated_input(
     Ok(updated_input)
 }
 
+fn validate_session_project_context(
+    session: &SessionRow,
+    requested_project_path: &str,
+    session_project: Option<&ProjectRow>,
+) -> Result<String, AppError> {
+    if let Some(project_id) = session.project_id.as_deref() {
+        let project = session_project.ok_or_else(|| {
+            AppError::Validation(format!(
+                "Session {} references missing project {}",
+                session.id, project_id
+            ))
+        })?;
+
+        let requested = requested_project_path.trim();
+        if !requested.is_empty() && requested != project.path {
+            return Err(AppError::Validation(format!(
+                "session/project mismatch: session {} belongs to project {} at {} but request used {}",
+                session.id, project_id, project.path, requested
+            )));
+        }
+
+        return Ok(project.path.clone());
+    }
+
+    let requested = requested_project_path.trim();
+    if requested.is_empty() {
+        return Err(AppError::Validation(format!(
+            "Session {} has no bound project and no project path was provided",
+            session.id
+        )));
+    }
+
+    Ok(requested.to_string())
+}
+
+fn resolve_session_project_path(
+    db: &Database,
+    session_id: &str,
+    requested_project_path: &str,
+) -> Result<String, AppError> {
+    let session = queries::get_session(db, session_id)?
+        .ok_or_else(|| AppError::Other(format!("Session {} not found", session_id)))?;
+    let session_project = match session.project_id.as_deref() {
+        Some(project_id) => queries::get_project(db, project_id)?,
+        None => None,
+    };
+    validate_session_project_context(&session, requested_project_path, session_project.as_ref())
+}
+
 /// Start a persistent CLI session using the Agent SDK control protocol.
 ///
 /// Creates an AgentSdkBridge with bidirectional JSONL communication.
@@ -89,6 +140,7 @@ fn build_question_updated_input(
 #[allow(clippy::too_many_arguments)]
 pub async fn start_session_cli(
     app: tauri::AppHandle,
+    db: State<'_, Database>,
     bridge_map: State<'_, SessionBridgeMap>,
     cli: State<'_, CliLocation>,
     permission_manager: State<'_, PermissionManager>,
@@ -103,6 +155,8 @@ pub async fn start_session_cli(
                 .to_string(),
         ));
     }
+
+    let project_path = resolve_session_project_path(&db, &session_id, &project_path)?;
 
     if bridge_map.has(&session_id).await {
         bridge_map.remove(&session_id).await?;
@@ -167,6 +221,7 @@ pub async fn start_session_cli(
 #[tauri::command(rename_all = "snake_case")]
 pub async fn send_to_cli(
     app: tauri::AppHandle,
+    db: State<'_, Database>,
     bridge_map: State<'_, SessionBridgeMap>,
     cli: State<'_, CliLocation>,
     permission_manager: State<'_, PermissionManager>,
@@ -178,6 +233,7 @@ pub async fn send_to_cli(
     is_follow_up: bool,
     cli_session_id: Option<String>,
 ) -> Result<(), AppError> {
+    let project_path = resolve_session_project_path(&db, &session_id, &project_path)?;
     let message_images = message_images.unwrap_or_default();
     if !message_images.is_empty() {
         validate_message_images(&message_images)?;
@@ -536,6 +592,7 @@ pub async fn toggle_developer_mode(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db::queries::{ProjectRow, SessionRow};
     use std::sync::Arc;
     use std::time::Duration;
 
@@ -547,6 +604,41 @@ mod tests {
             file_path: None,
             risk_level: "medium".to_string(),
             tool_input: None,
+        }
+    }
+
+    fn make_session_row(session_id: &str, project_id: Option<&str>) -> SessionRow {
+        SessionRow {
+            id: session_id.to_string(),
+            project_id: project_id.map(str::to_string),
+            title: None,
+            model: "claude-sonnet-4-6".to_string(),
+            status: None,
+            parent_session_id: None,
+            context_tokens: None,
+            total_input_tokens: None,
+            total_output_tokens: None,
+            total_cost_cents: None,
+            created_at: None,
+            updated_at: None,
+            cli_session_id: None,
+            pinned: None,
+            cli_version: None,
+            total_thinking_tokens: None,
+            total_cache_read_tokens: None,
+            total_cache_write_tokens: None,
+        }
+    }
+
+    fn make_project_row(project_id: &str, path: &str) -> ProjectRow {
+        ProjectRow {
+            id: project_id.to_string(),
+            name: project_id.to_string(),
+            path: path.to_string(),
+            default_model: None,
+            default_effort: None,
+            created_at: None,
+            last_opened_at: None,
         }
     }
 
@@ -640,6 +732,28 @@ mod tests {
             answers_val.get("Which auth?").and_then(|v| v.as_str()),
             Some("JWT")
         );
+    }
+
+    #[test]
+    fn validate_session_project_context_rejects_mismatched_project_path() {
+        let session = make_session_row("session-a", Some("proj-a"));
+        let project = make_project_row("proj-a", "/workspace/a");
+
+        let err = validate_session_project_context(&session, "/workspace/b", Some(&project))
+            .expect_err("mismatched project path should be rejected");
+
+        assert!(err.to_string().contains("session/project mismatch"));
+    }
+
+    #[test]
+    fn validate_session_project_context_accepts_bound_project_path() {
+        let session = make_session_row("session-a", Some("proj-a"));
+        let project = make_project_row("proj-a", "/workspace/a");
+
+        let resolved =
+            validate_session_project_context(&session, "/workspace/a", Some(&project)).unwrap();
+
+        assert_eq!(resolved, "/workspace/a");
     }
 
     #[tokio::test]

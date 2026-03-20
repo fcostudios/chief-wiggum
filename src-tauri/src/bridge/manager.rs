@@ -338,6 +338,7 @@ impl Default for SessionBridgeMap {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::bridge::process::CliExitDiagnostics;
     use crate::bridge::process::MockBridge;
     use crate::bridge::BridgeOutput;
 
@@ -403,6 +404,7 @@ mod tests {
         let map = SessionBridgeMap::new();
         let mock = Arc::new(MockBridge::new(vec![BridgeOutput::ProcessExited {
             exit_code: Some(0),
+            diagnostics: CliExitDiagnostics::default(),
         }]));
         map.insert_mock("session-1", mock.clone()).await;
 
@@ -462,6 +464,7 @@ mod tests {
             runtime.buffer_event(BufferedEvent::CliExited(CliExitedPayload {
                 session_id: "s1".to_string(),
                 exit_code: Some(i as i32),
+                diagnostics: CliExitDiagnostics::default(),
             }));
         }
         let events = runtime.drain_buffer();

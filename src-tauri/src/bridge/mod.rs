@@ -22,7 +22,7 @@ pub use control::{ControlRequest, ControlResponse, UserMessage};
 pub use manager::SessionBridgeMap;
 pub use parser::{BridgeEvent, MessageChunk, ParsedOutput, StreamParser};
 pub use permission::{PermissionAction, PermissionManager, PermissionRequest, PermissionResponse};
-pub use process::{BridgeConfig, BridgeInterface, CliBridge, ProcessStatus};
+pub use process::{BridgeConfig, BridgeInterface, CliBridge, CliExitDiagnostics, ProcessStatus};
 pub use sdk_bridge::AgentSdkBridge;
 
 use crate::AppError;
@@ -46,7 +46,10 @@ pub enum BridgeOutput {
     QuestionRequired(QuestionRequest),
 
     /// The CLI process has exited.
-    ProcessExited { exit_code: Option<i32> },
+    ProcessExited {
+        exit_code: Option<i32>,
+        diagnostics: CliExitDiagnostics,
+    },
 }
 
 /// Structured question from AskUserQuestion tool.
@@ -250,7 +253,10 @@ mod tests {
 
     #[test]
     fn bridge_output_serializes() {
-        let output = BridgeOutput::ProcessExited { exit_code: Some(0) };
+        let output = BridgeOutput::ProcessExited {
+            exit_code: Some(0),
+            diagnostics: CliExitDiagnostics::default(),
+        };
         let json = serde_json::to_string(&output).expect("should serialize");
         assert!(json.contains("ProcessExited"));
     }

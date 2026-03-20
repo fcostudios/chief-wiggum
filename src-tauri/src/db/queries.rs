@@ -412,6 +412,21 @@ pub fn update_session_cli_id(
 }
 
 #[tracing::instrument(target = "db/queries", level = "info", skip(db))]
+pub fn update_session_project(
+    db: &Database,
+    id: &str,
+    project_id: Option<&str>,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET project_id = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, project_id],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "info", skip(db))]
 pub fn update_session_cli_version(
     db: &Database,
     id: &str,

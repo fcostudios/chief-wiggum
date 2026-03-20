@@ -237,6 +237,7 @@ fn main() {
             chief_wiggum_lib::commands::session::update_message_content,
             chief_wiggum_lib::commands::session::update_session_model,
             chief_wiggum_lib::commands::session::update_session_cli_id,
+            chief_wiggum_lib::commands::session::update_session_project,
             chief_wiggum_lib::commands::session::get_session_cost,
             chief_wiggum_lib::commands::session::toggle_session_pinned,
             chief_wiggum_lib::commands::session::duplicate_session,

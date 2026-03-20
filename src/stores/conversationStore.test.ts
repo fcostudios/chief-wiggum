@@ -1,23 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockIpcCommand, mockListen } from '@/test/mockIPC';
-import { createTestMessage } from '@/test/helpers';
-import type { ActiveBridgeInfo, BufferedEvent } from '@/lib/types';
+import { createTestMessage, createTestSession } from '@/test/helpers';
+import type { ActiveBridgeInfo, BufferedEvent, Project } from '@/lib/types';
 
 const mocks = vi.hoisted(() => ({
   session: {
     activeSession: {
       id: 'test-session-1',
-      title: '',
+      title: 'Test Session 1',
       model: 'claude-sonnet-4-6',
+      project_id: null,
+      status: null,
+      parent_session_id: null,
+      context_tokens: 0,
+      total_input_tokens: 0,
+      total_output_tokens: 0,
+      total_cost_cents: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       cli_session_id: null,
-    },
+      pinned: false,
+    } as ReturnType<typeof createTestSession>,
+    sessions: [] as ReturnType<typeof createTestSession>[],
     updateSessionTitle: vi.fn(() => Promise.resolve()),
     updateSessionCliId: vi.fn(() => Promise.resolve()),
+    updateSessionProject: vi.fn(() => Promise.resolve()),
     refreshSessionById: vi.fn(() => Promise.resolve()),
     touchSessionActivity: vi.fn(),
   },
   project: {
     activeProject: undefined as { id: string; path: string } | undefined,
+    activeProjectId: null as string | null,
+    projects: [] as Project[],
+    setActiveProject: vi.fn(),
   },
   ui: {
     showPermissionDialog: vi.fn(),
@@ -30,14 +45,31 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/stores/sessionStore', () => ({
   updateSessionTitle: mocks.session.updateSessionTitle,
   updateSessionCliId: mocks.session.updateSessionCliId,
+  updateSessionProject: mocks.session.updateSessionProject,
   getActiveSession: () => mocks.session.activeSession,
+  sessionState: {
+    get sessions() {
+      return mocks.session.sessions;
+    },
+    get activeSessionId() {
+      return mocks.session.activeSession.id;
+    },
+  },
   refreshSessionById: mocks.session.refreshSessionById,
   touchSessionActivity: mocks.session.touchSessionActivity,
 }));
 
 vi.mock('@/stores/projectStore', () => ({
   getActiveProject: () => mocks.project.activeProject,
-  projectState: { activeProjectId: null },
+  setActiveProject: mocks.project.setActiveProject,
+  projectState: {
+    get activeProjectId() {
+      return mocks.project.activeProjectId;
+    },
+    get projects() {
+      return mocks.project.projects;
+    },
+  },
 }));
 
 vi.mock('@/stores/uiStore', () => ({
@@ -107,13 +139,26 @@ describe('conversationStore', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
-    mocks.project.activeProject = undefined;
-    mocks.session.activeSession = {
+    mocks.project.activeProject = { id: 'proj-default', path: '/workspace/default' };
+    mocks.project.activeProjectId = 'proj-default';
+    mocks.project.projects = [
+      {
+        id: 'proj-default',
+        name: 'Default',
+        path: '/workspace/default',
+        default_model: null,
+        default_effort: null,
+        created_at: null,
+        last_opened_at: null,
+      },
+    ];
+    mocks.session.activeSession = createTestSession({
       id: 'test-session-1',
-      title: '',
       model: 'claude-sonnet-4-6',
+      project_id: null,
       cli_session_id: null,
-    };
+    });
+    mocks.session.sessions = [];
 
     mockListen.mockClear();
     mockIpcCommand('list_messages', () => []);
@@ -238,6 +283,53 @@ describe('conversationStore', () => {
     expect(unlisten.mock.calls.length).toBeGreaterThan(1);
   });
 
+  it('surfaces enriched diagnostics when the CLI exits abnormally', async () => {
+    await mod.setupEventListeners('test-session-1');
+
+    const cliExitedCall = mockListen.mock.calls.find(
+      (call) => (call as unknown[])[0] === 'cli:exited',
+    ) as unknown[] | undefined;
+    const cliExited = cliExitedCall?.[1] as
+      | ((event: {
+          payload: {
+            session_id: string;
+            exit_code: number | null;
+            diagnostics: {
+              working_dir: string | null;
+              model: string | null;
+              mode: string;
+              resume_mode: string;
+              stdout_tail: string[];
+              stderr_tail: string[];
+              termination: string | null;
+            };
+          };
+        }) => void)
+      | undefined;
+
+    expect(cliExited).toBeDefined();
+
+    cliExited?.({
+      payload: {
+        session_id: 'test-session-1',
+        exit_code: -1,
+        diagnostics: {
+          working_dir: '/workspace/a',
+          model: 'claude-sonnet-4-6',
+          mode: 'sdk',
+          resume_mode: 'resume',
+          stdout_tail: [],
+          stderr_tail: ['fatal: transport closed'],
+          termination: 'process exited without a numeric status',
+        },
+      },
+    });
+
+    expect(mod.conversationState.error).toContain('Claude Code CLI exited with code -1');
+    expect(mod.conversationState.error).toContain('cwd: /workspace/a');
+    expect(mod.conversationState.error).toContain('stderr: fatal: transport closed');
+  });
+
   it('sendMessage forwards image payloads via message_images', async () => {
     const sendToCli = vi.fn((_args: Record<string, unknown>) => undefined);
     mockIpcCommand('send_to_cli', sendToCli);
@@ -262,6 +354,87 @@ describe('conversationStore', () => {
     expect(args).toBeDefined();
     expect(args?.message_images).toHaveLength(1);
     expect(args?.message_images?.[0]?.data_base64).toBe('YWJj');
+  });
+
+  it('dispatches using the session project instead of the active sidebar project', async () => {
+    const sendToCli = vi.fn((_args: Record<string, unknown>) => undefined);
+    mockIpcCommand('send_to_cli', sendToCli);
+    mockIpcCommand('list_active_bridges', () => []);
+    mockIpcCommand('start_session_cli', () => undefined);
+
+    mocks.project.activeProjectId = 'proj-b';
+    mocks.project.activeProject = { id: 'proj-b', path: '/workspace/b' };
+    mocks.project.projects = [
+      {
+        id: 'proj-a',
+        name: 'A',
+        path: '/workspace/a',
+        default_model: null,
+        default_effort: null,
+        created_at: null,
+        last_opened_at: null,
+      },
+      {
+        id: 'proj-b',
+        name: 'B',
+        path: '/workspace/b',
+        default_model: null,
+        default_effort: null,
+        created_at: null,
+        last_opened_at: null,
+      },
+    ];
+    mocks.session.activeSession = createTestSession({
+      id: 'session-a',
+      project_id: 'proj-a',
+      cli_session_id: 'cli-a',
+    });
+    mocks.session.sessions = [mocks.session.activeSession];
+
+    await mod.sendMessage('status?', 'session-a');
+
+    expect(sendToCli).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session_id: 'session-a',
+        project_path: '/workspace/a',
+      }),
+    );
+  });
+
+  it('binds a projectless session to the active project before dispatch', async () => {
+    const sendToCli = vi.fn((_args: Record<string, unknown>) => undefined);
+    mockIpcCommand('send_to_cli', sendToCli);
+    mockIpcCommand('list_active_bridges', () => []);
+    mockIpcCommand('start_session_cli', () => undefined);
+
+    mocks.project.activeProjectId = 'proj-a';
+    mocks.project.activeProject = { id: 'proj-a', path: '/workspace/a' };
+    mocks.project.projects = [
+      {
+        id: 'proj-a',
+        name: 'A',
+        path: '/workspace/a',
+        default_model: null,
+        default_effort: null,
+        created_at: null,
+        last_opened_at: null,
+      },
+    ];
+    mocks.session.activeSession = createTestSession({
+      id: 'session-a',
+      project_id: null,
+    });
+    mocks.session.sessions = [mocks.session.activeSession];
+
+    await mod.sendMessage('status?', 'session-a');
+
+    expect(mocks.session.updateSessionProject).toHaveBeenCalledWith('session-a', 'proj-a');
+    expect(sendToCli).toHaveBeenCalledWith(
+      expect.objectContaining({
+        session_id: 'session-a',
+        project_path: '/workspace/a',
+      }),
+    );
   });
 
   it('marks non-active running sessions as recoverable after reload', async () => {

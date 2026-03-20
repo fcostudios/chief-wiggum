@@ -187,6 +187,15 @@ pub fn update_session_cli_id(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub fn update_session_project(
+    db: State<'_, Database>,
+    session_id: String,
+    project_id: Option<String>,
+) -> Result<(), AppError> {
+    queries::update_session_project(&db, &session_id, project_id.as_deref())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub fn toggle_session_pinned(
     db: State<'_, Database>,
     session_id: String,

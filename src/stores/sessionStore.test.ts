@@ -1,16 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockIpcCommand } from '@/test/mockIPC';
+import * as mockIPC from '@/test/mockIPC';
 import { createTestSession } from '@/test/helpers';
 
 describe('sessionStore', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mockIpcCommand('create_session', (args) =>
+    mockIPC.mockIpcCommand('create_session', (args) =>
       createTestSession({
         model: (args as { model?: string }).model ?? 'claude-sonnet-4-6',
       }),
     );
-    mockIpcCommand('list_all_sessions', () => []);
+    mockIPC.mockIpcCommand('list_all_sessions', () => []);
+    mockIPC.mockIpcCommand('update_session_project', () => undefined);
+    mockIPC.mockIpcCommand('start_project_file_watcher', () => undefined);
+    mockIPC.mockIpcCommand('stop_project_file_watcher', () => undefined);
+    mockIPC.mockIpcCommand('read_claude_md', () => null);
   });
 
   afterEach(async () => {
@@ -35,7 +39,7 @@ describe('sessionStore', () => {
       created_at: '2026-03-01T00:00:00.000Z',
       updated_at: '2026-03-01T00:00:00.000Z',
     });
-    mockIpcCommand('list_all_sessions', () => [stale]);
+    mockIPC.mockIpcCommand('list_all_sessions', () => [stale]);
 
     const settingsMod = await import('./settingsStore');
     const { loadSessions, shouldShowResumeCard, getResumeThresholdMs } =
@@ -53,7 +57,7 @@ describe('sessionStore', () => {
 
   it('defaults new sessions to active project when projectId is omitted', async () => {
     let capturedProjectId: string | null | undefined;
-    mockIpcCommand('create_session', (args) => {
+    mockIPC.mockIpcCommand('create_session', (args) => {
       const payload = args as { model?: string; project_id?: string | null };
       capturedProjectId = payload.project_id;
       return createTestSession({
@@ -70,5 +74,32 @@ describe('sessionStore', () => {
 
     expect(capturedProjectId).toBe('proj-active');
     expect(session.project_id).toBe('proj-active');
+  });
+
+  it('persists an updated project id onto an existing session', async () => {
+    const session = createTestSession({ id: 'session-a', project_id: null });
+    mockIPC.mockIpcCommand('list_all_sessions', () => [session]);
+    const mod = await import('./sessionStore');
+    await mod.loadSessions();
+
+    await mod.updateSessionProject('session-a', 'proj-a');
+
+    expect(mod.sessionState.sessions.find((item) => item.id === 'session-a')?.project_id).toBe(
+      'proj-a',
+    );
+  });
+
+  it('switches the active project to match the activated session project', async () => {
+    const target = createTestSession({ id: 'session-a', project_id: 'proj-a' });
+    mockIPC.mockIpcCommand('list_all_sessions', () => [target]);
+
+    const projectMod = await import('./projectStore');
+    projectMod.setActiveProject('proj-b');
+
+    const mod = await import('./sessionStore');
+    await mod.loadSessions();
+    mod.setActiveSession('session-a');
+
+    expect(projectMod.projectState.activeProjectId).toBe('proj-a');
   });
 });

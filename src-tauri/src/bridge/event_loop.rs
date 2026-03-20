@@ -11,6 +11,7 @@ use tokio::sync::RwLock;
 use super::manager::{BufferedEvent, SessionRuntime};
 use super::permission::{PermissionAction, PermissionManager};
 use super::process::BridgeInterface;
+use super::process::CliExitDiagnostics;
 use super::{BridgeEvent, BridgeOutput, QuestionRequestPayload};
 
 /// Event payloads emitted to the frontend.
@@ -52,6 +53,7 @@ pub struct CostUpdatePayload {
 pub struct CliExitedPayload {
     pub session_id: String,
     pub exit_code: Option<i32>,
+    pub diagnostics: CliExitDiagnostics,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -741,7 +743,10 @@ async fn emit_bridge_output(
                 );
             }
         }
-        BridgeOutput::ProcessExited { exit_code } => {
+        BridgeOutput::ProcessExited {
+            exit_code,
+            diagnostics,
+        } => {
             tracing::info!(
                 "Event loop [{}]: emitting cli:exited (exit_code: {:?})",
                 session_id,
@@ -750,6 +755,7 @@ async fn emit_bridge_output(
             let payload = CliExitedPayload {
                 session_id: session_id.to_string(),
                 exit_code,
+                diagnostics,
             };
             if let Err(e) = app.emit("cli:exited", &payload) {
                 tracing::warn!("Failed to emit cli:exited: {}", e);
@@ -831,6 +837,7 @@ mod tests {
         let payload = CliExitedPayload {
             session_id: "s1".to_string(),
             exit_code: Some(0),
+            diagnostics: CliExitDiagnostics::default(),
         };
         let json = serde_json::to_string(&payload).expect("serialize exited payload");
         assert!(json.contains("\"exit_code\":0"));
@@ -838,9 +845,20 @@ mod tests {
         let no_code = CliExitedPayload {
             session_id: "s1".to_string(),
             exit_code: None,
+            diagnostics: CliExitDiagnostics {
+                cli_path: "claude".to_string(),
+                working_dir: Some("/workspace/a".to_string()),
+                model: Some("claude-sonnet-4-6".to_string()),
+                mode: "sdk".to_string(),
+                resume_mode: "resume".to_string(),
+                stdout_tail: vec![],
+                stderr_tail: vec!["fatal".to_string()],
+                termination: Some("process exited without a numeric status".to_string()),
+            },
         };
         let json = serde_json::to_string(&no_code).expect("serialize exited payload without code");
         assert!(json.contains("\"exit_code\":null"));
+        assert!(json.contains("\"stderr_tail\":[\"fatal\"]"));
     }
 
     #[test]

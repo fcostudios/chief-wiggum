@@ -10,7 +10,7 @@ use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout};
 use tokio::sync::{mpsc, oneshot, watch, Mutex, RwLock};
 
 use super::control::{self, ControlRequest, ControlResponse, UserImageInput, UserMessage};
-use super::process::{BridgeConfig, BridgeInterface, ProcessStatus};
+use super::process::{BridgeConfig, BridgeInterface, CliExitDiagnostics, ProcessStatus};
 use super::{BridgeOutput, PermissionRequest, QuestionItem, QuestionRequest, StreamParser};
 use crate::{AppError, AppResult};
 
@@ -29,12 +29,14 @@ pub struct AgentSdkBridge {
     /// Configuration used to spawn this process.
     #[allow(dead_code)]
     config: BridgeConfig,
+    diagnostics: Arc<RwLock<CliExitDiagnostics>>,
 }
 
 impl AgentSdkBridge {
     /// Spawn a new Claude Code CLI process in Agent SDK mode.
     pub async fn spawn(config: BridgeConfig) -> AppResult<Self> {
         let status = Arc::new(RwLock::new(ProcessStatus::Starting));
+        let diagnostics = Arc::new(RwLock::new(CliExitDiagnostics::from_config(&config, "sdk")));
 
         let mut cmd = tokio::process::Command::new(&config.cli_path);
         cmd.args(["--output-format", "stream-json"]);
@@ -99,22 +101,26 @@ impl AgentSdkBridge {
             let output_tx = output_tx.clone();
             let pending = Arc::clone(&pending_requests);
             let shutdown_rx = shutdown_rx.clone();
+            let diagnostics = Arc::clone(&diagnostics);
             tokio::spawn(async move {
-                Self::stdout_reader(stdout, output_tx, pending, status, shutdown_rx).await;
+                Self::stdout_reader(stdout, output_tx, pending, status, shutdown_rx, diagnostics)
+                    .await;
             });
         }
 
         {
             let shutdown_rx = shutdown_rx.clone();
+            let diagnostics = Arc::clone(&diagnostics);
             tokio::spawn(async move {
-                Self::stderr_reader(stderr, shutdown_rx).await;
+                Self::stderr_reader(stderr, shutdown_rx, diagnostics).await;
             });
         }
 
         {
             let status = Arc::clone(&status);
+            let diagnostics = Arc::clone(&diagnostics);
             tokio::spawn(async move {
-                Self::process_monitor(child, status, output_tx, shutdown_rx).await;
+                Self::process_monitor(child, status, output_tx, shutdown_rx, diagnostics).await;
             });
         }
 
@@ -125,6 +131,7 @@ impl AgentSdkBridge {
             shutdown_tx,
             pending_requests,
             config,
+            diagnostics,
         };
 
         bridge.initialize().await?;
@@ -242,6 +249,7 @@ impl AgentSdkBridge {
         pending_requests: Arc<RwLock<HashMap<String, oneshot::Sender<serde_json::Value>>>>,
         status: Arc<RwLock<ProcessStatus>>,
         shutdown_rx: watch::Receiver<bool>,
+        diagnostics: Arc<RwLock<CliExitDiagnostics>>,
     ) {
         let reader = BufReader::new(stdout);
         let mut lines = reader.lines();
@@ -264,6 +272,7 @@ impl AgentSdkBridge {
                         "AgentSdkBridge stdout: {}",
                         &trimmed[..trimmed.len().min(500)]
                     );
+                    diagnostics.write().await.push_stdout_line(trimmed);
 
                     match control::peek_message_type(trimmed) {
                         Some(ref t) if t == "control_response" => {
@@ -426,7 +435,11 @@ impl AgentSdkBridge {
         }
     }
 
-    async fn stderr_reader(stderr: ChildStderr, shutdown_rx: watch::Receiver<bool>) {
+    async fn stderr_reader(
+        stderr: ChildStderr,
+        shutdown_rx: watch::Receiver<bool>,
+        diagnostics: Arc<RwLock<CliExitDiagnostics>>,
+    ) {
         let reader = BufReader::new(stderr);
         let mut lines = reader.lines();
 
@@ -435,7 +448,10 @@ impl AgentSdkBridge {
                 break;
             }
             match lines.next_line().await {
-                Ok(Some(line)) => tracing::debug!("CLI stderr: {}", line),
+                Ok(Some(line)) => {
+                    tracing::debug!("CLI stderr: {}", line);
+                    diagnostics.write().await.push_stderr_line(&line);
+                }
                 Ok(None) => break,
                 Err(e) => {
                     tracing::debug!("AgentSdkBridge stderr read error: {}", e);
@@ -450,6 +466,7 @@ impl AgentSdkBridge {
         status: Arc<RwLock<ProcessStatus>>,
         output_tx: mpsc::Sender<BridgeOutput>,
         mut shutdown_rx: watch::Receiver<bool>,
+        diagnostics: Arc<RwLock<CliExitDiagnostics>>,
     ) {
         tokio::select! {
             exit_result = child.wait() => {
@@ -458,11 +475,28 @@ impl AgentSdkBridge {
                         let code = exit_status.code();
                         tracing::info!("AgentSdkBridge: CLI exited with code {:?}", code);
                         *status.write().await = ProcessStatus::Exited(code);
-                        let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code: code }).await;
+                        let mut snapshot = diagnostics.write().await;
+                        snapshot.set_termination(match code {
+                            Some(0) => "process exited normally".to_string(),
+                            Some(code) => format!("process exited with code {}", code),
+                            None => "process exited without a numeric status".to_string(),
+                        });
+                        let diagnostics = snapshot.clone();
+                        drop(snapshot);
+                        let _ = output_tx
+                            .send(BridgeOutput::ProcessExited {
+                                exit_code: code,
+                                diagnostics,
+                            })
+                            .await;
                     }
                     Err(e) => {
                         tracing::error!("AgentSdkBridge: process wait error: {}", e);
                         *status.write().await = ProcessStatus::Error(e.to_string());
+                        diagnostics
+                            .write()
+                            .await
+                            .set_termination(format!("process wait failed: {}", e));
                     }
                 }
             }
@@ -471,7 +505,16 @@ impl AgentSdkBridge {
                     tracing::info!("AgentSdkBridge: shutdown signal, killing process");
                     let _ = child.kill().await;
                     *status.write().await = ProcessStatus::Exited(None);
-                    let _ = output_tx.send(BridgeOutput::ProcessExited { exit_code: None }).await;
+                    let mut snapshot = diagnostics.write().await;
+                    snapshot.set_termination("process terminated after shutdown signal");
+                    let diagnostics = snapshot.clone();
+                    drop(snapshot);
+                    let _ = output_tx
+                        .send(BridgeOutput::ProcessExited {
+                            exit_code: None,
+                            diagnostics,
+                        })
+                        .await;
                 }
             }
         }
@@ -545,6 +588,10 @@ impl BridgeInterface for AgentSdkBridge {
         tracing::info!("AgentSdkBridge: force killing process");
         let _ = self.shutdown_tx.send(true);
         *self.status.write().await = ProcessStatus::Exited(None);
+        self.diagnostics
+            .write()
+            .await
+            .set_termination("bridge killed before exit status was available");
         Ok(())
     }
 }
