@@ -105,6 +105,7 @@ function modelBgColor(model: string): string {
 }
 
 const Sidebar: Component = () => {
+  const [projectsOpen, setProjectsOpen] = createSignal(true);
   const isCollapsed = () => uiState.sidebarState === 'collapsed';
   const [pinnedOpen, setPinnedOpen] = createSignal(true);
   const [recentOpen, setRecentOpen] = createSignal(true);
@@ -118,6 +119,10 @@ const Sidebar: Component = () => {
   const [debouncedQuery, setDebouncedQuery] = createSignal('');
   let searchInputRef: HTMLInputElement | undefined;
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function sectionHighlight(isActive: boolean): string {
+    return isActive ? 'rgba(232, 130, 90, 0.07)' : 'transparent';
+  }
 
   function updateSearch(value: string) {
     setSearchQuery(value);
@@ -179,11 +184,6 @@ const Sidebar: Component = () => {
       return;
     }
 
-    if (focusedContentSection() !== 'files') {
-      setFocusedContentSection('files');
-      return;
-    }
-
     toggleFilesVisible();
     setFocusedContentSection((prev) => (prev === 'files' ? null : prev));
   }
@@ -191,11 +191,6 @@ const Sidebar: Component = () => {
   function handleActionsSectionHeaderClick() {
     if (!actionsOpen()) {
       openActionsSection();
-      setFocusedContentSection('actions');
-      return;
-    }
-
-    if (focusedContentSection() !== 'actions') {
       setFocusedContentSection('actions');
       return;
     }
@@ -303,14 +298,37 @@ const Sidebar: Component = () => {
           }
         >
           {/* Project header */}
-          <div class="flex items-center justify-between px-3 py-2">
-            <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
-              {t('sidebar.projects')}
-            </span>
+          <div
+            class="flex items-center justify-between px-3 py-2"
+            style={{ background: sectionHighlight(projectsOpen()) }}
+          >
+            <button
+              class="flex min-w-0 flex-1 items-center gap-1 text-left"
+              onClick={() => setProjectsOpen((prev) => !prev)}
+              aria-label={t('sidebar.projects')}
+              aria-expanded={projectsOpen()}
+            >
+              <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+                {t('sidebar.projects')}
+              </span>
+              <span
+                class="text-[9px] transition-transform"
+                style={{
+                  color: 'var(--color-text-tertiary)',
+                  transform: projectsOpen() ? 'rotate(90deg)' : 'rotate(0deg)',
+                  'transition-duration': 'var(--duration-fast)',
+                }}
+              >
+                ›
+              </span>
+            </button>
             <button
               class="p-0.5 rounded text-text-tertiary hover:text-accent transition-colors"
               style={{ 'transition-duration': 'var(--duration-fast)' }}
-              onClick={() => pickAndCreateProject()}
+              onClick={(e) => {
+                e.stopPropagation();
+                void pickAndCreateProject();
+              }}
               aria-label={t('sidebar.openProject')}
               title={t('sidebar.openProject')}
             >
@@ -319,76 +337,78 @@ const Sidebar: Component = () => {
           </div>
 
           {/* Recent projects list */}
-          <div class="px-2 pb-2">
-            <Show
-              when={projectState.projects.length > 0}
-              fallback={
-                <button
-                  class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
-                  style={{ 'transition-duration': 'var(--duration-fast)' }}
-                  onClick={() => pickAndCreateProject()}
-                >
-                  <Plus size={11} />
-                  <span class="tracking-wide">{t('sidebar.openProject')}</span>
-                </button>
-              }
-            >
-              <div
-                class="space-y-0.5 overflow-y-auto pr-1"
-                style={{
-                  'max-height': projectState.projects.length > 5 ? '12rem' : undefined,
-                  'scrollbar-gutter': projectState.projects.length > 5 ? 'stable' : undefined,
-                  'overscroll-behavior': projectState.projects.length > 5 ? 'contain' : undefined,
-                }}
-                data-testid="sidebar-project-list"
+          <Show when={projectsOpen()}>
+            <div class="px-2 pb-2">
+              <Show
+                when={projectState.projects.length > 0}
+                fallback={
+                  <button
+                    class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs text-text-tertiary hover:text-text-primary hover:bg-bg-elevated/50 transition-colors"
+                    style={{ 'transition-duration': 'var(--duration-fast)' }}
+                    onClick={() => pickAndCreateProject()}
+                  >
+                    <Plus size={11} />
+                    <span class="tracking-wide">{t('sidebar.openProject')}</span>
+                  </button>
+                }
               >
-                <For each={projectState.projects}>
-                  {(project) => (
-                    <button
-                      class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs transition-all truncate"
-                      style={{
-                        'transition-duration': 'var(--duration-fast)',
-                        background:
-                          projectState.activeProjectId === project.id
-                            ? 'var(--color-bg-elevated)'
-                            : 'transparent',
-                        color:
-                          projectState.activeProjectId === project.id
-                            ? 'var(--color-text-primary)'
-                            : 'var(--color-text-secondary)',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (projectState.activeProjectId !== project.id) {
-                          e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
-                          e.currentTarget.style.color = 'var(--color-text-primary)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (projectState.activeProjectId !== project.id) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = 'var(--color-text-secondary)';
-                        }
-                      }}
-                      onClick={() => setActiveProject(project.id)}
-                      title={project.path}
-                    >
-                      <FolderOpen
-                        size={12}
-                        class="shrink-0"
+                <div
+                  class="space-y-0.5 overflow-y-auto pr-1"
+                  style={{
+                    'max-height': projectState.projects.length > 5 ? '12rem' : undefined,
+                    'scrollbar-gutter': projectState.projects.length > 5 ? 'stable' : undefined,
+                    'overscroll-behavior': projectState.projects.length > 5 ? 'contain' : undefined,
+                  }}
+                  data-testid="sidebar-project-list"
+                >
+                  <For each={projectState.projects}>
+                    {(project) => (
+                      <button
+                        class="flex items-center gap-2 w-full py-1.5 px-2 rounded-md text-xs transition-all truncate"
                         style={{
+                          'transition-duration': 'var(--duration-fast)',
+                          background:
+                            projectState.activeProjectId === project.id
+                              ? 'var(--color-bg-elevated)'
+                              : 'transparent',
                           color:
                             projectState.activeProjectId === project.id
-                              ? 'var(--color-accent)'
-                              : 'var(--color-text-tertiary)',
+                              ? 'var(--color-text-primary)'
+                              : 'var(--color-text-secondary)',
                         }}
-                      />
-                      <span class="truncate">{project.name}</span>
-                    </button>
-                  )}
-                </For>
-              </div>
-            </Show>
-          </div>
+                        onMouseEnter={(e) => {
+                          if (projectState.activeProjectId !== project.id) {
+                            e.currentTarget.style.background = 'rgba(28, 33, 40, 0.5)';
+                            e.currentTarget.style.color = 'var(--color-text-primary)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (projectState.activeProjectId !== project.id) {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.color = 'var(--color-text-secondary)';
+                          }
+                        }}
+                        onClick={() => setActiveProject(project.id)}
+                        title={project.path}
+                      >
+                        <FolderOpen
+                          size={12}
+                          class="shrink-0"
+                          style={{
+                            color:
+                              projectState.activeProjectId === project.id
+                                ? 'var(--color-accent)'
+                                : 'var(--color-text-tertiary)',
+                          }}
+                        />
+                        <span class="truncate">{project.name}</span>
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </Show>
+            </div>
+          </Show>
         </Show>
       </div>
 
@@ -429,8 +449,9 @@ const Sidebar: Component = () => {
               }}
             >
               <button
-                class="flex items-center gap-1 min-w-0 text-left"
+                class="flex min-w-0 flex-1 items-center gap-1 text-left"
                 onClick={handleFilesSectionHeaderClick}
+                aria-label={t('sidebar.files')}
                 aria-expanded={fileState.isVisible}
               >
                 <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
@@ -531,12 +552,12 @@ const Sidebar: Component = () => {
             <button
               class="flex items-center justify-between w-full px-3 py-2 text-left"
               onClick={handleActionsSectionHeaderClick}
+              aria-label={t('sidebar.actions')}
               aria-expanded={actionsOpen()}
               style={{
-                background:
-                  actionsOpen() && focusedContentSection() === 'actions'
-                    ? 'rgba(232, 130, 90, 0.07)'
-                    : 'transparent',
+                background: sectionHighlight(
+                  actionsOpen() && focusedContentSection() === 'actions',
+                ),
               }}
             >
               <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
@@ -580,36 +601,69 @@ const Sidebar: Component = () => {
         <div
           class="shrink-0"
           classList={{
-            'flex-1': uiState.activeView === 'git',
-            'min-h-0': uiState.activeView === 'git',
+            'flex-1': !isCollapsed() && uiState.activeView === 'git',
+            'min-h-0': !isCollapsed() && uiState.activeView === 'git',
           }}
           style={{ 'border-bottom': '1px solid var(--color-border-secondary)' }}
         >
-          <button
-            class="flex w-full items-center justify-between px-3 py-1.5 text-left text-xs font-medium transition-colors hover:opacity-80"
-            style={{ color: 'var(--color-text-secondary)' }}
-            aria-label="Open Git panel"
-            onClick={() => {
-              setFocusedContentSection('git');
-              setActiveView('git');
-            }}
-          >
-            <div class="flex items-center gap-1.5 min-w-0">
-              <GitBranch size={12} />
-              <span>{t('sidebar.git') || 'Git'}</span>
-              <Show when={gitState.statusEntries.length > 0}>
-                <span
-                  class="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
-                  style={{
-                    background: 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
-                    color: 'var(--color-warning)',
+          <Show
+            when={!isCollapsed()}
+            fallback={
+              <div class="flex flex-col items-center py-2 gap-1">
+                <button
+                  class="flex items-center justify-center w-8 h-8 rounded-md text-text-tertiary hover:text-accent hover:bg-bg-elevated/50 transition-colors"
+                  style={{ 'transition-duration': 'var(--duration-fast)' }}
+                  aria-label={t('sidebar.git') || 'Git'}
+                  title={t('sidebar.git') || 'Git'}
+                  onClick={() => {
+                    setFocusedContentSection('git');
+                    setActiveView('git');
                   }}
                 >
-                  {gitState.statusEntries.length}
+                  <GitBranch size={16} />
+                </button>
+              </div>
+            }
+          >
+            <button
+              class="flex items-center justify-between w-full px-3 py-2 text-left"
+              style={{
+                background: sectionHighlight(uiState.activeView === 'git'),
+              }}
+              aria-label={t('sidebar.git') || 'Git'}
+              onClick={() => {
+                setFocusedContentSection('git');
+                setActiveView('git');
+              }}
+            >
+              <span class="text-[10px] font-semibold text-text-tertiary uppercase tracking-[0.1em]">
+                {t('sidebar.git') || 'Git'}
+              </span>
+              <div class="flex items-center gap-1.5">
+                <Show when={gitState.statusEntries.length > 0}>
+                  <span
+                    class="rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
+                    style={{
+                      background: 'color-mix(in srgb, var(--color-warning) 15%, transparent)',
+                      color: 'var(--color-warning)',
+                    }}
+                  >
+                    {gitState.statusEntries.length}
+                  </span>
+                </Show>
+                <span
+                  class="text-[9px] transition-transform"
+                  style={{
+                    color: 'var(--color-text-tertiary)',
+                    transform: uiState.activeView === 'git' ? 'rotate(90deg)' : 'rotate(0deg)',
+                    'transition-duration': 'var(--duration-fast)',
+                  }}
+                >
+                  ›
                 </span>
-              </Show>
-            </div>
-          </button>
+              </div>
+            </button>
+          </Show>
         </div>
       </Show>
 
@@ -639,6 +693,7 @@ const Sidebar: Component = () => {
           <button
             class="flex items-center justify-between w-full px-3 py-2 text-left"
             onClick={() => setSessionsOpen((p) => !p)}
+            style={{ background: sectionHighlight(sessionsOpen()) }}
           >
             <div class="flex items-center gap-1.5">
               <span

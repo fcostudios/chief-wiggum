@@ -41,6 +41,9 @@ const mockSetViewBadge = vi.fn();
 
 const tMap: Record<string, string> = {
   'sidebar.projects': 'Projects',
+  'sidebar.files': 'Files',
+  'sidebar.actions': 'Actions',
+  'sidebar.git': 'Git',
   'sidebar.openProject': 'Open a project folder',
   'sidebar.sessions': 'Sessions',
   'sidebar.filterSessions': 'Filter sessions...',
@@ -221,6 +224,9 @@ describe('Sidebar', () => {
     mockCrossProjectRunning = [];
 
     vi.clearAllMocks();
+    mockToggleFilesVisible.mockImplementation(() => {
+      mockFileVisible = !mockFileVisible;
+    });
   });
 
   it('renders sidebar nav and loads sessions/projects on mount', async () => {
@@ -256,6 +262,21 @@ describe('Sidebar', () => {
     render(() => <Sidebar />);
 
     expect(screen.getByText('Project 6')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-project-list')).toBeInTheDocument();
+  });
+
+  it('toggles the projects section from the full header button', () => {
+    mockProjects = [makeProject()];
+
+    render(() => <Sidebar />);
+
+    const projectsToggle = screen.getByRole('button', { name: 'Projects' });
+    expect(screen.getByTestId('sidebar-project-list')).toBeInTheDocument();
+
+    fireEvent.click(projectsToggle);
+    expect(screen.queryByTestId('sidebar-project-list')).not.toBeInTheDocument();
+
+    fireEvent.click(projectsToggle);
     expect(screen.getByTestId('sidebar-project-list')).toBeInTheDocument();
   });
 
@@ -301,5 +322,37 @@ describe('Sidebar', () => {
     render(() => <Sidebar />);
     fireEvent.click(screen.getByRole('button', { name: 'explorer.showIgnoredFiles' }));
     expect(mockToggleShowIgnoredFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles files on the first full-header click', () => {
+    mockProjects = [makeProject()];
+    mockActiveProjectId = 'p1';
+    mockFileVisible = true;
+
+    render(() => <Sidebar />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Files' }));
+    expect(mockToggleFilesVisible).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders git as a section-style button when a project is active', () => {
+    mockProjects = [makeProject()];
+    mockActiveProjectId = 'p1';
+
+    render(() => <Sidebar />);
+
+    expect(screen.getByRole('button', { name: 'Git' })).toBeInTheDocument();
+  });
+
+  it('renders git as a collapsed icon-only control without expanded section chrome', () => {
+    mockProjects = [makeProject()];
+    mockActiveProjectId = 'p1';
+    mockSidebarState = 'collapsed';
+
+    render(() => <Sidebar />);
+
+    expect(screen.getByRole('button', { name: 'Git' })).toBeInTheDocument();
+    expect(screen.queryByText('PROJECTS')).not.toBeInTheDocument();
+    expect(screen.queryByText('Git')).not.toBeInTheDocument();
   });
 });
