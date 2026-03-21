@@ -180,6 +180,10 @@ fn extract_mcp_prefix(tool_name: &str) -> Option<String> {
     Some(format!("mcp__{}", &rest[..sep_pos]))
 }
 
+fn encode_project_path(path: &str) -> String {
+    path.replace('/', "-")
+}
+
 /// Map a BridgeOutput to the appropriate Tauri event emission.
 /// Also buffers each event into the session's `SessionRuntime` for HMR replay.
 #[allow(clippy::too_many_arguments)]
@@ -337,6 +341,7 @@ async fn emit_bridge_output(
                 if let Err(e) = app.emit("cli:init", &payload) {
                     tracing::warn!("Failed to emit cli:init: {}", e);
                 }
+                let db_state = app.state::<crate::db::Database>();
                 // Buffer for HMR reconnection + update runtime state
                 {
                     let mut rts = runtimes.write().await;
@@ -346,6 +351,39 @@ async fn emit_bridge_output(
                         rt.model = Some(payload.model.clone());
                         rt.buffer_event(BufferedEvent::CliInit(payload.clone()));
                     }
+                }
+                match crate::db::queries::get_project_for_session(&db_state, session_id) {
+                    Ok(Some(project)) => {
+                        if let Some(home) = dirs::home_dir() {
+                            let path_str = home
+                                .join(".claude/projects")
+                                .join(encode_project_path(&project.path))
+                                .join(format!("{}.jsonl", payload.cli_session_id))
+                                .to_string_lossy()
+                                .to_string();
+                            if let Err(e) = crate::db::queries::update_session_jsonl_path(
+                                &db_state, session_id, &path_str,
+                            ) {
+                                tracing::warn!(
+                                    "Failed to persist jsonl_path for session {}: {}",
+                                    session_id,
+                                    e
+                                );
+                            } else {
+                                tracing::debug!(
+                                    "Stored jsonl_path for session {}: {}",
+                                    session_id,
+                                    path_str
+                                );
+                            }
+                        }
+                    }
+                    Ok(None) => {}
+                    Err(e) => tracing::warn!(
+                        "Failed to resolve project for session {} while storing jsonl_path: {}",
+                        session_id,
+                        e
+                    ),
                 }
             }
             BridgeEvent::ToolUse {

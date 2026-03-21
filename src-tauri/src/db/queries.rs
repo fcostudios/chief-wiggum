@@ -95,7 +95,8 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
                     created_at, updated_at, cli_session_id, pinned,
-                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens,
+                    jsonl_path, jsonl_last_uuid
              FROM sessions WHERE id = ?1",
         )?;
         let row = stmt.query_row(rusqlite::params![id], |row| {
@@ -118,6 +119,8 @@ pub fn get_session(db: &Database, id: &str) -> Result<Option<SessionRow>, AppErr
                 total_thinking_tokens: row.get(15)?,
                 total_cache_read_tokens: row.get(16)?,
                 total_cache_write_tokens: row.get(17)?,
+                jsonl_path: row.get(18)?,
+                jsonl_last_uuid: row.get(19)?,
             })
         });
         match row {
@@ -135,7 +138,8 @@ pub fn get_session_by_cli_id(db: &Database, cli_id: &str) -> Result<Option<Sessi
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
                     created_at, updated_at, cli_session_id, pinned,
-                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens,
+                    jsonl_path, jsonl_last_uuid
              FROM sessions
              WHERE cli_session_id = ?1
              ORDER BY updated_at DESC NULLS LAST, rowid DESC
@@ -161,6 +165,8 @@ pub fn get_session_by_cli_id(db: &Database, cli_id: &str) -> Result<Option<Sessi
                 total_thinking_tokens: row.get(15)?,
                 total_cache_read_tokens: row.get(16)?,
                 total_cache_write_tokens: row.get(17)?,
+                jsonl_path: row.get(18)?,
+                jsonl_last_uuid: row.get(19)?,
             })
         });
         match row {
@@ -215,7 +221,8 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
                     created_at, updated_at, cli_session_id, pinned,
-                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens,
+                    jsonl_path, jsonl_last_uuid
              FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC",
         )?;
         let rows = stmt
@@ -239,6 +246,8 @@ pub fn list_sessions(db: &Database) -> Result<Vec<SessionRow>, AppError> {
                     total_thinking_tokens: row.get(15)?,
                     total_cache_read_tokens: row.get(16)?,
                     total_cache_write_tokens: row.get(17)?,
+                    jsonl_path: row.get(18)?,
+                    jsonl_last_uuid: row.get(19)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -260,7 +269,8 @@ pub fn list_sessions_page(
             "SELECT id, project_id, title, model, status, parent_session_id,
                     context_tokens, total_input_tokens, total_output_tokens, total_cost_cents,
                     created_at, updated_at, cli_session_id, pinned,
-                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens
+                    cli_version, total_thinking_tokens, total_cache_read_tokens, total_cache_write_tokens,
+                    jsonl_path, jsonl_last_uuid
              FROM sessions ORDER BY updated_at DESC NULLS LAST, rowid DESC
              LIMIT ?1 OFFSET ?2",
         )?;
@@ -285,6 +295,8 @@ pub fn list_sessions_page(
                     total_thinking_tokens: row.get(15)?,
                     total_cache_read_tokens: row.get(16)?,
                     total_cache_write_tokens: row.get(17)?,
+                    jsonl_path: row.get(18)?,
+                    jsonl_last_uuid: row.get(19)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -337,6 +349,22 @@ pub fn message_uuid_exists(db: &Database, session_id: &str, uuid: &str) -> Resul
             rusqlite::params![session_id, uuid],
             |row| row.get(0),
         )
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_message_jsonl_uuids(
+    db: &Database,
+    session_id: &str,
+) -> Result<std::collections::HashSet<String>, AppError> {
+    db.with_conn(|conn| {
+        let mut stmt = conn.prepare(
+            "SELECT jsonl_uuid FROM messages WHERE session_id = ?1 AND jsonl_uuid IS NOT NULL",
+        )?;
+        let uuids = stmt
+            .query_map(rusqlite::params![session_id], |row| row.get::<_, String>(0))?
+            .collect::<Result<std::collections::HashSet<_>, _>>()?;
+        Ok(uuids)
     })
 }
 
@@ -408,6 +436,87 @@ pub fn update_session_cli_id(
             rusqlite::params![id, cli_session_id],
         )?;
         Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn update_session_jsonl_path(
+    db: &Database,
+    id: &str,
+    jsonl_path: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET jsonl_path = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, jsonl_path],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn update_session_jsonl_last_uuid(
+    db: &Database,
+    id: &str,
+    last_uuid: &str,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "UPDATE sessions SET jsonl_last_uuid = ?2, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
+            rusqlite::params![id, last_uuid],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_session_jsonl_info(
+    db: &Database,
+    id: &str,
+) -> Result<(Option<String>, Option<String>), AppError> {
+    db.with_conn(|conn| {
+        let row = conn.query_row(
+            "SELECT jsonl_path, jsonl_last_uuid FROM sessions WHERE id = ?1",
+            rusqlite::params![id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        );
+        match row {
+            Ok(info) => Ok(info),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok((None, None)),
+            Err(e) => Err(e.into()),
+        }
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db))]
+pub fn get_project_for_session(
+    db: &Database,
+    session_id: &str,
+) -> Result<Option<ProjectRow>, AppError> {
+    db.with_conn(|conn| {
+        let row = conn.query_row(
+            "SELECT p.id, p.name, p.path, p.default_model, p.default_effort, p.created_at, p.last_opened_at
+             FROM projects p
+             JOIN sessions s ON s.project_id = p.id
+             WHERE s.id = ?1",
+            rusqlite::params![session_id],
+            |row| {
+                Ok(ProjectRow {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    path: row.get(2)?,
+                    default_model: row.get(3)?,
+                    default_effort: row.get(4)?,
+                    created_at: row.get(5)?,
+                    last_opened_at: row.get(6)?,
+                })
+            },
+        );
+        match row {
+            Ok(project) => Ok(Some(project)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e.into()),
+        }
     })
 }
 
@@ -506,6 +615,36 @@ pub fn insert_message(
                 parent_uuid,
                 stop_reason,
                 is_error
+            ],
+        )?;
+        Ok(())
+    })
+}
+
+#[tracing::instrument(target = "db/queries", level = "debug", skip(db, content))]
+pub fn save_message_from_jsonl(
+    db: &Database,
+    session_id: &str,
+    id: &str,
+    jsonl_uuid: &str,
+    role: &str,
+    content: &str,
+    created_at: &str,
+    parent_uuid: Option<&str>,
+) -> Result<(), AppError> {
+    db.with_conn(|conn| {
+        conn.execute(
+            "INSERT OR IGNORE INTO messages
+             (id, session_id, role, content, jsonl_uuid, uuid, parent_uuid, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?7)",
+            rusqlite::params![
+                id,
+                session_id,
+                role,
+                content,
+                jsonl_uuid,
+                parent_uuid,
+                created_at
             ],
         )?;
         Ok(())
@@ -1311,6 +1450,8 @@ pub struct SessionRow {
     pub total_thinking_tokens: Option<i64>,
     pub total_cache_read_tokens: Option<i64>,
     pub total_cache_write_tokens: Option<i64>,
+    pub jsonl_path: Option<String>,
+    pub jsonl_last_uuid: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1721,6 +1862,49 @@ mod tests {
 
         let session = get_session(&db, "s1").unwrap().unwrap();
         assert_eq!(session.cli_session_id.as_deref(), Some("cli-abc-123"));
+    }
+
+    #[test]
+    fn update_and_get_session_jsonl_info() {
+        let db = test_db();
+        let proj_id = "p-jq1";
+        insert_project(&db, proj_id, "Test", "/test/path").unwrap();
+        insert_session(&db, "s-jq1", Some(proj_id), "sonnet").unwrap();
+
+        update_session_jsonl_path(
+            &db,
+            "s-jq1",
+            "/home/user/.claude/projects/-test-path/abc.jsonl",
+        )
+        .unwrap();
+        update_session_jsonl_last_uuid(&db, "s-jq1", "uuid-xyz").unwrap();
+
+        let info = get_session_jsonl_info(&db, "s-jq1").unwrap();
+        assert_eq!(
+            info.0.as_deref(),
+            Some("/home/user/.claude/projects/-test-path/abc.jsonl")
+        );
+        assert_eq!(info.1.as_deref(), Some("uuid-xyz"));
+    }
+
+    #[test]
+    fn get_message_jsonl_uuids_returns_existing() {
+        let db = test_db();
+        let proj_id = "p-jq2";
+        insert_project(&db, proj_id, "Test", "/test/path2").unwrap();
+        insert_session(&db, "s-jq2", Some(proj_id), "sonnet").unwrap();
+
+        db.with_conn(|conn| {
+            conn.execute(
+                "INSERT INTO messages (id, session_id, role, content, jsonl_uuid) VALUES ('m1','s-jq2','user','hi','jl-uuid-1')",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        let uuids = get_message_jsonl_uuids(&db, "s-jq2").unwrap();
+        assert!(uuids.contains("jl-uuid-1"));
     }
 
     #[test]

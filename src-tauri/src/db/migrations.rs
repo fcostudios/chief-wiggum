@@ -211,6 +211,17 @@ const MIGRATIONS: &[Migration] = &[
                 ON prompt_templates(usage_count DESC);
         "#,
     },
+    Migration {
+        version: 9,
+        description:
+            "Add handover columns — jsonl_path/jsonl_last_uuid on sessions, jsonl_uuid on messages (CHI-345)",
+        sql: r#"
+            ALTER TABLE sessions ADD COLUMN jsonl_path TEXT;
+            ALTER TABLE sessions ADD COLUMN jsonl_last_uuid TEXT;
+            ALTER TABLE messages ADD COLUMN jsonl_uuid TEXT;
+            CREATE INDEX IF NOT EXISTS idx_messages_jsonl_uuid ON messages(jsonl_uuid);
+        "#,
+    },
 ];
 
 impl super::Database {
@@ -444,7 +455,7 @@ mod tests {
         let version: i32 = conn
             .query_row("SELECT MAX(version) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(version, 8);
+        assert_eq!(version, 9);
     }
 
     #[test]
@@ -455,7 +466,7 @@ mod tests {
         let count: i32 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 8);
+        assert_eq!(count, 9);
     }
 
     #[test]
@@ -501,7 +512,7 @@ mod tests {
                 .collect()
         };
 
-        assert_eq!(rows.len(), 8);
+        assert_eq!(rows.len(), 9);
         assert_eq!(rows[0].0, 1);
         assert!(rows[0].1.contains("Initial schema"));
         assert_eq!(rows[1].0, 2);
@@ -518,6 +529,38 @@ mod tests {
         assert!(rows[6].1.contains("performance indexes"));
         assert_eq!(rows[7].0, 8);
         assert!(rows[7].1.contains("prompt_templates"));
+        assert_eq!(rows[8].0, 9);
+        assert!(rows[8].1.contains("jsonl_path"));
+    }
+
+    #[test]
+    fn migration_v9_adds_handover_columns() {
+        let conn = fresh_conn();
+        run_migrations_on_conn(&conn).unwrap();
+
+        let sess_cols: Vec<String> = {
+            let mut stmt = conn.prepare("PRAGMA table_info(sessions)").unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(1))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        };
+        assert!(sess_cols.contains(&"jsonl_path".to_string()));
+        assert!(sess_cols.contains(&"jsonl_last_uuid".to_string()));
+
+        let msg_cols: Vec<String> = {
+            let mut stmt = conn.prepare("PRAGMA table_info(messages)").unwrap();
+            stmt.query_map([], |row| row.get::<_, String>(1))
+                .unwrap()
+                .filter_map(Result::ok)
+                .collect()
+        };
+        assert!(msg_cols.contains(&"jsonl_uuid".to_string()));
+
+        let count: i32 = conn
+            .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 9);
     }
 
     #[test]
