@@ -1,4 +1,4 @@
-//! Session handover via `claude remote-control --resume` (CHI-344).
+//! Session handover via `claude --resume <session-id> --remote-control` (CHI-344).
 
 pub mod reconcile;
 
@@ -29,7 +29,8 @@ const WATCH_DEBOUNCE_MS: u64 = 200;
 fn relay_url_regex() -> &'static Regex {
     static REGEX: OnceLock<Regex> = OnceLock::new();
     REGEX.get_or_init(|| {
-        Regex::new(r"https://claude\.ai/code/[A-Za-z0-9_-]+").expect("valid relay URL regex")
+        Regex::new(r"https://claude\.ai/code(?:/[A-Za-z0-9_-]+|\?bridge=[A-Za-z0-9_-]+)")
+            .expect("valid relay URL regex")
     })
 }
 
@@ -105,9 +106,9 @@ impl HandoverMap {
 
         let mut command = Command::new(cli_path);
         command
-            .arg("remote-control")
             .arg("--resume")
             .arg(&cli_session_id)
+            .arg("--remote-control")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -153,7 +154,8 @@ impl HandoverMap {
             .await
             .map_err(|_| {
                 AppError::Bridge(
-                    "Timed out waiting for relay URL from `claude remote-control`".to_string(),
+                    "Timed out waiting for relay URL from `claude --resume <session-id> --remote-control`"
+                        .to_string(),
                 )
             })?
             .map_err(|_| {
@@ -437,6 +439,26 @@ mod tests {
         assert_eq!(
             extract_relay_url(line).as_deref(),
             Some("https://claude.ai/code/abc_DEF-123")
+        );
+    }
+
+    #[test]
+    fn extracts_session_relay_url_from_remote_control_status_line() {
+        let line =
+            "/remote-control is active. Code in CLI or at https://claude.ai/code/session_01TPAFXgT5KJwu99XchGbq6";
+        assert_eq!(
+            extract_relay_url(line).as_deref(),
+            Some("https://claude.ai/code/session_01TPAFXgT5KJwu99XchGbq6")
+        );
+    }
+
+    #[test]
+    fn extracts_bridge_relay_url_from_spawn_mode_output() {
+        let line =
+            "Continue coding in the Claude app or https://claude.ai/code?bridge=env_018zn9ZMg9eqEBvB32XrnCDS";
+        assert_eq!(
+            extract_relay_url(line).as_deref(),
+            Some("https://claude.ai/code?bridge=env_018zn9ZMg9eqEBvB32XrnCDS")
         );
     }
 
