@@ -62,6 +62,7 @@ export interface Message {
   parent_uuid?: string | null;
   stop_reason?: string | null;
   is_error?: boolean | null;
+  source?: 'remote';
 }
 
 /** Structured data stored in tool_use message content (JSON string). */
@@ -132,6 +133,15 @@ export interface Session {
   total_thinking_tokens?: number | null;
   total_cache_read_tokens?: number | null;
   total_cache_write_tokens?: number | null;
+  jsonl_path?: string | null;
+  jsonl_last_uuid?: string | null;
+}
+
+export interface HandoverEntry {
+  sessionId: string;
+  relayUrl: string;
+  startedAt: string;
+  remoteMessageCount: number;
 }
 
 // ── JSONL Import (CHI-303/304/305) ───────────────────────────

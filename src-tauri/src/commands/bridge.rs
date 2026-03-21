@@ -627,6 +627,8 @@ mod tests {
             total_thinking_tokens: None,
             total_cache_read_tokens: None,
             total_cache_write_tokens: None,
+            jsonl_path: None,
+            jsonl_last_uuid: None,
         }
     }
 

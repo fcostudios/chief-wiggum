@@ -74,6 +74,7 @@ import { ensureMainPaneSession, viewState } from '@/stores/viewStore';
 import EditorTakeover from '@/components/editor/EditorTakeover';
 import { fileState } from '@/stores/fileStore';
 import { projectState } from '@/stores/projectStore';
+import { isHandedOver, openHandoverPanel, reclaimSession } from '@/stores/handoverStore';
 import ChangelogModal from '@/components/common/ChangelogModal';
 import AboutModal from '@/components/common/AboutModal';
 import QuickSessionSwitcher from '@/components/common/QuickSessionSwitcher';
@@ -422,6 +423,27 @@ const MainLayout: Component = () => {
               }}
               isLoading={conversationState.isLoading}
               isDisabled={!cliState.isDetected}
+              isHandedOver={
+                !!sessionState.activeSessionId && isHandedOver(sessionState.activeSessionId)
+              }
+              onHandOver={
+                sessionState.activeSessionId &&
+                sessionState.sessions.find((session) => session.id === sessionState.activeSessionId)
+                  ?.cli_session_id
+                  ? () => {
+                      const sessionId = sessionState.activeSessionId;
+                      if (sessionId) void openHandoverPanel(sessionId);
+                    }
+                  : undefined
+              }
+              onReclaim={
+                sessionState.activeSessionId
+                  ? () => {
+                      const sessionId = sessionState.activeSessionId;
+                      if (sessionId) void reclaimSession(sessionId);
+                    }
+                  : undefined
+              }
             />
           </Show>
         </main>

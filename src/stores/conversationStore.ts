@@ -90,6 +90,37 @@ function appendMessageCapped(message: Message): void {
   setState('messages', (prev) => capMessages([...prev, message]));
 }
 
+export interface RemoteMessageAppend {
+  uuid: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+}
+
+export function appendRemoteMessage(sessionId: string, msg: RemoteMessageAppend): void {
+  if (sessionState.activeSessionId !== sessionId) return;
+  if (state.messages.some((message) => message.uuid === msg.uuid)) return;
+
+  appendMessageCapped({
+    id: `remote-${msg.uuid}`,
+    session_id: sessionId,
+    role: msg.role,
+    content: msg.content,
+    model: null,
+    input_tokens: null,
+    output_tokens: null,
+    thinking_tokens: null,
+    cost_cents: null,
+    is_compacted: false,
+    created_at: msg.timestamp || new Date().toISOString(),
+    uuid: msg.uuid,
+    parent_uuid: null,
+    stop_reason: null,
+    is_error: false,
+    source: 'remote',
+  });
+}
+
 /** Set applied/rejected state for an inline diff block. */
 export function setDiffState(key: string, state: 'applied' | 'rejected'): void {
   setState('diffStates', key, state);
@@ -696,10 +727,7 @@ export async function setupEventListeners(sessionId: string): Promise<void> {
       }
 
       if (event.payload.exit_code !== 0 && isActive) {
-        setState(
-          'error',
-          formatCliExitError(event.payload.exit_code, event.payload.diagnostics),
-        );
+        setState('error', formatCliExitError(event.payload.exit_code, event.payload.diagnostics));
       }
     }),
   );

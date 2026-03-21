@@ -7,7 +7,7 @@
 
 import type { Component } from 'solid-js';
 import { createSignal, createEffect, Show, For, onCleanup, onMount } from 'solid-js';
-import { Send, Square, Paperclip, Image as ImageIcon, X, Check } from 'lucide-solid';
+import { Send, Share2, Square, Paperclip, Image as ImageIcon, X, Check } from 'lucide-solid';
 import { invoke } from '@tauri-apps/api/core';
 import type {
   SlashCommand,
@@ -77,6 +77,9 @@ interface MessageInputProps {
   onCancel?: () => void;
   isLoading?: boolean;
   isDisabled?: boolean;
+  isHandedOver?: boolean;
+  onHandOver?: () => void;
+  onReclaim?: () => void;
 }
 
 interface MentionRange {
@@ -168,6 +171,7 @@ export function pickBestMentionResult(
 const MessageInput: Component<MessageInputProps> = (props) => {
   const NEWLINE_HINT_ID = 'input:newline-hint';
   const SENDS_KEY = 'cw:send-count';
+  const isComposerDisabled = () => !!props.isDisabled || !!props.isHandedOver;
 
   const [content, setContent] = createSignal('');
   const [isFocused, setIsFocused] = createSignal(false);
@@ -219,11 +223,11 @@ const MessageInput: Component<MessageInputProps> = (props) => {
       }
     };
     const handleOpenFilePicker = () => {
-      if (props.isDisabled) return;
+      if (isComposerDisabled()) return;
       fileInputRef?.click();
     };
     const handleInsertIntoComposer = (event: Event) => {
-      if (props.isDisabled) return;
+      if (isComposerDisabled()) return;
       const text = (event as CustomEvent<{ text?: string }>).detail?.text?.trim();
       if (!text) return;
       const current = content();
@@ -532,7 +536,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   async function handleSend() {
     const text = content().trim();
-    if (!text || props.isLoading || props.isDisabled) return;
+    if (!text || props.isLoading || isComposerDisabled()) return;
 
     const cleanedText = (await resolveInlineRangeMentions(text)).trim();
     const finalText = cleanedText || text;
@@ -1042,7 +1046,8 @@ const MessageInput: Component<MessageInputProps> = (props) => {
   });
 
   const charCount = () => content().length;
-  const canSend = () => content().trim().length > 0 && !props.isLoading && !props.isDisabled;
+  const canSend = () =>
+    content().trim().length > 0 && !props.isLoading && !props.isDisabled && !props.isHandedOver;
   const showNewlineHint = () => hintsEnabled() && !hasSeenHint(NEWLINE_HINT_ID);
   const tokenDisplay = () => {
     const t = getTotalEstimatedTokens();
@@ -1053,7 +1058,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
   return (
     <div
-      class={`px-3 py-3 md:px-4 ${props.isDisabled ? 'opacity-50' : ''}`}
+      class={`px-3 py-3 md:px-4 ${isComposerDisabled() ? 'opacity-50' : ''}`}
       style={{
         background: isDragOver() ? 'var(--color-bg-elevated)' : 'var(--color-bg-secondary)',
         'box-shadow': isDragOver() ? 'inset 0 2px 0 var(--color-accent)' : 'none',
@@ -1242,8 +1247,14 @@ const MessageInput: Component<MessageInputProps> = (props) => {
             'box-shadow': isFocused() ? 'var(--glow-accent-subtle)' : 'none',
             'transition-duration': 'var(--duration-normal)',
           }}
-          placeholder={props.isDisabled ? t('input.noBridge') : t('input.placeholder')}
-          disabled={props.isDisabled}
+          placeholder={
+            props.isHandedOver
+              ? 'Remote is driving this session — reclaim to continue typing'
+              : props.isDisabled
+                ? t('input.noBridge')
+                : t('input.placeholder')
+          }
+          disabled={isComposerDisabled()}
           onInput={handleInput}
           onPaste={handlePaste}
           on:keydown={handleKeyDown}
@@ -1311,7 +1322,7 @@ const MessageInput: Component<MessageInputProps> = (props) => {
               background: 'transparent',
             }}
             onClick={() => fileInputRef?.click()}
-            disabled={props.isDisabled}
+            disabled={isComposerDisabled()}
             aria-label="Attach file (Cmd+Shift+U)"
             title="Attach file (Cmd+Shift+U)"
           >
@@ -1321,6 +1332,23 @@ const MessageInput: Component<MessageInputProps> = (props) => {
 
         {/* Right: action buttons */}
         <div class="flex items-center gap-2">
+          <Show when={!props.isLoading && props.onHandOver && !props.isHandedOver}>
+            <button
+              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors"
+              style={{
+                'transition-duration': 'var(--duration-fast)',
+                color: 'var(--color-text-secondary)',
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-secondary)',
+              }}
+              onClick={() => props.onHandOver?.()}
+              aria-label="Hand over session"
+              title="Hand over session"
+            >
+              <Share2 size={13} />
+              <span>Hand Over</span>
+            </button>
+          </Show>
           <Show when={props.isLoading}>
             <button
               class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
@@ -1337,31 +1365,51 @@ const MessageInput: Component<MessageInputProps> = (props) => {
               <span>{t('common.stop')}</span>
             </button>
           </Show>
-
-          <button
-            class="flex items-center justify-center h-9 w-9 rounded-md transition-colors flex-shrink-0"
-            style={{
-              'transition-duration': 'var(--duration-fast)',
-              background: canSend() ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
-              color: canSend() ? 'white' : 'var(--color-text-tertiary)',
-              border: canSend() ? 'none' : '1px solid var(--color-border-secondary)',
-              'box-shadow': canSend() ? '0 0 12px rgba(232, 130, 90, 0.2)' : 'none',
-              cursor: canSend() ? 'pointer' : 'not-allowed',
-            }}
-            onClick={handleSend}
-            disabled={!canSend()}
-            aria-label="Send message"
+          <Show
+            when={!props.isHandedOver}
+            fallback={
+              <Show when={props.onReclaim}>
+                <button
+                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+                  style={{
+                    'transition-duration': 'var(--duration-fast)',
+                    color: 'var(--color-warning, #f0b429)',
+                    background: 'rgba(240, 180, 41, 0.12)',
+                    border: '1px solid rgba(240, 180, 41, 0.24)',
+                  }}
+                  onClick={() => props.onReclaim?.()}
+                  aria-label="Reclaim session"
+                >
+                  <span>Reclaim</span>
+                </button>
+              </Show>
+            }
           >
-            <Show when={sendSuccess()} fallback={<Send size={16} />}>
-              <Check
-                size={16}
-                style={{
-                  animation:
-                    'check-appear var(--duration-celebration) var(--ease-celebration) forwards',
-                }}
-              />
-            </Show>
-          </button>
+            <button
+              class="flex items-center justify-center h-9 w-9 rounded-md transition-colors flex-shrink-0"
+              style={{
+                'transition-duration': 'var(--duration-fast)',
+                background: canSend() ? 'var(--color-accent)' : 'var(--color-bg-elevated)',
+                color: canSend() ? 'white' : 'var(--color-text-tertiary)',
+                border: canSend() ? 'none' : '1px solid var(--color-border-secondary)',
+                'box-shadow': canSend() ? '0 0 12px rgba(232, 130, 90, 0.2)' : 'none',
+                cursor: canSend() ? 'pointer' : 'not-allowed',
+              }}
+              onClick={handleSend}
+              disabled={!canSend()}
+              aria-label="Send message"
+            >
+              <Show when={sendSuccess()} fallback={<Send size={16} />}>
+                <Check
+                  size={16}
+                  style={{
+                    animation:
+                      'check-appear var(--duration-celebration) var(--ease-celebration) forwards',
+                  }}
+                />
+              </Show>
+            </button>
+          </Show>
         </div>
       </div>
 

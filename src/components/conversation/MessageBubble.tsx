@@ -278,6 +278,18 @@ const MessageBubble: Component<MessageBubbleProps> = (props) => {
               );
             }}
           </Show>
+          <Show when={props.message.source === 'remote'}>
+            <span
+              class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium"
+              style={{
+                background: 'rgba(88, 166, 255, 0.12)',
+                color: 'var(--color-model-sonnet)',
+              }}
+              title="Mirrored from the remote device"
+            >
+              phone
+            </span>
+          </Show>
           <Show when={isAssistant() && props.message.is_error === true}>
             <span
               class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium"
