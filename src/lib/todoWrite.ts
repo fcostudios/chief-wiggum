@@ -20,7 +20,8 @@ function normalizeTodoItem(value: unknown): TodoItem | null {
       : content;
 
   return {
-    id: typeof candidate.id === 'string' && candidate.id.trim().length > 0 ? candidate.id : undefined,
+    id:
+      typeof candidate.id === 'string' && candidate.id.trim().length > 0 ? candidate.id : undefined,
     content,
     activeForm,
     status: candidate.status,

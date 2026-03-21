@@ -48,6 +48,14 @@ import { maybeShowHint } from '@/stores/hintStore';
 import { settingsState } from '@/stores/settingsStore';
 import { fileState, saveConversationScrollTop } from '@/stores/fileStore';
 import { captureViewportAnchor, restoreViewportAnchor, type ViewportAnchor } from './scrollAnchor';
+import {
+  closeHandoverPanel,
+  handoverState,
+  isHandedOver,
+  openHandoverPanel,
+  reclaimSession,
+} from '@/stores/handoverStore';
+import HandoverPanel from './HandoverPanel';
 
 /** Threshold for enabling virtual scrolling. Below this, use plain <For>. */
 const VIRTUALIZATION_THRESHOLD = 50;
@@ -255,7 +263,12 @@ const ConversationView: Component = () => {
 
   const activeSessionId = () => sessionState.activeSessionId;
   const activeSession = () => sessionState.sessions.find((s) => s.id === activeSessionId());
+  const activeHandoverSessionId = () => handoverState.panelSessionId;
   const messages = () => conversationState.messages;
+  const activeSessionHandedOver = () => {
+    const sessionId = activeSessionId();
+    return !!sessionId && isHandedOver(sessionId);
+  };
   const hasActiveTurnLayout = () => conversationState.isLoading || conversationState.isStreaming;
   // Index of the last user message (start of current turn).
   const currentTurnStartIndex = (): number => {
@@ -733,6 +746,44 @@ const ConversationView: Component = () => {
           }
         >
           <div class="px-3 py-5 max-w-6xl mx-auto w-full">
+            <Show when={activeSessionHandedOver()}>
+              <div
+                class="mb-4 flex items-center justify-between rounded-xl border px-4 py-3"
+                style={{
+                  background: 'rgba(240, 180, 41, 0.12)',
+                  border: '1px solid rgba(240, 180, 41, 0.24)',
+                }}
+                onClick={() => {
+                  const sessionId = activeSessionId();
+                  if (sessionId) void openHandoverPanel(sessionId);
+                }}
+              >
+                <div
+                  class="flex items-center gap-2 text-xs font-medium"
+                  style={{ color: 'var(--color-warning, #f0b429)' }}
+                >
+                  <span
+                    class="inline-block h-2 w-2 rounded-full animate-pulse"
+                    style={{ background: 'var(--color-warning, #f0b429)' }}
+                  />
+                  <span>Session handed over — remote is driving</span>
+                </div>
+                <button
+                  class="rounded-md px-3 py-1 text-xs font-semibold"
+                  style={{
+                    background: 'var(--color-warning, #f0b429)',
+                    color: 'black',
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    const sessionId = activeSessionId();
+                    if (sessionId) void reclaimSession(sessionId);
+                  }}
+                >
+                  Reclaim
+                </button>
+              </div>
+            </Show>
             <Show when={resumeData()}>
               {(data) => (
                 <SessionResumeCard
@@ -947,6 +998,10 @@ const ConversationView: Component = () => {
             {t('conversation.jumpToLatest')}
           </button>
         </div>
+      </Show>
+
+      <Show when={!!activeSessionId() && activeHandoverSessionId() === activeSessionId()}>
+        <HandoverPanel sessionId={activeSessionId()!} onClose={closeHandoverPanel} />
       </Show>
     </div>
   );

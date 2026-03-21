@@ -18,6 +18,7 @@ import {
 import { cliState } from '@/stores/cliStore';
 import { getActiveProject } from '@/stores/projectStore';
 import { t } from '@/stores/i18nStore';
+import { isHandedOver, openHandoverPanel, reclaimSession } from '@/stores/handoverStore';
 
 const MIN_PANE_SIZE = 300; // px
 const SNAPSHOT_MESSAGE_LIMIT = 30;
@@ -284,6 +285,23 @@ const SplitPaneContainer: Component = () => {
                     }}
                     isLoading={isPaneLive(pane) ? conversationState.isLoading : false}
                     isDisabled={!cliState.isDetected || !isPaneFocused(pane)}
+                    isHandedOver={!!pane.sessionId && isHandedOver(pane.sessionId)}
+                    onHandOver={
+                      pane.sessionId &&
+                      sessionState.sessions.find((session) => session.id === pane.sessionId)
+                        ?.cli_session_id
+                        ? () => {
+                            if (pane.sessionId) void openHandoverPanel(pane.sessionId);
+                          }
+                        : undefined
+                    }
+                    onReclaim={
+                      pane.sessionId
+                        ? () => {
+                            if (pane.sessionId) void reclaimSession(pane.sessionId);
+                          }
+                        : undefined
+                    }
                   />
                 </div>
               </section>

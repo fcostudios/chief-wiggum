@@ -6,6 +6,7 @@ import { detectCli } from '@/stores/cliStore';
 import { getActiveProject, loadProjects, projectState } from '@/stores/projectStore';
 import { loadCommands, startSdkCommandListener } from '@/stores/slashStore';
 import { reconnectAfterReload } from '@/stores/conversationStore';
+import { cleanupHandoverListeners, initHandoverListeners } from '@/stores/handoverStore';
 import {
   isOnboardingCompleted,
   loadSettings,
@@ -78,6 +79,7 @@ const App: Component = () => {
     loadProjects();
     void startSdkCommandListener();
     void loadSettings().then(() => startSettingsListener());
+    void initHandoverListeners().catch(() => {});
 
     void (async () => {
       await setupActionListeners();
@@ -114,6 +116,7 @@ const App: Component = () => {
   });
 
   onCleanup(() => {
+    cleanupHandoverListeners();
     void cleanupActionListeners();
   });
 
