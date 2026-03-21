@@ -1,7 +1,7 @@
 {
   "_comment": "Cowork \u2194 Claude Code handover file. Both tools read and write this. See HANDOVER-PROTOCOL.md for rules.",
-  "last_updated": "2026-03-15T02:30:05Z",
-  "last_updated_by": "codex",
+  "last_updated": "2026-03-21T01:38:23Z",
+  "last_updated_by": "claude-code",
   "phase": {
     "name": "Phase 2: Make It Real",
     "linear_project_id": "63e009bd-5e43-4575-a7be-2e3b1cface5f",
@@ -805,6 +805,125 @@
       "last_updated_by": "codex",
       "completed_at": "2026-03-15T02:30:05Z",
       "notes": "Terminal Integration epic complete. CHI-332 through CHI-343 are implemented and verified with cargo fmt --check, cargo test, full vitest, tsc --noEmit, eslint, and vite build. branch=codex/terminal-settings-shortcuts-accessibility; commits=a69333f,17169c0,23d85b8"
+    },
+    "CHI-344": {
+      "title": "Session Handover \u2014 Remote Mirror",
+      "status": "done",
+      "priority": "High",
+      "tasks": {
+        "CHI-345": {
+          "title": "SH-1: DB schema + jsonl_path wiring",
+          "priority": "High",
+          "status": "done",
+          "assigned_to": "claude-code",
+          "started_at": "2026-03-20T23:31:52Z",
+          "updated_at": "2026-03-21T01:38:23Z",
+          "worktree": null,
+          "last_updated_by": "claude-code",
+          "completed_at": "2026-03-21T01:38:23Z",
+          "files": [
+            "src-tauri/src/db/migrations.rs",
+            "src-tauri/src/db/queries.rs",
+            "src-tauri/src/bridge/event_loop.rs",
+            "src-tauri/src/commands/bridge.rs"
+          ],
+          "notes": "Completed JSONL session path persistence and UUID tracking for live/remote reconciliation. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+        },
+        "CHI-346": {
+          "title": "SH-2: Rust handover module + IPC commands",
+          "priority": "High",
+          "status": "done",
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-21T01:38:23Z",
+          "updated_at": "2026-03-21T01:38:23Z",
+          "worktree": null,
+          "last_updated_by": "claude-code",
+          "files": [
+            "src-tauri/src/handover/mod.rs",
+            "src-tauri/src/commands/handover.rs",
+            "src-tauri/src/commands/mod.rs",
+            "src-tauri/src/lib.rs",
+            "src-tauri/src/main.rs"
+          ],
+          "notes": "Completed Rust handover process manager, IPC commands, and app lifecycle registration. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+        },
+        "CHI-347": {
+          "title": "SH-3: JSONL file watcher + session:remote-message events",
+          "priority": "High",
+          "status": "done",
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-21T01:38:23Z",
+          "updated_at": "2026-03-21T01:38:23Z",
+          "worktree": null,
+          "last_updated_by": "claude-code",
+          "files": [
+            "src-tauri/src/handover/mod.rs",
+            "src-tauri/src/commands/handover.rs"
+          ],
+          "notes": "Completed JSONL watcher with remote mirror event emission for claimed sessions. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+        },
+        "CHI-348": {
+          "title": "SH-4: Frontend handoverStore + types",
+          "priority": "High",
+          "status": "done",
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-21T01:38:23Z",
+          "updated_at": "2026-03-21T01:38:23Z",
+          "worktree": null,
+          "last_updated_by": "claude-code",
+          "files": [
+            "src/App.tsx",
+            "src/lib/types.ts",
+            "src/stores/conversationStore.ts",
+            "src/stores/handoverStore.ts",
+            "src/stores/handoverStore.test.ts"
+          ],
+          "notes": "Completed frontend handover store, message typing, and remote append listener wiring. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+        },
+        "CHI-349": {
+          "title": "SH-5: HandoverPanel UI + ConversationView read-only mode",
+          "priority": "High",
+          "status": "done",
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-21T01:38:23Z",
+          "updated_at": "2026-03-21T01:38:23Z",
+          "worktree": null,
+          "last_updated_by": "claude-code",
+          "files": [
+            "src/components/conversation/ConversationView.tsx",
+            "src/components/conversation/HandoverPanel.tsx",
+            "src/components/conversation/HandoverPanel.test.tsx",
+            "src/components/conversation/MessageBubble.tsx",
+            "src/components/conversation/MessageInput.tsx",
+            "src/components/layout/MainLayout.tsx",
+            "src/components/layout/SplitPaneContainer.tsx"
+          ],
+          "notes": "Completed handover UI, read-only session mode, QR relay panel, and conversation affordances. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+        },
+        "CHI-350": {
+          "title": "SH-6: Reconciliation on reclaim (JSONL -> DB)",
+          "priority": "High",
+          "status": "done",
+          "assigned_to": "claude-code",
+          "completed_at": "2026-03-21T01:38:23Z",
+          "updated_at": "2026-03-21T01:38:23Z",
+          "worktree": null,
+          "last_updated_by": "claude-code",
+          "files": [
+            "src-tauri/src/handover/reconcile.rs",
+            "src-tauri/src/commands/handover.rs",
+            "src-tauri/src/db/queries.rs",
+            "src/stores/handoverStore.ts"
+          ],
+          "notes": "Completed reclaim reconciliation from JSONL into SQLite with duplicate suppression and session refresh. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+        }
+      },
+      "assigned_to": "claude-code",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "last_updated_by": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "notes": "Session handover remote mirror complete. JSONL watcher, remote relay UI, reclaim reconciliation, and verification all passed on main. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
     }
   },
   "tasks": {
@@ -4368,6 +4487,131 @@
       "worktree": null,
       "last_updated_by": "codex",
       "notes": "Foundation slice CHI-332/333/334/335/336/338 landed on main=98e85de. Follow-up slice CHI-337/339/340 is complete on branch=codex/terminal-tab-rename-links-cwd with commits=9e0f14b,72b2724,b82f9cc,69f8391. Remaining backlog: CHI-341, CHI-342, CHI-343. repaired_after_erroneous_revert=1dd50ba"
+    },
+    "CHI-344": {
+      "title": "Session Handover \u2014 Remote Mirror",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": null,
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-20T23:31:52Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "notes": "Plan completed and merged to main after verification: cargo test --quiet, npx tsc --noEmit, npx vitest run, npx eslint . --max-warnings 0, npm run format:check, npx vite build. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z",
+      "completed_at": "2026-03-21T01:38:23Z"
+    },
+    "CHI-345": {
+      "title": "SH-1: DB schema + jsonl_path wiring",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": "CHI-344",
+      "assigned_to": "claude-code",
+      "started_at": "2026-03-20T23:31:52Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "files": [
+        "src-tauri/src/db/migrations.rs",
+        "src-tauri/src/db/queries.rs",
+        "src-tauri/src/bridge/event_loop.rs",
+        "src-tauri/src/commands/bridge.rs"
+      ],
+      "notes": "Completed JSONL session path persistence and UUID tracking for live/remote reconciliation. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+    },
+    "CHI-346": {
+      "title": "SH-2: Rust handover module + IPC commands",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": "CHI-344",
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "files": [
+        "src-tauri/src/handover/mod.rs",
+        "src-tauri/src/commands/handover.rs",
+        "src-tauri/src/commands/mod.rs",
+        "src-tauri/src/lib.rs",
+        "src-tauri/src/main.rs"
+      ],
+      "notes": "Completed Rust handover process manager, IPC commands, and app lifecycle registration. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+    },
+    "CHI-347": {
+      "title": "SH-3: JSONL file watcher + session:remote-message events",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": "CHI-344",
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "files": [
+        "src-tauri/src/handover/mod.rs",
+        "src-tauri/src/commands/handover.rs"
+      ],
+      "notes": "Completed JSONL watcher with remote mirror event emission for claimed sessions. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+    },
+    "CHI-348": {
+      "title": "SH-4: Frontend handoverStore + types",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": "CHI-344",
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "files": [
+        "src/App.tsx",
+        "src/lib/types.ts",
+        "src/stores/conversationStore.ts",
+        "src/stores/handoverStore.ts",
+        "src/stores/handoverStore.test.ts"
+      ],
+      "notes": "Completed frontend handover store, message typing, and remote append listener wiring. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+    },
+    "CHI-349": {
+      "title": "SH-5: HandoverPanel UI + ConversationView read-only mode",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": "CHI-344",
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "files": [
+        "src/components/conversation/ConversationView.tsx",
+        "src/components/conversation/HandoverPanel.tsx",
+        "src/components/conversation/HandoverPanel.test.tsx",
+        "src/components/conversation/MessageBubble.tsx",
+        "src/components/conversation/MessageInput.tsx",
+        "src/components/layout/MainLayout.tsx",
+        "src/components/layout/SplitPaneContainer.tsx"
+      ],
+      "notes": "Completed handover UI, read-only session mode, QR relay panel, and conversation affordances. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
+    },
+    "CHI-350": {
+      "title": "SH-6: Reconciliation on reclaim (JSONL -> DB)",
+      "status": "done",
+      "priority": "High",
+      "parent_epic": "CHI-344",
+      "assigned_to": "claude-code",
+      "completed_at": "2026-03-21T01:38:23Z",
+      "updated_at": "2026-03-21T01:38:23Z",
+      "worktree": null,
+      "last_updated_by": "claude-code",
+      "files": [
+        "src-tauri/src/handover/reconcile.rs",
+        "src-tauri/src/commands/handover.rs",
+        "src-tauri/src/db/queries.rs",
+        "src/stores/handoverStore.ts"
+      ],
+      "notes": "Completed reclaim reconciliation from JSONL into SQLite with duplicate suppression and session refresh. completed_by=claude-code; lock_acquired_at=2026-03-21T01:38:23Z"
     }
   },
   "epics_new": {
@@ -8824,8 +9068,8 @@
     ]
   },
   "counts": {
-    "total": 179,
-    "done": 165,
+    "total": 186,
+    "done": 172,
     "in_progress": 0,
     "backlog": 14
   },
@@ -8926,8 +9170,8 @@
     ]
   },
   "summary": {
-    "total": 179,
-    "done": 165,
+    "total": 186,
+    "done": 172,
     "in_progress": 0,
     "backlog": 14
   }
