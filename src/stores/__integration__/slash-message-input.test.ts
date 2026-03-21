@@ -26,8 +26,12 @@ describe('Integration: slash -> message input state flow', () => {
     const mod = await import('@/stores/slashStore');
     await mod.loadCommands('/repo');
 
-    expect(mod.slashState.commands).toHaveLength(2);
-    expect(mod.slashState.commands.map((command) => command.name)).toEqual(['create', 'help']);
+    expect(mod.slashState.commands).toHaveLength(3);
+    expect(mod.slashState.commands.map((command) => command.name)).toEqual([
+      'create',
+      'claude-session-id',
+      'help',
+    ]);
   });
 
   it('filteredCommands returns matches after setting a filter', async () => {

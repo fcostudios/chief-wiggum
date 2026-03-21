@@ -21,6 +21,14 @@ const CLIENT_BUILTINS: SlashCommand[] = [
     source_path: null,
     from_sdk: false,
   },
+  {
+    name: 'claude-session-id',
+    description: 'Show and copy the current Claude session ID',
+    category: 'Builtin',
+    args_hint: null,
+    source_path: null,
+    from_sdk: false,
+  },
 ];
 
 interface SlashState {

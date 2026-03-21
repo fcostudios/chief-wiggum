@@ -84,6 +84,7 @@ type ConversationStoreModule = typeof import('./conversationStore');
 
 describe('conversationStore', () => {
   let mod: ConversationStoreModule;
+  let clipboardWriteText: ReturnType<typeof vi.fn>;
 
   function setActiveSessionId(id: string): void {
     mocks.session.activeSession = {
@@ -139,6 +140,13 @@ describe('conversationStore', () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    clipboardWriteText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: clipboardWriteText,
+      },
+    });
     mocks.project.activeProject = { id: 'proj-default', path: '/workspace/default' };
     mocks.project.activeProjectId = 'proj-default';
     mocks.project.projects = [
@@ -398,6 +406,56 @@ describe('conversationStore', () => {
         session_id: 'session-a',
         project_path: '/workspace/a',
       }),
+    );
+  });
+
+  it('handles /claude-session-id locally and offers a copy action', async () => {
+    const sendToCli = vi.fn((_args: Record<string, unknown>) => undefined);
+    mockIpcCommand('send_to_cli', sendToCli);
+    mocks.session.activeSession = createTestSession({
+      id: 'session-with-cli',
+      cli_session_id: 'cli-session-123',
+    });
+    mocks.session.sessions = [mocks.session.activeSession];
+
+    await mod.sendMessage('/claude-session-id', 'session-with-cli');
+
+    expect(sendToCli).not.toHaveBeenCalled();
+    expect(mod.conversationState.messages).toEqual([]);
+    expect(mocks.toast.addToast).toHaveBeenCalledWith(
+      'Claude session ID: cli-session-123',
+      'success',
+      expect.objectContaining({
+        label: 'Copy',
+        onClick: expect.any(Function),
+      }),
+    );
+
+    const lastToastCall =
+      mocks.toast.addToast.mock.calls[mocks.toast.addToast.mock.calls.length - 1];
+    const action = lastToastCall?.[2] as { label: string; onClick: () => void } | undefined;
+    expect(action?.label).toBe('Copy');
+    action?.onClick();
+    await Promise.resolve();
+    expect(clipboardWriteText).toHaveBeenCalledWith('cli-session-123');
+  });
+
+  it('handles /claude-session-id locally when no CLI session exists yet', async () => {
+    const sendToCli = vi.fn((_args: Record<string, unknown>) => undefined);
+    mockIpcCommand('send_to_cli', sendToCli);
+    mocks.session.activeSession = createTestSession({
+      id: 'session-without-cli',
+      cli_session_id: null,
+    });
+    mocks.session.sessions = [mocks.session.activeSession];
+
+    await mod.sendMessage('/claude-session-id', 'session-without-cli');
+
+    expect(sendToCli).not.toHaveBeenCalled();
+    expect(mod.conversationState.messages).toEqual([]);
+    expect(mocks.toast.addToast).toHaveBeenCalledWith(
+      'Claude session ID is not available yet',
+      'info',
     );
   });
 

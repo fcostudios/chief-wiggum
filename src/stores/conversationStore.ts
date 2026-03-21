@@ -959,6 +959,39 @@ function getSessionById(sessionId: string) {
   return sessionState.sessions.find((session) => session.id === sessionId);
 }
 
+function isClaudeSessionIdCommand(content: string): boolean {
+  return content.trim() === '/claude-session-id';
+}
+
+function copyTextToClipboard(text: string): void {
+  const clipboard = navigator.clipboard;
+  if (!clipboard) {
+    addToast('Clipboard is not available', 'warning');
+    return;
+  }
+
+  void clipboard
+    .writeText(text)
+    .then(() => addToast('Copied to clipboard', 'success'))
+    .catch(() => addToast('Failed to copy Claude session ID', 'error'));
+}
+
+function handleClaudeSessionIdCommand(sessionId: string): boolean {
+  const session = getSessionById(sessionId) ?? getActiveSession();
+  const cliSessionId = session?.cli_session_id?.trim();
+
+  if (!cliSessionId) {
+    addToast('Claude session ID is not available yet', 'info');
+    return true;
+  }
+
+  addToast(`Claude session ID: ${cliSessionId}`, 'success', {
+    label: 'Copy',
+    onClick: () => copyTextToClipboard(cliSessionId),
+  });
+  return true;
+}
+
 async function resolveAndRepairSessionProject(
   sessionId: string,
 ): Promise<{ projectId: string; projectPath: string }> {
@@ -992,6 +1025,11 @@ export async function sendMessage(
   sessionId: string,
   images: PromptImageInput[] = [],
 ): Promise<void> {
+  if (isClaudeSessionIdCommand(content)) {
+    handleClaudeSessionIdCommand(sessionId);
+    return;
+  }
+
   touchSessionActivity(sessionId);
   clearSessionUnread(sessionId);
   const msgId = crypto.randomUUID();
