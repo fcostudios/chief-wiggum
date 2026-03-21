@@ -359,7 +359,10 @@ pub fn get_message_jsonl_uuids(
 ) -> Result<std::collections::HashSet<String>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
-            "SELECT jsonl_uuid FROM messages WHERE session_id = ?1 AND jsonl_uuid IS NOT NULL",
+            "SELECT COALESCE(jsonl_uuid, uuid)
+             FROM messages
+             WHERE session_id = ?1
+               AND COALESCE(jsonl_uuid, uuid) IS NOT NULL",
         )?;
         let uuids = stmt
             .query_map(rusqlite::params![session_id], |row| row.get::<_, String>(0))?
@@ -629,21 +632,34 @@ pub fn save_message_from_jsonl(
     jsonl_uuid: &str,
     role: &str,
     content: &str,
+    model: Option<&str>,
+    input_tokens: Option<i64>,
+    output_tokens: Option<i64>,
+    thinking_tokens: Option<i64>,
+    stop_reason: Option<&str>,
+    is_error: bool,
     created_at: &str,
     parent_uuid: Option<&str>,
 ) -> Result<(), AppError> {
     db.with_conn(|conn| {
         conn.execute(
             "INSERT OR IGNORE INTO messages
-             (id, session_id, role, content, jsonl_uuid, uuid, parent_uuid, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?7)",
+             (id, session_id, role, content, model, input_tokens, output_tokens, thinking_tokens,
+              jsonl_uuid, uuid, parent_uuid, stop_reason, is_error, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, ?10, ?11, ?12, ?13)",
             rusqlite::params![
                 id,
                 session_id,
                 role,
                 content,
+                model,
+                input_tokens,
+                output_tokens,
+                thinking_tokens,
                 jsonl_uuid,
                 parent_uuid,
+                stop_reason,
+                is_error,
                 created_at
             ],
         )?;
