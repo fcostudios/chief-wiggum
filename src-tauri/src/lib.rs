@@ -9,6 +9,7 @@ pub mod commands;
 pub mod db;
 pub mod files;
 pub mod git;
+pub mod handover;
 pub mod import;
 pub mod logging;
 pub mod paths;

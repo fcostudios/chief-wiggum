@@ -209,6 +209,8 @@ fn main() {
     let action_map = chief_wiggum_lib::actions::manager::ActionBridgeMap::new();
     // PTY terminal session manager (CHI-333)
     let terminal_manager = chief_wiggum_lib::terminal::manager::TerminalManager::new();
+    // Session handover process manager (CHI-344)
+    let handover_map = chief_wiggum_lib::handover::HandoverMap::new();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
@@ -222,6 +224,7 @@ fn main() {
         .manage(file_watcher_manager)
         .manage(action_map)
         .manage(terminal_manager)
+        .manage(handover_map)
         .invoke_handler(tauri::generate_handler![
             chief_wiggum_lib::commands::session::create_session,
             chief_wiggum_lib::commands::session::list_all_sessions,
@@ -344,6 +347,9 @@ fn main() {
             chief_wiggum_lib::commands::terminal::terminal_write,
             chief_wiggum_lib::commands::terminal::terminal_resize,
             chief_wiggum_lib::commands::terminal::list_shells,
+            chief_wiggum_lib::commands::handover::start_handover,
+            chief_wiggum_lib::commands::handover::stop_handover,
+            chief_wiggum_lib::commands::handover::get_handover_state,
         ])
         .setup(|app| {
             use tauri::Manager;
@@ -358,6 +364,10 @@ fn main() {
                 .clone();
             let terminal_manager = app
                 .state::<chief_wiggum_lib::terminal::manager::TerminalManager>()
+                .inner()
+                .clone();
+            let handover_map = app
+                .state::<chief_wiggum_lib::handover::HandoverMap>()
                 .inner()
                 .clone();
 
@@ -389,6 +399,7 @@ fn main() {
                         let bridge_map = bridge_map.clone();
                         let action_map = action_map.clone();
                         let terminal_manager = terminal_manager.clone();
+                        let handover_map = handover_map.clone();
                         let close_state = close_state.clone();
                         let window = close_window.clone();
                         let app_handle = app_handle.clone();
@@ -403,6 +414,8 @@ fn main() {
                             }
                             tracing::info!("App closing — shutting down all terminal sessions");
                             terminal_manager.kill_all();
+                            tracing::info!("App closing — shutting down all handover sessions");
+                            handover_map.shutdown_all().await;
                             tracing::info!("All CLI processes shut down");
 
                             close_state.store(2, Ordering::SeqCst);
