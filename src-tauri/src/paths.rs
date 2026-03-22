@@ -21,9 +21,14 @@ pub fn normalize_project_path(raw: &str) -> PathBuf {
     parsed.into_path().unwrap_or_else(|_| PathBuf::from(raw))
 }
 
+/// Encode an absolute project path to the flat directory name used by Claude CLI.
+pub fn encode_project_path(path: &str) -> String {
+    path.replace('/', "-")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::normalize_project_path;
+    use super::{encode_project_path, normalize_project_path};
     use std::path::PathBuf;
 
     #[test]
@@ -41,5 +46,18 @@ mod tests {
             PathBuf::from("/tmp/chief wiggum")
         };
         assert_eq!(normalize_project_path(raw), expected);
+    }
+
+    #[test]
+    fn encode_project_path_replaces_slashes_with_dashes() {
+        assert_eq!(
+            encode_project_path("/Users/alice/my-project"),
+            "-Users-alice-my-project"
+        );
+    }
+
+    #[test]
+    fn encode_project_path_handles_empty_string() {
+        assert_eq!(encode_project_path(""), "");
     }
 }

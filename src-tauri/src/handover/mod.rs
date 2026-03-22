@@ -6,21 +6,18 @@ use crate::import::jsonl::{parse_jsonl_reader, JsonlLine, MessageInsert};
 use crate::{AppError, AppResult};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use parking_lot::Mutex as ParkingMutex;
+use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, PtySize};
 use regex::Regex;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, OnceLock};
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
-use tokio::io::AsyncBufReadExt;
-use tokio::process::{Child, Command};
 use tokio::sync::{oneshot, Mutex};
-use tokio::task::JoinHandle;
 use tokio::time::timeout;
 
 const WATCH_IDLE_POLL_MS: u64 = 100;
@@ -38,6 +35,25 @@ fn extract_relay_url(line: &str) -> Option<String> {
     relay_url_regex()
         .find(line)
         .map(|matched| matched.as_str().to_string())
+}
+
+fn truncate_for_logs(text: &str, max_chars: usize) -> String {
+    let count = text.chars().count();
+    if count <= max_chars {
+        return text.to_string();
+    }
+    let truncated = text.chars().take(max_chars).collect::<String>();
+    format!("{}…", truncated)
+}
+
+/// Keep the *tail* of `text` (up to `max_chars` Unicode scalar values).
+/// Used for rolling buffers where recent output matters more than old output.
+fn keep_tail(text: &str, max_chars: usize) -> String {
+    let count = text.chars().count();
+    if count <= max_chars {
+        return text.to_string();
+    }
+    text.chars().skip(count - max_chars).collect()
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,11 +82,12 @@ pub struct RemoteMessagePayload {
 
 pub struct HandoverProcess {
     pub state: HandoverState,
-    child: Arc<Mutex<Child>>,
-    stdout_task: JoinHandle<()>,
-    stderr_task: JoinHandle<()>,
+    killer: Box<dyn ChildKiller + Send + Sync>,
+    output_join_handle: Option<thread::JoinHandle<()>>,
+    wait_join_handle: Option<thread::JoinHandle<()>>,
     watcher_stop_tx: Option<mpsc::Sender<()>>,
     watcher_join_handle: Option<thread::JoinHandle<()>>,
+    debug_file_path: PathBuf,
 }
 
 #[derive(Clone)]
@@ -104,65 +121,157 @@ impl HandoverMap {
             return Ok(existing);
         }
 
-        let mut command = Command::new(cli_path);
-        command
-            .arg("--resume")
-            .arg(&cli_session_id)
-            .arg("--remote-control")
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+        let debug_file_path = std::env::temp_dir().join(format!(
+            "chief-wiggum-handover-{}-{}.log",
+            session_id,
+            chrono::Utc::now().timestamp()
+        ));
+
+        let pty_system = native_pty_system();
+        let pair = pty_system
+            .openpty(PtySize {
+                rows: 24,
+                cols: 80,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|e| AppError::Bridge(format!("Failed to create handover PTY: {}", e)))?;
+
+        let mut command = CommandBuilder::new(cli_path);
+        command.arg("--resume");
+        command.arg(&cli_session_id);
+        command.arg("--remote-control");
+        command.arg("--debug-file");
+        command.arg(&debug_file_path);
         if let Some(cwd) = cwd {
-            command.current_dir(cwd);
+            command.cwd(cwd);
         }
+        // Match bridge spawning behavior so Claude doesn't think this is nested.
+        command.env("CLAUDECODE", "");
 
-        let mut child = command
-            .spawn()
+        tracing::info!(
+            session_id = %session_id,
+            cli_session_id = %cli_session_id,
+            cli_path = %cli_path,
+            cwd = ?cwd,
+            debug_file = %debug_file_path.display(),
+            "starting handover process",
+        );
+
+        let mut child = pair
+            .slave
+            .spawn_command(command)
             .map_err(|e| AppError::Bridge(format!("Failed to start handover process: {}", e)))?;
+        let mut killer = child.clone_killer();
+        drop(pair.slave);
 
-        let stdout = child.stdout.take().ok_or_else(|| {
-            AppError::Bridge("Failed to capture handover stdout from claude".to_string())
-        })?;
-        let stderr = child.stderr.take().ok_or_else(|| {
-            AppError::Bridge("Failed to capture handover stderr from claude".to_string())
-        })?;
+        let mut reader = pair
+            .master
+            .try_clone_reader()
+            .map_err(|e| AppError::Bridge(format!("Failed to clone handover PTY reader: {}", e)))?;
 
         let (url_tx, url_rx) = oneshot::channel();
-        let stdout_task = tokio::spawn(async move {
-            let mut lines = tokio::io::BufReader::new(stdout).lines();
-            let mut url_sender = Some(url_tx);
-            while let Ok(Some(line)) = lines.next_line().await {
-                tracing::debug!("handover stdout: {}", line);
-                if let Some(sender) = url_sender.take() {
-                    if let Some(url) = extract_relay_url(&line) {
-                        let _ = sender.send(url);
-                    } else {
-                        url_sender = Some(sender);
+        let output_tail = Arc::new(ParkingMutex::new(String::new()));
+
+        let output_tail_reader = output_tail.clone();
+        let output_join_handle = std::thread::Builder::new()
+            .name("handover-reader".to_string())
+            .spawn(move || {
+                let mut buf = [0_u8; 4096];
+                let mut search_window = String::new();
+                let mut url_sender = Some(url_tx);
+
+                loop {
+                    match reader.read(&mut buf) {
+                        Ok(0) => break,
+                        Ok(n) => {
+                            let chunk = String::from_utf8_lossy(&buf[..n]).to_string();
+                            tracing::info!(
+                                bytes = n,
+                                chunk = %truncate_for_logs(&chunk, 240),
+                                "handover stdout chunk",
+                            );
+
+                            {
+                                let mut tail = output_tail_reader.lock();
+                                tail.push_str(&chunk);
+                                *tail = keep_tail(&tail, 4000);
+                            }
+
+                            search_window.push_str(&chunk);
+                            search_window = keep_tail(&search_window, 8000);
+
+                            if let Some(sender) = url_sender.take() {
+                                if let Some(url) = extract_relay_url(&search_window) {
+                                    tracing::info!(relay_url = %url, "handover relay URL detected");
+                                    let _ = sender.send(url);
+                                } else {
+                                    url_sender = Some(sender);
+                                }
+                            }
+                        }
+                        Err(err) => {
+                            tracing::warn!(error = %err, "handover stdout read failed");
+                            break;
+                        }
                     }
                 }
-            }
-        });
 
-        let stderr_task = tokio::spawn(async move {
-            let mut lines = tokio::io::BufReader::new(stderr).lines();
-            while let Ok(Some(line)) = lines.next_line().await {
-                tracing::debug!("handover stderr: {}", line);
-            }
-        });
-
-        let relay_url = timeout(Duration::from_secs(20), url_rx)
-            .await
-            .map_err(|_| {
-                AppError::Bridge(
-                    "Timed out waiting for relay URL from `claude --resume <session-id> --remote-control`"
-                        .to_string(),
-                )
-            })?
-            .map_err(|_| {
-                AppError::Bridge(
-                    "Handover process exited before publishing a relay URL".to_string(),
-                )
+                tracing::info!("handover stdout reader exited");
+            })
+            .map_err(|e| {
+                AppError::Bridge(format!("Failed to spawn handover reader thread: {}", e))
             })?;
+
+        let wait_join_handle = std::thread::Builder::new()
+            .name("handover-wait".to_string())
+            .spawn(move || match child.wait() {
+                Ok(status) => {
+                    tracing::info!(exit_code = status.exit_code(), "handover process exited")
+                }
+                Err(err) => tracing::warn!(error = %err, "handover process wait failed"),
+            })
+            .map_err(|e| {
+                AppError::Bridge(format!("Failed to spawn handover wait thread: {}", e))
+            })?;
+
+        let relay_url = match timeout(Duration::from_secs(20), url_rx).await {
+            Ok(Ok(url)) => url,
+            Err(_) => {
+                let output_tail = output_tail.lock().clone();
+                tracing::error!(
+                    session_id = %session_id,
+                    cli_session_id = %cli_session_id,
+                    output_tail = %keep_tail(&output_tail, 600),
+                    debug_file = %debug_file_path.display(),
+                    "timed out waiting for handover relay URL",
+                );
+                let _ = killer.kill();
+                let _ = output_join_handle.join();
+                let _ = wait_join_handle.join();
+                let _ = std::fs::remove_file(&debug_file_path);
+                return Err(AppError::Bridge(
+                    "Timed out waiting for relay URL from `claude --resume <id> --remote-control`. Check that the session is still active and the CLI is authenticated.".to_string(),
+                ));
+            }
+            Ok(Err(_)) => {
+                let output_tail = output_tail.lock().clone();
+                tracing::error!(
+                    session_id = %session_id,
+                    cli_session_id = %cli_session_id,
+                    output_tail = %keep_tail(&output_tail, 600),
+                    debug_file = %debug_file_path.display(),
+                    "handover process exited before publishing a relay URL",
+                );
+                let _ = killer.kill();
+                let _ = output_join_handle.join();
+                let _ = wait_join_handle.join();
+                let _ = std::fs::remove_file(&debug_file_path);
+                return Err(AppError::Bridge(
+                    "Handover process exited before publishing a relay URL. Ensure the CLI session ID is valid and the CLI is up to date.".to_string(),
+                ));
+            }
+        };
 
         let (watcher_stop_tx, watcher_join_handle) = if let Some(path) = jsonl_path {
             let initial_offset = std::fs::metadata(&path).map(|meta| meta.len()).unwrap_or(0);
@@ -186,11 +295,12 @@ impl HandoverMap {
             session_id,
             HandoverProcess {
                 state: state.clone(),
-                child: Arc::new(Mutex::new(child)),
-                stdout_task,
-                stderr_task,
+                killer,
+                output_join_handle: Some(output_join_handle),
+                wait_join_handle: Some(wait_join_handle),
                 watcher_stop_tx,
                 watcher_join_handle,
+                debug_file_path: debug_file_path.clone(),
             },
         );
 
@@ -206,11 +316,18 @@ impl HandoverMap {
             if let Some(join_handle) = process.watcher_join_handle.take() {
                 let _ = join_handle.join();
             }
-            process.stdout_task.abort();
-            process.stderr_task.abort();
-            let mut child = process.child.lock().await;
-            let _ = child.start_kill();
-            let _ = child.wait().await;
+            let _ = process.killer.kill();
+            if let Some(join_handle) = process.output_join_handle.take() {
+                let _ = join_handle.join();
+            }
+            if let Some(join_handle) = process.wait_join_handle.take() {
+                let _ = join_handle.join();
+            }
+            let _ = std::fs::remove_file(&process.debug_file_path);
+            tracing::debug!(
+                path = %process.debug_file_path.display(),
+                "removed handover debug file"
+            );
         }
         Ok(())
     }
@@ -230,10 +347,12 @@ impl Default for HandoverMap {
 }
 
 pub fn compute_jsonl_path(project_path: &str, cli_session_id: &str) -> PathBuf {
-    let encoded = project_path.replace('/', "-");
-    dirs::home_dir()
-        .unwrap_or_default()
-        .join(".claude/projects")
+    let encoded = crate::paths::encode_project_path(project_path);
+    let home = dirs::home_dir().unwrap_or_else(|| {
+        tracing::warn!("home_dir() returned None — JSONL path will be relative to filesystem root");
+        PathBuf::new()
+    });
+    home.join(".claude/projects")
         .join(encoded)
         .join(format!("{}.jsonl", cli_session_id))
 }
@@ -372,7 +491,8 @@ fn run_watch_loop(
         let current_len = std::fs::metadata(&jsonl_path)
             .map(|meta| meta.len())
             .unwrap_or(previous_offset);
-        if current_len < previous_offset {
+        let did_shrink = current_len < previous_offset;
+        if did_shrink {
             byte_offset.store(0, Ordering::Relaxed);
             seen_uuids.lock().clear();
         }
@@ -422,7 +542,14 @@ fn run_watch_loop(
             }
         }
 
-        byte_offset.store(current_len, Ordering::Relaxed);
+        let final_len = if did_shrink {
+            std::fs::metadata(&jsonl_path)
+                .map(|meta| meta.len())
+                .unwrap_or_else(|_| byte_offset.load(Ordering::Relaxed))
+        } else {
+            current_len
+        };
+        byte_offset.store(final_len, Ordering::Relaxed);
         changed = false;
         last_event_at = None;
     }
@@ -468,7 +595,7 @@ mod tests {
     }
 
     #[test]
-    fn compute_jsonl_path_encodes_slashes() {
+    fn compute_jsonl_path_builds_expected_path() {
         let path = compute_jsonl_path("/Users/alice/projects/myapp", "session-uuid-123");
         let path_str = path.to_string_lossy();
         assert!(path_str.contains("-Users-alice-projects-myapp"));

@@ -359,10 +359,10 @@ pub fn get_message_jsonl_uuids(
 ) -> Result<std::collections::HashSet<String>, AppError> {
     db.with_conn(|conn| {
         let mut stmt = conn.prepare(
-            "SELECT COALESCE(jsonl_uuid, uuid)
+            "SELECT jsonl_uuid
              FROM messages
              WHERE session_id = ?1
-               AND COALESCE(jsonl_uuid, uuid) IS NOT NULL",
+               AND jsonl_uuid IS NOT NULL",
         )?;
         let uuids = stmt
             .query_map(rusqlite::params![session_id], |row| row.get::<_, String>(0))?
@@ -486,7 +486,7 @@ pub fn get_session_jsonl_info(
         match row {
             Ok(info) => Ok(info),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok((None, None)),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e),
         }
     })
 }
@@ -518,7 +518,7 @@ pub fn get_project_for_session(
         match row {
             Ok(project) => Ok(Some(project)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e),
         }
     })
 }
@@ -625,6 +625,7 @@ pub fn insert_message(
 }
 
 #[tracing::instrument(target = "db/queries", level = "debug", skip(db, content))]
+#[allow(clippy::too_many_arguments)]
 pub fn save_message_from_jsonl(
     db: &Database,
     session_id: &str,
@@ -1668,6 +1669,54 @@ mod tests {
         assert_eq!(messages.len(), 2);
         assert_eq!(messages[0].role, "user");
         assert_eq!(messages[1].role, "assistant");
+    }
+
+    #[test]
+    fn get_message_jsonl_uuids_returns_only_jsonl_tagged_messages() {
+        let db = test_db();
+        insert_project(&db, "p1", "Proj", "/proj").unwrap();
+        insert_session(&db, "s1", Some("p1"), "claude-sonnet-4-6").unwrap();
+
+        super::save_message_from_jsonl(
+            &db,
+            "s1",
+            "m1",
+            "jsonl-uuid-1",
+            "user",
+            "hello",
+            None,
+            None,
+            None,
+            None,
+            None,
+            false,
+            "2026-03-21T00:00:00Z",
+            None,
+        )
+        .unwrap();
+
+        super::insert_message(
+            &db,
+            "m2",
+            "s1",
+            "assistant",
+            "hi",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
+
+        let uuids = super::get_message_jsonl_uuids(&db, "s1").unwrap();
+        assert!(uuids.contains("jsonl-uuid-1"));
+        assert!(!uuids.contains("m2"));
+        assert_eq!(uuids.len(), 1);
     }
 
     #[test]
