@@ -13,6 +13,7 @@ use super::permission::{PermissionAction, PermissionManager};
 use super::process::BridgeInterface;
 use super::process::CliExitDiagnostics;
 use super::{BridgeEvent, BridgeOutput, QuestionRequestPayload};
+use crate::paths::encode_project_path;
 
 /// Event payloads emitted to the frontend.
 
@@ -178,10 +179,6 @@ fn extract_mcp_prefix(tool_name: &str) -> Option<String> {
     // Find first `__` in the remainder — that separates server name from tool name
     let sep_pos = rest.find("__")?;
     Some(format!("mcp__{}", &rest[..sep_pos]))
-}
-
-fn encode_project_path(path: &str) -> String {
-    path.replace('/', "-")
 }
 
 /// Map a BridgeOutput to the appropriate Tauri event emission.

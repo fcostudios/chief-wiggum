@@ -10,6 +10,7 @@ interface HandoverPanelProps {
 
 const HandoverPanel: Component<HandoverPanelProps> = (props) => {
   const [qrSvg, setQrSvg] = createSignal('');
+  const [qrError, setQrError] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
   const [reclaiming, setReclaiming] = createSignal(false);
   const [now, setNow] = createSignal(Date.now());
@@ -34,7 +35,7 @@ const HandoverPanel: Component<HandoverPanelProps> = (props) => {
       void import('qrcode')
         .then((QRCode) => QRCode.toString(relayUrl, { type: 'svg', margin: 1 }))
         .then(setQrSvg)
-        .catch(() => {});
+        .catch(() => setQrError(true));
     }
     onCleanup(() => window.clearInterval(intervalId));
   });
@@ -109,7 +110,22 @@ const HandoverPanel: Component<HandoverPanelProps> = (props) => {
           </div>
         </div>
 
-        <Show when={qrSvg()}>
+        <Show
+          when={qrSvg()}
+          fallback={
+            <Show when={qrError()}>
+              <div
+                class="mb-4 rounded-xl px-3 py-2 text-center text-xs"
+                style={{
+                  background: 'var(--color-bg-inset)',
+                  color: 'var(--color-text-tertiary)',
+                }}
+              >
+                QR unavailable — use the URL above
+              </div>
+            </Show>
+          }
+        >
           <div
             class="mb-4 flex items-center justify-center rounded-xl bg-white p-3"
             // eslint-disable-next-line solid/no-innerhtml
@@ -144,7 +160,11 @@ const HandoverPanel: Component<HandoverPanelProps> = (props) => {
           </button>
         </div>
 
-        <div class="mb-5 text-xs" style={{ color: 'var(--color-text-tertiary)' }}>
+        <div
+          class="mb-5 text-xs"
+          style={{ color: 'var(--color-text-tertiary)' }}
+          data-testid="remote-message-count"
+        >
           {entry()?.remoteMessageCount ?? 0} remote message
           {(entry()?.remoteMessageCount ?? 0) === 1 ? '' : 's'} mirrored
         </div>

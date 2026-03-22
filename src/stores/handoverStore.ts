@@ -118,7 +118,7 @@ export async function initHandoverListeners(): Promise<void> {
   listenersInitialized = true;
 
   listenerCleanup.push(
-    // eslint-disable-next-line solid/reactivity -- Tauri event callback reads singleton store state intentionally
+    // eslint-disable-next-line solid/reactivity -- Tauri event callback intentionally reads singleton store state
     await listen<RemoteMessagePayload>('session:remote-message', ({ payload }) => {
       if (!isHandedOver(payload.session_id)) return;
 
@@ -147,6 +147,20 @@ export async function initHandoverListeners(): Promise<void> {
       }
     }),
   );
+
+  const activeId = sessionState.activeSessionId;
+  if (activeId && !isHandedOver(activeId)) {
+    try {
+      const backendState = await invoke<HandoverStatePayload | null>('get_handover_state', {
+        session_id: activeId,
+      });
+      if (backendState) {
+        upsertEntry(activeId, backendState);
+      }
+    } catch {
+      // Best effort only — leave frontend state empty if backend lookup fails.
+    }
+  }
 }
 
 export function cleanupHandoverListeners(): void {
